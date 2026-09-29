@@ -26,6 +26,7 @@ fun OnboardingInputBox(
     onValueChange: (String) -> Unit,
     guides: List<String>,
     modifier: Modifier = Modifier,
+    placeholder: String? = null,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -53,6 +54,18 @@ fun OnboardingInputBox(
                         .background(OnboardingColors.Grayscale700, RoundedCornerShape(8.dp))
                         .padding(horizontal = 24.dp, vertical = 18.dp),
                 ) {
+                    if (value.isEmpty() && placeholder != null) {
+                        Text(
+                            text = placeholder,
+                            style = TextStyle(
+                                color = OnboardingColors.Grayscale600,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Normal,
+                                lineHeight = 1.45.em,
+                                letterSpacing = (-0.01).em,
+                            ),
+                        )
+                    }
                     innerTextField()
                 }
             },
