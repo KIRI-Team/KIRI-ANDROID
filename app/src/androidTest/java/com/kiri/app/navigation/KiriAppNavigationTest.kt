@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kiri.uikit.KiriTheme
 import org.junit.Rule
@@ -21,6 +22,7 @@ class KiriAppNavigationTest {
     private fun setContentAndCompleteOnboarding() {
         composeTestRule.setContent { KiriTheme { KiriApp() } }
         composeTestRule.onNodeWithTag("onboarding_screen").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("onboarding_input_box").performTextInput("주연주")
         composeTestRule.onNodeWithText("다음").performClick()
         composeTestRule.onNodeWithTag("auth_screen").assertIsDisplayed()
         composeTestRule.onNodeWithText("다음").performClick()
