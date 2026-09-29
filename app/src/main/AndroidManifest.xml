@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="@string/app_name">
+    <application android:name=".KiriApplication" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="@string/app_name">
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
