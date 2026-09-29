@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("kiri.compose")
+    id("kiri.hilt")
 }
 android {
     namespace = "com.kiri.app"
