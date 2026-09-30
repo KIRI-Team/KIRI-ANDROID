@@ -18,7 +18,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kiri.feature.onboarding.model.FamilyRole
-import com.kiri.feature.onboarding.presentation.component.OnboardingColors
+import com.kiri.uikit.color.KiriColor
 import com.kiri.feature.onboarding.presentation.component.OnboardingRoleCard
 import com.kiri.feature.onboarding.presentation.component.OnboardingTitle
 import com.kiri.feature.onboarding.presentation.component.OnboardingTopBar
@@ -34,7 +34,7 @@ fun ChooseRoleScreen(
     Column(
         modifier
             .fillMaxSize()
-            .background(OnboardingColors.Background)
+            .background(KiriColor.Background)
             .systemBarsPadding()
             .testTag("choose_role_screen"),
     ) {

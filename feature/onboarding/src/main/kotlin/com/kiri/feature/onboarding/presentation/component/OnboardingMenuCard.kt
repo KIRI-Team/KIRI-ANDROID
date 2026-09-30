@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.kiri.feature.onboarding.R
+import com.kiri.uikit.color.KiriColor
 
 @Composable
 fun OnboardingMenuCard(
@@ -40,7 +41,7 @@ fun OnboardingMenuCard(
             .fillMaxWidth()
             .height(87.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(OnboardingColors.Grayscale700)
+            .background(KiriColor.Grayscale700)
             .clickable(onClick = onClick)
             .padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -48,7 +49,7 @@ fun OnboardingMenuCard(
         Box(
             modifier = Modifier
                 .size(48.dp)
-                .background(OnboardingColors.Grayscale800, CircleShape),
+                .background(KiriColor.Grayscale800, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Image(
@@ -67,7 +68,7 @@ fun OnboardingMenuCard(
             Text(
                 text = title,
                 style = TextStyle(
-                    color = OnboardingColors.Grayscale100,
+                    color = KiriColor.Grayscale100,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = (-0.02).em,
@@ -76,7 +77,7 @@ fun OnboardingMenuCard(
             Text(
                 text = description,
                 style = TextStyle(
-                    color = OnboardingColors.Grayscale500,
+                    color = KiriColor.Grayscale500,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Normal,
                     letterSpacing = (-0.02).em,

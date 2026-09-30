@@ -14,7 +14,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kiri.feature.onboarding.NicknameValidator
-import com.kiri.feature.onboarding.presentation.component.OnboardingColors
+import com.kiri.uikit.color.KiriColor
 import com.kiri.feature.onboarding.presentation.component.OnboardingInputBox
 import com.kiri.feature.onboarding.presentation.component.OnboardingNextButton
 import com.kiri.feature.onboarding.presentation.component.OnboardingTitle
@@ -37,7 +37,7 @@ fun InputNicknameScreen(
     Column(
         modifier
             .fillMaxSize()
-            .background(OnboardingColors.Background)
+            .background(KiriColor.Background)
             .systemBarsPadding()
             .imePadding()
             .testTag("input_nickname_screen"),

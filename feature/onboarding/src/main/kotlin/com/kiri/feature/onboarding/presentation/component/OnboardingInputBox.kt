@@ -19,6 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.kiri.uikit.color.KiriColor
 
 @Composable
 fun OnboardingInputBox(
@@ -37,13 +38,13 @@ fun OnboardingInputBox(
             onValueChange = onValueChange,
             singleLine = true,
             textStyle = TextStyle(
-                color = OnboardingColors.Grayscale100,
+                color = KiriColor.Grayscale100,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 lineHeight = 1.45.em,
                 letterSpacing = (-0.01).em,
             ),
-            cursorBrush = SolidColor(OnboardingColors.Grayscale100),
+            cursorBrush = SolidColor(KiriColor.Grayscale100),
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("onboarding_input_box"),
@@ -51,14 +52,14 @@ fun OnboardingInputBox(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(OnboardingColors.Grayscale700, RoundedCornerShape(8.dp))
+                        .background(KiriColor.Grayscale700, RoundedCornerShape(8.dp))
                         .padding(horizontal = 24.dp, vertical = 18.dp),
                 ) {
                     if (value.isEmpty() && placeholder != null) {
                         Text(
                             text = placeholder,
                             style = TextStyle(
-                                color = OnboardingColors.Grayscale600,
+                                color = KiriColor.Grayscale600,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Normal,
                                 lineHeight = 1.45.em,
@@ -78,7 +79,7 @@ fun OnboardingInputBox(
                 Text(
                     text = "✓ $guide",
                     style = TextStyle(
-                        color = OnboardingColors.Grayscale600,
+                        color = KiriColor.Grayscale600,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Normal,
                         lineHeight = 1.45.em,

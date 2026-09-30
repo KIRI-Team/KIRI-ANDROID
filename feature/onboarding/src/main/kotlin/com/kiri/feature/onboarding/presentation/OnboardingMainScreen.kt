@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.kiri.feature.onboarding.presentation.component.OnboardingColors
+import com.kiri.uikit.color.KiriColor
 import com.kiri.feature.onboarding.presentation.component.OnboardingMenuCard
 import com.kiri.feature.onboarding.presentation.component.OnboardingTitle
 import com.kiri.feature.onboarding.presentation.component.OnboardingTopBar
@@ -29,7 +29,7 @@ fun OnboardingMainScreen(
     Column(
         modifier
             .fillMaxSize()
-            .background(OnboardingColors.Background)
+            .background(KiriColor.Background)
             .systemBarsPadding()
             .testTag("onboarding_main_screen"),
     ) {

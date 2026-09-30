@@ -22,6 +22,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.kiri.uikit.color.KiriColor
 
 @Composable
 fun OnboardingRoleCard(
@@ -31,8 +32,8 @@ fun OnboardingRoleCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val containerColor = if (selected) OnboardingColors.Grayscale100 else OnboardingColors.Grayscale700
-    val contentColor = if (selected) OnboardingColors.Grayscale700 else OnboardingColors.Grayscale500
+    val containerColor = if (selected) KiriColor.Grayscale100 else KiriColor.Grayscale700
+    val contentColor = if (selected) KiriColor.Grayscale700 else KiriColor.Grayscale500
     val fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
 
     Box(

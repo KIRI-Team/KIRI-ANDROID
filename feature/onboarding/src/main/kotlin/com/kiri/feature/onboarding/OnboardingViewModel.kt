@@ -18,4 +18,20 @@ class OnboardingViewModel: ViewModel() {
 
     private val _event = MutableSharedFlow<OnboardingUiEvent>()
     val event: SharedFlow<OnboardingUiEvent> = _event.asSharedFlow()
+
+    fun initOnboarding() {
+        _uiState.update { it.copy(currentStep = OnboardingStep.INPUT_NICKNAME) }
+    }
+
+    fun next() {
+        _uiState.update {
+            it.copy(
+                currentStep = when (this) {
+                    OnboardingStep.INPUT_NICKNAME -> OnboardingStep.CHOOSE_ROLE
+                    OnboardingStep.CHOOSE_ROLE -> OnboardingStep.ONBOARDING_MAIN
+                    else -> Unit
+                }
+            )
+        }
+    }
 }

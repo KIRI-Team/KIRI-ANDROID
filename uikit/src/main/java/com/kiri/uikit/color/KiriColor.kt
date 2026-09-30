@@ -1,8 +1,8 @@
-package com.kiri.feature.onboarding.presentation.component
+package com.kiri.uikit.color
 
 import androidx.compose.ui.graphics.Color
 
-internal object OnboardingColors {
+object KiriColor {
     val Background = Color(0xFF242426)
     val Title = Color(0xFFD1D0D0)
     val Grayscale100 = Color(0xFFEEEEEE)

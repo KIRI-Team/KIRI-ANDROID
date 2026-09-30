@@ -11,6 +11,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.kiri.uikit.color.KiriColor
 
 @Composable
 fun OnboardingTitle(
@@ -25,7 +26,7 @@ fun OnboardingTitle(
         Text(
             text = title,
             style = TextStyle(
-                color = OnboardingColors.Title,
+                color = KiriColor.Title,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Normal,
                 lineHeight = 1.4.em,
@@ -35,7 +36,7 @@ fun OnboardingTitle(
         Text(
             text = subtitle,
             style = TextStyle(
-                color = OnboardingColors.Grayscale600,
+                color = KiriColor.Grayscale600,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 lineHeight = 1.4.em,

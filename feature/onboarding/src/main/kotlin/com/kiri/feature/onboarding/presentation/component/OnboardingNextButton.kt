@@ -20,6 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.kiri.uikit.color.KiriColor
 
 @Composable
 fun OnboardingNextButton(
@@ -29,8 +30,8 @@ fun OnboardingNextButton(
     text: String = "다음",
 ) {
     // TODO: Figma에는 비활성 상태만 있어 활성 상태 색상은 임시값. 디자인 확정 후 교체
-    val containerColor = if (enabled) OnboardingColors.Grayscale100 else OnboardingColors.Grayscale800
-    val contentColor = if (enabled) OnboardingColors.Background else OnboardingColors.Grayscale400
+    val containerColor = if (enabled) KiriColor.Grayscale100 else KiriColor.Grayscale800
+    val contentColor = if (enabled) KiriColor.Background else KiriColor.Grayscale400
 
     Box(
         modifier = modifier
