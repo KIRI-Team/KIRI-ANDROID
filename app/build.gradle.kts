@@ -31,6 +31,7 @@ dependencies {
     implementation(project(":feature:record"))
     implementation(project(":feature:place"))
     implementation(project(":feature:mypage"))
+    implementation(project(":data"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.material.icons.core)
