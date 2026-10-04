@@ -14,5 +14,10 @@ enum class OnboardingStep(
 
     INPUT_FAMILY_NAME("가족명 입력"),
     GENERATE_FAMILY_CODE_LOADING("코드 생성"),
-    GENERATE_FAMILY_CODE("코드 생성 완료");
+    GENERATE_FAMILY_CODE("코드 생성 완료"),
+
+
+    // 코드 입력 플로우에서 이용하는 온보딩 화면
+
+    INPUT_FAMILY_CODE("가족 코드 입력");
 }
