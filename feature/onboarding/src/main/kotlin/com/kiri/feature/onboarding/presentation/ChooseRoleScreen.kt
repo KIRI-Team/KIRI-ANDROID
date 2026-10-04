@@ -34,7 +34,7 @@ fun ChooseRoleScreen(
     Column(
         modifier
             .fillMaxSize()
-            .background(KiriColor.Background)
+            .background(KiriColor.Bg.Base)
             .systemBarsPadding()
             .testTag("choose_role_screen"),
     ) {

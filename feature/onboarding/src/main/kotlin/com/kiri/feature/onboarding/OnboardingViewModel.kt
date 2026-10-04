@@ -1,10 +1,13 @@
 package com.kiri.feature.onboarding
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.kiri.feature.onboarding.model.OnboardingUiEffect
 import com.kiri.feature.onboarding.model.OnboardingUiEvent
 import com.kiri.feature.onboarding.model.OnboardingUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -12,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 // 온보딩 메인에서 선택하는 이후 진행 경로
@@ -30,6 +34,7 @@ class OnboardingViewModel @Inject constructor() : ViewModel() {
     val effect: SharedFlow<OnboardingUiEffect> = _effect.asSharedFlow()
 
     private var selectedPath: OnboardingPath? = null
+    private var loadingJob: Job? = null
 
     fun initOnboarding() {
         selectedPath = null
@@ -61,6 +66,16 @@ class OnboardingViewModel @Inject constructor() : ViewModel() {
         // 메인에서 경로를 선택하기 전이거나 마지막 단계면 이동하지 않음
         val nextStep = steps.getOrNull(steps.indexOf(currentStep) + 1) ?: return
         _uiState.update { it.copy(currentStep = nextStep) }
+        if (nextStep == OnboardingStep.GENERATE_FAMILY_CODE_LOADING) startLoading()
+    }
+
+    // TODO: 코드 생성 로직이 추가되면 실제 생성 완료 시점에 넘어가도록 교체 (지금은 임시로 1초 대기)
+    private fun startLoading() {
+        loadingJob?.cancel()
+        loadingJob = viewModelScope.launch {
+            delay(LOADING_DURATION_MILLIS)
+            if (_uiState.value.currentStep == OnboardingStep.GENERATE_FAMILY_CODE_LOADING) next()
+        }
     }
 
     private fun previous() {
@@ -72,6 +87,7 @@ class OnboardingViewModel @Inject constructor() : ViewModel() {
             .lastOrNull { it != OnboardingStep.GENERATE_FAMILY_CODE_LOADING }
             ?: return
 
+        loadingJob?.cancel()
         // 메인으로 돌아오면 선택한 경로 초기화
         if (previousStep == OnboardingStep.ONBOARDING_MAIN) selectedPath = null
         _uiState.update { it.copy(currentStep = previousStep) }
@@ -89,6 +105,8 @@ class OnboardingViewModel @Inject constructor() : ViewModel() {
     }
 
     private companion object {
+        const val LOADING_DURATION_MILLIS = 1_000L
+
         val COMMON_STEPS = listOf(
             OnboardingStep.INPUT_NICKNAME,
             OnboardingStep.CHOOSE_ROLE,

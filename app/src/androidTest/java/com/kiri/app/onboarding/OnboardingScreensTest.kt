@@ -30,6 +30,7 @@ import com.kiri.feature.onboarding.presentation.InputFamilyCodeScreen
 import com.kiri.feature.onboarding.presentation.InputFamilyNameScreen
 import com.kiri.feature.onboarding.presentation.InputNicknameScreen
 import com.kiri.feature.onboarding.presentation.OnboardingMainScreen
+import com.kiri.feature.onboarding.presentation.component.OnboardingInputBox
 import com.kiri.uikit.KiriTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -180,6 +181,17 @@ class OnboardingScreensTest {
         assertEquals("AB12C9", code)
         composeTestRule.onNodeWithText("A").assertIsDisplayed()
         composeTestRule.onNodeWithText("9").assertIsDisplayed()
+    }
+
+    @Test
+    fun 비활성화된_입력창은_입력을_받지_않는다() {
+        composeTestRule.setContent {
+            KiriTheme {
+                OnboardingInputBox(value = "", onValueChange = {}, guides = emptyList(), placeholder = "이름을 입력하세요.", enabled = false)
+            }
+        }
+
+        composeTestRule.onNodeWithTag("onboarding_input_box").assertIsNotEnabled()
     }
 
     // 시스템 클립보드 읽기 제한(Android 10+)에 영향받지 않도록 복사된 값을 기록만 한다

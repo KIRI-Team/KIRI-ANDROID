@@ -37,7 +37,7 @@ fun InputNicknameScreen(
     Column(
         modifier
             .fillMaxSize()
-            .background(KiriColor.Background)
+            .background(KiriColor.Bg.Base)
             .systemBarsPadding()
             .imePadding()
             .testTag("input_nickname_screen"),

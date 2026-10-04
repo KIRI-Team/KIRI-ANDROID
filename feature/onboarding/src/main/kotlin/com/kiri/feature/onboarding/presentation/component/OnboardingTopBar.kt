@@ -47,7 +47,7 @@ fun OnboardingTopBar(
                 Image(
                     painter = painterResource(R.drawable.ic_onboarding_back_arrow),
                     contentDescription = "뒤로가기",
-                    colorFilter = if (enabled) null else ColorFilter.tint(KiriColor.IconDisabled),
+                    colorFilter = if (enabled) null else ColorFilter.tint(KiriColor.Icon.Disabled),
                 )
             }
         }

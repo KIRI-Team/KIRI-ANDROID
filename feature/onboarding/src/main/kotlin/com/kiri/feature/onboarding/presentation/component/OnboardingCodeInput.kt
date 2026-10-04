@@ -73,14 +73,14 @@ private fun CodeBox(char: Char?) {
     Box(
         modifier = Modifier
             .size(width = 43.dp, height = 56.dp)
-            .background(KiriColor.IconDisabled, RoundedCornerShape(4.dp)),
+            .background(KiriColor.Bg.Tertiary, RoundedCornerShape(4.dp)),
         contentAlignment = Alignment.Center,
     ) {
         // TODO: Figma에는 빈 칸 상태만 있어 입력된 글자 스타일은 임시값
         Text(
             text = char.toString(),
             style = TextStyle(
-                color = KiriColor.TextStrong,
+                color = KiriColor.Text.Strong,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Medium,
             ),

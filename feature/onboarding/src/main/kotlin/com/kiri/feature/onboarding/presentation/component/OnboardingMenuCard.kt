@@ -3,6 +3,8 @@ package com.kiri.feature.onboarding.presentation.component
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +18,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,20 +40,24 @@ fun OnboardingMenuCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(87.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(KiriColor.Grayscale700)
-            .clickable(onClick = onClick)
+            .background(onboardingCardBackground(pressed))
+            // 눌림 피드백은 Pressed 배경색으로 표현해서 기본 리플은 끈다
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
                 .size(48.dp)
-                .background(KiriColor.Grayscale800, CircleShape),
+                .background(KiriColor.Bg.Secondary, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Image(
@@ -68,7 +76,7 @@ fun OnboardingMenuCard(
             Text(
                 text = title,
                 style = TextStyle(
-                    color = KiriColor.TextStrong,
+                    color = KiriColor.Text.Strong,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = (-0.02).em,
@@ -77,7 +85,7 @@ fun OnboardingMenuCard(
             Text(
                 text = description,
                 style = TextStyle(
-                    color = KiriColor.Grayscale400,
+                    color = KiriColor.Text.Tertiary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Normal,
                     letterSpacing = (-0.02).em,

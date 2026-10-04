@@ -55,7 +55,7 @@ fun GenerateFamilyCodeScreen(
     Column(
         modifier
             .fillMaxSize()
-            .background(KiriColor.Background)
+            .background(KiriColor.Bg.Base)
             .systemBarsPadding()
             .testTag("generate_family_code_screen"),
     ) {

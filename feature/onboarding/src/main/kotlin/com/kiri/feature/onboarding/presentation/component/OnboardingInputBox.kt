@@ -19,7 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import com.kiri.uikit.color.KiriColor
+import com.kiri.uikit.color.KiriComponentColor
 
 @Composable
 fun OnboardingInputBox(
@@ -28,7 +28,16 @@ fun OnboardingInputBox(
     guides: List<String>,
     modifier: Modifier = Modifier,
     placeholder: String? = null,
+    enabled: Boolean = true,
 ) {
+    // KIRI/Input: Default·Focus·Error·Filled는 같은 배경을 쓰고 Disabled만 다르다
+    val inputTextStyle = TextStyle(
+        fontSize = 16.sp,
+        fontWeight = FontWeight.Medium,
+        lineHeight = 24.sp,
+        letterSpacing = (-0.04).em,
+    )
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -36,15 +45,12 @@ fun OnboardingInputBox(
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
+            enabled = enabled,
             singleLine = true,
-            textStyle = TextStyle(
-                color = KiriColor.TextPrimary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                lineHeight = 1.45.em,
-                letterSpacing = (-0.01).em,
+            textStyle = inputTextStyle.copy(
+                color = if (enabled) KiriComponentColor.Input.ContentDefault else KiriComponentColor.Input.ContentDisabled,
             ),
-            cursorBrush = SolidColor(KiriColor.TextPrimary),
+            cursorBrush = SolidColor(KiriComponentColor.Input.ContentDefault),
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("onboarding_input_box"),
@@ -52,18 +58,21 @@ fun OnboardingInputBox(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(KiriColor.Grayscale800, RoundedCornerShape(8.dp))
+                        .background(
+                            color = if (enabled) KiriComponentColor.Input.BgDefault else KiriComponentColor.Input.BgDisabled,
+                            shape = RoundedCornerShape(8.dp),
+                        )
                         .padding(horizontal = 24.dp, vertical = 18.dp),
                 ) {
                     if (value.isEmpty() && placeholder != null) {
                         Text(
                             text = placeholder,
-                            style = TextStyle(
-                                color = KiriColor.Grayscale600,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Normal,
-                                lineHeight = 1.45.em,
-                                letterSpacing = (-0.01).em,
+                            style = inputTextStyle.copy(
+                                color = if (enabled) {
+                                    KiriComponentColor.Input.PlaceholderDefault
+                                } else {
+                                    KiriComponentColor.Input.PlaceholderDisabled
+                                },
                             ),
                         )
                     }
@@ -79,7 +88,7 @@ fun OnboardingInputBox(
                 Text(
                     text = "✓ $guide",
                     style = TextStyle(
-                        color = KiriColor.Grayscale400,
+                        color = if (enabled) KiriComponentColor.Input.HelperDefault else KiriComponentColor.Input.HelperDisabled,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Normal,
                         lineHeight = 1.45.em,

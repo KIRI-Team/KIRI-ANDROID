@@ -13,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -32,9 +31,8 @@ fun OnboardingRoleCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val containerColor = if (selected) KiriColor.Accent else KiriColor.Grayscale700
-    val contentColor = if (selected) KiriColor.Background else KiriColor.Grayscale400
-    val fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+    // KIRI/Selection Card (Type=Role): 선택 여부에 따라 배경만 바뀐다
+    val containerColor = if (selected) KiriColor.Bg.Elevated else KiriColor.Bg.Tertiary
 
     Box(
         modifier = modifier
@@ -51,27 +49,26 @@ fun OnboardingRoleCard(
             Text(
                 text = koreanName,
                 textAlign = TextAlign.Center,
-                style = roleTextStyle(contentColor, fontWeight, 24),
+                style = roleTextStyle(fontSize = 20, lineHeight = 28),
             )
             Text(
                 text = englishName,
                 textAlign = TextAlign.Center,
-                style = roleTextStyle(contentColor, fontWeight, 18),
+                style = roleTextStyle(fontSize = 18, lineHeight = 27),
             )
         }
     }
 }
 
 private fun roleTextStyle(
-    color: Color,
-    fontWeight: FontWeight,
     fontSize: Int,
+    lineHeight: Int,
 ) = TextStyle(
-    color = color,
+    color = KiriColor.Text.Strong,
     fontSize = fontSize.sp,
-    fontWeight = fontWeight,
-    lineHeight = 1.5.em,
-    letterSpacing = (-0.01).em,
+    fontWeight = FontWeight.Medium,
+    lineHeight = lineHeight.sp,
+    letterSpacing = (-0.04).em,
 )
 
 @Preview(backgroundColor = 0xFF1A1A1A, showBackground = true)

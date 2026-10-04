@@ -29,7 +29,7 @@ fun OnboardingMainScreen(
     Column(
         modifier
             .fillMaxSize()
-            .background(KiriColor.Background)
+            .background(KiriColor.Bg.Base)
             .systemBarsPadding()
             .testTag("onboarding_main_screen"),
     ) {

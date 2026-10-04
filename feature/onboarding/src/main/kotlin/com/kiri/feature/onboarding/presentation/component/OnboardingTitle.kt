@@ -31,7 +31,7 @@ fun OnboardingTitle(
             text = title,
             textAlign = textAlign,
             style = TextStyle(
-                color = KiriColor.TextStrong,
+                color = KiriColor.Text.Strong,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Medium,
                 lineHeight = 40.sp,
@@ -42,7 +42,7 @@ fun OnboardingTitle(
             text = subtitle,
             textAlign = textAlign,
             style = TextStyle(
-                color = KiriColor.TextPrimary,
+                color = KiriColor.Text.Primary,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 lineHeight = 24.sp,
