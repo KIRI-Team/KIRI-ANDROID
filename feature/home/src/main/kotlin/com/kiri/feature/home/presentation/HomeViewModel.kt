@@ -52,6 +52,7 @@ sealed interface HomeAction {
     data object Flip : HomeAction
     data object Back : HomeAction
     data object DismissNotice : HomeAction
+    data object DismissMember : HomeAction
 }
 
 @HiltViewModel
@@ -95,6 +96,7 @@ class HomeViewModel @Inject constructor(
                 it.copy(editing = false, selectedMemberId = null, error = null, answerSaved = false)
             }
             HomeAction.DismissNotice -> mutableState.update { it.copy(notice = null, answerSaved = false) }
+            HomeAction.DismissMember -> mutableState.update { it.copy(selectedMemberId = null) }
         }
     }
 
@@ -146,9 +148,10 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val updated = repository.poke(question, member)
+                val nickname = home.members.firstOrNull { it.id == member }?.nickname ?: "가족"
                 mutableState.update { it.copy(
                     home = updated, busy = false, selectedMemberId = null,
-                    notice = "콕 보내기를 체험했어요. 실제 알림은 전송되지 않아요.",
+                    notice = "${nickname}를 콕 찔렀습니다!",
                 ) }
             } catch (error: CancellationException) { throw error }
             catch (error: Exception) { failed(error) }

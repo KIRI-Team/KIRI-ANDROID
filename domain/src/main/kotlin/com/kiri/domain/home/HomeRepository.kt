@@ -30,6 +30,7 @@ data class HomeRecommendation(
     val keywords: List<String> = emptyList(),
     val rating: String? = null,
     val imageUrl: String? = null,
+    val description: String = "",
 )
 
 data class FamilyHome(
