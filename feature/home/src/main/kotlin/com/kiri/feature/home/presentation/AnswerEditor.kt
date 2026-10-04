@@ -8,6 +8,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,12 +43,12 @@ internal fun AnswerEditor(
 ) {
     BackHandler { if (!busy) onBack() }
     Column(Modifier.fillMaxSize().background(HomeBackground).imePadding().padding(horizontal = 18.dp)) {
-        TextButton(onClick = onBack, enabled = !busy, modifier = Modifier.heightIn(min = 52.dp)) {
-            Text("뒤로", color = HomeSecondary)
+        IconButton(onClick = onBack, enabled = !busy, modifier = Modifier.size(52.dp)) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, "뒤로", tint = HomeStrong)
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             Spacer(Modifier.height(20.dp))
-            Text("오늘의 질문", color = HomeSecondary, fontSize = 14.sp)
+            Text("Q1.", color = HomeSecondary, fontSize = 14.sp)
             Spacer(Modifier.height(12.dp))
             Text(question, color = HomeStrong, fontSize = 28.sp, lineHeight = 39.sp)
             Spacer(Modifier.height(8.dp))
@@ -92,7 +94,6 @@ internal fun AnswerSavedDialog(onDismiss: () -> Unit) {
             Text("다른 가족의 답변을 기다려볼까요?", color = HomeSecondary, fontSize = 16.sp)
             Spacer(Modifier.height(20.dp))
             Image(painterResource(R.drawable.home_answer_success), null, Modifier.size(131.dp))
-            TextButton(onClick = onDismiss) { Text("확인", color = HomeAccent) }
         }
     }
 }
