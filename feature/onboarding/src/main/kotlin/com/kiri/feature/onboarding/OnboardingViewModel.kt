@@ -41,6 +41,8 @@ class OnboardingViewModel @Inject constructor() : ViewModel() {
             is OnboardingUiEvent.NicknameChanged -> _uiState.update { it.copy(nickname = event.nickname) }
             is OnboardingUiEvent.RoleSelected -> _uiState.update { it.copy(selectedRole = event.role) }
             is OnboardingUiEvent.PathSelected -> selectPath(event.path)
+            is OnboardingUiEvent.FamilyNameChanged -> _uiState.update { it.copy(familyName = event.familyName) }
+            is OnboardingUiEvent.InputFamilyCodeChanged -> _uiState.update { it.copy(inputFamilyCode = event.code) }
             OnboardingUiEvent.NextClicked -> next()
             OnboardingUiEvent.BackClicked -> previous()
         }
@@ -81,8 +83,9 @@ class OnboardingViewModel @Inject constructor() : ViewModel() {
             OnboardingStep.GENERATE_FAMILY_CODE_LOADING,
             OnboardingStep.GENERATE_FAMILY_CODE,
         )
-        // TODO: 가족코드 입력, 둘러보기 단계가 OnboardingStep에 추가되면 연결
-        OnboardingPath.JOIN_FAMILY, OnboardingPath.BROWSE, null -> emptyList()
+        OnboardingPath.JOIN_FAMILY -> listOf(OnboardingStep.INPUT_FAMILY_CODE)
+        // TODO: 둘러보기 단계가 OnboardingStep에 추가되면 연결
+        OnboardingPath.BROWSE, null -> emptyList()
     }
 
     private companion object {

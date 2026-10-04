@@ -32,8 +32,8 @@ fun OnboardingRoleCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val containerColor = if (selected) KiriColor.Grayscale100 else KiriColor.Grayscale700
-    val contentColor = if (selected) KiriColor.Grayscale700 else KiriColor.Grayscale500
+    val containerColor = if (selected) KiriColor.Accent else KiriColor.Grayscale700
+    val contentColor = if (selected) KiriColor.Background else KiriColor.Grayscale400
     val fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
 
     Box(
@@ -74,7 +74,7 @@ private fun roleTextStyle(
     letterSpacing = (-0.01).em,
 )
 
-@Preview(backgroundColor = 0xFF242426, showBackground = true)
+@Preview(backgroundColor = 0xFF1A1A1A, showBackground = true)
 @Composable
 private fun OnboardingRoleCardPreview() {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

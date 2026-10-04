@@ -68,7 +68,7 @@ fun OnboardingMenuCard(
             Text(
                 text = title,
                 style = TextStyle(
-                    color = KiriColor.Grayscale100,
+                    color = KiriColor.TextStrong,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = (-0.02).em,
@@ -77,7 +77,7 @@ fun OnboardingMenuCard(
             Text(
                 text = description,
                 style = TextStyle(
-                    color = KiriColor.Grayscale500,
+                    color = KiriColor.Grayscale400,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Normal,
                     letterSpacing = (-0.02).em,
@@ -91,7 +91,7 @@ fun OnboardingMenuCard(
     }
 }
 
-@Preview(backgroundColor = 0xFF242426, showBackground = true)
+@Preview(backgroundColor = 0xFF1A1A1A, showBackground = true)
 @Composable
 private fun OnboardingMenuCardPreview() {
     OnboardingMenuCard(

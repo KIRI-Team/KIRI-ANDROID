@@ -87,6 +87,30 @@ class KiriAppStartTest {
         composeTestRule.onNodeWithText("주연주").assertIsDisplayed()
     }
 
+    @Test
+    fun 온보딩_메인에서_가족공간_만들기를_누르면_가족명_입력으로_이동한다() {
+        passAuth()
+        composeTestRule.onNodeWithTag("onboarding_input_box").performTextInput("주연주")
+        composeTestRule.onNodeWithText("다음").performClick()
+        composeTestRule.onNodeWithText("아빠").performClick()
+
+        composeTestRule.onNodeWithText("가족공간 만들러 가기").performClick()
+
+        composeTestRule.onNodeWithTag("input_family_name_screen").assertIsDisplayed()
+    }
+
+    @Test
+    fun 온보딩_메인에서_가족코드_입력하기를_누르면_가족코드_입력으로_이동한다() {
+        passAuth()
+        composeTestRule.onNodeWithTag("onboarding_input_box").performTextInput("주연주")
+        composeTestRule.onNodeWithText("다음").performClick()
+        composeTestRule.onNodeWithText("아빠").performClick()
+
+        composeTestRule.onNodeWithText("가족코드 입력하기").performClick()
+
+        composeTestRule.onNodeWithTag("input_family_code_screen").assertIsDisplayed()
+    }
+
     private fun pressSystemBack() {
         composeTestRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
         composeTestRule.waitForIdle()

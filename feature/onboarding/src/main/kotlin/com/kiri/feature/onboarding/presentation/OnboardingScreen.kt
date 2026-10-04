@@ -64,10 +64,28 @@ fun OnboardingScreen(
                 onBrowseClick = { onEvent(OnboardingUiEvent.PathSelected(OnboardingPath.BROWSE)) },
                 onBackClick = onBackClick,
             )
-            // TODO: 가족 공간 생성 플로우 화면 연결
-            OnboardingStep.INPUT_FAMILY_NAME,
-            OnboardingStep.GENERATE_FAMILY_CODE_LOADING,
-            OnboardingStep.GENERATE_FAMILY_CODE -> Unit
+            OnboardingStep.INPUT_FAMILY_NAME -> InputFamilyNameScreen(
+                familyName = state.familyName,
+                onFamilyNameChange = { onEvent(OnboardingUiEvent.FamilyNameChanged(it)) },
+                onNextClick = { onEvent(OnboardingUiEvent.NextClicked) },
+                onBackClick = onBackClick,
+            )
+            OnboardingStep.GENERATE_FAMILY_CODE_LOADING -> GenerateFamilyCodeLoadingScreen()
+            OnboardingStep.GENERATE_FAMILY_CODE -> GenerateFamilyCodeScreen(
+                familyCode = state.familyCode,
+                onCancelClick = onBackClick,
+                // TODO: 초대하기(공유) 동작 정해지면 연결
+                onInviteClick = { onEvent(OnboardingUiEvent.NextClicked) },
+                onBackClick = onBackClick,
+            )
+            OnboardingStep.INPUT_FAMILY_CODE -> InputFamilyCodeScreen(
+                familyCode = state.inputFamilyCode,
+                onFamilyCodeChange = { onEvent(OnboardingUiEvent.InputFamilyCodeChanged(it)) },
+                onCancelClick = onBackClick,
+                // TODO: 가족코드 확인/참여 동작 정해지면 연결
+                onInviteClick = { onEvent(OnboardingUiEvent.NextClicked) },
+                onBackClick = onBackClick,
+            )
         }
     }
 }

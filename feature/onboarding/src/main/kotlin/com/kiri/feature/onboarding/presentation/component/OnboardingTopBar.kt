@@ -12,16 +12,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kiri.feature.onboarding.R
+import com.kiri.uikit.color.KiriColor
 
 @Composable
 fun OnboardingTopBar(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Row(
         modifier = modifier
@@ -37,20 +40,21 @@ fun OnboardingTopBar(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .clickable(onClick = onBackClick)
+                    .clickable(enabled = enabled, onClick = onBackClick)
                     .testTag("onboarding_back_button"),
                 contentAlignment = Alignment.Center,
             ) {
                 Image(
                     painter = painterResource(R.drawable.ic_onboarding_back_arrow),
                     contentDescription = "뒤로가기",
+                    colorFilter = if (enabled) null else ColorFilter.tint(KiriColor.IconDisabled),
                 )
             }
         }
     }
 }
 
-@Preview(backgroundColor = 0xFF242426, showBackground = true)
+@Preview(backgroundColor = 0xFF1A1A1A, showBackground = true)
 @Composable
 private fun OnboardingTopBarPreview() {
     OnboardingTopBar(onBackClick = {})

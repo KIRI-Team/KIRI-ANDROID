@@ -7,6 +7,8 @@ sealed interface OnboardingUiEvent {
     data class NicknameChanged(val nickname: String) : OnboardingUiEvent
     data class RoleSelected(val role: FamilyRole) : OnboardingUiEvent
     data class PathSelected(val path: OnboardingPath) : OnboardingUiEvent
+    data class FamilyNameChanged(val familyName: String) : OnboardingUiEvent
+    data class InputFamilyCodeChanged(val code: String) : OnboardingUiEvent
     data object NextClicked : OnboardingUiEvent
     data object BackClicked : OnboardingUiEvent
 }

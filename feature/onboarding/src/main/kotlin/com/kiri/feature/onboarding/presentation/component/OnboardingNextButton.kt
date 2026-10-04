@@ -22,22 +22,48 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.kiri.uikit.color.KiriColor
 
+enum class OnboardingButtonTone { Accent, Neutral }
+
 @Composable
 fun OnboardingNextButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     text: String = "다음",
+    tone: OnboardingButtonTone = OnboardingButtonTone.Accent,
 ) {
-    // TODO: Figma에는 비활성 상태만 있어 활성 상태 색상은 임시값. 디자인 확정 후 교체
-    val containerColor = if (enabled) KiriColor.Grayscale100 else KiriColor.Grayscale800
-    val contentColor = if (enabled) KiriColor.Background else KiriColor.Grayscale400
+    val containerColor = when {
+        !enabled -> KiriColor.Grayscale800
+        tone == OnboardingButtonTone.Accent -> KiriColor.Accent
+        else -> KiriColor.Grayscale800
+    }
+    val contentColor = when {
+        !enabled -> KiriColor.Grayscale400
+        tone == OnboardingButtonTone.Accent -> KiriColor.Background
+        else -> KiriColor.TextPrimary
+    }
+    val textStyle = when (tone) {
+        OnboardingButtonTone.Accent -> TextStyle(
+            color = contentColor,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            lineHeight = 1.45.em,
+            letterSpacing = (-0.01).em,
+        )
+        OnboardingButtonTone.Neutral -> TextStyle(
+            color = contentColor,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            lineHeight = 24.sp,
+            letterSpacing = (-0.04).em,
+        )
+    }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(54.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(containerColor)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -47,18 +73,12 @@ fun OnboardingNextButton(
         Text(
             text = text,
             textAlign = TextAlign.Center,
-            style = TextStyle(
-                color = contentColor,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 1.45.em,
-                letterSpacing = (-0.01).em,
-            ),
+            style = textStyle,
         )
     }
 }
 
-@Preview(backgroundColor = 0xFF242426, showBackground = true)
+@Preview(backgroundColor = 0xFF1A1A1A, showBackground = true)
 @Composable
 private fun OnboardingNextButtonPreview() {
     OnboardingNextButton(onClick = {}, enabled = false)

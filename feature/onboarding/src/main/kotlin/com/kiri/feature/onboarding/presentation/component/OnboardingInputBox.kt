@@ -38,13 +38,13 @@ fun OnboardingInputBox(
             onValueChange = onValueChange,
             singleLine = true,
             textStyle = TextStyle(
-                color = KiriColor.Grayscale100,
+                color = KiriColor.TextPrimary,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 lineHeight = 1.45.em,
                 letterSpacing = (-0.01).em,
             ),
-            cursorBrush = SolidColor(KiriColor.Grayscale100),
+            cursorBrush = SolidColor(KiriColor.TextPrimary),
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("onboarding_input_box"),
@@ -52,7 +52,7 @@ fun OnboardingInputBox(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(KiriColor.Grayscale700, RoundedCornerShape(8.dp))
+                        .background(KiriColor.Grayscale800, RoundedCornerShape(8.dp))
                         .padding(horizontal = 24.dp, vertical = 18.dp),
                 ) {
                     if (value.isEmpty() && placeholder != null) {
@@ -79,7 +79,7 @@ fun OnboardingInputBox(
                 Text(
                     text = "✓ $guide",
                     style = TextStyle(
-                        color = KiriColor.Grayscale600,
+                        color = KiriColor.Grayscale400,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Normal,
                         lineHeight = 1.45.em,
@@ -91,7 +91,7 @@ fun OnboardingInputBox(
     }
 }
 
-@Preview(backgroundColor = 0xFF242426, showBackground = true)
+@Preview(backgroundColor = 0xFF1A1A1A, showBackground = true)
 @Composable
 private fun OnboardingInputBoxPreview() {
     OnboardingInputBox(
