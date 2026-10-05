@@ -117,11 +117,11 @@ class OnboardingScreensTest {
         }
 
         composeTestRule.onNodeWithText("끼리에서 사용할\n가족명을 작성해주세요").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("onboarding_next_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("kiri_button").assertIsNotEnabled()
 
         composeTestRule.onNodeWithTag("onboarding_input_box").performTextInput("끼리네가족")
 
-        composeTestRule.onNodeWithTag("onboarding_next_button").assertIsEnabled().performClick()
+        composeTestRule.onNodeWithTag("kiri_button").assertIsEnabled().performClick()
         assertEquals(true, nextClicked)
     }
 
@@ -135,7 +135,7 @@ class OnboardingScreensTest {
         composeTestRule.onNodeWithText("가족코드를\n생성하고 있어요!").assertIsDisplayed()
         composeTestRule.onNodeWithText("조금만 기다려주세요").assertIsDisplayed()
         composeTestRule.onNodeWithTag("onboarding_loading_indicator").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("onboarding_back_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("kiri_back_button").assertIsNotEnabled()
     }
 
     @Test

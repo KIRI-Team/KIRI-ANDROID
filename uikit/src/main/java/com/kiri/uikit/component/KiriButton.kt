@@ -1,4 +1,4 @@
-package com.kiri.feature.onboarding.presentation.component
+package com.kiri.uikit.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,59 +28,51 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.kiri.uikit.color.KiriComponentColor
 
-enum class OnboardingButtonTone { Accent, Neutral }
+enum class KiriButtonTone { Accent, Neutral }
 
-internal data class OnboardingButtonColors(val container: Color, val content: Color)
+internal data class KiriButtonColors(val container: Color, val content: Color)
 
 // KIRI/Button: Default / Pressed / Disabled 상태별 색상
-internal fun onboardingButtonColors(
-    tone: OnboardingButtonTone,
+internal fun kiriButtonColors(
+    tone: KiriButtonTone,
     enabled: Boolean,
     pressed: Boolean,
-): OnboardingButtonColors = when (tone) {
-    OnboardingButtonTone.Accent -> with(KiriComponentColor.Button.FilledAccent) {
+): KiriButtonColors = when (tone) {
+    KiriButtonTone.Accent -> with(KiriComponentColor.Button.FilledAccent) {
         when {
-            !enabled -> OnboardingButtonColors(BgDisabled, ContentDisabled)
-            pressed -> OnboardingButtonColors(BgPressed, ContentPressed)
-            else -> OnboardingButtonColors(BgDefault, ContentDefault)
+            !enabled -> KiriButtonColors(BgDisabled, ContentDisabled)
+            pressed -> KiriButtonColors(BgPressed, ContentPressed)
+            else -> KiriButtonColors(BgDefault, ContentDefault)
         }
     }
-    OnboardingButtonTone.Neutral -> with(KiriComponentColor.Button.FilledNeutral) {
+    KiriButtonTone.Neutral -> with(KiriComponentColor.Button.FilledNeutral) {
         when {
-            !enabled -> OnboardingButtonColors(BgDisabled, ContentDisabled)
-            pressed -> OnboardingButtonColors(BgPressed, ContentPressed)
-            else -> OnboardingButtonColors(BgDefault, ContentDefault)
+            !enabled -> KiriButtonColors(BgDisabled, ContentDisabled)
+            pressed -> KiriButtonColors(BgPressed, ContentPressed)
+            else -> KiriButtonColors(BgDefault, ContentDefault)
         }
     }
 }
 
 @Composable
-fun OnboardingNextButton(
+fun KiriButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     text: String = "다음",
-    tone: OnboardingButtonTone = OnboardingButtonTone.Accent,
+    tone: KiriButtonTone = KiriButtonTone.Accent,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val (containerColor, contentColor) = onboardingButtonColors(tone, enabled, pressed)
-    val textStyle = when (tone) {
-        OnboardingButtonTone.Accent -> TextStyle(
-            color = contentColor,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
-            lineHeight = 1.45.em,
-            letterSpacing = (-0.01).em,
-        )
-        OnboardingButtonTone.Neutral -> TextStyle(
-            color = contentColor,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            lineHeight = 24.sp,
-            letterSpacing = (-0.04).em,
-        )
-    }
+    val (containerColor, contentColor) = kiriButtonColors(tone, enabled, pressed)
+    // KIRI/Button 컴포넌트는 톤과 관계없이 같은 글자 스타일(Title/Medium)을 쓴다
+    val textStyle = TextStyle(
+        color = contentColor,
+        fontSize = 16.sp,
+        fontWeight = FontWeight.Medium,
+        lineHeight = 24.sp,
+        letterSpacing = (-0.04).em,
+    )
 
     Box(
         modifier = modifier
@@ -97,7 +89,7 @@ fun OnboardingNextButton(
                 onClick = onClick,
             )
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .testTag("onboarding_next_button"),
+            .testTag("kiri_button"),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -110,6 +102,6 @@ fun OnboardingNextButton(
 
 @Preview(backgroundColor = 0xFF1A1A1A, showBackground = true)
 @Composable
-private fun OnboardingNextButtonPreview() {
-    OnboardingNextButton(onClick = {}, enabled = false)
+private fun KiriButtonPreview() {
+    KiriButton(onClick = {}, enabled = false)
 }

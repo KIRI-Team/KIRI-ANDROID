@@ -20,8 +20,8 @@ import androidx.compose.ui.unit.dp
 import com.kiri.feature.onboarding.model.FamilyRole
 import com.kiri.uikit.color.KiriColor
 import com.kiri.feature.onboarding.presentation.component.OnboardingRoleCard
-import com.kiri.feature.onboarding.presentation.component.OnboardingTitle
-import com.kiri.feature.onboarding.presentation.component.OnboardingTopBar
+import com.kiri.uikit.component.KiriTitle
+import com.kiri.uikit.component.KiriTopBar
 
 @Composable
 fun ChooseRoleScreen(
@@ -38,9 +38,9 @@ fun ChooseRoleScreen(
             .systemBarsPadding()
             .testTag("choose_role_screen"),
     ) {
-        OnboardingTopBar(onBackClick = onBackClick)
+        KiriTopBar(onBackClick = onBackClick)
         Spacer(Modifier.height(24.dp))
-        OnboardingTitle(
+        KiriTitle(
             title = "${nickname}님의\n역할을 선택해주세요.",
             subtitle = "가족 안에서의 역할을 선택해주세요!",
             modifier = Modifier.padding(horizontal = 18.dp),

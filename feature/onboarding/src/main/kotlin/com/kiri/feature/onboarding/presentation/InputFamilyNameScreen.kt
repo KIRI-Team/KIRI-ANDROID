@@ -15,9 +15,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kiri.feature.onboarding.NicknameValidator
 import com.kiri.feature.onboarding.presentation.component.OnboardingInputBox
-import com.kiri.feature.onboarding.presentation.component.OnboardingNextButton
-import com.kiri.feature.onboarding.presentation.component.OnboardingTitle
-import com.kiri.feature.onboarding.presentation.component.OnboardingTopBar
+import com.kiri.uikit.component.KiriButton
+import com.kiri.uikit.component.KiriTitle
+import com.kiri.uikit.component.KiriTopBar
 import com.kiri.uikit.color.KiriColor
 
 private val familyNameGuides = listOf(
@@ -42,14 +42,14 @@ fun InputFamilyNameScreen(
             .imePadding()
             .testTag("input_family_name_screen"),
     ) {
-        OnboardingTopBar(onBackClick = onBackClick)
+        KiriTopBar(onBackClick = onBackClick)
         Column(
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 18.dp),
         ) {
             Spacer(Modifier.height(24.dp))
-            OnboardingTitle(
+            KiriTitle(
                 title = "끼리에서 사용할\n가족명을 작성해주세요",
                 subtitle = "우리 가족을 뭐라고 불러드릴까요?",
             )
@@ -62,7 +62,7 @@ fun InputFamilyNameScreen(
                 placeholder = "가족명을 입력하세요.",
             )
         }
-        OnboardingNextButton(
+        KiriButton(
             onClick = onNextClick,
             enabled = NicknameValidator.isValid(familyName),
             modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 12.dp),
