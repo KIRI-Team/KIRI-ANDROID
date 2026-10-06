@@ -6,7 +6,7 @@
 
 이 앱은 NavController를 두 계층으로 나눠 쓴다.
 
-- **Root NavHost** (`KiriApp.kt`): `onboarding` → `auth` → `main` 3개 route만 가진다. 온보딩/로그인 통과 여부만 책임지고, 탭이나 바텀바에 대해서는 전혀 모른다.
+- **Root NavHost** (`KiriApp.kt`): `auth` → `onboarding` → `main` 3개 route만 가진다. 로그인/온보딩 통과 여부만 책임지고, 탭이나 바텀바에 대해서는 전혀 모른다. `auth`와 `onboarding`은 하나의 진입 플로우로 취급한다 (5번 참고).
 - **Main NavHost** (`MainScreen.kt` → `KiriNavHost.kt`): `main` route 진입 후 별도의 `rememberNavController()`로 만들어지는 탭 전용 컨트롤러다. 바텀바는 이 컨트롤러만 조작한다.
 
 바텀바 관련 로직을 수정할 때 Root NavHost와 Main NavHost의 NavController를 절대 섞지 않는다. `KiriBottomBar`에는 반드시 `MainScreen`이 만든 NavController만 전달한다.
@@ -47,9 +47,13 @@ Scaffold(bottomBar = { KiriBottomBar(navController) }) { padding ->
 - 처음에는 "Detail 화면에서는 바텀바를 숨긴다"는 조건을 넣었었지만, 이렇게 하면 예를 들어 홈 탭에서 Detail을 보고 있는 도중에는 바텀바가 사라져서 다른 탭으로 전환할 방법 자체가 없어진다. 그 결과 "탭마다 Detail이 독립적으로 쌓인다"는 기능 자체를 사용자가 이용할 수 없게 된다 (`KiriAppNavigationTest`의 탭 전환 테스트가 이 문제를 실제로 잡아냈다).
 - 따라서 Detail 화면에서 바텀바를 숨기는 방향으로 되돌리지 않는다. 특정 화면에서만 바텀바를 숨기고 싶다면, 그 화면에서도 다른 탭으로 즉시 전환할 수 있는 대안(예: 상단 바의 탭 전환 UI)이 함께 있어야 한다.
 
-## 5. 온보딩/로그인 이후로는 되돌아가지 않는다
+## 5. 로그인과 온보딩은 하나의 진입 플로우다
 
-`KiriApp.kt`에서 온보딩→로그인, 로그인→메인 전환 시 `popUpTo(...) { inclusive = true }`로 이전 route를 백스택에서 완전히 제거한다. 그 결과 메인 화면(바텀바)에 진입한 뒤 시스템 뒤로가기를 눌러도 온보딩/로그인 화면으로 돌아가지 않고, 더 이상 갈 곳이 없으면 앱이 종료된다. 이 동작을 바꾸려면(예: 로그아웃 후 재로그인 플로우 추가) `popUpTo` 대상과 `inclusive` 값을 함께 검토해야 한다.
+로그인(`auth`)과 온보딩(`onboarding`)은 다루는 정보가 달라서(계정 인증 / 사용자·가족 정보 설정) route를 나눴을 뿐, 전체적으로는 거의 하나의 플로우로 본다.
+
+- **로그인 → 온보딩**: 로그인을 백스택에서 제거하지 않는다. 온보딩 첫 화면에서 뒤로가기를 누르면 로그인으로 돌아갈 수 있다.
+- **온보딩 → 메인**: 로그인과 온보딩을 함께 제거한다(`popUpTo(ROUTE_AUTH) { inclusive = true }`). 그 결과 메인 화면(바텀바)에 진입한 뒤 시스템 뒤로가기를 눌러도 로그인/온보딩 화면으로 돌아가지 않고, 더 이상 갈 곳이 없으면 앱이 종료된다.
+- 이 동작을 바꾸려면(예: 로그아웃 후 재로그인 플로우 추가) `popUpTo` 대상과 `inclusive` 값을 함께 검토해야 한다.
 
 ## 6. Compose UI 테스트를 위한 testTag 규칙
 
