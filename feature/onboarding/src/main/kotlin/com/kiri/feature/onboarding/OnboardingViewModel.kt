@@ -43,10 +43,14 @@ class OnboardingViewModel @Inject constructor() : ViewModel() {
 
     fun onEvent(event: OnboardingUiEvent) {
         when (event) {
-            is OnboardingUiEvent.NicknameChanged -> _uiState.update { it.copy(nickname = event.nickname) }
+            is OnboardingUiEvent.NicknameChanged -> _uiState.update {
+                it.copy(nickname = event.nickname, nicknameViolations = emptySet())
+            }
             is OnboardingUiEvent.RoleSelected -> _uiState.update { it.copy(selectedRole = event.role) }
             is OnboardingUiEvent.PathSelected -> selectPath(event.path)
-            is OnboardingUiEvent.FamilyNameChanged -> _uiState.update { it.copy(familyName = event.familyName) }
+            is OnboardingUiEvent.FamilyNameChanged -> _uiState.update {
+                it.copy(familyName = event.familyName, familyNameViolations = emptySet())
+            }
             is OnboardingUiEvent.InputFamilyCodeChanged -> _uiState.update { it.copy(inputFamilyCode = event.code) }
             OnboardingUiEvent.NextClicked -> next()
             OnboardingUiEvent.BackClicked -> previous()
@@ -63,11 +67,32 @@ class OnboardingViewModel @Inject constructor() : ViewModel() {
 
     private fun next() {
         val currentStep = _uiState.value.currentStep
+        if (!validateInput(currentStep)) return
         val steps = stepsOf(selectedPath)
         // 메인에서 경로를 선택하기 전이거나 마지막 단계면 이동하지 않음
         val nextStep = steps.getOrNull(steps.indexOf(currentStep) + 1) ?: return
         _uiState.update { it.copy(currentStep = nextStep) }
         if (nextStep == OnboardingStep.GENERATE_FAMILY_CODE_LOADING) startLoading()
+    }
+
+    // 닉네임·가족명 단계에서는 규칙을 지키지 못하면 오류를 표시하고 넘어가지 않는다
+    // 역할 선택 단계는 역할을 골라야 넘어간다
+    private fun validateInput(step: OnboardingStep): Boolean {
+        val state = _uiState.value
+        return when (step) {
+            OnboardingStep.INPUT_NICKNAME -> {
+                val violations = NicknameValidator.violations(state.nickname)
+                _uiState.update { it.copy(nicknameViolations = violations) }
+                violations.isEmpty()
+            }
+            OnboardingStep.INPUT_FAMILY_NAME -> {
+                val violations = NicknameValidator.violations(state.familyName)
+                _uiState.update { it.copy(familyNameViolations = violations) }
+                violations.isEmpty()
+            }
+            OnboardingStep.CHOOSE_ROLE -> state.selectedRole != null
+            else -> true
+        }
     }
 
     // 초대하기 버튼을 누르면 임시로 홈화면으로 넘어감 -> 추후 수정 예정

@@ -29,11 +29,14 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.kiri.uikit.color.KiriComponentColor
 
+// 입력창 아래 안내 문구. isError면 오류 색으로 표시한다
+data class OnboardingInputGuide(val text: String, val isError: Boolean = false)
+
 @Composable
 fun OnboardingInputBox(
     value: String,
     onValueChange: (String) -> Unit,
-    guides: List<String>,
+    guides: List<OnboardingInputGuide>,
     modifier: Modifier = Modifier,
     placeholder: String? = null,
     enabled: Boolean = true,
@@ -101,9 +104,13 @@ fun OnboardingInputBox(
         ) {
             guides.forEach { guide ->
                 Text(
-                    text = "✓ $guide",
+                    text = "✓ ${guide.text}",
                     style = TextStyle(
-                        color = if (enabled) KiriComponentColor.Input.HelperDefault else KiriComponentColor.Input.HelperDisabled,
+                        color = when {
+                            !enabled -> KiriComponentColor.Input.HelperDisabled
+                            guide.isError -> KiriComponentColor.Input.HelperError
+                            else -> KiriComponentColor.Input.HelperDefault
+                        },
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Normal,
                         lineHeight = 1.45.em,
@@ -119,8 +126,13 @@ fun OnboardingInputBox(
 @Composable
 private fun OnboardingInputBoxPreview() {
     OnboardingInputBox(
-        value = "주연주",
+        value = "주",
         onValueChange = {},
-        guides = listOf("한글/영어/숫자 혼합 가능", "최소 2자 ~ 최대 10자 이내", "특수 문자 입력 불가능"),
+        guides = listOf(
+            OnboardingInputGuide("한글/영어/숫자 혼합 가능"),
+            OnboardingInputGuide("최소 2자 ~ 최대 10자 이내", isError = true),
+            OnboardingInputGuide("특수 문자 입력 불가능"),
+        ),
+        isError = true,
     )
 }

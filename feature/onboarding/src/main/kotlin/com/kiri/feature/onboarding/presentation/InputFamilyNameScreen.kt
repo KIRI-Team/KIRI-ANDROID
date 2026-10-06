@@ -13,18 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.kiri.feature.onboarding.NicknameValidator
+import com.kiri.feature.onboarding.NicknameRule
 import com.kiri.feature.onboarding.presentation.component.OnboardingInputBox
 import com.kiri.uikit.component.KiriButton
 import com.kiri.uikit.component.KiriTitle
 import com.kiri.uikit.component.KiriTopBar
 import com.kiri.uikit.color.KiriColor
-
-private val familyNameGuides = listOf(
-    "한글/영어/숫자 혼합 가능",
-    "최소 2자 ~ 최대 10자 이내",
-    "특수 문자 입력 불가능",
-)
 
 @Composable
 fun InputFamilyNameScreen(
@@ -33,6 +27,7 @@ fun InputFamilyNameScreen(
     onNextClick: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    violations: Set<NicknameRule> = emptySet(),
 ) {
     Column(
         modifier
@@ -57,14 +52,16 @@ fun InputFamilyNameScreen(
             // 가족명 규칙은 닉네임 규칙과 동일하다
             OnboardingInputBox(
                 value = familyName,
-                onValueChange = { onFamilyNameChange(it.take(NicknameValidator.MAX_LENGTH)) },
-                guides = familyNameGuides,
+                onValueChange = onFamilyNameChange,
+                guides = nicknameGuides(violations),
+                isError = violations.isNotEmpty(),
                 placeholder = "가족명을 입력하세요.",
             )
         }
         KiriButton(
             onClick = onNextClick,
-            enabled = NicknameValidator.isValid(familyName),
+            // 한 글자라도 입력하면 활성화하고, 규칙 확인은 누른 시점에 한다
+            enabled = familyName.isNotEmpty(),
             modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 12.dp),
         )
     }

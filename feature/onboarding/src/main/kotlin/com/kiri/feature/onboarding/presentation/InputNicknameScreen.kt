@@ -13,18 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.kiri.feature.onboarding.NicknameValidator
+import com.kiri.feature.onboarding.NicknameRule
 import com.kiri.uikit.color.KiriColor
 import com.kiri.feature.onboarding.presentation.component.OnboardingInputBox
 import com.kiri.uikit.component.KiriButton
 import com.kiri.uikit.component.KiriTitle
 import com.kiri.uikit.component.KiriTopBar
-
-private val nicknameGuides = listOf(
-    "한글/영어/숫자 혼합 가능",
-    "최소 2자 ~ 최대 10자 이내",
-    "특수 문자 입력 불가능",
-)
 
 @Composable
 fun InputNicknameScreen(
@@ -33,6 +27,7 @@ fun InputNicknameScreen(
     onNextClick: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    violations: Set<NicknameRule> = emptySet(),
 ) {
     Column(
         modifier
@@ -56,14 +51,16 @@ fun InputNicknameScreen(
             Spacer(Modifier.height(50.dp))
             OnboardingInputBox(
                 value = nickname,
-                onValueChange = { onNicknameChange(it.take(NicknameValidator.MAX_LENGTH)) },
-                guides = nicknameGuides,
+                onValueChange = onNicknameChange,
+                guides = nicknameGuides(violations),
+                isError = violations.isNotEmpty(),
                 placeholder = "이름을 입력하세요.",
             )
         }
         KiriButton(
             onClick = onNextClick,
-            enabled = NicknameValidator.isValid(nickname),
+            // 한 글자라도 입력하면 활성화하고, 규칙 확인은 누른 시점에 한다
+            enabled = nickname.isNotEmpty(),
             modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 12.dp),
         )
     }

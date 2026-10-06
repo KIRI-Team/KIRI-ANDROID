@@ -60,15 +60,13 @@ fun OnboardingScreen(
                 onNicknameChange = { onEvent(OnboardingUiEvent.NicknameChanged(it)) },
                 onNextClick = { onEvent(OnboardingUiEvent.NextClicked) },
                 onBackClick = onBackClick,
+                violations = state.nicknameViolations,
             )
             OnboardingStep.CHOOSE_ROLE -> ChooseRoleScreen(
                 nickname = state.nickname,
                 selectedRole = state.selectedRole,
-                onRoleSelect = {
-                    onEvent(OnboardingUiEvent.RoleSelected(it))
-                    // 역할 선택 화면에는 다음 버튼이 없어 선택 즉시 진행
-                    onEvent(OnboardingUiEvent.NextClicked)
-                },
+                onRoleSelect = { onEvent(OnboardingUiEvent.RoleSelected(it)) },
+                onNextClick = { onEvent(OnboardingUiEvent.NextClicked) },
                 onBackClick = onBackClick,
             )
             OnboardingStep.ONBOARDING_MAIN -> OnboardingMainScreen(
@@ -82,6 +80,7 @@ fun OnboardingScreen(
                 onFamilyNameChange = { onEvent(OnboardingUiEvent.FamilyNameChanged(it)) },
                 onNextClick = { onEvent(OnboardingUiEvent.NextClicked) },
                 onBackClick = onBackClick,
+                violations = state.familyNameViolations,
             )
             OnboardingStep.GENERATE_FAMILY_CODE_LOADING -> GenerateFamilyCodeLoadingScreen()
             OnboardingStep.GENERATE_FAMILY_CODE -> GenerateFamilyCodeScreen(
