@@ -1,15 +1,23 @@
 package com.kiri.feature.onboarding.presentation.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
@@ -29,14 +37,24 @@ fun OnboardingInputBox(
     modifier: Modifier = Modifier,
     placeholder: String? = null,
     enabled: Boolean = true,
+    isError: Boolean = false,
+    trailingIcon: (@Composable () -> Unit)? = null,
 ) {
-    // KIRI/Input: Default·Focus·Error·Filled는 같은 배경을 쓰고 Disabled만 다르다
     val inputTextStyle = TextStyle(
         fontSize = 16.sp,
         fontWeight = FontWeight.Medium,
         lineHeight = 24.sp,
         letterSpacing = (-0.04).em,
     )
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    val state = onboardingInputState(
+        enabled = enabled,
+        isError = isError,
+        isFocused = isFocused,
+        isEmpty = value.isEmpty(),
+    )
+    val shape = RoundedCornerShape(8.dp)
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -47,36 +65,33 @@ fun OnboardingInputBox(
             onValueChange = onValueChange,
             enabled = enabled,
             singleLine = true,
-            textStyle = inputTextStyle.copy(
-                color = if (enabled) KiriComponentColor.Input.ContentDefault else KiriComponentColor.Input.ContentDisabled,
-            ),
-            cursorBrush = SolidColor(KiriComponentColor.Input.ContentDefault),
+            textStyle = inputTextStyle.copy(color = state.contentColor()),
+            cursorBrush = SolidColor(KiriComponentColor.Input.BorderFocus),
+            interactionSource = interactionSource,
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("onboarding_input_box"),
             decorationBox = { innerTextField ->
-                Box(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            color = if (enabled) KiriComponentColor.Input.BgDefault else KiriComponentColor.Input.BgDisabled,
-                            shape = RoundedCornerShape(8.dp),
-                        )
-                        .padding(horizontal = 24.dp, vertical = 18.dp),
+                        .height(54.dp)
+                        .background(color = state.background(), shape = shape)
+                        .border(width = state.borderWidth(), color = state.borderColor(), shape = shape)
+                        .padding(horizontal = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    if (value.isEmpty() && placeholder != null) {
-                        Text(
-                            text = placeholder,
-                            style = inputTextStyle.copy(
-                                color = if (enabled) {
-                                    KiriComponentColor.Input.PlaceholderDefault
-                                } else {
-                                    KiriComponentColor.Input.PlaceholderDisabled
-                                },
-                            ),
-                        )
+                    Box(modifier = Modifier.weight(1f)) {
+                        if (value.isEmpty() && placeholder != null) {
+                            Text(
+                                text = placeholder,
+                                style = inputTextStyle.copy(color = state.placeholderColor()),
+                            )
+                        }
+                        innerTextField()
                     }
-                    innerTextField()
+                    trailingIcon?.invoke()
                 }
             },
         )

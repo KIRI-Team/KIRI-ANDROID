@@ -23,8 +23,15 @@ fun KiriApp() {
             )
         }
         composable(ROUTE_ONBOARDING) {
-            // TODO: 온보딩 완료 시점이 정해지면 ROUTE_MAIN으로 이동 연결 (popUpTo(ROUTE_AUTH) { inclusive = true })
-            OnboardingRoute()
+            OnboardingRoute(
+                // 온보딩을 마치면 로그인·온보딩으로 뒤로가지 않도록 백스택을 비우고, 중복 이동은 막는다
+                onNavigateToMainFlow = {
+                    rootNavController.navigate(ROUTE_MAIN) {
+                        popUpTo(ROUTE_AUTH) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
         }
         composable(ROUTE_MAIN) {
             MainScreen()

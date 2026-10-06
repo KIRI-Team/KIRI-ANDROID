@@ -11,4 +11,5 @@ sealed interface OnboardingUiEvent {
     data class InputFamilyCodeChanged(val code: String) : OnboardingUiEvent
     data object NextClicked : OnboardingUiEvent
     data object BackClicked : OnboardingUiEvent
+    data object InviteClicked : OnboardingUiEvent
 }

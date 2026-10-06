@@ -22,7 +22,10 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kiri.feature.onboarding.OnboardingStep
 import com.kiri.feature.onboarding.model.FamilyRole
+import com.kiri.feature.onboarding.model.OnboardingUiEvent
+import com.kiri.feature.onboarding.model.OnboardingUiState
 import com.kiri.feature.onboarding.presentation.ChooseRoleScreen
 import com.kiri.feature.onboarding.presentation.GenerateFamilyCodeLoadingScreen
 import com.kiri.feature.onboarding.presentation.GenerateFamilyCodeScreen
@@ -30,6 +33,7 @@ import com.kiri.feature.onboarding.presentation.InputFamilyCodeScreen
 import com.kiri.feature.onboarding.presentation.InputFamilyNameScreen
 import com.kiri.feature.onboarding.presentation.InputNicknameScreen
 import com.kiri.feature.onboarding.presentation.OnboardingMainScreen
+import com.kiri.feature.onboarding.presentation.OnboardingScreen
 import com.kiri.feature.onboarding.presentation.component.OnboardingInputBox
 import com.kiri.uikit.KiriTheme
 import org.junit.Assert.assertEquals
@@ -192,6 +196,29 @@ class OnboardingScreensTest {
         }
 
         composeTestRule.onNodeWithTag("onboarding_input_box").assertIsNotEnabled()
+    }
+
+    @Test
+    fun 코드_생성_완료_화면의_초대하기는_InviteClicked를_보낸다() {
+        assertInviteSendsInviteClicked(OnboardingStep.GENERATE_FAMILY_CODE)
+    }
+
+    @Test
+    fun 가족코드_입력_화면의_초대하기는_InviteClicked를_보낸다() {
+        assertInviteSendsInviteClicked(OnboardingStep.INPUT_FAMILY_CODE)
+    }
+
+    private fun assertInviteSendsInviteClicked(step: OnboardingStep) {
+        val events = mutableListOf<OnboardingUiEvent>()
+        composeTestRule.setContent {
+            KiriTheme {
+                OnboardingScreen(state = OnboardingUiState(currentStep = step), onEvent = { events += it })
+            }
+        }
+
+        composeTestRule.onNodeWithText("초대하기").performClick()
+
+        assertEquals(listOf(OnboardingUiEvent.InviteClicked), events)
     }
 
     // 시스템 클립보드 읽기 제한(Android 10+)에 영향받지 않도록 복사된 값을 기록만 한다

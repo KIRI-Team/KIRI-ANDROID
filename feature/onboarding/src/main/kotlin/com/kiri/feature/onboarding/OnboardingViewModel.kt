@@ -7,13 +7,13 @@ import com.kiri.feature.onboarding.model.OnboardingUiEvent
 import com.kiri.feature.onboarding.model.OnboardingUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -30,8 +30,8 @@ class OnboardingViewModel @Inject constructor() : ViewModel() {
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
 
-    private val _effect = MutableSharedFlow<OnboardingUiEffect>()
-    val effect: SharedFlow<OnboardingUiEffect> = _effect.asSharedFlow()
+    private val _effect = Channel<OnboardingUiEffect>(Channel.BUFFERED)
+    val effect: Flow<OnboardingUiEffect> = _effect.receiveAsFlow()
 
     private var selectedPath: OnboardingPath? = null
     private var loadingJob: Job? = null
@@ -50,6 +50,7 @@ class OnboardingViewModel @Inject constructor() : ViewModel() {
             is OnboardingUiEvent.InputFamilyCodeChanged -> _uiState.update { it.copy(inputFamilyCode = event.code) }
             OnboardingUiEvent.NextClicked -> next()
             OnboardingUiEvent.BackClicked -> previous()
+            OnboardingUiEvent.InviteClicked -> invite()
         }
     }
 
@@ -67,6 +68,11 @@ class OnboardingViewModel @Inject constructor() : ViewModel() {
         val nextStep = steps.getOrNull(steps.indexOf(currentStep) + 1) ?: return
         _uiState.update { it.copy(currentStep = nextStep) }
         if (nextStep == OnboardingStep.GENERATE_FAMILY_CODE_LOADING) startLoading()
+    }
+
+    // 초대하기 버튼을 누르면 임시로 홈화면으로 넘어감 -> 추후 수정 예정
+    private fun invite() {
+        _effect.trySend(OnboardingUiEffect.NavigateToMainFlow)
     }
 
     // TODO: 코드 생성 로직이 추가되면 실제 생성 완료 시점에 넘어가도록 교체 (지금은 임시로 1초 대기)

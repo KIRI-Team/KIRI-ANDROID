@@ -1,8 +1,10 @@
 package com.kiri.feature.onboarding
 
 import com.kiri.feature.onboarding.model.FamilyRole
+import com.kiri.feature.onboarding.model.OnboardingUiEffect
 import com.kiri.feature.onboarding.model.OnboardingUiEvent
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -106,5 +108,27 @@ class OnboardingViewModelTest {
         viewModel.onEvent(OnboardingUiEvent.BackClicked)
 
         assertEquals(OnboardingStep.ONBOARDING_MAIN, state.currentStep)
+    }
+
+    @Test
+    fun 코드_생성_완료_화면에서_초대하기를_누르면_메인으로_이동하는_효과를_보낸다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToLoading()
+        advanceUntilIdle()
+        assertEquals(OnboardingStep.GENERATE_FAMILY_CODE, state.currentStep)
+
+        viewModel.onEvent(OnboardingUiEvent.InviteClicked)
+
+        assertEquals(OnboardingUiEffect.NavigateToMainFlow, viewModel.effect.first())
+    }
+
+    @Test
+    fun 가족코드_입력_화면에서_초대하기를_누르면_메인으로_이동하는_효과를_보낸다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToOnboardingMain()
+        viewModel.onEvent(OnboardingUiEvent.PathSelected(OnboardingPath.JOIN_FAMILY))
+        assertEquals(OnboardingStep.INPUT_FAMILY_CODE, state.currentStep)
+
+        viewModel.onEvent(OnboardingUiEvent.InviteClicked)
+
+        assertEquals(OnboardingUiEffect.NavigateToMainFlow, viewModel.effect.first())
     }
 }

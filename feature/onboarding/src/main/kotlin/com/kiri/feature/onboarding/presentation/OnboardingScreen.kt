@@ -3,7 +3,9 @@ package com.kiri.feature.onboarding.presentation
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
@@ -12,15 +14,26 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kiri.feature.onboarding.OnboardingPath
 import com.kiri.feature.onboarding.OnboardingStep
 import com.kiri.feature.onboarding.OnboardingViewModel
+import com.kiri.feature.onboarding.model.OnboardingUiEffect
 import com.kiri.feature.onboarding.model.OnboardingUiEvent
 import com.kiri.feature.onboarding.model.OnboardingUiState
 
 @Composable
 fun OnboardingRoute(
+    onNavigateToMainFlow: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentOnNavigateToMainFlow by rememberUpdatedState(onNavigateToMainFlow)
+
+    LaunchedEffect(viewModel) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                OnboardingUiEffect.NavigateToMainFlow -> currentOnNavigateToMainFlow()
+            }
+        }
+    }
 
     OnboardingScreen(
         modifier = modifier,
@@ -74,16 +87,14 @@ fun OnboardingScreen(
             OnboardingStep.GENERATE_FAMILY_CODE -> GenerateFamilyCodeScreen(
                 familyCode = state.familyCode,
                 onCancelClick = onBackClick,
-                // TODO: 초대하기(공유) 동작 정해지면 연결
-                onInviteClick = { onEvent(OnboardingUiEvent.NextClicked) },
+                onInviteClick = { onEvent(OnboardingUiEvent.InviteClicked) },
                 onBackClick = onBackClick,
             )
             OnboardingStep.INPUT_FAMILY_CODE -> InputFamilyCodeScreen(
                 familyCode = state.inputFamilyCode,
                 onFamilyCodeChange = { onEvent(OnboardingUiEvent.InputFamilyCodeChanged(it)) },
                 onCancelClick = onBackClick,
-                // TODO: 가족코드 확인/참여 동작 정해지면 연결
-                onInviteClick = { onEvent(OnboardingUiEvent.NextClicked) },
+                onInviteClick = { onEvent(OnboardingUiEvent.InviteClicked) },
                 onBackClick = onBackClick,
             )
         }
