@@ -2,6 +2,7 @@ package com.kiri.app.onboarding
 
 import android.content.ClipboardManager
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,7 +23,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kiri.domain.model.invite.Invite
+import com.kiri.domain.repository.InviteRepository
+import com.kiri.feature.onboarding.OnboardingStep
+import com.kiri.feature.onboarding.OnboardingViewModel
 import com.kiri.feature.onboarding.model.FamilyRole
+import com.kiri.feature.onboarding.model.OnboardingUiEvent
+import com.kiri.feature.onboarding.model.OnboardingUiState
 import com.kiri.feature.onboarding.presentation.ChooseRoleScreen
 import com.kiri.feature.onboarding.presentation.GenerateFamilyCodeLoadingScreen
 import com.kiri.feature.onboarding.presentation.GenerateFamilyCodeScreen
@@ -30,6 +37,7 @@ import com.kiri.feature.onboarding.presentation.InputFamilyCodeScreen
 import com.kiri.feature.onboarding.presentation.InputFamilyNameScreen
 import com.kiri.feature.onboarding.presentation.InputNicknameScreen
 import com.kiri.feature.onboarding.presentation.OnboardingMainScreen
+import com.kiri.feature.onboarding.presentation.OnboardingScreen
 import com.kiri.feature.onboarding.presentation.component.OnboardingInputBox
 import com.kiri.uikit.KiriTheme
 import org.junit.Assert.assertEquals
@@ -55,7 +63,8 @@ class OnboardingScreensTest {
     }
 
     @Test
-    fun 역할_카드를_누르면_해당_역할만_선택된다() {
+    fun 역할을_선택하면_다음_버튼이_나타나고_다른_역할로_바꿀_수_있다() {
+        var nextClicked = false
         composeTestRule.setContent {
             var selectedRole by remember { mutableStateOf<FamilyRole?>(null) }
             KiriTheme {
@@ -63,21 +72,29 @@ class OnboardingScreensTest {
                     nickname = "주연주",
                     selectedRole = selectedRole,
                     onRoleSelect = { selectedRole = it },
+                    onNextClick = { nextClicked = true },
                     onBackClick = {},
                 )
             }
         }
 
         composeTestRule.onNodeWithText("주연주님의\n역할을 선택해주세요.").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("kiri_button").assertDoesNotExist()
+
         composeTestRule.onNodeWithText("아빠").performClick()
 
         composeTestRule.onNodeWithText("아빠").assertIsSelected()
         composeTestRule.onNodeWithText("엄마").assertIsNotSelected()
+        composeTestRule.onNodeWithTag("kiri_button").assertIsDisplayed()
+        assertEquals(false, nextClicked)
 
         composeTestRule.onNodeWithText("딸").performClick()
 
         composeTestRule.onNodeWithText("딸").assertIsSelected()
         composeTestRule.onNodeWithText("아빠").assertIsNotSelected()
+
+        composeTestRule.onNodeWithTag("kiri_button").performClick()
+        assertEquals(true, nextClicked)
     }
 
     @Test
@@ -102,7 +119,7 @@ class OnboardingScreensTest {
     }
 
     @Test
-    fun 가족명이_규칙에_맞아야_다음_버튼이_활성화된다() {
+    fun 가족명을_한_글자라도_입력하면_다음_버튼이_활성화된다() {
         var nextClicked = false
         composeTestRule.setContent {
             var familyName by remember { mutableStateOf("") }
@@ -117,12 +134,47 @@ class OnboardingScreensTest {
         }
 
         composeTestRule.onNodeWithText("끼리에서 사용할\n가족명을 작성해주세요").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("onboarding_next_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("kiri_button").assertIsNotEnabled()
 
-        composeTestRule.onNodeWithTag("onboarding_input_box").performTextInput("끼리네가족")
+        composeTestRule.onNodeWithTag("onboarding_input_box").performTextInput("끼")
 
-        composeTestRule.onNodeWithTag("onboarding_next_button").assertIsEnabled().performClick()
+        composeTestRule.onNodeWithTag("kiri_button").assertIsEnabled().performClick()
         assertEquals(true, nextClicked)
+    }
+
+    @Test
+    fun 닉네임은_10자를_넘어도_잘리지_않고_다음을_누르면_닉네임_화면에_머문다() {
+        lateinit var viewModel: OnboardingViewModel
+        composeTestRule.setContent {
+            viewModel = remember { OnboardingViewModel(StubInviteRepository) }
+            val state by viewModel.uiState.collectAsState()
+            KiriTheme { OnboardingScreen(state = state, onEvent = viewModel::onEvent) }
+        }
+
+        composeTestRule.onNodeWithTag("onboarding_input_box").performTextInput("가나다라마바사아자차카")
+        composeTestRule.onNodeWithTag("kiri_button").performClick()
+
+        assertEquals("가나다라마바사아자차카", viewModel.uiState.value.nickname)
+        composeTestRule.onNodeWithTag("input_nickname_screen").assertIsDisplayed()
+    }
+
+    @Test
+    fun 규칙에_맞지_않는_닉네임으로_다음을_누르면_닉네임_화면에_머문다() {
+        composeTestRule.setContent {
+            val viewModel = remember { OnboardingViewModel(StubInviteRepository) }
+            val state by viewModel.uiState.collectAsState()
+            KiriTheme { OnboardingScreen(state = state, onEvent = viewModel::onEvent) }
+        }
+
+        composeTestRule.onNodeWithTag("onboarding_input_box").performTextInput("주")
+        composeTestRule.onNodeWithTag("kiri_button").assertIsEnabled().performClick()
+
+        composeTestRule.onNodeWithTag("input_nickname_screen").assertIsDisplayed()
+
+        composeTestRule.onNodeWithTag("onboarding_input_box").performTextInput("연")
+        composeTestRule.onNodeWithTag("kiri_button").performClick()
+
+        composeTestRule.onNodeWithTag("input_nickname_screen").assertDoesNotExist()
     }
 
     @Test
@@ -135,7 +187,7 @@ class OnboardingScreensTest {
         composeTestRule.onNodeWithText("가족코드를\n생성하고 있어요!").assertIsDisplayed()
         composeTestRule.onNodeWithText("조금만 기다려주세요").assertIsDisplayed()
         composeTestRule.onNodeWithTag("onboarding_loading_indicator").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("onboarding_back_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("kiri_back_button").assertIsNotEnabled()
     }
 
     @Test
@@ -192,6 +244,34 @@ class OnboardingScreensTest {
         }
 
         composeTestRule.onNodeWithTag("onboarding_input_box").assertIsNotEnabled()
+    }
+
+    @Test
+    fun 코드_생성_완료_화면의_초대하기는_InviteClicked를_보낸다() {
+        assertInviteSendsInviteClicked(OnboardingStep.GENERATE_FAMILY_CODE)
+    }
+
+    @Test
+    fun 가족코드_입력_화면의_초대하기는_InviteClicked를_보낸다() {
+        assertInviteSendsInviteClicked(OnboardingStep.INPUT_FAMILY_CODE)
+    }
+
+    private fun assertInviteSendsInviteClicked(step: OnboardingStep) {
+        val events = mutableListOf<OnboardingUiEvent>()
+        composeTestRule.setContent {
+            KiriTheme {
+                OnboardingScreen(state = OnboardingUiState(currentStep = step), onEvent = { events += it })
+            }
+        }
+
+        composeTestRule.onNodeWithText("초대하기").performClick()
+
+        assertEquals(listOf(OnboardingUiEvent.InviteClicked), events)
+    }
+
+    // 실제 서버 없이 ViewModel을 만들기 위한 고정 응답
+    private object StubInviteRepository : InviteRepository {
+        override suspend fun createInvite() = Result.success(Invite(code = "AB12CD", url = "https://kiri.example.com/invite/AB12CD"))
     }
 
     // 시스템 클립보드 읽기 제한(Android 10+)에 영향받지 않도록 복사된 값을 기록만 한다

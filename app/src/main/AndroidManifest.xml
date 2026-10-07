@@ -1,9 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application android:name=".KiriApplication" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="@string/app_name">
-        <activity android:name=".MainActivity" android:exported="true">
+        <!-- 초대 링크로 열 때 기존 화면 위에 새로 쌓지 않고 onNewIntent로 받도록 singleTask를 쓴다 -->
+        <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!-- TODO(invite-domain): 실제 도메인으로 교체 (InviteLink.HOST와 같은 값). 서버에 assetlinks.json이 있어야 자동 검증된다 -->
+                <data android:scheme="https" android:host="kiri.example.com" android:pathPrefix="/invite/" />
             </intent-filter>
         </activity>
     </application>

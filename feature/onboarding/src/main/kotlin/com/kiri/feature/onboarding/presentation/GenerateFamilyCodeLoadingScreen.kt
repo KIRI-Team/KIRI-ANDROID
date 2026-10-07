@@ -15,8 +15,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kiri.feature.onboarding.presentation.component.OnboardingLoadingIndicator
-import com.kiri.feature.onboarding.presentation.component.OnboardingTitle
-import com.kiri.feature.onboarding.presentation.component.OnboardingTopBar
+import com.kiri.uikit.component.KiriTitle
+import com.kiri.uikit.component.KiriTopBar
 import com.kiri.uikit.color.KiriColor
 
 @Composable
@@ -32,9 +32,9 @@ fun GenerateFamilyCodeLoadingScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // 코드 생성 중에는 뒤로가기 버튼을 비활성화한다
-        OnboardingTopBar(onBackClick = {}, enabled = false)
+        KiriTopBar(onBackClick = {}, enabled = false)
         Spacer(Modifier.height(154.dp))
-        OnboardingTitle(
+        KiriTitle(
             title = "가족코드를\n생성하고 있어요!",
             subtitle = "조금만 기다려주세요",
             textAlign = TextAlign.Center,

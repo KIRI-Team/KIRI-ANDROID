@@ -18,11 +18,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.kiri.feature.onboarding.presentation.component.OnboardingButtonTone
+import com.kiri.uikit.component.KiriButtonTone
 import com.kiri.feature.onboarding.presentation.component.OnboardingCodeInput
-import com.kiri.feature.onboarding.presentation.component.OnboardingNextButton
-import com.kiri.feature.onboarding.presentation.component.OnboardingTitle
-import com.kiri.feature.onboarding.presentation.component.OnboardingTopBar
+import com.kiri.uikit.component.KiriButton
+import com.kiri.uikit.component.KiriTitle
+import com.kiri.uikit.component.KiriTopBar
 import com.kiri.uikit.color.KiriColor
 
 @Composable
@@ -42,7 +42,7 @@ fun InputFamilyCodeScreen(
             .imePadding()
             .testTag("input_family_code_screen"),
     ) {
-        OnboardingTopBar(onBackClick = onBackClick)
+        KiriTopBar(onBackClick = onBackClick)
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -50,7 +50,7 @@ fun InputFamilyCodeScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(Modifier.height(40.dp))
-            OnboardingTitle(
+            KiriTitle(
                 title = "가족코드를\n입력해주세요!",
                 subtitle = "총 6자리 코드 입력을 해주셔야해요",
                 textAlign = TextAlign.Center,
@@ -66,13 +66,13 @@ fun InputFamilyCodeScreen(
             modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OnboardingNextButton(
+            KiriButton(
                 onClick = onCancelClick,
                 text = "취소",
-                tone = OnboardingButtonTone.Neutral,
+                tone = KiriButtonTone.Neutral,
                 modifier = Modifier.weight(1f),
             )
-            OnboardingNextButton(
+            KiriButton(
                 onClick = onInviteClick,
                 text = "초대하기",
                 modifier = Modifier.weight(1f),

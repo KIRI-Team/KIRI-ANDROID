@@ -1,0 +1,12 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="28dp"
+    android:viewportWidth="28"
+    android:viewportHeight="28">
+    <!-- Figma 원본(왼쪽 방향)을 좌우 반전해 오른쪽 방향으로 사용 -->
+    <path
+        android:strokeColor="#FF404040"
+        android:strokeWidth="1"
+        android:strokeLineCap="round"
+        android:pathData="M10 6L18 14.1951 10 22"/>
+</vector>
