@@ -89,13 +89,13 @@ class FakeHomeRepository(
             if (question == null) emptyMap() else mapOf("mother" to "뚝배기불고기", "sibling" to "가족과 함께 먹는 음식이 제일 좋아요."),
             emptySet(),
             if (browsing || scenario == HomeScenario.NO_MISSION) null else WeeklyMission(
-                "weekly-demo", "광장시장에서 시장음식 먹어보기", "광장시장 · 종로구",
+                "weekly-demo", "한강 뚜벅뚜벅 축제 가보기", "여의도 한강 공원",
                 listOf("대중교통 편리", "혼잡도 높음"), scenario == HomeScenario.COMPLETED_MISSION,
-                place = "광장시장 · 종로구",
+                place = "여의도 한강 공원",
                 unavailable = scenario == HomeScenario.MISSION_UNAVAILABLE,
             ),
             schedules = if (browsing) emptyList() else listOf(
-                HomeSchedule("schedule-demo", "가족과 함께 경복궁 가기", date.atTime(18, 0).atZone(ZoneId.of("Asia/Seoul")).toInstant(), ScheduleStatus.CONFIRMED, true),
+                HomeSchedule("schedule-demo", "한강 뚜벅뚜벅 축제 가보기", date.atTime(14, 50).atZone(ZoneId.of("Asia/Seoul")).toInstant(), ScheduleStatus.CONFIRMED, true),
             ),
             recommendations = if (browsing) emptyList() else listOf(
                 HomeRecommendation("gyeongbokgung", "경복궁에서 사진찍기", "경복궁 종로구", listOf("대중교통 편리", "가족과 함께"), "4.6", description = "대중교통이 편리하고, 부모님이랑 가기 좋아요! 추천합니다"),
