@@ -1,6 +1,12 @@
 package com.kiri.app.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.kiri.feature.detail.presentation.MissionDetailRoute
+import com.kiri.feature.detail.presentation.ConditionCustomRoute
+import com.kiri.feature.detail.presentation.DetailViewModel
+import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -22,7 +28,8 @@ fun KiriNavHost(navController: NavHostController, modifier: Modifier = Modifier)
         navigation(startDestination = TopLevelDestination.HOME.startRoute, route = TopLevelDestination.HOME.graphRoute) {
             composable(TopLevelDestination.HOME.startRoute) {
                 HomeScreen(
-                    onDetailClick = { navController.navigate(TopLevelDestination.HOME.detailRoute()) },
+                    onMissionClick = { id -> navController.navigate("${TopLevelDestination.HOME.detailRoute()}/${Uri.encode(id)}") { launchSingleTop = true } },
+                    onScheduleClick = { id -> navController.navigate("${TopLevelDestination.HOME.detailRoute()}/${Uri.encode(id)}") { launchSingleTop = true } },
                     onDestination = { destination -> if (destination == HomeUiDestination.OpenPlaces) navController.navigate(TopLevelDestination.PLACE.graphRoute) },
                     onInviteFamily = { code -> navController.navigate("home/invite/$code") },
                 )
@@ -42,8 +49,16 @@ fun KiriNavHost(navController: NavHostController, modifier: Modifier = Modifier)
                     },
                 )
             }
-            composable(TopLevelDestination.HOME.detailRoute()) {
-                DetailScreen(title = "홈 상세", onBackClick = navController::popBackStack)
+            composable("${TopLevelDestination.HOME.detailRoute()}/{missionId}") { entry ->
+                MissionDetailRoute(onBack = { navController.popBackStack() }, onCustom = {
+                    val id = entry.arguments?.getString("missionId").orEmpty()
+                    navController.navigate("${TopLevelDestination.HOME.detailRoute()}/${Uri.encode(id)}/custom") { launchSingleTop = true }
+                })
+            }
+            composable("${TopLevelDestination.HOME.detailRoute()}/{missionId}/custom") { entry ->
+                val parent = remember(entry) { navController.getBackStackEntry("${TopLevelDestination.HOME.detailRoute()}/{missionId}") }
+                val viewModel: DetailViewModel = hiltViewModel(parent)
+                ConditionCustomRoute(viewModel, onBack = { navController.popBackStack() })
             }
         }
         navigation(startDestination = TopLevelDestination.RECORD.startRoute, route = TopLevelDestination.RECORD.graphRoute) {

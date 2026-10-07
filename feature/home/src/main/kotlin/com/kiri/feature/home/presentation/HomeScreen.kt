@@ -36,6 +36,9 @@ import com.kiri.uikit.component.KiriMissionCard
 import com.kiri.uikit.component.KiriPlaceCard
 import com.kiri.uikit.component.KiriPokeNotice
 import com.kiri.uikit.component.KiriTooltip
+import com.kiri.uikit.component.KiriAppBar
+import com.kiri.uikit.R as UiR
+import androidx.compose.ui.res.painterResource
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
@@ -45,7 +48,13 @@ import kotlin.math.roundToInt
 enum class HomeUiDestination { CreateFamily, JoinFamily, InviteFamily, Schedule, AnswerHistory, Mission, OpenPlaces }
 
 @Composable
-fun HomeScreen(onDetailClick: () -> Unit = {}, onDestination: (HomeUiDestination) -> Unit = {}, onInviteFamily: (String) -> Unit = {}, viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(
+    onDestination: (HomeUiDestination) -> Unit = {},
+    onInviteFamily: (String) -> Unit = {},
+    onMissionClick: (String) -> Unit = {},
+    onScheduleClick: (String) -> Unit = { onDestination(HomeUiDestination.Schedule) },
+    viewModel: HomeViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle(); val home = state.home
     val offsets = remember { mutableStateMapOf<String, IntOffset>() }
     var pullDistance by remember { mutableFloatStateOf(0f) }
@@ -66,13 +75,15 @@ fun HomeScreen(onDetailClick: () -> Unit = {}, onDestination: (HomeUiDestination
         if (state.editing) {
             home?.question?.let { q -> AnswerEditor(q.text, state.draft, state.busy, state.error, { viewModel.onAction(HomeAction.ChangeAnswer(it)) }, { viewModel.onAction(HomeAction.SaveAnswer) }, { viewModel.onAction(HomeAction.Back) }) }
         } else {
-            Column(Modifier.fillMaxSize().testTag("home_screen").statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp)) {
+            Column(Modifier.fillMaxSize().testTag("home_screen").statusBarsPadding().verticalScroll(rememberScrollState())) {
                 TopBar(home?.familyName ?: "둘러보기"); Spacer(Modifier.height(23.dp))
+                Column(Modifier.padding(horizontal = 18.dp)) {
                 when { state.loading -> LoadingHome(); state.loadError || home == null -> ErrorHome { viewModel.onAction(HomeAction.Retry) }; home.browsing -> BrowseCard(onDestination); else -> {
-                    selectHomeSchedule(home.schedules, Instant.now(), ZoneId.of("Asia/Seoul"))?.let { ScheduleCard(it, onDestination) }
-                    Spacer(Modifier.height(18.dp)); AnswersHeader { home.inviteCode?.let(onInviteFamily) }; StoryRow(home, viewModel::onAction, offsets); Spacer(Modifier.height(32.dp)); QuestionMissionSection(home, state.showingMission, onDestination, viewModel::onAction); RecommendationSection(home.recommendations)
+                    selectHomeSchedule(home.schedules, Instant.now(), ZoneId.of("Asia/Seoul"))?.let { ScheduleCard(it) { onScheduleClick(it.schedule.id) } }
+                    Spacer(Modifier.height(18.dp)); AnswersHeader { home.inviteCode?.let(onInviteFamily) }; StoryRow(home, viewModel::onAction, offsets); Spacer(Modifier.height(32.dp)); QuestionMissionSection(home, state.showingMission, onDestination, viewModel::onAction, onMissionClick); RecommendationSection(home.recommendations)
                 } }
                 Spacer(Modifier.height(28.dp))
+                }
             }
         }
         if (state.answerSaved) AnswerSavedDialog { viewModel.onAction(HomeAction.DismissNotice) }
@@ -84,7 +95,13 @@ fun HomeScreen(onDetailClick: () -> Unit = {}, onDestination: (HomeUiDestination
     }
 }
 
-@Composable private fun TopBar(name: String) { Box(Modifier.fillMaxWidth().height(52.dp)) { Text(name, Modifier.align(Alignment.Center), color=HomeStrong, fontSize=18.sp, fontWeight=FontWeight.SemiBold); Icon(Icons.Default.NotificationsNone, "알림", Modifier.align(Alignment.CenterEnd).size(22.dp), tint=HomeSecondary) } }
+@Composable private fun TopBar(name: String) {
+    KiriAppBar(name, trailingIconSlot = {
+        Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+            Image(painterResource(UiR.drawable.kiri_notifications), "알림", Modifier.size(width = 20.dp, height = 17.5.dp))
+        }
+    })
+}
 @Composable private fun LoadingHome() { Column(Modifier.fillMaxWidth(), verticalArrangement=Arrangement.spacedBy(14.dp)) { repeat(4) { Box(Modifier.fillMaxWidth().height(if (it==0) 48.dp else 110.dp).clip(RoundedCornerShape(12.dp)).background(HomeCard)) } } }
 @Composable private fun ErrorHome(onRetry: () -> Unit) { Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment=Alignment.CenterHorizontally) { Text("홈을 불러오지 못했어요.", color=HomeStrong); Spacer(Modifier.height(14.dp)); Button(onClick=onRetry) { Text("다시 시도") } } }
 
@@ -93,8 +110,66 @@ fun HomeScreen(onDetailClick: () -> Unit = {}, onDestination: (HomeUiDestination
 
 @Composable private fun StoryRow(home: FamilyHome, onAction: (HomeAction) -> Unit, offsets: MutableMap<String, IntOffset>) { KiriMemberAvatarGroup(members=home.members.map { member -> KiriAvatarItem(member.id, if (member.id==home.currentUserId) "내 답변" else member.nickname, member.id in home.answers, member.accessible, member.id==home.currentUserId, member.role) }, onMemberClick={member -> onAction(HomeAction.SelectMember(member.id))}, onPositioned={id, coordinates -> val p=coordinates.positionInRoot(); offsets[id]=IntOffset((p.x + coordinates.size.width / 2f - 103f).roundToInt(), (p.y + coordinates.size.height).roundToInt() + 20)}, modifier=Modifier.fillMaxWidth().padding(top=16.dp)) }
 
-@Composable private fun QuestionMissionSection(home: FamilyHome, showingMission: Boolean, onDestination: (HomeUiDestination) -> Unit, onAction: (HomeAction) -> Unit) { Column { Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.Bottom) { Text(if (showingMission) "이번주 미션이에요!" else "오늘 나의 질문카드", Modifier.weight(1f), color=KiriColor.Text.Strong, fontSize=18.sp); Text("다른 가족들의 답변을 기다려요!", color=KiriColor.Text.Secondary, fontSize=11.sp) }; Spacer(Modifier.height(12.dp)); QuestionMissionCard(home, showingMission, onDestination, onAction) } }
-@Composable private fun QuestionMissionCard(home: FamilyHome, showingMission: Boolean, onDestination: (HomeUiDestination) -> Unit, onAction: (HomeAction) -> Unit) { var drag by remember(showingMission) { mutableFloatStateOf(0f) }; val modifier=Modifier.fillMaxWidth().pointerInput(showingMission) { detectHorizontalDragGestures(onHorizontalDrag={c,a->c.consume();drag+=a}, onDragEnd={if(abs(drag)>70)onAction(HomeAction.Flip);drag=0f}, onDragCancel={drag=0f}) }.clickable(enabled=!showingMission&&home.question!=null){onAction(HomeAction.EditAnswer)}.testTag(if(showingMission) "home_mission_card" else "home_question_card"); KiriContentCard(modifier=modifier){AnimatedContent(showingMission,label="question-mission-swipe"){if(it) home.mission.let { mission -> KiriMissionCard(mission?.title, mission?.place ?: mission?.description, mission?.keywords.orEmpty(), mission?.completed == true, mission?.unavailable == true, { onDestination(HomeUiDestination.OpenPlaces) }) } else QuestionCardContent(home)}} }
+@Composable
+private fun QuestionMissionSection(
+    home: FamilyHome,
+    showingMission: Boolean,
+    onDestination: (HomeUiDestination) -> Unit,
+    onAction: (HomeAction) -> Unit,
+    onMissionClick: (String) -> Unit,
+) {
+    Column {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+            Text(if (showingMission) "이번주 미션이에요!" else "오늘 나의 질문카드", Modifier.weight(1f), color = KiriColor.Text.Strong, fontSize = 18.sp)
+            Text("다른 가족들의 답변을 기다려요!", color = KiriColor.Text.Secondary, fontSize = 11.sp)
+        }
+        Spacer(Modifier.height(12.dp))
+        QuestionMissionCard(home, showingMission, onDestination, onAction, onMissionClick)
+    }
+}
+
+@Composable
+private fun QuestionMissionCard(
+    home: FamilyHome,
+    showingMission: Boolean,
+    onDestination: (HomeUiDestination) -> Unit,
+    onAction: (HomeAction) -> Unit,
+    onMissionClick: (String) -> Unit,
+) {
+    var drag by remember(showingMission) { mutableFloatStateOf(0f) }
+    val modifier = Modifier.fillMaxWidth()
+        .pointerInput(showingMission) {
+            detectHorizontalDragGestures(
+                onHorizontalDrag = { change, amount -> change.consume(); drag += amount },
+                onDragEnd = { if (abs(drag) > 70) onAction(HomeAction.Flip); drag = 0f },
+                onDragCancel = { drag = 0f },
+            )
+        }
+        .clickable(enabled = if (showingMission) home.mission?.unavailable == false else home.question != null) {
+            if (showingMission) home.mission?.id?.let(onMissionClick) else onAction(HomeAction.EditAnswer)
+        }
+        .testTag(if (showingMission) "home_mission_card" else "home_question_card")
+    KiriContentCard(modifier = modifier) {
+        AnimatedContent(showingMission, label = "question-mission-swipe") { missionSide ->
+            if (missionSide) {
+                val mission = home.mission
+                KiriMissionCard(
+                    title = mission?.title,
+                    place = mission?.place ?: mission?.description,
+                    keywords = mission?.let { it.keywords.ifEmpty { it.tags } }.orEmpty(),
+                    completed = mission?.completed == true,
+                    unavailable = mission?.unavailable == true,
+                    onPlacesClick = {
+                        if (mission != null && !mission.unavailable) onMissionClick(mission.id)
+                        else onDestination(HomeUiDestination.OpenPlaces)
+                    },
+                    onFlip = { onAction(HomeAction.Flip) },
+                )
+            } else QuestionCardContent(home)
+        }
+    }
+}
+
 @Composable private fun QuestionCardContent(home: FamilyHome) { val q=home.question; val answer=home.answers[home.currentUserId]; Column(Modifier.fillMaxWidth().heightIn(min=136.dp).padding(horizontal=20.dp,vertical=25.dp), verticalArrangement=Arrangement.spacedBy(8.dp)){Text(if(answer==null)"오늘 질문에 답변해주세요!" else "답변완료",color=KiriColor.Text.Secondary,fontSize=14.sp); if(q==null)Text("오늘의 질문이 아직 배정되지 않았어요.",color=KiriColor.Text.Secondary) else {Text("Q1. ${q.text}",color=KiriColor.Text.Strong,fontSize=18.sp); Box(Modifier.fillMaxWidth(), contentAlignment=Alignment.CenterEnd){Text("A. ${answer ?: "답변미완료"}",color=answer?.let{KiriColor.Text.Accent}?:KiriColor.Text.Disabled,fontSize=18.sp,fontWeight=FontWeight.Medium)}}} }
 
 
@@ -118,7 +193,7 @@ fun HomeScreen(onDetailClick: () -> Unit = {}, onDestination: (HomeUiDestination
     }
 }
 
-@Composable private fun ScheduleCard(card: HomeScheduleCard,onDestination:(HomeUiDestination)->Unit){val today=card.kind==HomeScheduleCard.Kind.TODAY;val label=when(card.kind){HomeScheduleCard.Kind.RESPONSE_REQUIRED->"응답이 필요한 일정";HomeScheduleCard.Kind.TODAY->"오늘 약속 당일이에요!";HomeScheduleCard.Kind.UPCOMING->"다가오는 일정"};Card(onClick={onDestination(HomeUiDestination.Schedule)},modifier=Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(KiriColor.Bg.Secondary),shape=RoundedCornerShape(8.dp)){Row(Modifier.padding(horizontal=18.dp,vertical=16.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(label,color=if(today)KiriColor.Text.Accent else KiriColor.Text.Strong,fontSize=16.sp);if(today)Text("코스를 확인하세요",color=KiriColor.Text.Strong,fontSize=16.sp) else Text(card.schedule.title,color=KiriColor.Text.Strong,fontSize=16.sp)};Icon(Icons.Default.ChevronRight,"일정 열기",tint=KiriColor.Icon.Secondary)}}}
+@Composable private fun ScheduleCard(card: HomeScheduleCard,onClick:()->Unit){val today=card.kind==HomeScheduleCard.Kind.TODAY;val label=when(card.kind){HomeScheduleCard.Kind.RESPONSE_REQUIRED->"응답이 필요한 일정";HomeScheduleCard.Kind.TODAY->"오늘 약속 당일이에요!";HomeScheduleCard.Kind.UPCOMING->"다가오는 일정"};Card(onClick=onClick,modifier=Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(KiriColor.Bg.Secondary),shape=RoundedCornerShape(8.dp)){Row(Modifier.padding(horizontal=18.dp,vertical=16.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(label,color=if(today)KiriColor.Text.Accent else KiriColor.Text.Strong,fontSize=16.sp);if(today)Text("코스를 확인하세요",color=KiriColor.Text.Strong,fontSize=16.sp) else Text(card.schedule.title,color=KiriColor.Text.Strong,fontSize=16.sp)};Icon(Icons.Default.ChevronRight,"일정 열기",tint=KiriColor.Icon.Secondary)}}}
 
 @Composable private fun MemberAnswerToast(home: FamilyHome, memberId:String, busy:Boolean, offset:IntOffset?, onAction:(HomeAction)->Unit){
     val m=home.members.firstOrNull{it.id==memberId}?:return; val can=home.canPoke(m.id)
@@ -131,6 +206,3 @@ private class PreviewHomeRepository(private val browsing:Boolean=false):HomeRepo
 @Composable private fun HomePreview(){HomeScreen(viewModel=remember{HomeViewModel(PreviewHomeRepository())})}
 @Preview(name="Home browsing",showBackground=true,backgroundColor=0xFF202020,device="spec:width=411dp,height=891dp,dpi=420")
 @Composable private fun HomeBrowsingPreview(){HomeScreen(viewModel=remember{HomeViewModel(PreviewHomeRepository(true))})}
-
-
-
