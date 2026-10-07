@@ -8,3 +8,4 @@ dependencies {
     implementation(project(":core"))
     testImplementation(libs.kotlinx.coroutines.test)
 }
+dependencies { implementation(libs.kotlinx.coroutines.core) }

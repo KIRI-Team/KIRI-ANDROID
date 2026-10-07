@@ -29,6 +29,7 @@ fun OnboardingRoute(
     onNavigateToMainFlow: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: OnboardingViewModel = hiltViewModel(),
+    onBrowseClick: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnNavigateToMainFlow by rememberUpdatedState(onNavigateToMainFlow)
@@ -53,6 +54,7 @@ fun OnboardingRoute(
         modifier = modifier,
         state = state,
         onEvent = viewModel::onEvent,
+        onBrowseClick = onBrowseClick,
     )
 }
 
@@ -61,6 +63,7 @@ fun OnboardingScreen(
     state: OnboardingUiState,
     onEvent: (OnboardingUiEvent) -> Unit,
     modifier: Modifier = Modifier,
+    onBrowseClick: () -> Unit = {},
 ) {
     val onBackClick = { onEvent(OnboardingUiEvent.BackClicked) }
 
@@ -86,7 +89,7 @@ fun OnboardingScreen(
             OnboardingStep.ONBOARDING_MAIN -> OnboardingMainScreen(
                 onCreateFamilyClick = { onEvent(OnboardingUiEvent.PathSelected(OnboardingPath.CREATE_FAMILY)) },
                 onInputFamilyCodeClick = { onEvent(OnboardingUiEvent.PathSelected(OnboardingPath.JOIN_FAMILY)) },
-                onBrowseClick = { onEvent(OnboardingUiEvent.PathSelected(OnboardingPath.BROWSE)) },
+                onBrowseClick = onBrowseClick,
                 onBackClick = onBackClick,
             )
             OnboardingStep.INPUT_FAMILY_NAME -> InputFamilyNameScreen(

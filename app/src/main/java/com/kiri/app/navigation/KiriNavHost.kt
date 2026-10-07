@@ -1,6 +1,7 @@
 package com.kiri.app.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -8,6 +9,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import com.kiri.feature.detail.presentation.DetailScreen
 import com.kiri.feature.home.presentation.HomeScreen
+import com.kiri.feature.home.presentation.HomeUiDestination
+import com.kiri.feature.home.presentation.InviteFamilyScreen
+import android.content.Intent
 import com.kiri.feature.mypage.presentation.MypageScreen
 import com.kiri.feature.place.presentation.PlaceScreen
 import com.kiri.feature.record.presentation.RecordScreen
@@ -17,7 +21,26 @@ fun KiriNavHost(navController: NavHostController, modifier: Modifier = Modifier)
     NavHost(navController, startDestination = TopLevelDestination.HOME.graphRoute, modifier = modifier) {
         navigation(startDestination = TopLevelDestination.HOME.startRoute, route = TopLevelDestination.HOME.graphRoute) {
             composable(TopLevelDestination.HOME.startRoute) {
-                HomeScreen(onDetailClick = { navController.navigate(TopLevelDestination.HOME.detailRoute()) })
+                HomeScreen(
+                    onDetailClick = { navController.navigate(TopLevelDestination.HOME.detailRoute()) },
+                    onDestination = { destination -> if (destination == HomeUiDestination.OpenPlaces) navController.navigate(TopLevelDestination.PLACE.graphRoute) },
+                    onInviteFamily = { code -> navController.navigate("home/invite/$code") },
+                )
+            }
+            composable("home/invite/{inviteCode}") { backStackEntry ->
+                val context = LocalContext.current
+                val inviteCode = backStackEntry.arguments?.getString("inviteCode").orEmpty()
+                InviteFamilyScreen(
+                    inviteCode = inviteCode,
+                    onBack = navController::popBackStack,
+                    onShare = {
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, "끼리네 가족에 참여해 주세요! 초대코드: $inviteCode")
+                        }
+                        context.startActivity(Intent.createChooser(intent, "가족에게 공유하기"))
+                    },
+                )
             }
             composable(TopLevelDestination.HOME.detailRoute()) {
                 DetailScreen(title = "홈 상세", onBackClick = navController::popBackStack)
