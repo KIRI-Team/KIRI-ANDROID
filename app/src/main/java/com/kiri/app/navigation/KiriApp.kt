@@ -23,8 +23,13 @@ fun KiriApp() {
             )
         }
         composable(ROUTE_ONBOARDING) {
-            // TODO: 온보딩 완료 시점이 정해지면 ROUTE_MAIN으로 이동 연결 (popUpTo(ROUTE_AUTH) { inclusive = true })
-            OnboardingRoute()
+            OnboardingRoute(
+                onBrowseClick = {
+                    rootNavController.navigate(ROUTE_MAIN) {
+                        popUpTo(ROUTE_AUTH) { inclusive = true }
+                    }
+                },
+            )
         }
         composable(ROUTE_MAIN) {
             MainScreen()
