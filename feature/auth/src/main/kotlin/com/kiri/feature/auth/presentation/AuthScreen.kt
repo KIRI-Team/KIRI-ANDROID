@@ -7,7 +7,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -25,14 +24,12 @@ fun AuthRoute(
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val uriHandler = LocalUriHandler.current
     val currentOnNavigateToOnboarding by rememberUpdatedState(onNavigateToOnboarding)
 
     LaunchedEffect(viewModel) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 AuthUiEffect.NavigateToOnboarding -> currentOnNavigateToOnboarding()
-                is AuthUiEffect.OpenTermDetail -> uriHandler.openUri(effect.url)
             }
         }
     }
@@ -69,6 +66,9 @@ fun AuthScreen(
                 onTermDetailClick = { onEvent(AuthUiEvent.TermDetailClicked(it)) },
                 onAgreeClick = { onEvent(AuthUiEvent.AgreeClicked) },
                 onBackClick = onBackClick,
+                viewingTerm = state.viewingTerm,
+                onTermDetailDismiss = { onEvent(AuthUiEvent.TermDetailDismissed) },
+                onTermDetailAgree = { onEvent(AuthUiEvent.TermDetailAgreed(it)) },
             )
         }
     }

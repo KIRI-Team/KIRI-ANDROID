@@ -1,12 +1,16 @@
 package com.kiri.feature.onboarding.presentation
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -14,6 +18,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kiri.feature.onboarding.OnboardingPath
 import com.kiri.feature.onboarding.OnboardingStep
 import com.kiri.feature.onboarding.OnboardingViewModel
+import com.kiri.feature.onboarding.R
+import com.kiri.feature.onboarding.invite.createInviteShareIntent
 import com.kiri.feature.onboarding.model.OnboardingUiEffect
 import com.kiri.feature.onboarding.model.OnboardingUiEvent
 import com.kiri.feature.onboarding.model.OnboardingUiState
@@ -26,11 +32,19 @@ fun OnboardingRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnNavigateToMainFlow by rememberUpdatedState(onNavigateToMainFlow)
+    val context = LocalContext.current
+    // 공유 시트에서 돌아오면 결과와 관계없이 다음 동작을 진행한다
+    val shareLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        viewModel.onEvent(OnboardingUiEvent.InviteShared)
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 OnboardingUiEffect.NavigateToMainFlow -> currentOnNavigateToMainFlow()
+                is OnboardingUiEffect.ShareInvite -> shareLauncher.launch(context.createInviteShareIntent(effect.invite))
+                OnboardingUiEffect.ShowInviteError ->
+                    Toast.makeText(context, R.string.invite_create_error, Toast.LENGTH_SHORT).show()
             }
         }
     }

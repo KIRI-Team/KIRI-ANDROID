@@ -15,6 +15,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kiri.feature.auth.model.AgreementTerm
 import com.kiri.feature.auth.presentation.component.AuthAgreementRow
+import com.kiri.feature.auth.presentation.component.AuthTermDetailSheet
 import com.kiri.feature.auth.presentation.component.AuthAgreementRowType
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.KiriButton
@@ -32,6 +33,9 @@ fun TermsAgreementScreen(
     onAgreeClick: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    viewingTerm: AgreementTerm? = null,
+    onTermDetailDismiss: () -> Unit = {},
+    onTermDetailAgree: (AgreementTerm) -> Unit = {},
 ) {
     Column(
         modifier
@@ -79,6 +83,13 @@ fun TermsAgreementScreen(
             text = "동의하고 계속하기",
             enabled = canContinue,
             modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 12.dp),
+        )
+    }
+    viewingTerm?.let { term ->
+        AuthTermDetailSheet(
+            term = term,
+            onAgreeClick = { onTermDetailAgree(term) },
+            onDismiss = onTermDetailDismiss,
         )
     }
 }

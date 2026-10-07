@@ -96,11 +96,63 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun 상세_링크가_없는_약관은_눌러도_아무_동작을_하지_않는다() = runTest {
+    fun 약관_화살표를_누르면_해당_약관의_세부_내용_창이_열린다() {
         moveToTerms()
 
-        viewModel.onEvent(AuthUiEvent.TermDetailClicked(AgreementTerm.TERM_1))
+        viewModel.onEvent(AuthUiEvent.TermDetailClicked(AgreementTerm.TERM_2))
 
-        assertNull(withTimeoutOrNull(1_000) { viewModel.effect.first() })
+        assertEquals(AgreementTerm.TERM_2, viewModel.uiState.value.viewingTerm)
+    }
+
+    @Test
+    fun 세부_내용을_열어도_동의_상태는_바뀌지_않는다() {
+        moveToTerms()
+
+        viewModel.onEvent(AuthUiEvent.TermDetailClicked(AgreementTerm.TERM_2))
+
+        assertEquals(emptySet<AgreementTerm>(), viewModel.uiState.value.agreedTerms)
+    }
+
+    @Test
+    fun 세부_내용_창을_닫으면_보고_있던_약관이_비워진다() {
+        moveToTerms()
+        viewModel.onEvent(AuthUiEvent.TermDetailClicked(AgreementTerm.TERM_2))
+
+        viewModel.onEvent(AuthUiEvent.TermDetailDismissed)
+
+        assertNull(viewModel.uiState.value.viewingTerm)
+    }
+
+    @Test
+    fun 약관동의에서_로그인으로_돌아가면_세부_내용_창도_닫힌다() {
+        moveToTerms()
+        viewModel.onEvent(AuthUiEvent.TermDetailClicked(AgreementTerm.TERM_2))
+
+        viewModel.onEvent(AuthUiEvent.BackClicked)
+
+        assertEquals(AuthStep.LOGIN, viewModel.uiState.value.currentStep)
+        assertNull(viewModel.uiState.value.viewingTerm)
+    }
+
+    @Test
+    fun 세부_내용_창에서_동의하기를_누르면_해당_약관에_동의하고_창이_닫힌다() {
+        moveToTerms()
+        viewModel.onEvent(AuthUiEvent.TermDetailClicked(AgreementTerm.TERM_2))
+
+        viewModel.onEvent(AuthUiEvent.TermDetailAgreed(AgreementTerm.TERM_2))
+
+        assertEquals(setOf(AgreementTerm.TERM_2), state.agreedTerms)
+        assertNull(state.viewingTerm)
+    }
+
+    @Test
+    fun 이미_동의한_약관을_세부_내용_창에서_동의해도_해제되지_않는다() {
+        moveToTerms()
+        viewModel.onEvent(AuthUiEvent.TermToggled(AgreementTerm.TERM_2))
+        viewModel.onEvent(AuthUiEvent.TermDetailClicked(AgreementTerm.TERM_2))
+
+        viewModel.onEvent(AuthUiEvent.TermDetailAgreed(AgreementTerm.TERM_2))
+
+        assertEquals(setOf(AgreementTerm.TERM_2), state.agreedTerms)
     }
 }

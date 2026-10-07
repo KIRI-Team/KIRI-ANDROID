@@ -3,4 +3,8 @@ plugins {
     id("kiri.hilt")
 }
 android { namespace = "com.kiri.data" }
-dependencies { implementation(project(":domain")); implementation(project(":core")) }
+dependencies {
+    implementation(project(":domain"))
+    implementation(project(":core"))
+    testImplementation(libs.kotlinx.coroutines.test)
+}

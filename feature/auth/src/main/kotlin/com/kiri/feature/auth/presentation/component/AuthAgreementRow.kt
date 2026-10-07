@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -44,7 +46,8 @@ import com.kiri.uikit.color.KiriComponentColor
 enum class AuthAgreementRowType { All, Required }
 
 /**
- * @param onDetailClick 개별 약관에서 문구/화살표를 누르면 상세(외부 링크)로 이동한다. 전체동의 행은 null.
+ * 오른쪽 화살표를 제외한 행 전체를 누르면 동의가 바뀐다.
+ * @param onDetailClick 개별 약관에서 오른쪽 화살표를 누르면 세부 내용을 연다. 전체동의 행은 null (화살표도 동의 영역에 포함).
  */
 @Composable
 fun AuthAgreementRow(
@@ -68,30 +71,26 @@ fun AuthAgreementRow(
             .height(56.dp)
             .clip(shape)
             .then(containerModifier)
-            // 전체동의는 행 전체가, 개별 약관은 문구 영역이 상세 이동을 담당한다
-            .then(if (type == AuthAgreementRowType.All) Modifier.clickable(onClick = onCheckedChange) else Modifier)
-            .padding(horizontal = 24.dp)
             .testTag(testTag),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        AgreementCheckbox(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            uncheckedBorderColor = when (type) {
-                AuthAgreementRowType.All -> KiriColor.Border.Strong
-                AuthAgreementRowType.Required -> KiriColor.Border.Transparent
-            },
-            modifier = Modifier.testTag("${testTag}_checkbox"),
-        )
         Row(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .then(if (onDetailClick != null) Modifier.clickable(onClick = onDetailClick) else Modifier)
-                .testTag("${testTag}_detail"),
+                .toggleable(value = checked, role = Role.Checkbox, onValueChange = { onCheckedChange() })
+                .padding(start = 24.dp, end = if (onDetailClick == null) 24.dp else 0.dp)
+                .testTag("${testTag}_checkbox"),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            AgreementCheckbox(
+                checked = checked,
+                uncheckedBorderColor = when (type) {
+                    AuthAgreementRowType.All -> KiriColor.Border.Strong
+                    AuthAgreementRowType.Required -> KiriColor.Border.Transparent
+                },
+            )
+            Spacer(Modifier.width(4.dp))
             Text(
                 text = title,
                 modifier = Modifier
@@ -105,25 +104,38 @@ fun AuthAgreementRow(
                     letterSpacing = (-0.04).em,
                 ),
             )
-            Image(
-                painter = painterResource(R.drawable.ic_auth_chevron_right),
-                contentDescription = if (onDetailClick != null) "약관 상세 보기" else null,
-            )
+            if (onDetailClick == null) {
+                Image(painter = painterResource(R.drawable.ic_auth_chevron_right), contentDescription = null)
+            }
+        }
+        if (onDetailClick != null) {
+            // 오른쪽 여백까지 누를 수 있게 해서 터치 영역을 넓힌다
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .clickable(onClick = onDetailClick)
+                    .padding(end = 24.dp)
+                    .testTag("${testTag}_detail"),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.ic_auth_chevron_right),
+                    contentDescription = "약관 상세 보기",
+                )
+            }
         }
     }
 }
 
+// 표시만 담당한다 (동의 토글은 행의 동의 영역이 처리)
 @Composable
 private fun AgreementCheckbox(
     checked: Boolean,
-    onCheckedChange: () -> Unit,
     uncheckedBorderColor: Color,
     modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = modifier
-            .size(28.dp)
-            .toggleable(value = checked, role = Role.Checkbox, onValueChange = { onCheckedChange() }),
+        modifier = modifier.size(28.dp),
         contentAlignment = Alignment.Center,
     ) {
         val boxShape = RoundedCornerShape(4.dp)

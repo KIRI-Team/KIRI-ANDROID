@@ -11,7 +11,7 @@ data class OnboardingUiState(
     val selectedRole: FamilyRole? = null,
     val familyName: String = "",
     val familyNameViolations: Set<NicknameRule> = emptySet(),
-    // TODO: 코드 생성 로직이 추가되면 생성된 코드로 채우기
+    // 코드 생성 로딩 단계에서 발급한 초대 코드
     val familyCode: String = "",
     // 가족코드 입력 화면에서 사용자가 입력한 코드
     val inputFamilyCode: String = "",

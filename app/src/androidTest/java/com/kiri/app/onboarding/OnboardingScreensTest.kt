@@ -23,6 +23,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kiri.domain.model.invite.Invite
+import com.kiri.domain.repository.InviteRepository
 import com.kiri.feature.onboarding.OnboardingStep
 import com.kiri.feature.onboarding.OnboardingViewModel
 import com.kiri.feature.onboarding.model.FamilyRole
@@ -144,7 +146,7 @@ class OnboardingScreensTest {
     fun 닉네임은_10자를_넘어도_잘리지_않고_다음을_누르면_닉네임_화면에_머문다() {
         lateinit var viewModel: OnboardingViewModel
         composeTestRule.setContent {
-            viewModel = remember { OnboardingViewModel() }
+            viewModel = remember { OnboardingViewModel(StubInviteRepository) }
             val state by viewModel.uiState.collectAsState()
             KiriTheme { OnboardingScreen(state = state, onEvent = viewModel::onEvent) }
         }
@@ -159,7 +161,7 @@ class OnboardingScreensTest {
     @Test
     fun 규칙에_맞지_않는_닉네임으로_다음을_누르면_닉네임_화면에_머문다() {
         composeTestRule.setContent {
-            val viewModel = remember { OnboardingViewModel() }
+            val viewModel = remember { OnboardingViewModel(StubInviteRepository) }
             val state by viewModel.uiState.collectAsState()
             KiriTheme { OnboardingScreen(state = state, onEvent = viewModel::onEvent) }
         }
@@ -265,6 +267,11 @@ class OnboardingScreensTest {
         composeTestRule.onNodeWithText("초대하기").performClick()
 
         assertEquals(listOf(OnboardingUiEvent.InviteClicked), events)
+    }
+
+    // 실제 서버 없이 ViewModel을 만들기 위한 고정 응답
+    private object StubInviteRepository : InviteRepository {
+        override suspend fun createInvite() = Result.success(Invite(code = "AB12CD", url = "https://kiri.example.com/invite/AB12CD"))
     }
 
     // 시스템 클립보드 읽기 제한(Android 10+)에 영향받지 않도록 복사된 값을 기록만 한다

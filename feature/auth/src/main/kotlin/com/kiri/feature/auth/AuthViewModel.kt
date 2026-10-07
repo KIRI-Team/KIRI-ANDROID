@@ -31,6 +31,11 @@ class AuthViewModel @Inject constructor() : ViewModel() {
             AuthUiEvent.AllTermsToggled -> toggleAllTerms()
             is AuthUiEvent.TermToggled -> toggleTerm(event.term)
             is AuthUiEvent.TermDetailClicked -> openTermDetail(event.term)
+            AuthUiEvent.TermDetailDismissed -> _uiState.update { it.copy(viewingTerm = null) }
+            // 이미 동의한 약관이어도 해제하지 않고 동의 상태로 두고 창을 닫는다
+            is AuthUiEvent.TermDetailAgreed -> _uiState.update {
+                it.copy(agreedTerms = it.agreedTerms + event.term, viewingTerm = null)
+            }
             AuthUiEvent.AgreeClicked -> agree()
             AuthUiEvent.BackClicked -> previous()
         }
@@ -53,9 +58,8 @@ class AuthViewModel @Inject constructor() : ViewModel() {
     }
 
     private fun openTermDetail(term: AgreementTerm) {
-        // 상세 링크가 아직 없는 약관은 아무 동작도 하지 않는다
-        if (term.url.isBlank()) return
-        _effect.trySend(AuthUiEffect.OpenTermDetail(term.url))
+        if (_uiState.value.currentStep != AuthStep.TERMS_AGREEMENT) return
+        _uiState.update { it.copy(viewingTerm = term) }
     }
 
     private fun agree() {
@@ -64,6 +68,7 @@ class AuthViewModel @Inject constructor() : ViewModel() {
     }
 
     private fun previous() {
-        if (_uiState.value.currentStep == AuthStep.TERMS_AGREEMENT) moveTo(AuthStep.LOGIN)
+        if (_uiState.value.currentStep != AuthStep.TERMS_AGREEMENT) return
+        _uiState.update { it.copy(currentStep = AuthStep.LOGIN, viewingTerm = null) }
     }
 }

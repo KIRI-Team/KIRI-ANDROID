@@ -5,6 +5,8 @@ import com.kiri.feature.auth.AuthStep
 data class AuthUiState(
     val currentStep: AuthStep = AuthStep.LOGIN,
     val agreedTerms: Set<AgreementTerm> = emptySet(),
+    // 세부 내용 창에서 보고 있는 약관 (null이면 닫힘)
+    val viewingTerm: AgreementTerm? = null,
 ) {
     val allAgreed: Boolean
         get() = agreedTerms.containsAll(AgreementTerm.entries)

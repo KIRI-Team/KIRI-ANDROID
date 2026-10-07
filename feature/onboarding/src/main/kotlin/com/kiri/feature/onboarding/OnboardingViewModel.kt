@@ -2,6 +2,8 @@ package com.kiri.feature.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kiri.domain.model.invite.Invite
+import com.kiri.domain.repository.InviteRepository
 import com.kiri.feature.onboarding.model.OnboardingUiEffect
 import com.kiri.feature.onboarding.model.OnboardingUiEvent
 import com.kiri.feature.onboarding.model.OnboardingUiState
@@ -26,7 +28,9 @@ enum class OnboardingPath {
 }
 
 @HiltViewModel
-class OnboardingViewModel @Inject constructor() : ViewModel() {
+class OnboardingViewModel @Inject constructor(
+    private val inviteRepository: InviteRepository,
+) : ViewModel() {
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
 
@@ -35,6 +39,10 @@ class OnboardingViewModel @Inject constructor() : ViewModel() {
 
     private var selectedPath: OnboardingPath? = null
     private var loadingJob: Job? = null
+
+    // 로딩 단계에서 발급한 초대. 초대하기를 다시 눌러도 재발급하지 않고 재사용한다
+    private var invite: Invite? = null
+    private var isSharing = false
 
     fun initOnboarding() {
         selectedPath = null
@@ -55,6 +63,7 @@ class OnboardingViewModel @Inject constructor() : ViewModel() {
             OnboardingUiEvent.NextClicked -> next()
             OnboardingUiEvent.BackClicked -> previous()
             OnboardingUiEvent.InviteClicked -> invite()
+            OnboardingUiEvent.InviteShared -> onInviteShared()
         }
     }
 
@@ -95,17 +104,48 @@ class OnboardingViewModel @Inject constructor() : ViewModel() {
         }
     }
 
-    // 초대하기 버튼을 누르면 임시로 홈화면으로 넘어감 -> 추후 수정 예정
     private fun invite() {
+        when (_uiState.value.currentStep) {
+            // 코드 생성 완료 화면: 발급한 초대 링크를 공유한다 (공유 시트가 열려 있는 동안 중복 클릭은 무시)
+            OnboardingStep.GENERATE_FAMILY_CODE -> {
+                val invite = invite ?: return run { _effect.trySend(OnboardingUiEffect.ShowInviteError) }
+                if (isSharing) return
+                isSharing = true
+                _effect.trySend(OnboardingUiEffect.ShareInvite(invite))
+            }
+            // TODO: 가족코드 참여 동작이 정해지면 교체 (지금은 임시로 메인으로 이동)
+            else -> _effect.trySend(OnboardingUiEffect.NavigateToMainFlow)
+        }
+    }
+
+    // 공유 시트에서 돌아오면 메인으로 이동한다
+    private fun onInviteShared() {
+        if (!isSharing) return
+        isSharing = false
         _effect.trySend(OnboardingUiEffect.NavigateToMainFlow)
     }
 
-    // TODO: 코드 생성 로직이 추가되면 실제 생성 완료 시점에 넘어가도록 교체 (지금은 임시로 1초 대기)
+    // 초대 코드를 발급하고, 로딩 화면이 깜빡이지 않도록 최소 1초는 보여준다
     private fun startLoading() {
         loadingJob?.cancel()
+        invite = null
+        isSharing = false
         loadingJob = viewModelScope.launch {
-            delay(LOADING_DURATION_MILLIS)
-            if (_uiState.value.currentStep == OnboardingStep.GENERATE_FAMILY_CODE_LOADING) next()
+            val minimumLoading = launch { delay(LOADING_DURATION_MILLIS) }
+            val result = inviteRepository.createInvite()
+            minimumLoading.join()
+            if (_uiState.value.currentStep != OnboardingStep.GENERATE_FAMILY_CODE_LOADING) return@launch
+            result
+                .onSuccess { created ->
+                    invite = created
+                    _uiState.update { it.copy(familyCode = created.code) }
+                    next()
+                }
+                .onFailure {
+                    // 실패하면 가족명 입력으로 돌아가 다시 시도할 수 있게 한다
+                    _uiState.update { it.copy(currentStep = OnboardingStep.INPUT_FAMILY_NAME) }
+                    _effect.trySend(OnboardingUiEffect.ShowInviteError)
+                }
         }
     }
 

@@ -1,10 +1,15 @@
 package com.kiri.feature.onboarding
 
+import com.kiri.domain.model.invite.Invite
 import com.kiri.feature.onboarding.model.FamilyRole
 import com.kiri.feature.onboarding.model.OnboardingUiEffect
 import com.kiri.feature.onboarding.model.OnboardingUiEvent
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -19,7 +24,8 @@ class OnboardingViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val viewModel = OnboardingViewModel()
+    private val inviteRepository = TestInviteRepository()
+    private val viewModel = OnboardingViewModel(inviteRepository)
     private val state get() = viewModel.uiState.value
 
     private fun moveToOnboardingMain() {
@@ -110,15 +116,104 @@ class OnboardingViewModelTest {
         assertEquals(OnboardingStep.ONBOARDING_MAIN, state.currentStep)
     }
 
-    @Test
-    fun 코드_생성_완료_화면에서_초대하기를_누르면_메인으로_이동하는_효과를_보낸다() = runTest(mainDispatcherRule.testDispatcher) {
+    // 이후에 발생하는 효과를 모두 모은다
+    private fun TestScope.collectEffects(): List<OnboardingUiEffect> {
+        val effects = mutableListOf<OnboardingUiEffect>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.effect.toList(effects) }
+        return effects
+    }
+
+    private fun TestScope.moveToGeneratedCode() {
         moveToLoading()
         advanceUntilIdle()
+    }
+
+    @Test
+    fun 코드_생성_로딩에서_발급한_초대_코드를_화면에_보여준다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToGeneratedCode()
+
         assertEquals(OnboardingStep.GENERATE_FAMILY_CODE, state.currentStep)
+        assertEquals("AB12CD", state.familyCode)
+        assertEquals(1, inviteRepository.createCount)
+    }
+
+    @Test
+    fun 초대_코드_발급에_실패하면_가족명_입력으로_돌아가고_오류를_알린다() = runTest(mainDispatcherRule.testDispatcher) {
+        inviteRepository.result = Result.failure(IllegalStateException())
+        val effects = collectEffects()
+
+        moveToGeneratedCode()
+
+        assertEquals(OnboardingStep.INPUT_FAMILY_NAME, state.currentStep)
+        assertEquals(listOf(OnboardingUiEffect.ShowInviteError), effects)
+    }
+
+    @Test
+    fun 코드_생성_완료_화면에서_초대하기를_누르면_발급한_초대를_공유한다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToGeneratedCode()
+        val effects = collectEffects()
 
         viewModel.onEvent(OnboardingUiEvent.InviteClicked)
 
-        assertEquals(OnboardingUiEffect.NavigateToMainFlow, viewModel.effect.first())
+        assertEquals(listOf(OnboardingUiEffect.ShareInvite(inviteRepository.result.getOrThrow())), effects)
+    }
+
+    @Test
+    fun 공유_시트가_열려_있는_동안_초대하기를_다시_눌러도_무시한다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToGeneratedCode()
+        val effects = collectEffects()
+
+        viewModel.onEvent(OnboardingUiEvent.InviteClicked)
+        viewModel.onEvent(OnboardingUiEvent.InviteClicked)
+
+        assertEquals(1, effects.count { it is OnboardingUiEffect.ShareInvite })
+    }
+
+    @Test
+    fun 공유_시트에서_돌아오면_메인으로_이동한다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToGeneratedCode()
+        val effects = collectEffects()
+        viewModel.onEvent(OnboardingUiEvent.InviteClicked)
+
+        viewModel.onEvent(OnboardingUiEvent.InviteShared)
+
+        assertEquals(OnboardingUiEffect.NavigateToMainFlow, effects.last())
+    }
+
+    @Test
+    fun 공유하지_않았으면_공유_완료_이벤트를_무시한다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToGeneratedCode()
+        val effects = collectEffects()
+
+        viewModel.onEvent(OnboardingUiEvent.InviteShared)
+
+        assertEquals(emptyList<OnboardingUiEffect>(), effects)
+    }
+
+    @Test
+    fun 다시_공유해도_초대를_재발급하지_않는다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToGeneratedCode()
+        val effects = collectEffects()
+        viewModel.onEvent(OnboardingUiEvent.InviteClicked)
+        viewModel.onEvent(OnboardingUiEvent.InviteShared)
+
+        viewModel.onEvent(OnboardingUiEvent.InviteClicked)
+
+        assertEquals(2, effects.count { it is OnboardingUiEffect.ShareInvite })
+        assertEquals(1, inviteRepository.createCount)
+    }
+
+    @Test
+    fun 가족명_입력으로_돌아갔다가_다시_만들면_새로_발급한다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToGeneratedCode()
+        viewModel.onEvent(OnboardingUiEvent.BackClicked)
+        inviteRepository.result = Result.success(Invite(code = "ZZ99ZZ", url = "https://kiri.example.com/invite/ZZ99ZZ"))
+
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        advanceUntilIdle()
+
+        assertEquals("ZZ99ZZ", state.familyCode)
+        assertEquals(2, inviteRepository.createCount)
     }
 
     @Test

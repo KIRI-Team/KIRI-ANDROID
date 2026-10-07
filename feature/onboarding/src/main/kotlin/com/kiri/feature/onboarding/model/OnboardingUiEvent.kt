@@ -12,4 +12,7 @@ sealed interface OnboardingUiEvent {
     data object NextClicked : OnboardingUiEvent
     data object BackClicked : OnboardingUiEvent
     data object InviteClicked : OnboardingUiEvent
+
+    // 공유 시트를 닫고 돌아왔다
+    data object InviteShared : OnboardingUiEvent
 }
