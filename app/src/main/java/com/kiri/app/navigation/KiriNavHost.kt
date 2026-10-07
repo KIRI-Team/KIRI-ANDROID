@@ -23,19 +23,20 @@ fun KiriNavHost(navController: NavHostController, modifier: Modifier = Modifier)
             composable(TopLevelDestination.HOME.startRoute) {
                 HomeScreen(
                     onDetailClick = { navController.navigate(TopLevelDestination.HOME.detailRoute()) },
-                    onDestination = { destination ->
-                        if (destination == HomeUiDestination.InviteFamily) navController.navigate("home/invite")
-                    },
+                    onDestination = { destination -> if (destination == HomeUiDestination.OpenPlaces) navController.navigate(TopLevelDestination.PLACE.graphRoute) },
+                    onInviteFamily = { code -> navController.navigate("home/invite/$code") },
                 )
             }
-            composable("home/invite") {
+            composable("home/invite/{inviteCode}") { backStackEntry ->
                 val context = LocalContext.current
+                val inviteCode = backStackEntry.arguments?.getString("inviteCode").orEmpty()
                 InviteFamilyScreen(
+                    inviteCode = inviteCode,
                     onBack = navController::popBackStack,
                     onShare = {
                         val intent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, "끼리네 가족에 참여해 주세요! 초대코드: NWTKYJ")
+                            putExtra(Intent.EXTRA_TEXT, "끼리네 가족에 참여해 주세요! 초대코드: $inviteCode")
                         }
                         context.startActivity(Intent.createChooser(intent, "가족에게 공유하기"))
                     },

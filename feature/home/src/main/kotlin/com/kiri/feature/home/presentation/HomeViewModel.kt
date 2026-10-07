@@ -95,7 +95,7 @@ class HomeViewModel @Inject constructor(
             HomeAction.Back -> if (!state.value.busy) mutableState.update {
                 it.copy(editing = false, selectedMemberId = null, error = null, answerSaved = false)
             }
-            HomeAction.DismissNotice -> mutableState.update { it.copy(notice = null, answerSaved = false) }
+            HomeAction.DismissNotice -> mutableState.update { it.copy(notice = null, editing = if (it.answerSaved) false else it.editing, answerSaved = false) }
             HomeAction.DismissMember -> mutableState.update { it.copy(selectedMemberId = null) }
         }
     }
@@ -132,7 +132,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val home = repository.saveAnswer(question, s.draft)
-                mutableState.update { it.copy(home = home, busy = false, editing = false, answerSaved = true) }
+                mutableState.update { it.copy(home = home, busy = false, editing = true, answerSaved = true) }
             } catch (error: CancellationException) { throw error }
             catch (error: Exception) { failed(error) }
         }
