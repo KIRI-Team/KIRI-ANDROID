@@ -8,7 +8,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-enum class HomeScenario { DEFAULT, BROWSING, UNASSIGNED, NO_MISSION, COMPLETED_MISSION, MANY_MEMBERS, LOAD_FAILURE, SAVE_FAILURE, POKE_FAILURE }
+enum class HomeScenario { DEFAULT, BROWSING, UNASSIGNED, NO_MISSION, MISSION_UNAVAILABLE, COMPLETED_MISSION, MANY_MEMBERS, LOAD_FAILURE, SAVE_FAILURE, POKE_FAILURE }
 
 /** Session-only fake. Failure scenarios fail once, then allow a normal retry. */
 class FakeHomeRepository(
@@ -92,6 +92,7 @@ class FakeHomeRepository(
                 "weekly-demo", "광장시장에서 시장음식 먹어보기", "광장시장 · 종로구",
                 listOf("대중교통 편리", "혼잡도 높음"), scenario == HomeScenario.COMPLETED_MISSION,
                 place = "광장시장 · 종로구",
+                unavailable = scenario == HomeScenario.MISSION_UNAVAILABLE,
             ),
             schedules = if (browsing) emptyList() else listOf(
                 HomeSchedule("schedule-demo", "가족과 함께 경복궁 가기", date.atTime(18, 0).atZone(ZoneId.of("Asia/Seoul")).toInstant(), ScheduleStatus.CONFIRMED, true),
@@ -100,6 +101,7 @@ class FakeHomeRepository(
                 HomeRecommendation("gyeongbokgung", "경복궁에서 사진찍기", "경복궁 종로구", listOf("대중교통 편리", "가족과 함께"), "4.6", description = "대중교통이 편리하고, 부모님이랑 가기 좋아요! 추천합니다"),
                 HomeRecommendation("namsan", "남산 산책하기", "남산 중구", listOf("대중교통 편리", "가족과 함께"), "4.4", description = "산책하기 좋고, 가족과 함께 여유를 즐길 수 있어요"),
             ),
+            inviteCode = if (browsing) null else "KIRI-${date.toString().replace("-", "").takeLast(6)}",
         )
     }
 }

@@ -21,6 +21,7 @@ data class WeeklyMission(
     val place: String? = null,
     val keywords: List<String> = emptyList(),
     val imageUrl: String? = null,
+    val unavailable: Boolean = false,
 )
 
 data class HomeRecommendation(
@@ -44,6 +45,7 @@ data class FamilyHome(
     val mission: WeeklyMission?,
     val schedules: List<HomeSchedule> = emptyList(),
     val recommendations: List<HomeRecommendation> = emptyList(),
+    val inviteCode: String? = null,
 ) {
     val browsing: Boolean get() = familyName == null
     fun canRead(memberId: String): Boolean = !browsing && question != null &&

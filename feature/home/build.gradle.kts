@@ -1,6 +1,7 @@
 plugins { id("kiri.feature") }
 android { namespace = "com.kiri.feature.home" }
 dependencies {
+    implementation(project(":uikit"))
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
