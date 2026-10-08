@@ -25,6 +25,27 @@ class KiriAppNavigationTest {
         compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
     }
 
+    @Test fun homeInvitationShowsOnboardingTemporaryCodeAndReturnsHome() {
+        start()
+        compose.onNodeWithText("가족 초대하기").performScrollTo().performClick()
+        compose.onNodeWithText(com.kiri.feature.onboarding.TemporaryFamilyCode.code).assertIsDisplayed()
+        compose.onNodeWithContentDescription("뒤로").performClick()
+        compose.onNodeWithTag("home_screen").assertIsDisplayed()
+    }
+
+    @Test fun tabSwitchRestoresSavedCustomConditions() {
+        start(); openMission()
+        compose.onNodeWithTag("open_custom").performClick()
+        compose.onNodeWithTag("condition_AVOID_CROWDS").performScrollTo().performClick()
+        compose.onNodeWithTag("apply_custom").performClick()
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("condition_custom_screen").fetchSemanticsNodes().isEmpty() }
+        compose.onNodeWithTag("bottom_nav_record").performClick()
+        compose.onNodeWithTag("bottom_nav_home").performClick()
+        compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
+        compose.onNodeWithTag("open_custom").performClick()
+        compose.onNodeWithTag("condition_AVOID_CROWDS").assertIsOn()
+    }
+
     @Test fun bottomTabsRemainVisibleOnDetail() {
         start(); openMission()
         listOf("home", "record", "place", "mypage").forEach { compose.onNodeWithTag("bottom_nav_$it").assertIsDisplayed() }
