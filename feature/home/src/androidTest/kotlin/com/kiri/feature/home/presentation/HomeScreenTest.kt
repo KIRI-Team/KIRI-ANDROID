@@ -1,5 +1,7 @@
 package com.kiri.feature.home.presentation
 
+import com.kiri.feature.home.HomeViewModel
+
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.captureToImage
@@ -36,7 +38,7 @@ class HomeScreenTest {
     fun questionAndMissionFlipAreVisible() {
         val repository = ScreenRepository()
         val viewModel = HomeViewModel(repository)
-        compose.setContent { KiriTheme { HomeScreen(viewModel = viewModel) } }
+        compose.setContent { KiriTheme { HomeRoute(viewModel = viewModel) } }
         compose.waitForIdle()
 
         compose.onNodeWithText("오늘 나의 질문카드").assertIsDisplayed()
@@ -56,7 +58,7 @@ class HomeScreenTest {
     fun answerEditorKeepsDraftAndSubmitsThroughViewModel() {
         val repository = ScreenRepository()
         val viewModel = HomeViewModel(repository)
-        compose.setContent { HomeScreen(viewModel = viewModel) }
+        compose.setContent { HomeRoute(viewModel = viewModel) }
         compose.waitForIdle()
 
         compose.onNodeWithTag("home_question_card").performClick()
@@ -70,7 +72,7 @@ class HomeScreenTest {
     @Test
     fun memberSelectionShowsAnswerToast() {
         val viewModel = HomeViewModel(ScreenRepository())
-        compose.setContent { HomeScreen(viewModel = viewModel) }
+        compose.setContent { HomeRoute(viewModel = viewModel) }
         compose.waitForIdle()
 
         compose.onNodeWithText("엄마").performClick()

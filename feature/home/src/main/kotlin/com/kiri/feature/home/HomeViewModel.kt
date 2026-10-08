@@ -1,4 +1,6 @@
-package com.kiri.feature.home.presentation
+package com.kiri.feature.home
+
+import com.kiri.feature.home.model.*
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,102 +14,69 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-
-/** Navigation is owned by the app; absent destinations remain explicit host events. */
-sealed interface HomeDestination {
-    data object Explore : HomeDestination
-    data object CreateFamily : HomeDestination
-    data object JoinFamily : HomeDestination
-    data object InviteFamily : HomeDestination
-    data object AnswerHistory : HomeDestination
-    data class Mission(val id: String) : HomeDestination
-}
-
-data class HomeUiState(
-    val loading: Boolean = true,
-    val home: FamilyHome? = null,
-    val loadError: Boolean = false,
-    val selectedMemberId: String? = null,
-    val editing: Boolean = false,
-    val draft: String = "",
-    val draftQuestionId: String? = null,
-    val showingMission: Boolean = false,
-    val busy: Boolean = false,
-    val error: String? = null,
-    val notice: String? = null,
-    val answerSaved: Boolean = false,
-) {
-    val canSave: Boolean get() = editing && draft.isNotBlank() && !busy && home?.question != null
-}
-
-sealed interface HomeAction {
-    data object Retry : HomeAction
-    data object RefreshDate : HomeAction
-    data class SelectMember(val id: String) : HomeAction
-    data object EditAnswer : HomeAction
-    data class ChangeAnswer(val text: String) : HomeAction
-    data object SaveAnswer : HomeAction
-    data object Poke : HomeAction
-    data object Flip : HomeAction
-    data object Back : HomeAction
-    data object DismissNotice : HomeAction
-    data object DismissMember : HomeAction
-}
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: HomeRepository,
     private val clock: Clock = Clock.systemUTC(),
 ) : ViewModel() {
-    private val mutableState = MutableStateFlow(HomeUiState())
-    val state = mutableState.asStateFlow()
+    private val _uiState = MutableStateFlow(HomeUiState())
+    val uiState = _uiState.asStateFlow()
+    private val _effect = kotlinx.coroutines.channels.Channel<HomeUiEffect>(kotlinx.coroutines.channels.Channel.BUFFERED)
+    val effect = _effect.receiveAsFlow()
     private var loadingInProgress = false
     init { load() }
 
-    fun onAction(action: HomeAction) {
-        when (action) {
-            HomeAction.Retry -> load()
-            HomeAction.RefreshDate -> {
+    fun onEvent(event: HomeUiEvent) {
+        when (event) {
+            is HomeUiEvent.DestinationClicked -> _effect.trySend(HomeUiEffect.Navigate(event.destination))
+            is HomeUiEvent.MissionClicked -> _effect.trySend(HomeUiEffect.OpenMission(event.id))
+            is HomeUiEvent.ScheduleClicked -> _effect.trySend(HomeUiEffect.OpenSchedule(event.id))
+            HomeUiEvent.InviteFamilyClicked -> uiState.value.home?.inviteCode?.let { _effect.trySend(HomeUiEffect.InviteFamily(it)) }
+
+            HomeUiEvent.RetryClicked -> load()
+            HomeUiEvent.DateRefreshRequested -> {
                 val date = LocalDate.now(clock.withZone(ZoneId.of("Asia/Seoul")))
-                if (state.value.home?.date != date && !state.value.loading && !state.value.busy) load()
+                if (uiState.value.home?.date != date && !uiState.value.loading && !uiState.value.busy) load()
             }
-            is HomeAction.SelectMember -> {
-                if (state.value.home?.canRead(action.id) == true && !state.value.busy)
-                    mutableState.update { it.copy(selectedMemberId = action.id, error = null) }
+            is HomeUiEvent.MemberSelected -> {
+                if (uiState.value.home?.canRead(event.id) == true && !uiState.value.busy)
+                    _uiState.update { it.copy(selectedMemberId = event.id, error = null) }
             }
-            HomeAction.EditAnswer -> {
-                val s = state.value
+            HomeUiEvent.AnswerEditClicked -> {
+                val s = uiState.value
                 val home = s.home ?: return
                 val question = home.question ?: return
                 if (!home.canRead(home.currentUserId) || s.busy) return
-                mutableState.update { it.copy(
+                _uiState.update { it.copy(
                     editing = true, selectedMemberId = null, error = null,
                     draft = if (s.draftQuestionId == question.id) s.draft else home.answers[home.currentUserId].orEmpty(),
                     draftQuestionId = question.id,
                 ) }
             }
-            is HomeAction.ChangeAnswer -> if (!state.value.busy) mutableState.update { it.copy(draft = action.text, error = null) }
-            HomeAction.SaveAnswer -> save()
-            HomeAction.Poke -> poke()
-            HomeAction.Flip -> if (state.value.home?.browsing == false && !state.value.busy)
-                mutableState.update { it.copy(showingMission = !it.showingMission) }
-            HomeAction.Back -> if (!state.value.busy) mutableState.update {
+            is HomeUiEvent.AnswerChanged -> if (!uiState.value.busy) _uiState.update { it.copy(draft = event.text, error = null) }
+            HomeUiEvent.AnswerSaveClicked -> save()
+            HomeUiEvent.PokeClicked -> poke()
+            HomeUiEvent.CardFlipped -> if (uiState.value.home?.browsing == false && !uiState.value.busy)
+                _uiState.update { it.copy(showingMission = !it.showingMission) }
+            HomeUiEvent.BackClicked -> if (!uiState.value.busy) _uiState.update {
                 it.copy(editing = false, selectedMemberId = null, error = null, answerSaved = false)
             }
-            HomeAction.DismissNotice -> mutableState.update { it.copy(notice = null, editing = if (it.answerSaved) false else it.editing, answerSaved = false) }
-            HomeAction.DismissMember -> mutableState.update { it.copy(selectedMemberId = null) }
+            HomeUiEvent.NoticeDismissed -> _uiState.update { it.copy(notice = null, editing = if (it.answerSaved) false else it.editing, answerSaved = false) }
+            HomeUiEvent.MemberDismissed -> _uiState.update { it.copy(selectedMemberId = null) }
         }
     }
 
     private fun load() {
-        if (state.value.busy || loadingInProgress) return
+        if (uiState.value.busy || loadingInProgress) return
         loadingInProgress = true
-        mutableState.update { it.copy(loading = true, loadError = false) }
+        _uiState.update { it.copy(loading = true, loadError = false) }
         viewModelScope.launch {
             try {
                 val home = repository.load()
-                mutableState.update { old ->
+                _uiState.update { old ->
                     val changed = old.home != null && old.home.date != home.date
                     old.copy(
                         loading = false, home = home, loadError = false, error = if (changed) null else old.error,
@@ -119,37 +88,37 @@ class HomeViewModel @Inject constructor(
                     )
                 }
             } catch (error: CancellationException) { throw error }
-            catch (_: Exception) { mutableState.update { it.copy(loading = false, loadError = true) } }
+            catch (_: Exception) { _uiState.update { it.copy(loading = false, loadError = true) } }
             finally { loadingInProgress = false }
         }
     }
 
     private fun save() {
-        val s = state.value
+        val s = uiState.value
         if (!s.canSave) return
         val question = s.home?.question ?: return
-        mutableState.update { it.copy(busy = true, error = null) }
+        _uiState.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             try {
                 val home = repository.saveAnswer(question, s.draft)
-                mutableState.update { it.copy(home = home, busy = false, editing = true, answerSaved = true) }
+                _uiState.update { it.copy(home = home, busy = false, editing = true, answerSaved = true) }
             } catch (error: CancellationException) { throw error }
             catch (error: Exception) { failed(error) }
         }
     }
 
     private fun poke() {
-        val s = state.value
+        val s = uiState.value
         val home = s.home ?: return
         val member = s.selectedMemberId ?: return
         val question = home.question ?: return
         if (s.busy || !home.canPoke(member)) return
-        mutableState.update { it.copy(busy = true, error = null) }
+        _uiState.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             try {
                 val updated = repository.poke(question, member)
                 val nickname = home.members.firstOrNull { it.id == member }?.nickname ?: "가족"
-                mutableState.update { it.copy(
+                _uiState.update { it.copy(
                     home = updated, busy = false, selectedMemberId = null,
                     notice = "${nickname}를 콕 찔렀습니다!",
                 ) }
@@ -160,7 +129,7 @@ class HomeViewModel @Inject constructor(
 
     private fun failed(error: Exception) {
         val reason = (error as? HomeException)?.reason
-        mutableState.update { it.copy(busy = false, error = when (reason) {
+        _uiState.update { it.copy(busy = false, error = when (reason) {
             HomeFailure.EMPTY_ANSWER -> "답변을 입력해주세요."
             HomeFailure.EXPIRED -> "날짜가 바뀌었어요. 오늘의 질문을 다시 불러옵니다."
             HomeFailure.ALREADY_ANSWERED -> "이미 답변한 가족이에요."

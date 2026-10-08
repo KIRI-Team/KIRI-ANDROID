@@ -1,5 +1,8 @@
 package com.kiri.feature.home.presentation
 
+import com.kiri.feature.home.HomeViewModel
+import com.kiri.feature.home.model.*
+
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.*
@@ -26,6 +29,9 @@ import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.kiri.domain.home.*
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.color.KiriComponentColor
@@ -45,17 +51,42 @@ import java.time.ZoneId
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-enum class HomeUiDestination { CreateFamily, JoinFamily, InviteFamily, Schedule, AnswerHistory, Mission, OpenPlaces }
 
 @Composable
-fun HomeScreen(
+fun HomeRoute(
     onDestination: (HomeUiDestination) -> Unit = {},
     onInviteFamily: (String) -> Unit = {},
     onMissionClick: (String) -> Unit = {},
     onScheduleClick: (String) -> Unit = { onDestination(HomeUiDestination.Schedule) },
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle(); val home = state.home
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentDestination by rememberUpdatedState(onDestination)
+    val currentInvite by rememberUpdatedState(onInviteFamily)
+    val currentMission by rememberUpdatedState(onMissionClick)
+    val currentSchedule by rememberUpdatedState(onScheduleClick)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(viewModel, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.effect.collect { effect ->
+                when (effect) {
+                    is HomeUiEffect.Navigate -> currentDestination(effect.destination)
+                    is HomeUiEffect.InviteFamily -> currentInvite(effect.code)
+                    is HomeUiEffect.OpenMission -> currentMission(effect.id)
+                    is HomeUiEffect.OpenSchedule -> currentSchedule(effect.id)
+                }
+            }
+        }
+    }
+    HomeScreen(state, viewModel::onEvent)
+}
+
+@Composable
+fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Modifier = Modifier) {
+    val home = state.home
+    val onDestination: (HomeUiDestination) -> Unit = { onEvent(HomeUiEvent.DestinationClicked(it)) }
+    val onMissionClick: (String) -> Unit = { onEvent(HomeUiEvent.MissionClicked(it)) }
+    val onScheduleClick: (String) -> Unit = { onEvent(HomeUiEvent.ScheduleClicked(it)) }
     val offsets = remember { mutableStateMapOf<String, IntOffset>() }
     var pullDistance by remember { mutableFloatStateOf(0f) }
     val refreshConnection = remember(state.loading, state.busy) {
@@ -65,33 +96,33 @@ fun HomeScreen(
                 return Offset.Zero
             }
             override suspend fun onPostFling(consumed: androidx.compose.ui.unit.Velocity, available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
-                if (pullDistance > 110f && !state.loading && !state.busy) viewModel.onAction(HomeAction.Retry)
+                if (pullDistance > 110f && !state.loading && !state.busy) onEvent(HomeUiEvent.RetryClicked)
                 pullDistance = 0f
                 return androidx.compose.ui.unit.Velocity.Zero
             }
         }
     }
-    Box(Modifier.fillMaxSize().background(HomeBackground).nestedScroll(refreshConnection)) {
+    Box(modifier.fillMaxSize().testTag("home_screen").background(HomeBackground).nestedScroll(refreshConnection)) {
         if (state.editing) {
-            home?.question?.let { q -> AnswerEditor(q.text, state.draft, state.busy, state.error, { viewModel.onAction(HomeAction.ChangeAnswer(it)) }, { viewModel.onAction(HomeAction.SaveAnswer) }, { viewModel.onAction(HomeAction.Back) }) }
+            home?.question?.let { q -> AnswerEditor(q.text, state.draft, state.busy, state.error, { onEvent(HomeUiEvent.AnswerChanged(it)) }, { onEvent(HomeUiEvent.AnswerSaveClicked) }, { onEvent(HomeUiEvent.BackClicked) }) }
         } else {
-            Column(Modifier.fillMaxSize().testTag("home_screen").statusBarsPadding().verticalScroll(rememberScrollState())) {
+            Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState())) {
                 TopBar(home?.familyName ?: "둘러보기"); Spacer(Modifier.height(23.dp))
                 Column(Modifier.padding(horizontal = 18.dp)) {
-                when { state.loading -> LoadingHome(); state.loadError || home == null -> ErrorHome { viewModel.onAction(HomeAction.Retry) }; home.browsing -> BrowseCard(onDestination); else -> {
+                when { state.loading -> LoadingHome(); state.loadError || home == null -> ErrorHome { onEvent(HomeUiEvent.RetryClicked) }; home.browsing -> BrowseCard(onDestination); else -> {
                     selectHomeSchedule(home.schedules, Instant.now(), ZoneId.of("Asia/Seoul"))?.let { ScheduleCard(it) { onScheduleClick(it.schedule.id) } }
-                    Spacer(Modifier.height(18.dp)); AnswersHeader { home.inviteCode?.let(onInviteFamily) }; StoryRow(home, viewModel::onAction, offsets); Spacer(Modifier.height(32.dp)); QuestionMissionSection(home, state.showingMission, onDestination, viewModel::onAction, onMissionClick); RecommendationSection(home.recommendations)
+                    Spacer(Modifier.height(18.dp)); AnswersHeader { onEvent(HomeUiEvent.InviteFamilyClicked) }; StoryRow(home, { onEvent(HomeUiEvent.MemberSelected(it)) }, offsets); Spacer(Modifier.height(32.dp)); QuestionMissionSection(home, state.showingMission, onDestination, { onEvent(HomeUiEvent.CardFlipped) }, { onEvent(HomeUiEvent.AnswerEditClicked) }, onMissionClick); RecommendationSection(home.recommendations)
                 } }
                 Spacer(Modifier.height(28.dp))
                 }
             }
         }
-        if (state.answerSaved) AnswerSavedDialog { viewModel.onAction(HomeAction.DismissNotice) }
+        if (state.answerSaved) AnswerSavedDialog { onEvent(HomeUiEvent.NoticeDismissed) }
         home?.let { h -> state.selectedMemberId?.let { id ->
-            Box(Modifier.fillMaxSize().zIndex(3f).background(KiriColor.State.Overlay).clickable { viewModel.onAction(HomeAction.DismissMember) })
-            MemberAnswerToast(h, id, state.busy, offsets[id], viewModel::onAction)
+            Box(Modifier.fillMaxSize().zIndex(3f).background(KiriColor.State.Overlay).clickable { onEvent(HomeUiEvent.MemberDismissed) })
+            MemberAnswerToast(h, id, state.busy, offsets[id]) { onEvent(HomeUiEvent.PokeClicked) }
         } }
-        state.notice?.let { message -> Box(Modifier.fillMaxSize().zIndex(4f).clickable { viewModel.onAction(HomeAction.DismissNotice) }) { NoticeBar(message) } }
+        state.notice?.let { message -> Box(Modifier.fillMaxSize().zIndex(4f).clickable { onEvent(HomeUiEvent.NoticeDismissed) }) { NoticeBar(message) } }
     }
 }
 
@@ -108,14 +139,15 @@ fun HomeScreen(
 @Composable private fun AnswersHeader(onInvite: () -> Unit) { Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically) { Text("답변 모아보기", Modifier.weight(1f), color=KiriColor.Text.Strong, fontSize=18.sp); Button(onClick=onInvite, modifier=Modifier.height(30.dp), contentPadding=PaddingValues(horizontal=12.dp), shape=RoundedCornerShape(8.dp), colors=ButtonDefaults.buttonColors(containerColor=KiriComponentColor.Button.FilledNeutral.BgDefault, contentColor=KiriComponentColor.Button.FilledNeutral.ContentDefault)) { Icon(Icons.Default.Add, null, Modifier.size(16.dp)); Spacer(Modifier.width(2.dp)); Text("가족 초대하기", fontSize=12.sp) } } }
 @Composable private fun BrowseCard(onDestination: (HomeUiDestination) -> Unit) { Card(Modifier.fillMaxWidth(), colors=CardDefaults.cardColors(HomeCard), shape=RoundedCornerShape(16.dp)) { Column(Modifier.padding(20.dp), verticalArrangement=Arrangement.spacedBy(12.dp)) { Text("가족과 함께하는 질문을 시작해보세요", color=HomeStrong, fontSize=18.sp); Text("가족공간을 만들거나 초대코드로 참여하면 오늘의 질문을 받을 수 있어요.", color=HomeSecondary, fontSize=14.sp); Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) { OutlinedButton(onClick={onDestination(HomeUiDestination.CreateFamily)}) { Text("가족 만들기") }; Button(onClick={onDestination(HomeUiDestination.JoinFamily)}) { Text("가족 참여하기") } } } } }
 
-@Composable private fun StoryRow(home: FamilyHome, onAction: (HomeAction) -> Unit, offsets: MutableMap<String, IntOffset>) { KiriMemberAvatarGroup(members=home.members.map { member -> KiriAvatarItem(member.id, if (member.id==home.currentUserId) "내 답변" else member.nickname, member.id in home.answers, member.accessible, member.id==home.currentUserId, member.role) }, onMemberClick={member -> onAction(HomeAction.SelectMember(member.id))}, onPositioned={id, coordinates -> val p=coordinates.positionInRoot(); offsets[id]=IntOffset((p.x + coordinates.size.width / 2f - 103f).roundToInt(), (p.y + coordinates.size.height).roundToInt() + 20)}, modifier=Modifier.fillMaxWidth().padding(top=16.dp)) }
+@Composable private fun StoryRow(home: FamilyHome, onMemberSelected: (String) -> Unit, offsets: MutableMap<String, IntOffset>) { KiriMemberAvatarGroup(members=home.members.map { member -> KiriAvatarItem(member.id, if (member.id==home.currentUserId) "내 답변" else member.nickname, member.id in home.answers, member.accessible, member.id==home.currentUserId, member.role) }, onMemberClick={member -> onMemberSelected(member.id)}, onPositioned={id, coordinates -> val p=coordinates.positionInRoot(); offsets[id]=IntOffset((p.x + coordinates.size.width / 2f - 103f).roundToInt(), (p.y + coordinates.size.height).roundToInt() + 20)}, modifier=Modifier.fillMaxWidth().padding(top=16.dp)) }
 
 @Composable
 private fun QuestionMissionSection(
     home: FamilyHome,
     showingMission: Boolean,
     onDestination: (HomeUiDestination) -> Unit,
-    onAction: (HomeAction) -> Unit,
+    onFlip: () -> Unit,
+    onEdit: () -> Unit,
     onMissionClick: (String) -> Unit,
 ) {
     Column {
@@ -124,7 +156,7 @@ private fun QuestionMissionSection(
             Text("다른 가족들의 답변을 기다려요!", color = KiriColor.Text.Secondary, fontSize = 11.sp)
         }
         Spacer(Modifier.height(12.dp))
-        QuestionMissionCard(home, showingMission, onDestination, onAction, onMissionClick)
+        QuestionMissionCard(home, showingMission, onDestination, onFlip, onEdit, onMissionClick)
     }
 }
 
@@ -133,7 +165,8 @@ private fun QuestionMissionCard(
     home: FamilyHome,
     showingMission: Boolean,
     onDestination: (HomeUiDestination) -> Unit,
-    onAction: (HomeAction) -> Unit,
+    onFlip: () -> Unit,
+    onEdit: () -> Unit,
     onMissionClick: (String) -> Unit,
 ) {
     var drag by remember(showingMission) { mutableFloatStateOf(0f) }
@@ -141,12 +174,12 @@ private fun QuestionMissionCard(
         .pointerInput(showingMission) {
             detectHorizontalDragGestures(
                 onHorizontalDrag = { change, amount -> change.consume(); drag += amount },
-                onDragEnd = { if (abs(drag) > 70) onAction(HomeAction.Flip); drag = 0f },
+                onDragEnd = { if (abs(drag) > 70) onFlip(); drag = 0f },
                 onDragCancel = { drag = 0f },
             )
         }
         .clickable(enabled = if (showingMission) home.mission?.unavailable == false else home.question != null) {
-            if (showingMission) home.mission?.id?.let(onMissionClick) else onAction(HomeAction.EditAnswer)
+            if (showingMission) home.mission?.id?.let(onMissionClick) else onEdit()
         }
         .testTag(if (showingMission) "home_mission_card" else "home_question_card")
     KiriContentCard(modifier = modifier) {
@@ -163,7 +196,7 @@ private fun QuestionMissionCard(
                         if (mission != null && !mission.unavailable) onMissionClick(mission.id)
                         else onDestination(HomeUiDestination.OpenPlaces)
                     },
-                    onFlip = { onAction(HomeAction.Flip) },
+                    onFlip = { onFlip() },
                 )
             } else QuestionCardContent(home)
         }
@@ -195,14 +228,18 @@ private fun QuestionMissionCard(
 
 @Composable private fun ScheduleCard(card: HomeScheduleCard,onClick:()->Unit){val today=card.kind==HomeScheduleCard.Kind.TODAY;val label=when(card.kind){HomeScheduleCard.Kind.RESPONSE_REQUIRED->"응답이 필요한 일정";HomeScheduleCard.Kind.TODAY->"오늘 약속 당일이에요!";HomeScheduleCard.Kind.UPCOMING->"다가오는 일정"};Card(onClick=onClick,modifier=Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(KiriColor.Bg.Secondary),shape=RoundedCornerShape(8.dp)){Row(Modifier.padding(horizontal=18.dp,vertical=16.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(label,color=if(today)KiriColor.Text.Accent else KiriColor.Text.Strong,fontSize=16.sp);if(today)Text("코스를 확인하세요",color=KiriColor.Text.Strong,fontSize=16.sp) else Text(card.schedule.title,color=KiriColor.Text.Strong,fontSize=16.sp)};Icon(Icons.Default.ChevronRight,"일정 열기",tint=KiriColor.Icon.Secondary)}}}
 
-@Composable private fun MemberAnswerToast(home: FamilyHome, memberId:String, busy:Boolean, offset:IntOffset?, onAction:(HomeAction)->Unit){
+@Composable private fun MemberAnswerToast(home: FamilyHome, memberId:String, busy:Boolean, offset:IntOffset?, onPoke:()->Unit){
     val m=home.members.firstOrNull{it.id==memberId}?:return; val can=home.canPoke(m.id)
-    KiriTooltip("${m.nickname}의 가장 좋아하는 음식은",home.answers[m.id]?:"아직 답변하지 않았어요",can&&!busy,{onAction(HomeAction.Poke)},offset?:IntOffset(18,260))
+    KiriTooltip("${m.nickname}의 가장 좋아하는 음식은",home.answers[m.id]?:"아직 답변하지 않았어요",can&&!busy,onPoke,offset?:IntOffset(18,260))
 }
 @Composable private fun NoticeBar(message:String){KiriPokeNotice(message, Modifier.fillMaxWidth().padding(horizontal=18.dp, vertical=12.dp))}
 
-private class PreviewHomeRepository(private val browsing:Boolean=false):HomeRepository{private val q=DailyQuestion("preview-question",LocalDate.now(),"내가 가장 좋아하는 음식은?");private var h=FamilyHome(LocalDate.now(),"me",if(browsing)null else "끼리네 가족",if(browsing)emptyList() else listOf(FamilyMember("me","나","자녀"),FamilyMember("mother","마마","엄마"),FamilyMember("father","빠빠","아빠"),FamilyMember("sibling","돌돌이","자녀")),if(browsing)null else q,if(browsing)emptyMap() else mapOf("mother" to "뚝배기불고기"),emptySet(),if(browsing)null else WeeklyMission("preview-mission","광장시장에서 시장음식 먹어보기","광장시장 · 종로구",listOf("대중교통 편리","혼잡도 높음"),false,place="광장시장 · 종로구"),recommendations=if(browsing)emptyList() else listOf(HomeRecommendation("preview-place","경복궁에서 사진찍기","경복궁 종로구",listOf("대중교통 편리","가족과 함께"),"4.6",description="대중교통이 편리하고, 부모님이랑 가기 좋아요! 추천합니다")));override suspend fun load()=h;override suspend fun saveAnswer(question:DailyQuestion,answer:String):FamilyHome{h=h.copy(answers=h.answers+(h.currentUserId to answer));return h};override suspend fun poke(question:DailyQuestion,memberId:String):FamilyHome{h=h.copy(pokedMemberIds=h.pokedMemberIds+memberId);return h}}
+private class PreviewHomeRepository(private val browsing:Boolean=false):HomeRepository{private val q=DailyQuestion("preview-question",LocalDate.now(),"내가 가장 좋아하는 음식은?");val home=FamilyHome(LocalDate.now(),"me",if(browsing)null else "끼리네 가족",if(browsing)emptyList() else listOf(FamilyMember("me","나","자녀"),FamilyMember("mother","마마","엄마"),FamilyMember("father","빠빠","아빠"),FamilyMember("sibling","돌돌이","자녀")),if(browsing)null else q,if(browsing)emptyMap() else mapOf("mother" to "뚝배기불고기"),emptySet(),if(browsing)null else WeeklyMission("preview-mission","광장시장에서 시장음식 먹어보기","광장시장 · 종로구",listOf("대중교통 편리","혼잡도 높음"),false,place="광장시장 · 종로구"),recommendations=if(browsing)emptyList() else listOf(HomeRecommendation("preview-place","경복궁에서 사진찍기","경복궁 종로구",listOf("대중교통 편리","가족과 함께"),"4.6",description="대중교통이 편리하고, 부모님이랑 가기 좋아요! 추천합니다")));override suspend fun load()=home;override suspend fun saveAnswer(question:DailyQuestion,answer:String)=home;override suspend fun poke(question:DailyQuestion,memberId:String)=home}
 @Preview(name="Home",showBackground=true,backgroundColor=0xFF202020,device="spec:width=411dp,height=891dp,dpi=420")
-@Composable private fun HomePreview(){HomeScreen(viewModel=remember{HomeViewModel(PreviewHomeRepository())})}
+@Composable private fun HomePreview(){HomeScreen(HomeUiState(loading=false, home=PreviewHomeRepository().home), {})}
 @Preview(name="Home browsing",showBackground=true,backgroundColor=0xFF202020,device="spec:width=411dp,height=891dp,dpi=420")
-@Composable private fun HomeBrowsingPreview(){HomeScreen(viewModel=remember{HomeViewModel(PreviewHomeRepository(true))})}
+@Composable private fun HomeBrowsingPreview(){HomeScreen(HomeUiState(loading=false, home=PreviewHomeRepository(true).home), {})}
+
+@Preview
+@Composable
+private fun HomeScreenPreview() { HomeScreen(HomeUiState(), {}) }
