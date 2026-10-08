@@ -74,7 +74,10 @@ class OnboardingViewModel @Inject constructor() : ViewModel() {
         loadingJob?.cancel()
         loadingJob = viewModelScope.launch {
             delay(LOADING_DURATION_MILLIS)
-            if (_uiState.value.currentStep == OnboardingStep.GENERATE_FAMILY_CODE_LOADING) next()
+            if (_uiState.value.currentStep == OnboardingStep.GENERATE_FAMILY_CODE_LOADING) {
+                _uiState.update { it.copy(familyCode = TemporaryFamilyCode.code) }
+                next()
+            }
         }
     }
 

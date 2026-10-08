@@ -69,13 +69,16 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private fun FamilyHome.withTemporaryInviteCode(): FamilyHome =
+        if (browsing) this else copy(inviteCode = com.kiri.feature.onboarding.TemporaryFamilyCode.code)
+
     private fun load() {
         if (uiState.value.busy || loadingInProgress) return
         loadingInProgress = true
         _uiState.update { it.copy(loading = true, loadError = false) }
         viewModelScope.launch {
             try {
-                val home = repository.load()
+                val home = repository.load().withTemporaryInviteCode()
                 _uiState.update { old ->
                     val changed = old.home != null && old.home.date != home.date
                     old.copy(
@@ -100,7 +103,7 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             try {
-                val home = repository.saveAnswer(question, s.draft)
+                val home = repository.saveAnswer(question, s.draft).withTemporaryInviteCode()
                 _uiState.update { it.copy(home = home, busy = false, editing = true, answerSaved = true) }
             } catch (error: CancellationException) { throw error }
             catch (error: Exception) { failed(error) }
@@ -116,7 +119,7 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             try {
-                val updated = repository.poke(question, member)
+                val updated = repository.poke(question, member).withTemporaryInviteCode()
                 val nickname = home.members.firstOrNull { it.id == member }?.nickname ?: "가족"
                 _uiState.update { it.copy(
                     home = updated, busy = false, selectedMemberId = null,

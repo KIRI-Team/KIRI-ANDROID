@@ -21,13 +21,13 @@ class HomeViewModelTest {
     @Before fun setup() { Dispatchers.setMain(dispatcher) }
     @After fun tearDown() { Dispatchers.resetMain() }
 
-    @Test fun invitationUsesRepositoryCodeAndIsBufferedBeforeCollection() = runTest(dispatcher) {
+    @Test fun invitationUsesOnboardingCodeAndIsBufferedBeforeCollection() = runTest(dispatcher) {
         val repo = TestRepository().apply { home = home.copy(inviteCode = "TESTCODE") }
         val vm = HomeViewModel(repo)
         advanceUntilIdle()
         vm.onEvent(HomeUiEvent.InviteFamilyClicked)
-        assertEquals(HomeUiEffect.InviteFamily("TESTCODE"), vm.effect.first())
-        assertEquals("TESTCODE", vm.uiState.value.home?.inviteCode)
+        assertEquals(HomeUiEffect.InviteFamily(com.kiri.feature.onboarding.TemporaryFamilyCode.code), vm.effect.first())
+        assertEquals(com.kiri.feature.onboarding.TemporaryFamilyCode.code, vm.uiState.value.home?.inviteCode)
     }
 
     @Test fun duplicateSubmissionIsIgnoredAndFailurePreservesDraftAndSavedAnswer() = runTest(dispatcher) {
