@@ -18,5 +18,7 @@ dependencies {
 }
 
 dependencies {
+    implementation(libs.androidx.navigation.compose)
+    implementation(project(":feature:detail"))
     implementation(project(":feature:onboarding"))
 }
