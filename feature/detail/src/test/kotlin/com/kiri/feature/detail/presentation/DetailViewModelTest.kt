@@ -1,10 +1,15 @@
 package com.kiri.feature.detail.presentation
 
+import com.kiri.feature.detail.DetailViewModel
+import com.kiri.feature.detail.model.*
+
 import androidx.lifecycle.SavedStateHandle
 import com.kiri.domain.detail.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.*
@@ -18,57 +23,69 @@ class DetailViewModelTest {
     @After fun tearDown() { Dispatchers.resetMain() }
     private fun vm(repo: TestRepository, handle: SavedStateHandle = SavedStateHandle(mapOf("missionId" to "mission-42"))) = DetailViewModel(repo, handle)
 
+    @Test fun failedApplyDoesNotNavigateAndSuccessfulApplyBuffersBackEffect() = runTest(dispatcher) {
+        val repo = TestRepository().apply { failSave = true }
+        val vm = vm(repo)
+        advanceUntilIdle()
+        vm.onEvent(DetailUiEvent.ApplyClicked)
+        advanceUntilIdle()
+        assertNull(withTimeoutOrNull(1) { vm.effect.first() })
+        repo.failSave = false
+        vm.onEvent(DetailUiEvent.ApplyClicked)
+        advanceUntilIdle()
+        assertEquals(DetailUiEffect.NavigateBack, vm.effect.first())
+    }
+
     @Test fun loadsRequestedIdAndRetriesFailure() = runTest(dispatcher) {
         val repo = TestRepository().apply { failLoad = true }
         val vm = vm(repo)
         advanceUntilIdle()
         assertEquals("mission-42", repo.loadedId)
-        assertNotNull(vm.state.value.error)
-        repo.failLoad = false; vm.load(); advanceUntilIdle()
-        assertEquals("원래 미션", vm.state.value.detail?.title)
-        assertNull(vm.state.value.error)
+        assertNotNull(vm.uiState.value.error)
+        repo.failLoad = false; vm.onEvent(DetailUiEvent.RetryClicked); advanceUntilIdle()
+        assertEquals("원래 미션", vm.uiState.value.detail?.title)
+        assertNull(vm.uiState.value.error)
     }
     @Test fun cancelDiscardsDraftWithoutChangingSavedConditions() = runTest(dispatcher) {
         val repo = TestRepository()
-        val vm = vm(repo); advanceUntilIdle(); vm.beginCustom()
-        vm.toggle(Condition.LESS_WALKING); vm.cancelCustom()
-        assertTrue(vm.state.value.draft.isEmpty())
+        val vm = vm(repo); advanceUntilIdle(); vm.onEvent(DetailUiEvent.CustomClicked)
+        vm.onEvent(DetailUiEvent.ConditionToggled(Condition.LESS_WALKING)); vm.onEvent(DetailUiEvent.CustomCancelled)
+        assertTrue(vm.uiState.value.draft.isEmpty())
         assertEquals(0, repo.saves)
     }
     @Test fun failedApplyKeepsSelectionAndPreventsDuplicateSubmission() = runTest(dispatcher) {
         val repo = TestRepository().apply { failSave = true }
-        val vm = vm(repo); advanceUntilIdle(); vm.beginCustom(); vm.toggle(Condition.MORE_REST)
-        vm.apply(); vm.apply(); vm.toggle(Condition.LOWER_BUDGET); advanceUntilIdle()
+        val vm = vm(repo); advanceUntilIdle(); vm.onEvent(DetailUiEvent.CustomClicked); vm.onEvent(DetailUiEvent.ConditionToggled(Condition.MORE_REST))
+        vm.onEvent(DetailUiEvent.ApplyClicked); vm.onEvent(DetailUiEvent.ApplyClicked); vm.onEvent(DetailUiEvent.ConditionToggled(Condition.LOWER_BUDGET)); advanceUntilIdle()
         assertEquals(1, repo.saves)
-        assertEquals(setOf(Condition.MORE_REST), vm.state.value.draft)
-        assertFalse(vm.state.value.applied)
-        assertNotNull(vm.state.value.error)
-        repo.failSave = false; vm.apply(); advanceUntilIdle()
-        assertTrue(vm.state.value.applied)
-        assertEquals("원래 미션", vm.state.value.detail?.title)
-        assertEquals(8000, vm.state.value.detail?.expectedSteps)
-        assertEquals("near", vm.state.value.nearby.first().id)
-        vm.consumeApplied(); vm.beginCustom()
-        assertEquals(setOf(Condition.MORE_REST), vm.state.value.draft)
+        assertEquals(setOf(Condition.MORE_REST), vm.uiState.value.draft)
+        assertNotNull(vm.uiState.value.error)
+        repo.failSave = false; vm.onEvent(DetailUiEvent.ApplyClicked); advanceUntilIdle()
+        assertFalse(vm.uiState.value.saving)
+        assertEquals("원래 미션", vm.uiState.value.detail?.title)
+        assertEquals(8000, vm.uiState.value.detail?.expectedSteps)
+        assertEquals("near", vm.uiState.value.nearby.first().id)
+        vm.onEvent(DetailUiEvent.CustomClicked)
+        assertEquals(setOf(Condition.MORE_REST), vm.uiState.value.draft)
     }
     @Test fun togglingAllOffClearsPreviouslyAppliedConditions() = runTest(dispatcher) {
         val repo = TestRepository()
-        val vm = vm(repo); advanceUntilIdle(); vm.toggle(Condition.LOWER_BUDGET); vm.apply(); advanceUntilIdle()
-        vm.consumeApplied(); vm.beginCustom(); vm.toggle(Condition.LOWER_BUDGET); vm.apply(); advanceUntilIdle()
+        val vm = vm(repo); advanceUntilIdle(); vm.onEvent(DetailUiEvent.ConditionToggled(Condition.LOWER_BUDGET)); vm.onEvent(DetailUiEvent.ApplyClicked); advanceUntilIdle()
+        vm.onEvent(DetailUiEvent.CustomClicked); vm.onEvent(DetailUiEvent.ConditionToggled(Condition.LOWER_BUDGET)); vm.onEvent(DetailUiEvent.ApplyClicked); advanceUntilIdle()
         assertTrue(repo.detail.conditions.isEmpty())
     }
     @Test fun draftSurvivesSavedStateRecreation() = runTest(dispatcher) {
         val repo = TestRepository()
         val handle = SavedStateHandle(mapOf("missionId" to "mission-42"))
-        val first = vm(repo, handle); advanceUntilIdle(); first.toggle(Condition.AVOID_CROWDS)
+        val first = vm(repo, handle); advanceUntilIdle(); first.onEvent(DetailUiEvent.ConditionToggled(Condition.AVOID_CROWDS))
         val restored = vm(repo, SavedStateHandle(mapOf("missionId" to "mission-42", "conditionDraft" to handle.get<ArrayList<String>>("conditionDraft"))))
         advanceUntilIdle()
-        assertEquals(first.state.value.draft, restored.state.value.draft)
+        assertEquals(first.uiState.value.draft, restored.uiState.value.draft)
     }
     @Test fun completedMissionRejectsCustomization() = runTest(dispatcher) {
         val repo = TestRepository().apply { detail = detail.copy(completed = true) }
-        val vm = vm(repo); advanceUntilIdle(); vm.toggle(Condition.LESS_WALKING); vm.apply(); advanceUntilIdle()
-        assertTrue(vm.state.value.draft.isEmpty()); assertEquals(0, repo.saves)
+        val vm = vm(repo); advanceUntilIdle(); vm.onEvent(DetailUiEvent.ConditionToggled(Condition.LESS_WALKING)); vm.onEvent(DetailUiEvent.ApplyClicked); advanceUntilIdle()
+        assertTrue(vm.uiState.value.draft.isEmpty()); assertEquals(0, repo.saves)
     }
 
     private class TestRepository : DetailRepository {

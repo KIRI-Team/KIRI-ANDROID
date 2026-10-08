@@ -1,5 +1,8 @@
 package com.kiri.feature.detail.presentation
 
+import com.kiri.feature.detail.DetailViewModel
+import com.kiri.feature.detail.model.*
+
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,6 +19,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.kiri.domain.detail.MissionDetail
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.*
@@ -25,12 +31,28 @@ import java.time.ZoneId
 
 @Composable
 fun MissionDetailRoute(onBack: () -> Unit, onCustom: () -> Unit, viewModel: DetailViewModel = hiltViewModel()) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    MissionDetailScreen(state, onBack, { viewModel.beginCustom(); onCustom() }, viewModel::load)
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentBack by rememberUpdatedState(onBack)
+    val currentCustom by rememberUpdatedState(onCustom)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(viewModel, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.effect.collect { effect ->
+                when (effect) {
+                    DetailUiEffect.NavigateBack -> currentBack()
+                    DetailUiEffect.OpenCustom -> currentCustom()
+                }
+            }
+        }
+    }
+    MissionDetailScreen(state, viewModel::onEvent)
 }
 
 @Composable
-fun MissionDetailScreen(state: DetailUiState, onBack: () -> Unit, onCustom: () -> Unit, onRetry: () -> Unit = {}) {
+fun MissionDetailScreen(state: DetailUiState, onEvent: (DetailUiEvent) -> Unit) {
+    val onBack = { onEvent(DetailUiEvent.BackClicked) }
+    val onCustom = { onEvent(DetailUiEvent.CustomClicked) }
+    val onRetry = { onEvent(DetailUiEvent.RetryClicked) }
     val detail = state.detail
     Column(Modifier.fillMaxSize().background(KiriColor.Bg.Base).testTag("mission_detail_screen").verticalScroll(rememberScrollState())) {
         if (detail == null) {
