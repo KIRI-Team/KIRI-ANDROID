@@ -33,6 +33,19 @@ class KiriAppNavigationTest {
         compose.onNodeWithTag("home_screen").assertIsDisplayed()
     }
 
+    @Test fun thirdTabSavesAndRestoresBookmarkAcrossTabs() {
+        start()
+        compose.onNodeWithTag("bottom_nav_place").performClick()
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("place_save_place-market").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("place_save_place-market").performClick()
+        compose.onNodeWithTag("place_confirm_save").performClick()
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("place_saved_toast").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("바로가기").performClick()
+        compose.onNodeWithText("저장한 활동 1개").assertIsDisplayed()
+        compose.onNodeWithTag("bottom_nav_home").performClick()
+        compose.onNodeWithTag("bottom_nav_place").performClick()
+        compose.onNodeWithContentDescription("저장됨").assertIsDisplayed()
+    }
     @Test fun tabSwitchRestoresSavedCustomConditions() {
         start(); openMission()
         compose.onNodeWithTag("open_custom").performClick()
