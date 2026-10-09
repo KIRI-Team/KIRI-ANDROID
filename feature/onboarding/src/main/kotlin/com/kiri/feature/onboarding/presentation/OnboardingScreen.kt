@@ -1,10 +1,16 @@
 package com.kiri.feature.onboarding.presentation
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -12,16 +18,37 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kiri.feature.onboarding.OnboardingPath
 import com.kiri.feature.onboarding.OnboardingStep
 import com.kiri.feature.onboarding.OnboardingViewModel
+import com.kiri.feature.onboarding.R
+import com.kiri.feature.onboarding.invite.createInviteShareIntent
+import com.kiri.feature.onboarding.model.OnboardingUiEffect
 import com.kiri.feature.onboarding.model.OnboardingUiEvent
 import com.kiri.feature.onboarding.model.OnboardingUiState
 
 @Composable
 fun OnboardingRoute(
+    onNavigateToMainFlow: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: OnboardingViewModel = hiltViewModel(),
     onBrowseClick: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentOnNavigateToMainFlow by rememberUpdatedState(onNavigateToMainFlow)
+    val context = LocalContext.current
+    // 공유 시트에서 돌아오면 결과와 관계없이 다음 동작을 진행한다
+    val shareLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        viewModel.onEvent(OnboardingUiEvent.InviteShared)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                OnboardingUiEffect.NavigateToMainFlow -> currentOnNavigateToMainFlow()
+                is OnboardingUiEffect.ShareInvite -> shareLauncher.launch(context.createInviteShareIntent(effect.invite))
+                OnboardingUiEffect.ShowInviteError ->
+                    Toast.makeText(context, R.string.invite_create_error, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     OnboardingScreen(
         modifier = modifier,
@@ -50,15 +77,13 @@ fun OnboardingScreen(
                 onNicknameChange = { onEvent(OnboardingUiEvent.NicknameChanged(it)) },
                 onNextClick = { onEvent(OnboardingUiEvent.NextClicked) },
                 onBackClick = onBackClick,
+                violations = state.nicknameViolations,
             )
             OnboardingStep.CHOOSE_ROLE -> ChooseRoleScreen(
                 nickname = state.nickname,
                 selectedRole = state.selectedRole,
-                onRoleSelect = {
-                    onEvent(OnboardingUiEvent.RoleSelected(it))
-                    // 역할 선택 화면에는 다음 버튼이 없어 선택 즉시 진행
-                    onEvent(OnboardingUiEvent.NextClicked)
-                },
+                onRoleSelect = { onEvent(OnboardingUiEvent.RoleSelected(it)) },
+                onNextClick = { onEvent(OnboardingUiEvent.NextClicked) },
                 onBackClick = onBackClick,
             )
             OnboardingStep.ONBOARDING_MAIN -> OnboardingMainScreen(
@@ -72,21 +97,20 @@ fun OnboardingScreen(
                 onFamilyNameChange = { onEvent(OnboardingUiEvent.FamilyNameChanged(it)) },
                 onNextClick = { onEvent(OnboardingUiEvent.NextClicked) },
                 onBackClick = onBackClick,
+                violations = state.familyNameViolations,
             )
             OnboardingStep.GENERATE_FAMILY_CODE_LOADING -> GenerateFamilyCodeLoadingScreen()
             OnboardingStep.GENERATE_FAMILY_CODE -> GenerateFamilyCodeScreen(
                 familyCode = state.familyCode,
                 onCancelClick = onBackClick,
-                // TODO: 초대하기(공유) 동작 정해지면 연결
-                onInviteClick = { onEvent(OnboardingUiEvent.NextClicked) },
+                onInviteClick = { onEvent(OnboardingUiEvent.InviteClicked) },
                 onBackClick = onBackClick,
             )
             OnboardingStep.INPUT_FAMILY_CODE -> InputFamilyCodeScreen(
                 familyCode = state.inputFamilyCode,
                 onFamilyCodeChange = { onEvent(OnboardingUiEvent.InputFamilyCodeChanged(it)) },
                 onCancelClick = onBackClick,
-                // TODO: 가족코드 확인/참여 동작 정해지면 연결
-                onInviteClick = { onEvent(OnboardingUiEvent.NextClicked) },
+                onInviteClick = { onEvent(OnboardingUiEvent.InviteClicked) },
                 onBackClick = onBackClick,
             )
         }

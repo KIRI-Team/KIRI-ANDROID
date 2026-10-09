@@ -20,14 +20,16 @@ import androidx.compose.ui.unit.dp
 import com.kiri.feature.onboarding.model.FamilyRole
 import com.kiri.uikit.color.KiriColor
 import com.kiri.feature.onboarding.presentation.component.OnboardingRoleCard
-import com.kiri.feature.onboarding.presentation.component.OnboardingTitle
-import com.kiri.feature.onboarding.presentation.component.OnboardingTopBar
+import com.kiri.uikit.component.KiriButton
+import com.kiri.uikit.component.KiriTitle
+import com.kiri.uikit.component.KiriTopBar
 
 @Composable
 fun ChooseRoleScreen(
     nickname: String,
     selectedRole: FamilyRole?,
     onRoleSelect: (FamilyRole) -> Unit,
+    onNextClick: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -38,9 +40,9 @@ fun ChooseRoleScreen(
             .systemBarsPadding()
             .testTag("choose_role_screen"),
     ) {
-        OnboardingTopBar(onBackClick = onBackClick)
+        KiriTopBar(onBackClick = onBackClick)
         Spacer(Modifier.height(24.dp))
-        OnboardingTitle(
+        KiriTitle(
             title = "${nickname}님의\n역할을 선택해주세요.",
             subtitle = "가족 안에서의 역할을 선택해주세요!",
             modifier = Modifier.padding(horizontal = 18.dp),
@@ -49,6 +51,7 @@ fun ChooseRoleScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .weight(1f)
                 .selectableGroup(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -66,6 +69,13 @@ fun ChooseRoleScreen(
                 }
             }
         }
+        // 역할을 고르면 다음 버튼이 나타나고, 누를 때까지 다른 역할로 바꿀 수 있다
+        if (selectedRole != null) {
+            KiriButton(
+                onClick = onNextClick,
+                modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 12.dp),
+            )
+        }
     }
 }
 
@@ -76,6 +86,7 @@ private fun ChooseRoleScreenPreview() {
         nickname = "주연주",
         selectedRole = FamilyRole.DAD,
         onRoleSelect = {},
+        onNextClick = {},
         onBackClick = {},
     )
 }

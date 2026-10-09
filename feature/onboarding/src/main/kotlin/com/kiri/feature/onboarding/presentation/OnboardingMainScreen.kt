@@ -15,8 +15,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kiri.uikit.color.KiriColor
 import com.kiri.feature.onboarding.presentation.component.OnboardingMenuCard
-import com.kiri.feature.onboarding.presentation.component.OnboardingTitle
-import com.kiri.feature.onboarding.presentation.component.OnboardingTopBar
+import com.kiri.uikit.component.KiriTitle
+import com.kiri.uikit.component.KiriTopBar
 
 @Composable
 fun OnboardingMainScreen(
@@ -33,9 +33,9 @@ fun OnboardingMainScreen(
             .systemBarsPadding()
             .testTag("onboarding_main_screen"),
     ) {
-        OnboardingTopBar(onBackClick = onBackClick)
+        KiriTopBar(onBackClick = onBackClick)
         Spacer(Modifier.height(24.dp))
-        OnboardingTitle(
+        KiriTitle(
             title = "지금 바로 가족공간을\n만들어봐요!",
             subtitle = "관심가지고 있는 분야에 대해 알려주세요!",
             modifier = Modifier.padding(horizontal = 18.dp),
