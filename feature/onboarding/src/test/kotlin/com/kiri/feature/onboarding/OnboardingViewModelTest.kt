@@ -54,6 +54,7 @@ class OnboardingViewModelTest {
         advanceTimeBy(1)
         runCurrent()
         assertEquals(OnboardingStep.GENERATE_FAMILY_CODE, state.currentStep)
+        assertEquals(inviteRepository.result.getOrThrow().code, state.familyCode)
     }
 
     @Test

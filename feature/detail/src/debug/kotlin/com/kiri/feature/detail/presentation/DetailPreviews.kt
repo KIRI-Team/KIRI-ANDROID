@@ -1,5 +1,7 @@
 package com.kiri.feature.detail.presentation
 
+import com.kiri.feature.detail.model.*
+
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.kiri.domain.detail.*
@@ -17,8 +19,8 @@ fun figmaDetailSample(completed: Boolean = false) = MissionDetail(
 )
 
 @Preview(name = "미션 상세", widthDp = 390, heightDp = 844, showBackground = true)
-@Composable private fun DetailPreview() { KiriTheme { MissionDetailScreen(DetailUiState(loading = false, detail = figmaDetailSample()), {}, {}) } }
+@Composable private fun DetailPreview() { KiriTheme { MissionDetailScreen(DetailUiState(loading = false, detail = figmaDetailSample()), {}) } }
 @Preview(name = "컨디션 커스텀", widthDp = 390, heightDp = 784, showBackground = true)
-@Composable private fun CustomPreview() { KiriTheme { ConditionCustomScreen(DetailUiState(loading = false, detail = figmaDetailSample().copy(expectedSteps = 8000, title = "한강 뚜벅뚜벅 축제 방문")), {}, {}, {}) } }
+@Composable private fun CustomPreview() { KiriTheme { ConditionCustomScreen(DetailUiState(loading = false, detail = figmaDetailSample().copy(expectedSteps = 8000, title = "한강 뚜벅뚜벅 축제 방문")), {}) } }
 @Preview(name = "미션 완료", widthDp = 390, heightDp = 844, showBackground = true)
-@Composable private fun CompletedPreview() { KiriTheme { MissionDetailScreen(DetailUiState(loading = false, detail = figmaDetailSample(true)), {}, {}) } }
+@Composable private fun CompletedPreview() { KiriTheme { MissionDetailScreen(DetailUiState(loading = false, detail = figmaDetailSample(true)), {}) } }

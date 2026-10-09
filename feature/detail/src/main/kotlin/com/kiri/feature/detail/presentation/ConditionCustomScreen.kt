@@ -1,5 +1,8 @@
 package com.kiri.feature.detail.presentation
 
+import com.kiri.feature.detail.DetailViewModel
+import com.kiri.feature.detail.model.*
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -13,21 +16,37 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.kiri.domain.detail.Condition
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.*
 
 @Composable
 fun ConditionCustomRoute(viewModel: DetailViewModel, onBack: () -> Unit) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    val cancel = { if (!state.saving) { viewModel.cancelCustom(); onBack() } }
-    BackHandler { cancel() }
-    LaunchedEffect(state.applied) { if (state.applied) { viewModel.consumeApplied(); onBack() } }
-    ConditionCustomScreen(state, cancel, viewModel::toggle, viewModel::apply)
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentBack by rememberUpdatedState(onBack)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(viewModel, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.effect.collect { effect ->
+                when (effect) {
+                    DetailUiEffect.NavigateBack -> currentBack()
+                    DetailUiEffect.OpenCustom -> Unit
+                }
+            }
+        }
+    }
+    ConditionCustomScreen(state, viewModel::onEvent)
 }
 
 @Composable
-fun ConditionCustomScreen(state: DetailUiState, onBack: () -> Unit, onToggle: (Condition) -> Unit, onApply: () -> Unit) {
+fun ConditionCustomScreen(state: DetailUiState, onEvent: (DetailUiEvent) -> Unit) {
+    val onBack = { onEvent(DetailUiEvent.CustomCancelled) }
+    val onToggle: (Condition) -> Unit = { onEvent(DetailUiEvent.ConditionToggled(it)) }
+    val onApply = { onEvent(DetailUiEvent.ApplyClicked) }
+    BackHandler { if (!state.saving) onBack() }
     Column(Modifier.fillMaxSize().background(KiriColor.Bg.Base).testTag("condition_custom_screen")) {
         KiriDetailAppBar("컨디션 커스텀", onBack, enabled = !state.saving)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 28.dp, bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {

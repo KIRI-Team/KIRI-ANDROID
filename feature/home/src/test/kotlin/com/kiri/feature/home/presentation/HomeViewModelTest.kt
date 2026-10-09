@@ -1,10 +1,14 @@
-﻿package com.kiri.feature.home.presentation
+package com.kiri.feature.home.presentation
+
+import com.kiri.feature.home.HomeViewModel
+import com.kiri.feature.home.model.*
 
 import com.kiri.domain.home.*
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.*
@@ -17,37 +21,46 @@ class HomeViewModelTest {
     @Before fun setup() { Dispatchers.setMain(dispatcher) }
     @After fun tearDown() { Dispatchers.resetMain() }
 
+    @Test fun invitationUsesOnboardingCodeAndIsBufferedBeforeCollection() = runTest(dispatcher) {
+        val repo = TestRepository().apply { home = home.copy(inviteCode = "TESTCODE") }
+        val vm = HomeViewModel(repo)
+        advanceUntilIdle()
+        vm.onEvent(HomeUiEvent.InviteFamilyClicked)
+        assertEquals(HomeUiEffect.InviteFamily(com.kiri.feature.onboarding.TemporaryFamilyCode.code), vm.effect.first())
+        assertEquals(com.kiri.feature.onboarding.TemporaryFamilyCode.code, vm.uiState.value.home?.inviteCode)
+    }
+
     @Test fun duplicateSubmissionIsIgnoredAndFailurePreservesDraftAndSavedAnswer() = runTest(dispatcher) {
         val repo = TestRepository()
         val vm = HomeViewModel(repo)
         advanceUntilIdle()
-        vm.onAction(HomeAction.EditAnswer)
-        vm.onAction(HomeAction.ChangeAnswer("새 답변"))
+        vm.onEvent(HomeUiEvent.AnswerEditClicked)
+        vm.onEvent(HomeUiEvent.AnswerChanged("새 답변"))
         repo.failSave = true
-        vm.onAction(HomeAction.SaveAnswer)
-        vm.onAction(HomeAction.SaveAnswer)
+        vm.onEvent(HomeUiEvent.AnswerSaveClicked)
+        vm.onEvent(HomeUiEvent.AnswerSaveClicked)
         advanceUntilIdle()
         assertEquals(1, repo.saves)
-        assertEquals("새 답변", vm.state.value.draft)
-        assertEquals("기존 답변", vm.state.value.home!!.answers["me"])
-        assertTrue(vm.state.value.canSave)
-        assertNotNull(vm.state.value.error)
+        assertEquals("새 답변", vm.uiState.value.draft)
+        assertEquals("기존 답변", vm.uiState.value.home!!.answers["me"])
+        assertTrue(vm.uiState.value.canSave)
+        assertNotNull(vm.uiState.value.error)
         repo.failSave = false
-        vm.onAction(HomeAction.SaveAnswer)
+        vm.onEvent(HomeUiEvent.AnswerSaveClicked)
         advanceUntilIdle()
-        assertEquals("새 답변", vm.state.value.home!!.answers["me"])
-        assertEquals("가족 답변", vm.state.value.home!!.answers["other"])
-        assertTrue(vm.state.value.answerSaved)
-        assertTrue(vm.state.value.editing)
+        assertEquals("새 답변", vm.uiState.value.home!!.answers["me"])
+        assertEquals("가족 답변", vm.uiState.value.home!!.answers["other"])
+        assertTrue(vm.uiState.value.answerSaved)
+        assertTrue(vm.uiState.value.editing)
     }
 
     @Test fun blankDraftNeverReachesRepository() = runTest(dispatcher) {
         val repo = TestRepository()
         val vm = HomeViewModel(repo)
         advanceUntilIdle()
-        vm.onAction(HomeAction.EditAnswer)
-        vm.onAction(HomeAction.ChangeAnswer(" \n "))
-        vm.onAction(HomeAction.SaveAnswer)
+        vm.onEvent(HomeUiEvent.AnswerEditClicked)
+        vm.onEvent(HomeUiEvent.AnswerChanged(" \n "))
+        vm.onEvent(HomeUiEvent.AnswerSaveClicked)
         advanceUntilIdle()
         assertEquals(0, repo.saves)
     }
@@ -55,15 +68,15 @@ class HomeViewModelTest {
     @Test fun flipAndBackPreserveDataAndUnsubmittedDraft() = runTest(dispatcher) {
         val vm = HomeViewModel(TestRepository())
         advanceUntilIdle()
-        val before = vm.state.value.home
-        vm.onAction(HomeAction.Flip)
-        assertTrue(vm.state.value.showingMission)
-        assertEquals(before, vm.state.value.home)
-        vm.onAction(HomeAction.EditAnswer)
-        vm.onAction(HomeAction.ChangeAnswer("아직 작성 중"))
-        vm.onAction(HomeAction.Back)
-        vm.onAction(HomeAction.EditAnswer)
-        assertEquals("아직 작성 중", vm.state.value.draft)
+        val before = vm.uiState.value.home
+        vm.onEvent(HomeUiEvent.CardFlipped)
+        assertTrue(vm.uiState.value.showingMission)
+        assertEquals(before, vm.uiState.value.home)
+        vm.onEvent(HomeUiEvent.AnswerEditClicked)
+        vm.onEvent(HomeUiEvent.AnswerChanged("아직 작성 중"))
+        vm.onEvent(HomeUiEvent.BackClicked)
+        vm.onEvent(HomeUiEvent.AnswerEditClicked)
+        assertEquals("아직 작성 중", vm.uiState.value.draft)
     }
 
     @Test fun browsingBlocksFamilyInteractions() = runTest(dispatcher) {
@@ -71,12 +84,12 @@ class HomeViewModelTest {
         repo.home = repo.home.copy(familyName = null, question = null, members = emptyList(), answers = emptyMap())
         val vm = HomeViewModel(repo)
         advanceUntilIdle()
-        vm.onAction(HomeAction.EditAnswer)
-        vm.onAction(HomeAction.SelectMember("other"))
-        vm.onAction(HomeAction.Flip)
-        assertFalse(vm.state.value.editing)
-        assertFalse(vm.state.value.showingMission)
-        assertNull(vm.state.value.selectedMemberId)
+        vm.onEvent(HomeUiEvent.AnswerEditClicked)
+        vm.onEvent(HomeUiEvent.MemberSelected("other"))
+        vm.onEvent(HomeUiEvent.CardFlipped)
+        assertFalse(vm.uiState.value.editing)
+        assertFalse(vm.uiState.value.showingMission)
+        assertNull(vm.uiState.value.selectedMemberId)
     }
 
     @Test fun successfulPokeShowsMemberNotificationNotice() = runTest(dispatcher) {
@@ -88,10 +101,10 @@ class HomeViewModelTest {
         }
         val vm = HomeViewModel(repo)
         advanceUntilIdle()
-        vm.onAction(HomeAction.SelectMember("pending"))
-        vm.onAction(HomeAction.Poke)
+        vm.onEvent(HomeUiEvent.MemberSelected("pending"))
+        vm.onEvent(HomeUiEvent.PokeClicked)
         advanceUntilIdle()
-        assertEquals("엄마를 콕 찔렀습니다!", vm.state.value.notice)
+        assertEquals("엄마를 콕 찔렀습니다!", vm.uiState.value.notice)
     }
 
     private class TestRepository : HomeRepository {
