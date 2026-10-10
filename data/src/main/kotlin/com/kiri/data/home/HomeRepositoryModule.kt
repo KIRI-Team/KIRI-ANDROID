@@ -1,6 +1,7 @@
 package com.kiri.data.home
 
 import com.kiri.domain.home.HomeRepository
+import com.kiri.domain.mission.MissionRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -13,7 +14,7 @@ import java.time.Clock
 object HomeRepositoryModule {
     @Provides
     @Singleton
-    fun provideHomeRepository(): HomeRepository = FakeHomeRepository()
+    fun provideHomeRepository(missions: MissionRepository): HomeRepository = FakeHomeRepository(missionRepository = missions)
 
     @Provides
     @Singleton

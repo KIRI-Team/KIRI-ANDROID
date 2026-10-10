@@ -22,6 +22,7 @@ data class WeeklyMission(
     val keywords: List<String> = emptyList(),
     val imageUrl: String? = null,
     val unavailable: Boolean = false,
+    val missionId: String = id,
 )
 
 data class HomeRecommendation(
@@ -63,6 +64,7 @@ data class HomeSchedule(
     val status: ScheduleStatus,
     val finalParticipant: Boolean,
     val responseDeadline: java.time.Instant? = null,
+    val missionId: String = id,
 )
 
 data class HomeScheduleCard(val schedule: HomeSchedule, val kind: Kind) {

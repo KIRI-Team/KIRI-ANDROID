@@ -1,6 +1,7 @@
 package com.kiri.domain.detail
 
 import java.time.LocalDate
+import com.kiri.domain.mission.MissionReview
 
 enum class Condition { LESS_WALKING, MORE_REST, LOWER_BUDGET, AVOID_CROWDS }
 data class DetailParticipant(val name: String, val participating: Boolean)
@@ -62,4 +63,7 @@ fun rankNearby(places: List<NearbyPlace>, conditions: Set<Condition>): List<Near
 interface DetailRepository {
     suspend fun load(missionId: String): MissionDetail
     suspend fun applyConditions(missionId: String, conditions: Set<Condition>): MissionDetail
+    suspend fun preview(missionId: String): MissionPreview = MissionPreview(load(missionId))
 }
+
+data class MissionPreview(val detail: MissionDetail, val reviews: List<MissionReview> = emptyList(), val curated: Boolean = false)
