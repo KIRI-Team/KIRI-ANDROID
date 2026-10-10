@@ -23,6 +23,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.kiri.domain.detail.MissionDetail
+import com.kiri.domain.mission.MissionReview
+import com.kiri.feature.detail.R as DetailR
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.*
 import com.kiri.uikit.R as UiR
@@ -49,12 +51,16 @@ fun MissionDetailRoute(onBack: () -> Unit, onCustom: () -> Unit, viewModel: Deta
 }
 
 @Composable
-fun MissionDetailScreen(state: DetailUiState, onEvent: (DetailUiEvent) -> Unit) {
+fun MissionDetailScreen(
+    state: DetailUiState, onEvent: (DetailUiEvent) -> Unit,
+    discovery: Boolean = false, reviews: List<MissionReview> = emptyList(),
+    reviewsSelected: Boolean = false, onSelectReviews: (Boolean) -> Unit = {}, curated: Boolean = false,
+) {
     val onBack = { onEvent(DetailUiEvent.BackClicked) }
     val onCustom = { onEvent(DetailUiEvent.CustomClicked) }
     val onRetry = { onEvent(DetailUiEvent.RetryClicked) }
     val detail = state.detail
-    Column(Modifier.fillMaxSize().background(KiriColor.Bg.Base).testTag("mission_detail_screen").verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().background(KiriColor.Bg.Base).testTag(if (discovery) "mission_preview_screen" else "mission_detail_screen").verticalScroll(rememberScrollState())) {
         if (detail == null) {
             KiriDetailAppBar("미션 상세", onBack)
             if (state.loading) CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally).padding(32.dp))
@@ -63,50 +69,63 @@ fun MissionDetailScreen(state: DetailUiState, onEvent: (DetailUiEvent) -> Unit) 
                 KiriDetailButton("다시 시도", onRetry)
             }
         } else {
-            DetailHeader(detail, onBack, onCustom)
+            DetailHeader(detail, onBack, onCustom, discovery, reviewsSelected, curated)
             Spacer(Modifier.height(36.dp))
             Row(
                 Modifier.align(Alignment.CenterHorizontally).background(KiriColor.Bg.Secondary, RoundedCornerShape(100.dp)).padding(horizontal = 6.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("끼리네 AI 활동", Modifier.background(KiriColor.Bg.Tertiary, RoundedCornerShape(30.dp)).padding(horizontal = 20.dp, vertical = 11.dp), color = KiriColor.Text.Strong, style = KiriDetailTypography.Title.copy(lineHeight = 22.sp))
-                // Record feature is intentionally not connected, including its tab.
-                Text("가족 추억", Modifier.padding(horizontal = 20.dp, vertical = 11.dp), color = KiriColor.Text.Disabled, style = KiriDetailTypography.Title.copy(lineHeight = 22.sp))
+                if (discovery) {
+                    PreviewTab("추천 활동", !reviewsSelected, { onSelectReviews(false) }, "preview_activity_tab")
+                    PreviewTab("리뷰집", reviewsSelected, { onSelectReviews(true) }, "preview_review_tab")
+                } else {
+                    Text("끼리네 AI 활동", Modifier.background(KiriColor.Bg.Tertiary, RoundedCornerShape(30.dp)).padding(horizontal = 20.dp, vertical = 11.dp), color = KiriColor.Text.Strong, style = KiriDetailTypography.Title.copy(lineHeight = 22.sp))
+                    Text("가족 추억", Modifier.padding(horizontal = 20.dp, vertical = 11.dp), color = KiriColor.Text.Disabled, style = KiriDetailTypography.Title.copy(lineHeight = 22.sp))
+                }
             }
             Spacer(Modifier.height(36.dp))
             Column(Modifier.padding(horizontal = 18.dp)) {
-                SectionTitle(detail.familyName, "의 필수 활동")
-                Spacer(Modifier.height(16.dp))
-                if (detail.activities.isEmpty()) EmptyInfo("아직 등록된 필수 활동이 없어요.")
-                detail.activities.forEachIndexed { index, activity ->
-                    if (index > 0) Spacer(Modifier.height(16.dp))
-                    KiriDetailSuggestionCard(activity.title, activity.description, Modifier.fillMaxWidth())
-                }
-                Spacer(Modifier.height(48.dp))
-                SectionTitle(detail.familyName, "의 필수템")
-                Spacer(Modifier.height(16.dp))
-                if (detail.essentials.isEmpty()) EmptyInfo("일정에 맞는 준비물 정보가 아직 없어요.")
-                detail.essentials.chunked(2).forEach { row ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        row.forEach { item -> KiriDetailSuggestionCard(item.title, item.description, Modifier.weight(1f), item = true) }
-                        if (row.size == 1) Spacer(Modifier.weight(1f))
+                if (discovery && reviewsSelected) {
+                    if (reviews.isEmpty()) EmptyInfo("아직 등록된 리뷰가 없어요.")
+                    Column(Modifier.fillMaxWidth().testTag("preview_reviews"), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        reviews.forEach { MissionReviewCard(it) }
                     }
+                } else {
+                    SectionTitle(detail.familyName.ifBlank { "우리 가족" }, if (discovery) "의 맞춤 활동" else "의 필수 활동")
+                    Spacer(Modifier.height(16.dp))
+                    if (detail.activities.isEmpty()) EmptyInfo("아직 등록된 필수 활동이 없어요.")
+                    detail.activities.forEachIndexed { index, activity ->
+                        if (index > 0) Spacer(Modifier.height(16.dp))
+                        KiriDetailSuggestionCard(activity.title, activity.description, Modifier.fillMaxWidth())
+                    }
+                    Spacer(Modifier.height(48.dp))
+                    SectionTitle(detail.familyName.ifBlank { "우리 가족" }, if (discovery) "의 맞춤템" else "의 필수템")
+                    Spacer(Modifier.height(16.dp))
+                    if (detail.essentials.isEmpty()) EmptyInfo("일정에 맞는 준비물 정보가 아직 없어요.")
+                    detail.essentials.chunked(2).forEach { row ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            row.forEach { item -> KiriDetailSuggestionCard(item.title, item.description, Modifier.weight(1f), item = true) }
+                            if (row.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                    }
+                    Spacer(Modifier.height(48.dp))
+                    Text("${detail.title} 근처 놀거리추천", style = KiriDetailTypography.Title, color = KiriColor.Text.Strong)
+                    Spacer(Modifier.height(4.dp))
+                    Text(buildAnnotatedString {
+                        withStyle(SpanStyle(color = KiriColor.Text.Accent)) { append(detail.familyName.ifBlank { "우리 가족" }) }
+                        append("한테 맞는 놀거리를 추천해드려요!")
+                    }, style = KiriDetailTypography.Small, color = KiriColor.Text.Tertiary)
+                    if (detail.conditions.isNotEmpty()) Text("컨디션에 맞게 추천 순서를 조정했어요.", Modifier.padding(top = 8.dp), style = KiriDetailTypography.Small, color = KiriColor.Text.Accent)
+                    Spacer(Modifier.height(16.dp))
                 }
-                Spacer(Modifier.height(48.dp))
-                Text("${detail.title} 근처 놀거리추천", style = KiriDetailTypography.Title, color = KiriColor.Text.Strong)
-                Spacer(Modifier.height(4.dp))
-                Text(buildAnnotatedString {
-                    withStyle(SpanStyle(color = KiriColor.Text.Accent)) { append(detail.familyName) }
-                    append("한테 맞는 놀거리를 추천해드려요!")
-                }, style = KiriDetailTypography.Small, color = KiriColor.Text.Tertiary)
-                if (detail.conditions.isNotEmpty()) Text("컨디션에 맞게 추천 순서를 조정했어요.", Modifier.padding(top = 8.dp), style = KiriDetailTypography.Small, color = KiriColor.Text.Accent)
-                Spacer(Modifier.height(16.dp))
             }
-            if (state.nearby.isEmpty()) Box(Modifier.padding(horizontal = 18.dp)) { EmptyInfo("주변 추천 정보가 아직 없어요.") }
-            else Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            if (!discovery || !reviewsSelected) {
+                if (state.nearby.isEmpty()) Box(Modifier.padding(horizontal = 18.dp)) { EmptyInfo("주변 추천 정보가 아직 없어요.") }
+                else Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 state.nearby.forEach { place ->
                     KiriPlaceCard(place.title, place.address, place.description, rating = null, detailStyle = true)
                 }
+            }
             }
             Spacer(Modifier.height(32.dp))
         }
@@ -115,12 +134,13 @@ fun MissionDetailScreen(state: DetailUiState, onEvent: (DetailUiEvent) -> Unit) 
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DetailHeader(detail: MissionDetail, onBack: () -> Unit, onCustom: () -> Unit) {
+private fun DetailHeader(detail: MissionDetail, onBack: () -> Unit, onCustom: () -> Unit, discovery: Boolean = false, reviewsSelected: Boolean = false, curated: Boolean = false) {
     Column(Modifier.fillMaxWidth().background(KiriColor.Bg.Primary)) {
-        KiriDetailAppBar(detail.date?.let { "${it.monthValue}월 ${it.dayOfMonth}일" } ?: "미션 상세", onBack)
+        KiriDetailAppBar(if (discovery && reviewsSelected) "플레이스" else detail.date?.let { "${it.monthValue}월 ${it.dayOfMonth}일" } ?: if (discovery) "플레이스" else "미션 상세", onBack)
         Column(Modifier.padding(start = 18.dp, end = 18.dp, top = 21.dp, bottom = 34.dp)) {
             val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
             val badge = when {
+                discovery -> if (curated) "끼리추천" else "추천 활동"
                 detail.completed -> "완료한 미션이에요!"
                 detail.date == today -> "약속 당일이에요!"
                 detail.date == null -> "이번 주 미션이에요!"
@@ -137,8 +157,11 @@ private fun DetailHeader(detail: MissionDetail, onBack: () -> Unit, onCustom: ()
                 detail.participants.forEach { participant ->
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(participant.name, color = KiriColor.Text.Primary, style = KiriDetailTypography.Body)
-                        if (participant.participating) Image(painterResource(UiR.drawable.kiri_detail_check), "참여", Modifier.size(18.dp))
-                        else Text("미참여", color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Small)
+                        if (participant.participating) {
+                            if (discovery) Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                                Image(painterResource(DetailR.drawable.detail_participant_check), "참여", Modifier.size(22.dp))
+                            } else Image(painterResource(UiR.drawable.kiri_detail_check), "참여", Modifier.size(18.dp))
+                        } else Text("미참여", color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Small)
                     }
                 }
             }
@@ -151,12 +174,14 @@ private fun DetailHeader(detail: MissionDetail, onBack: () -> Unit, onCustom: ()
                     InfoText("활동시간 I ${detail.durationLabel}")
                 }
             }
+            if (!discovery) {
             Spacer(Modifier.height(16.dp))
             KiriDetailButton(
                 text = if (detail.completed) "오늘의 추억 기록하러가기" else "컨디션 조정하러가기",
                 onClick = onCustom, accent = detail.completed, enabled = !detail.completed,
                 modifier = Modifier.testTag(if (detail.completed) "record_deferred" else "open_custom"),
             )
+            }
         }
     }
 }
