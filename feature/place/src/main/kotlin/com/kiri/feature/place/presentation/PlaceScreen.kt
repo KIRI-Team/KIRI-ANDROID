@@ -37,14 +37,18 @@ import com.kiri.uikit.component.*
 import kotlinx.coroutines.delay
 
 @Composable
-fun PlaceRoute(onBack: () -> Unit = {}, viewModel: PlaceViewModel = hiltViewModel()) {
+fun PlaceRoute(onBack: () -> Unit = {}, viewModel: PlaceViewModel = hiltViewModel(), onMission: (String) -> Unit = {}) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentBack by rememberUpdatedState(onBack)
+    val currentMission by rememberUpdatedState(onMission)
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             viewModel.effect.collect { effect ->
-                when (effect) { PlaceUiEffect.NavigateBack -> currentBack() }
+                when (effect) {
+                    PlaceUiEffect.NavigateBack -> currentBack()
+                    is PlaceUiEffect.OpenMission -> currentMission(effect.missionId)
+                }
             }
         }
     }
@@ -104,7 +108,7 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
                 }
             } else {
                 LazyColumn(Modifier.fillMaxWidth().weight(1f).testTag("place_list"), contentPadding = PaddingValues(start = 18.dp, end = 18.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    items(missions, key = { it.id }) { mission -> PlaceMissionCard(mission, { onSaveRequest(mission) }) }
+                    items(missions, key = { it.id }) { mission -> PlaceMissionCard(mission, { onSaveRequest(mission) }, { onEvent(PlaceUiEvent.MissionClicked(mission.id)) }) }
                     if (!state.showingSaved && state.nextCursor != null) item {
                         LaunchedEffect(state.nextCursor) { onMore() }
                         if (state.loadingMore) CircularProgressIndicator(Modifier.padding(16.dp))
@@ -166,15 +170,16 @@ private fun PlaceMenu(label: String, options: List<String>) {
     }
 }
 @Composable
-private fun PlaceMissionCard(mission: PlaceMission, onSave: () -> Unit) {
-    Surface(color = if (mission.pick) KiriColor.Bg.Tertiary else KiriColor.Bg.Secondary, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().testTag("place_card_${mission.id}")) {
+private fun PlaceMissionCard(mission: PlaceMission, onSave: () -> Unit, onOpen: () -> Unit) {
+    Surface(onClick = onOpen, color = KiriColor.Bg.Secondary, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().testTag("place_card_${mission.id}")) {
         Row(Modifier.padding(horizontal = 15.dp, vertical = 18.dp), horizontalArrangement = Arrangement.spacedBy(17.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(91.dp).background(KiriColor.Bg.Elevated, RoundedCornerShape(10.dp))) {
-                mission.rating?.let { rating ->
+                run {
+                    val rating = mission.rating ?: "평가 전"
                     Surface(Modifier.padding(7.dp), color = KiriColor.Bg.Tertiary, shape = RoundedCornerShape(100.dp)) {
-                        Row(Modifier.padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.padding(horizontal = 6.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                             Image(painterResource(R.drawable.place_star), null, Modifier.size(24.dp))
-                            Text(rating, color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Small.copy(fontSize = 10.sp, lineHeight = 14.sp))
+                            Text(rating, color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Small.copy(fontWeight = FontWeight.Medium, fontSize = 10.sp, lineHeight = 14.sp, letterSpacing = (-0.4).sp))
                         }
                     }
                 }
@@ -186,10 +191,9 @@ private fun PlaceMissionCard(mission: PlaceMission, onSave: () -> Unit) {
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        (if (mission.pick) listOf("끼리추천") + mission.tags else mission.tags).take(2).forEach { tag ->
-                            val accent = tag == "끼리추천"
-                            Surface(color = if (accent) KiriColor.Primary.Default.copy(alpha = .2f) else KiriColor.Bg.Elevated, shape = RoundedCornerShape(5.dp), modifier = Modifier.weight(1f, fill = false)) {
-                                Text(tag, Modifier.padding(horizontal = 8.dp, vertical = 6.dp), style = KiriDetailTypography.Small.copy(fontSize = 12.sp, lineHeight = 17.sp), color = if (accent) KiriColor.Text.Accent else KiriColor.Text.Tertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        List(2) { mission.tags.getOrNull(it) ?: "정보 없음" }.forEach { tag ->
+                            Surface(color = KiriColor.Bg.Elevated, shape = RoundedCornerShape(5.dp), modifier = Modifier.weight(1f, fill = false)) {
+                                Text(tag, Modifier.padding(horizontal = 8.dp, vertical = 6.dp), style = KiriDetailTypography.Small.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 17.sp, letterSpacing = (-0.48).sp), color = KiriColor.Text.Tertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }

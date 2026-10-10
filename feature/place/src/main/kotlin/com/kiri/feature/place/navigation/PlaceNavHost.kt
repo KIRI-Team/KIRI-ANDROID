@@ -6,7 +6,8 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
-import com.kiri.feature.detail.presentation.DetailScreen
+import android.net.Uri
+import com.kiri.feature.detail.presentation.MissionPreviewRoute
 import com.kiri.feature.place.presentation.PlaceRoute
 
 private const val GRAPH_ROUTE = "place_graph"
@@ -17,10 +18,12 @@ private const val DETAIL_ROUTE = "place_graph/detail"
 fun NavGraphBuilder.placeNavHost(navController: NavHostController) {
     navigation(startDestination = START_ROUTE, route = GRAPH_ROUTE) {
         composable(START_ROUTE) {
-            PlaceRoute(onBack = { navController.popBackStack() })
+            PlaceRoute(onBack = { navController.popBackStack() }, onMission = { id ->
+                navController.navigate("$DETAIL_ROUTE/${Uri.encode(id)}") { launchSingleTop = true }
+            })
         }
-        composable(DETAIL_ROUTE) {
-            DetailScreen(title = "장소 상세", onBackClick = navController::popBackStack)
+        composable("$DETAIL_ROUTE/{missionId}") {
+            MissionPreviewRoute(onBack = { navController.popBackStack() })
         }
     }
 }

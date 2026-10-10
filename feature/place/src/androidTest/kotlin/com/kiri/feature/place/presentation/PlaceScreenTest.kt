@@ -18,7 +18,7 @@ import org.junit.Assert.*
 class PlaceScreenTest {
     @get:Rule val compose = createComposeRule()
     @Test fun searchCategorySaveCancelConfirmAndToastShortcut() {
-        val mission = PlaceMission("one", "광장시장에서 시장음식 먹어보기", "광장시장", "종로구", PlaceCategory.FOOD, pick = true)
+        val mission = PlaceMission("one", "광장시장에서 시장음식 먹어보기", "광장시장", "종로구", PlaceCategory.FOOD, rating = "4.6", tags = listOf("대중교통 편리", "혼잡도 높음"), pick = true)
         val state = mutableStateOf(PlaceUiState(items = listOf(mission), totalCount = 48, loading = false))
         var keyword = ""
         compose.setContent { KiriTheme { PlaceScreen(state.value) { event ->

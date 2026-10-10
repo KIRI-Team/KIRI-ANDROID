@@ -21,6 +21,7 @@ class PlaceViewModel @Inject constructor(private val repository: PlaceRepository
     init { reload() }
     fun onEvent(event: PlaceUiEvent) {
         when (event) {
+            is PlaceUiEvent.MissionClicked -> _effect.trySend(PlaceUiEffect.OpenMission(event.missionId))
             is PlaceUiEvent.SearchChanged -> search(event.keyword)
             is PlaceUiEvent.CategorySelected -> category(event.category)
             is PlaceUiEvent.SaveClicked -> requestSave(event.mission)
