@@ -107,8 +107,12 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
             home?.question?.let { q -> AnswerEditor(q.text, state.draft, state.busy, state.error, { onEvent(HomeUiEvent.AnswerChanged(it)) }, { onEvent(HomeUiEvent.AnswerSaveClicked) }, { onEvent(HomeUiEvent.BackClicked) }) }
         } else {
             Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState())) {
-                TopBar(home?.familyName ?: "둘러보기"); Spacer(Modifier.height(23.dp))
+                TopBar(home?.familyName ?: "둘러보기") { onDestination(HomeUiDestination.Notifications) }; Spacer(Modifier.height(11.dp))
                 Column(Modifier.padding(horizontal = 18.dp)) {
+                if (home != null && !home.browsing && !state.loading && !state.loadError) {
+                    HomeTasteBanner(home.members.firstOrNull { it.id == home.currentUserId }?.nickname ?: "우리 가족")
+                    Spacer(Modifier.height(48.dp))
+                }
                 when { state.loading -> LoadingHome(); state.loadError || home == null -> ErrorHome { onEvent(HomeUiEvent.RetryClicked) }; home.browsing -> BrowseCard(onDestination); else -> {
                     selectHomeSchedule(home.schedules, Instant.now(), ZoneId.of("Asia/Seoul"))?.let { ScheduleCard(it) { onScheduleClick(it.schedule.id) } }
                     Spacer(Modifier.height(18.dp)); AnswersHeader { onEvent(HomeUiEvent.InviteFamilyClicked) }; StoryRow(home, { onEvent(HomeUiEvent.MemberSelected(it)) }, offsets); Spacer(Modifier.height(32.dp)); QuestionMissionSection(home, state.showingMission, onDestination, { onEvent(HomeUiEvent.CardFlipped) }, { onEvent(HomeUiEvent.AnswerEditClicked) }, onMissionClick); RecommendationSection(home.recommendations)
@@ -126,12 +130,18 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
     }
 }
 
-@Composable private fun TopBar(name: String) {
+@Composable private fun TopBar(name: String, onNotifications: () -> Unit) {
     KiriAppBar(name, trailingIconSlot = {
-        Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(48.dp).clickable(onClick = onNotifications).testTag("open_notifications"), contentAlignment = Alignment.Center) {
             Image(painterResource(UiR.drawable.kiri_notifications), "알림", Modifier.size(width = 20.dp, height = 17.5.dp))
         }
     })
+}
+@Composable private fun HomeTasteBanner(name: String) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 84.dp).background(KiriColor.Bg.Elevated, RoundedCornerShape(16.dp)).padding(horizontal = 21.dp, vertical = 15.dp).testTag("home_taste_banner"), verticalAlignment = Alignment.CenterVertically) {
+        Text("${name}님의\n취향을 더 알고싶어요!", Modifier.weight(1f), color = KiriColor.Text.Strong, style = com.kiri.uikit.component.KiriDetailTypography.Title)
+        Text("취향테스트 참여하러가기", color = KiriColor.Text.Secondary, style = com.kiri.uikit.component.KiriDetailTypography.Small)
+    }
 }
 @Composable private fun LoadingHome() { Column(Modifier.fillMaxWidth(), verticalArrangement=Arrangement.spacedBy(14.dp)) { repeat(4) { Box(Modifier.fillMaxWidth().height(if (it==0) 48.dp else 110.dp).clip(RoundedCornerShape(12.dp)).background(HomeCard)) } } }
 @Composable private fun ErrorHome(onRetry: () -> Unit) { Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment=Alignment.CenterHorizontally) { Text("홈을 불러오지 못했어요.", color=HomeStrong); Spacer(Modifier.height(14.dp)); Button(onClick=onRetry) { Text("다시 시도") } } }
