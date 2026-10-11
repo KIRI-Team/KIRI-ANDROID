@@ -2,13 +2,19 @@ package com.kiri.app.navigation
 
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import com.kiri.app.NavigationTestActivity
+import com.kiri.app.HiltTestActivity
 import com.kiri.uikit.KiriTheme
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
+@HiltAndroidTest
 class PlaceMissionNavigationTest {
-    @get:Rule val compose = createAndroidComposeRule<NavigationTestActivity>()
+    @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
+    @Before fun setUp() { hiltRule.inject() }
+    @get:Rule(order = 1) val compose = createAndroidComposeRule<HiltTestActivity>()
     @Test fun riverMissionOpensRecommendationsReviewsRestoreAndBackReturnsToFeed() {
         compose.setContent { KiriTheme { MainScreen() } }
         compose.onNodeWithTag("bottom_nav_place").performClick()

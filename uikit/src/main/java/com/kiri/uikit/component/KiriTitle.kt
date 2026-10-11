@@ -23,6 +23,7 @@ fun KiriTitle(
     modifier: Modifier = Modifier,
     textAlign: TextAlign = TextAlign.Start,
     subtitleColor: Color = KiriColor.Text.Primary,
+    titleFontWeight: FontWeight = FontWeight.Medium,
 ) {
     Column(
         modifier = modifier,
@@ -35,7 +36,7 @@ fun KiriTitle(
             style = TextStyle(
                 color = KiriColor.Text.Strong,
                 fontSize = 28.sp,
-                fontWeight = FontWeight.Medium,
+                fontWeight = titleFontWeight,
                 lineHeight = 40.sp,
                 letterSpacing = (-0.02).em,
             ),

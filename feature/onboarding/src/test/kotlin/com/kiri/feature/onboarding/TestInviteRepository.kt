@@ -14,4 +14,6 @@ class TestInviteRepository(
         createCount++
         return result
     }
+
+    override suspend fun getCurrentInvite(): Invite? = result.getOrNull()?.takeIf { createCount > 0 }
 }

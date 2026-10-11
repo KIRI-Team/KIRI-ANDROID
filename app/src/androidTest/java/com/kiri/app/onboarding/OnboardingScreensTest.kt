@@ -186,7 +186,7 @@ class OnboardingScreensTest {
 
         composeTestRule.onNodeWithText("가족코드를\n생성하고 있어요!").assertIsDisplayed()
         composeTestRule.onNodeWithText("조금만 기다려주세요").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("onboarding_loading_indicator").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("kiri_loading_indicator").assertIsDisplayed()
         composeTestRule.onNodeWithTag("kiri_back_button").assertIsNotEnabled()
     }
 
@@ -272,6 +272,8 @@ class OnboardingScreensTest {
     // 실제 서버 없이 ViewModel을 만들기 위한 고정 응답
     private object StubInviteRepository : InviteRepository {
         override suspend fun createInvite() = Result.success(Invite(code = "AB12CD", url = "https://kiri.example.com/invite/AB12CD"))
+
+        override suspend fun getCurrentInvite(): Invite? = null
     }
 
     // 시스템 클립보드 읽기 제한(Android 10+)에 영향받지 않도록 복사된 값을 기록만 한다

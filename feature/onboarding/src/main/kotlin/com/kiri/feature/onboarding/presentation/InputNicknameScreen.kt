@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.kiri.feature.onboarding.NicknameRule
+import com.kiri.domain.model.nickname.NicknameRule
 import com.kiri.uikit.color.KiriColor
 import com.kiri.feature.onboarding.presentation.component.OnboardingInputBox
 import com.kiri.uikit.component.KiriButton

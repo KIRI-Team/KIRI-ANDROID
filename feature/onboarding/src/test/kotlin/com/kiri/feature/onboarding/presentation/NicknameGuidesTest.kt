@@ -1,6 +1,6 @@
 package com.kiri.feature.onboarding.presentation
 
-import com.kiri.feature.onboarding.NicknameRule
+import com.kiri.domain.model.nickname.NicknameRule
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

@@ -34,7 +34,15 @@ fun KiriApp() {
             )
         }
         composable(ROUTE_MAIN) {
-            MainScreen()
+            MainScreen(
+                // 로그아웃·회원탈퇴 뒤에는 메인으로 뒤로가지 않도록 메인을 지우고 로그인으로 간다
+                onNavigateToLogin = {
+                    rootNavController.navigate(ROUTE_AUTH) {
+                        popUpTo(ROUTE_MAIN) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
         }
     }
 }

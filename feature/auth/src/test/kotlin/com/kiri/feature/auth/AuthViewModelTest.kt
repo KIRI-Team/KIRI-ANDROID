@@ -1,6 +1,6 @@
 package com.kiri.feature.auth
 
-import com.kiri.feature.auth.model.AgreementTerm
+import com.kiri.domain.model.term.AgreementTerm
 import com.kiri.feature.auth.model.AuthUiEffect
 import com.kiri.feature.auth.model.AuthUiEvent
 import com.kiri.feature.auth.model.LoginProvider

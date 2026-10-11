@@ -1,5 +1,6 @@
 package com.kiri.feature.onboarding
 
+import com.kiri.domain.model.nickname.NicknameRule
 import com.kiri.domain.model.invite.Invite
 import com.kiri.feature.onboarding.model.FamilyRole
 import com.kiri.feature.onboarding.model.OnboardingUiEffect
