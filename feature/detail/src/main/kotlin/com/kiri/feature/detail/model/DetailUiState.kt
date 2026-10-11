@@ -8,6 +8,9 @@ data class DetailUiState(
     val draft: Set<Condition> = emptySet(),
     val saving: Boolean = false,
     val error: String? = null,
+    val memoriesSelected: Boolean = false,
+    val memoryDraft: MemoryDraft = MemoryDraft(),
+    val submittedMemory: MemoryDraft? = null,
 ) {
     val nearby: List<NearbyPlace> get() = detail?.let { rankNearby(it.nearby, it.conditions) }.orEmpty()
 }

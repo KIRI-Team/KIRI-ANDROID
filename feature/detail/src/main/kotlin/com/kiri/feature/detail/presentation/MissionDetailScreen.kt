@@ -32,10 +32,11 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 @Composable
-fun MissionDetailRoute(onBack: () -> Unit, onCustom: () -> Unit, viewModel: DetailViewModel = hiltViewModel()) {
+fun MissionDetailRoute(onBack: () -> Unit, onCustom: () -> Unit, viewModel: DetailViewModel = hiltViewModel(), onRecord: () -> Unit = {}) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentBack by rememberUpdatedState(onBack)
     val currentCustom by rememberUpdatedState(onCustom)
+    val currentRecord by rememberUpdatedState(onRecord)
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
@@ -43,6 +44,7 @@ fun MissionDetailRoute(onBack: () -> Unit, onCustom: () -> Unit, viewModel: Deta
                 when (effect) {
                     DetailUiEffect.NavigateBack -> currentBack()
                     DetailUiEffect.OpenCustom -> currentCustom()
+                    DetailUiEffect.OpenRecord -> currentRecord()
                 }
             }
         }
@@ -59,6 +61,7 @@ fun MissionDetailScreen(
     val onBack = { onEvent(DetailUiEvent.BackClicked) }
     val onCustom = { onEvent(DetailUiEvent.CustomClicked) }
     val onRetry = { onEvent(DetailUiEvent.RetryClicked) }
+    val onRecord = { onEvent(DetailUiEvent.RecordClicked) }
     val detail = state.detail
     Column(Modifier.fillMaxSize().background(KiriColor.Bg.Base).testTag(if (discovery) "mission_preview_screen" else "mission_detail_screen").verticalScroll(rememberScrollState())) {
         if (detail == null) {
@@ -69,7 +72,7 @@ fun MissionDetailScreen(
                 KiriDetailButton("다시 시도", onRetry)
             }
         } else {
-            DetailHeader(detail, onBack, onCustom, discovery, reviewsSelected, curated)
+            DetailHeader(detail, onBack, onCustom, discovery, reviewsSelected, curated, onRecord, state.submittedMemory != null, state.memoriesSelected)
             Spacer(Modifier.height(36.dp))
             Row(
                 Modifier.align(Alignment.CenterHorizontally).background(KiriColor.Bg.Secondary, RoundedCornerShape(100.dp)).padding(horizontal = 6.dp, vertical = 4.dp),
@@ -79,13 +82,23 @@ fun MissionDetailScreen(
                     PreviewTab("추천 활동", !reviewsSelected, { onSelectReviews(false) }, "preview_activity_tab")
                     PreviewTab("리뷰집", reviewsSelected, { onSelectReviews(true) }, "preview_review_tab")
                 } else {
-                    Text("끼리네 AI 활동", Modifier.background(KiriColor.Bg.Tertiary, RoundedCornerShape(30.dp)).padding(horizontal = 20.dp, vertical = 11.dp), color = KiriColor.Text.Strong, style = KiriDetailTypography.Title.copy(lineHeight = 22.sp))
-                    Text("가족 추억", Modifier.padding(horizontal = 20.dp, vertical = 11.dp), color = KiriColor.Text.Disabled, style = KiriDetailTypography.Title.copy(lineHeight = 22.sp))
+                    PreviewTab("끼리네 AI 활동", !state.memoriesSelected, { onEvent(DetailUiEvent.MemoriesSelected(false)) }, "mission_activity_tab")
+                    PreviewTab("가족 추억", state.memoriesSelected, { onEvent(DetailUiEvent.MemoriesSelected(true)) }, "mission_memory_tab")
                 }
             }
             Spacer(Modifier.height(36.dp))
             Column(Modifier.padding(horizontal = 18.dp)) {
-                if (discovery && reviewsSelected) {
+                if (!discovery && state.memoriesSelected) {
+                    if (state.submittedMemory == null) {
+                        Box(Modifier.fillMaxWidth().heightIn(min = 160.dp).testTag("family_memories_empty"), contentAlignment = Alignment.Center) {
+                            Text("아직 기록이 없어요", color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Body)
+                        }
+                    } else {
+                        Text("${detail.familyName.ifBlank { "우리 가족" }} 님의 한 줄", style = KiriDetailTypography.Title, color = KiriColor.Text.Strong)
+                        Spacer(Modifier.height(16.dp))
+                        MemoryPreviewCard(state.submittedMemory, detail.participants.firstOrNull()?.name ?: "나", onRecord)
+                    }
+                } else if (discovery && reviewsSelected) {
                     if (reviews.isEmpty()) EmptyInfo("아직 등록된 리뷰가 없어요.")
                     Column(Modifier.fillMaxWidth().testTag("preview_reviews"), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         reviews.forEach { MissionReviewCard(it) }
@@ -119,7 +132,7 @@ fun MissionDetailScreen(
                     Spacer(Modifier.height(16.dp))
                 }
             }
-            if (!discovery || !reviewsSelected) {
+            if (if (discovery) !reviewsSelected else !state.memoriesSelected) {
                 if (state.nearby.isEmpty()) Box(Modifier.padding(horizontal = 18.dp)) { EmptyInfo("주변 추천 정보가 아직 없어요.") }
                 else Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 state.nearby.forEach { place ->
@@ -134,9 +147,9 @@ fun MissionDetailScreen(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DetailHeader(detail: MissionDetail, onBack: () -> Unit, onCustom: () -> Unit, discovery: Boolean = false, reviewsSelected: Boolean = false, curated: Boolean = false) {
+private fun DetailHeader(detail: MissionDetail, onBack: () -> Unit, onCustom: () -> Unit, discovery: Boolean = false, reviewsSelected: Boolean = false, curated: Boolean = false, onRecord: () -> Unit = {}, memorySubmitted: Boolean = false, memoriesSelected: Boolean = false) {
     Column(Modifier.fillMaxWidth().background(KiriColor.Bg.Primary)) {
-        KiriDetailAppBar(if (discovery && reviewsSelected) "플레이스" else detail.date?.let { "${it.monthValue}월 ${it.dayOfMonth}일" } ?: if (discovery) "플레이스" else "미션 상세", onBack)
+        KiriDetailAppBar(if (memorySubmitted) "${detail.familyName.ifBlank { "우리 가족" }} 기록" else if (discovery && reviewsSelected) "플레이스" else detail.date?.let { "${it.monthValue}월 ${it.dayOfMonth}일" } ?: if (discovery) "플레이스" else "미션 상세", onBack)
         Column(Modifier.padding(start = 18.dp, end = 18.dp, top = 21.dp, bottom = 34.dp)) {
             val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
             val badge = when {
@@ -147,11 +160,17 @@ private fun DetailHeader(detail: MissionDetail, onBack: () -> Unit, onCustom: ()
                 detail.date?.isBefore(today) == true -> "지난 약속이에요"
                 else -> "다가오는 약속이에요!"
             }
-            Text(badge, Modifier.background(if (detail.completed) KiriColor.Bg.Elevated else KiriColor.Bg.GreenSoft, RoundedCornerShape(5.dp)).padding(horizontal = 8.dp, vertical = 6.dp), style = KiriDetailTypography.Small, color = if (detail.completed) KiriColor.Text.Primary else KiriColor.Text.Accent)
+            val neutralBadge = detail.completed || memoriesSelected || memorySubmitted
+            Text(badge, Modifier.background(if (neutralBadge) KiriColor.Bg.Elevated else KiriColor.Bg.GreenSoft, RoundedCornerShape(5.dp)).padding(horizontal = 8.dp, vertical = 6.dp), style = KiriDetailTypography.Small, color = if (neutralBadge) KiriColor.Text.Primary else KiriColor.Text.Accent)
             Spacer(Modifier.height(11.dp))
             Text(detail.title, color = KiriColor.Text.Strong, style = KiriDetailTypography.Display)
             Spacer(Modifier.height(4.dp))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (memorySubmitted) {
+                Text(buildAnnotatedString {
+                    withStyle(SpanStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline)) { append("인원확인") }
+                    append(" I ${detail.date?.format(java.time.format.DateTimeFormatter.ofPattern("yyyy.MM.dd")) ?: "날짜 정보 없음"}")
+                }, color = KiriColor.Text.Primary, style = KiriDetailTypography.Body)
+            } else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("참여상태  I", color = KiriColor.Text.Primary, style = KiriDetailTypography.Body)
                 if (detail.participants.isEmpty()) Text("참여 정보 없음", color = KiriColor.Text.Secondary, style = KiriDetailTypography.Body)
                 detail.participants.forEach { participant ->
@@ -176,10 +195,12 @@ private fun DetailHeader(detail: MissionDetail, onBack: () -> Unit, onCustom: ()
             }
             if (!discovery) {
             Spacer(Modifier.height(16.dp))
+            val canRecord = detail.completed || detail.date?.let { !it.isAfter(today) } == true
+            val showMemoryAction = memoriesSelected || detail.completed || memorySubmitted
             KiriDetailButton(
-                text = if (detail.completed) "오늘의 추억 기록하러가기" else "컨디션 조정하러가기",
-                onClick = onCustom, accent = detail.completed, enabled = !detail.completed,
-                modifier = Modifier.testTag(if (detail.completed) "record_deferred" else "open_custom"),
+                text = if (showMemoryAction) "오늘의 추억 기록하러가기" else "컨디션 조정하러가기",
+                onClick = if (showMemoryAction) onRecord else onCustom, accent = showMemoryAction && canRecord && !memorySubmitted, enabled = if (showMemoryAction) canRecord else !detail.completed,
+                modifier = Modifier.testTag(if (showMemoryAction) "open_memory_editor" else "open_custom"),
             )
             }
         }

@@ -52,11 +52,11 @@ class DetailScreenTest {
         assertEquals(setOf(Condition.MORE_REST), applied)
     }
 
-    @Test fun completedRecordActionIsVisibleButDisabled() {
+    @Test fun completedRecordActionOpensEditor() {
         var navigated = false
-        compose.setContent { KiriTheme { MissionDetailScreen(DetailUiState(false, figmaDetailSample(true)), { if (it == DetailUiEvent.CustomClicked) navigated = true }) } }
-        compose.onNodeWithTag("record_deferred").assertIsDisplayed().assertIsNotEnabled().performClick()
-        assertFalse(navigated)
+        compose.setContent { KiriTheme { MissionDetailScreen(DetailUiState(false, figmaDetailSample(true)), { if (it == DetailUiEvent.RecordClicked) navigated = true }) } }
+        compose.onNodeWithTag("open_memory_editor").assertIsDisplayed().assertIsEnabled().performClick()
+        assertTrue(navigated)
         capture("detail-completed")
     }
 
@@ -64,6 +64,35 @@ class DetailScreenTest {
         compose.setContent { KiriTheme { ConditionCustomScreen(DetailUiState(false, figmaDetailSample(), saving = true), {}) } }
         compose.onNodeWithTag("apply_custom").assertIsNotEnabled()
         Condition.entries.forEach { compose.onNodeWithTag("condition_${it.name}").assertIsNotEnabled() }
+    }
+
+    @Test fun familyMemoryTabShowsEmptyAndFutureActivitiesCannotRecord() {
+        val state = mutableStateOf(DetailUiState(false, figmaDetailSample().copy(date = java.time.LocalDate.now().plusDays(3))))
+        compose.setContent { KiriTheme { MissionDetailScreen(state.value, { event ->
+            if (event is DetailUiEvent.MemoriesSelected) state.value = state.value.copy(memoriesSelected = event.selected)
+        }) } }
+        compose.onNodeWithTag("mission_memory_tab").performScrollTo().performClick().assertIsSelected()
+        compose.onNodeWithTag("family_memories_empty").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("아직 기록이 없어요").assertIsDisplayed()
+        compose.onNodeWithTag("open_memory_editor").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithTag("mission_activity_tab").performScrollTo().performClick().assertIsSelected()
+        compose.onNodeWithTag("family_memories_empty").assertDoesNotExist()
+    }
+
+    @Test fun submittedMemoryShowsOnlyOwnCardAndEditAction() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val image = android.graphics.BitmapFactory.decodeResource(context.resources, com.kiri.uikit.R.drawable.kiri_place_card_image)
+        val photo = File(context.cacheDir, "memory-preview-photo.png")
+        photo.outputStream().use { image.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        var edited = false
+        val memory = MemoryDraft(4, listOf(android.net.Uri.fromFile(photo).toString()), "가족과 함께 즐거운 하루를 보냈어요.", true)
+        compose.setContent { KiriTheme { MissionDetailScreen(DetailUiState(false, figmaDetailSample(true), memoriesSelected = true, submittedMemory = memory), { if (it == DetailUiEvent.RecordClicked) edited = true }) } }
+        compose.onNodeWithTag("local_memory_preview").performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithTag("local_memory_preview").assertCountEquals(1)
+        capture("memory-completed")
+        compose.onNodeWithTag("edit_memory").performClick()
+        assertTrue(edited)
+        compose.onNodeWithTag("family_memories_empty").assertDoesNotExist()
     }
 
     @Test fun loadFailureOffersRetryAndBack() {

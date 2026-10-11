@@ -9,4 +9,6 @@ sealed interface DetailUiEvent {
     data class ConditionToggled(val condition: Condition) : DetailUiEvent
     data object CustomCancelled : DetailUiEvent
     data object ApplyClicked : DetailUiEvent
+    data class MemoriesSelected(val selected: Boolean) : DetailUiEvent
+    data object RecordClicked : DetailUiEvent
 }

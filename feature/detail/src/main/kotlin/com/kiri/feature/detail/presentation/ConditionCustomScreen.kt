@@ -34,6 +34,7 @@ fun ConditionCustomRoute(viewModel: DetailViewModel, onBack: () -> Unit) {
                 when (effect) {
                     DetailUiEffect.NavigateBack -> currentBack()
                     DetailUiEffect.OpenCustom -> Unit
+                    DetailUiEffect.OpenRecord -> Unit
                 }
             }
         }
