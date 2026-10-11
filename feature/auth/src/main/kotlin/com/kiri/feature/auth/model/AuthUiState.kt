@@ -1,5 +1,6 @@
 package com.kiri.feature.auth.model
 
+import com.kiri.domain.model.term.AgreementTerm
 import com.kiri.feature.auth.AuthStep
 
 data class AuthUiState(

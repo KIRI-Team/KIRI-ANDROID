@@ -1,6 +1,6 @@
 package com.kiri.feature.onboarding.model
 
-import com.kiri.feature.onboarding.NicknameRule
+import com.kiri.domain.model.nickname.NicknameRule
 import com.kiri.feature.onboarding.OnboardingStep
 
 data class OnboardingUiState(

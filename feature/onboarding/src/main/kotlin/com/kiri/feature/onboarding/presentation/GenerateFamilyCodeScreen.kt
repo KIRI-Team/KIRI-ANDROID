@@ -24,8 +24,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kiri.uikit.component.KiriButtonTone
-import com.kiri.feature.onboarding.presentation.component.OnboardingInviteCode
 import com.kiri.uikit.component.KiriButton
+import com.kiri.uikit.component.KiriInviteCodeCard
 import com.kiri.uikit.component.KiriTitle
 import com.kiri.uikit.component.KiriTopBar
 import com.kiri.uikit.color.KiriColor
@@ -69,10 +69,12 @@ fun GenerateFamilyCodeScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(59.dp))
-            OnboardingInviteCode(
-                code = familyCode,
+            KiriInviteCodeCard(
+                label = "링크코드",
+                value = familyCode,
                 onCopyClick = onCopyClick,
                 modifier = Modifier.padding(horizontal = 39.5.dp),
+                testTag = "onboarding_invite_code",
             )
         }
         Row(

@@ -19,7 +19,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kiri.feature.auth.AuthViewModel
-import com.kiri.feature.auth.model.AgreementTerm
+import com.kiri.domain.model.term.AgreementTerm
 import com.kiri.feature.auth.model.LoginProvider
 import com.kiri.feature.auth.presentation.AuthScreen
 import com.kiri.feature.auth.presentation.LoginScreen
