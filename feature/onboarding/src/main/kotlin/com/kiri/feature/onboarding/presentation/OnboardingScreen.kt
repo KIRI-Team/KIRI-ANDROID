@@ -18,11 +18,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kiri.feature.onboarding.OnboardingPath
 import com.kiri.feature.onboarding.OnboardingStep
 import com.kiri.feature.onboarding.OnboardingViewModel
-import com.kiri.feature.onboarding.R
-import com.kiri.feature.onboarding.invite.createInviteShareIntent
 import com.kiri.feature.onboarding.model.OnboardingUiEffect
 import com.kiri.feature.onboarding.model.OnboardingUiEvent
 import com.kiri.feature.onboarding.model.OnboardingUiState
+import com.kiri.uikit.R as UikitR
+import com.kiri.uikit.invite.createInviteShareIntent
 
 @Composable
 fun OnboardingRoute(
@@ -43,9 +43,9 @@ fun OnboardingRoute(
         viewModel.effect.collect { effect ->
             when (effect) {
                 OnboardingUiEffect.NavigateToMainFlow -> currentOnNavigateToMainFlow()
-                is OnboardingUiEffect.ShareInvite -> shareLauncher.launch(context.createInviteShareIntent(effect.invite))
+                is OnboardingUiEffect.ShareInvite -> shareLauncher.launch(context.createInviteShareIntent(effect.invite.url, effect.invite.code))
                 OnboardingUiEffect.ShowInviteError ->
-                    Toast.makeText(context, R.string.invite_create_error, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, UikitR.string.invite_create_error, Toast.LENGTH_SHORT).show()
             }
         }
     }

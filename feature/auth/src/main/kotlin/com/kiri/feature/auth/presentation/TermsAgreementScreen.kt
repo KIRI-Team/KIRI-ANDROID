@@ -13,12 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.kiri.feature.auth.model.AgreementTerm
+import com.kiri.domain.model.term.AgreementTerm
 import com.kiri.feature.auth.presentation.component.AuthAgreementRow
-import com.kiri.feature.auth.presentation.component.AuthTermDetailSheet
 import com.kiri.feature.auth.presentation.component.AuthAgreementRowType
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.KiriButton
+import com.kiri.uikit.component.KiriDetailSheet
 import com.kiri.uikit.component.KiriTitle
 import com.kiri.uikit.component.KiriTopBar
 
@@ -86,10 +86,15 @@ fun TermsAgreementScreen(
         )
     }
     viewingTerm?.let { term ->
-        AuthTermDetailSheet(
-            term = term,
-            onAgreeClick = { onTermDetailAgree(term) },
+        // 오른쪽 위 동의하기를 누르면 해당 약관에 동의하고 닫힌다
+        KiriDetailSheet(
+            title = term.title,
+            content = term.content,
+            actionText = "동의하기",
+            onActionClick = { onTermDetailAgree(term) },
             onDismiss = onTermDetailDismiss,
+            testTag = "term_detail_sheet",
+            actionTestTag = "term_detail_agree_button",
         )
     }
 }

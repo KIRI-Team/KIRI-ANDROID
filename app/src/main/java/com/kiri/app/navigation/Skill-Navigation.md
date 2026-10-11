@@ -29,14 +29,14 @@ navController.navigate(destination.graphRoute) {
 
 ## 3. Detail은 탭마다 별도 route로 선언되어 있다
 
-`TopLevelDestination.detailRoute()`는 `"${graphRoute}/detail"`을 반환한다. 즉 실제 route 문자열은 `home_graph/detail`, `record_graph/detail`, `place_graph/detail`, `mypage_graph/detail`로 전부 다르다.
+`TopLevelDestination.detailRoute()`는 `"${graphRoute}/detail"`을 반환한다. 즉 실제 route 문자열은 `home_graph/detail`, `record_graph/detail`, `place_graph/detail`로 전부 다르다. 마이페이지 탭에는 Detail이 없고, 대신 메뉴별 하위 화면이 `mypage_graph/{메뉴 이름 소문자}`(예: `mypage_graph/notification_setting`) route로 등록되어 있다 (8번 참고).
 
-- `DetailScreen` 컴포저블 자체는 4곳에서 재사용하지만, **route는 절대 공용으로 묶지 않는다.** 만약 `"detail"`처럼 하나의 공용 route로 4개 그래프에서 동시에 참조하면 백스택이 예상과 다르게 합쳐지거나 인자 전달이 꼬일 수 있다.
+- `DetailScreen` 컴포저블 자체는 3곳에서 재사용하지만, **route는 절대 공용으로 묶지 않는다.** 만약 `"detail"`처럼 하나의 공용 route로 여러 그래프에서 동시에 참조하면 백스택이 예상과 다르게 합쳐지거나 인자 전달이 꼬일 수 있다.
 - 새 탭을 추가하거나 Detail에 파라미터(예: itemId)를 추가할 때도 이 "탭별 namespaced route" 원칙을 유지한다.
 
 ## 4. Detail 화면에서도 바텀바는 항상 보여야 한다
 
-`MainScreen.kt`는 `main` 그래프 안의 모든 화면(탭 시작 화면 + Detail)에서 예외 없이 `KiriBottomBar`를 표시한다.
+`MainScreen.kt`는 `main` 그래프 안의 모든 화면(탭 시작 화면 + Detail + 마이페이지 메뉴 화면)에서 예외 없이 `KiriBottomBar`를 표시한다.
 
 ```kotlin
 Scaffold(bottomBar = { KiriBottomBar(navController) }) { padding ->
@@ -65,7 +65,18 @@ Scaffold(bottomBar = { KiriBottomBar(navController) }) { padding ->
 
 1. `settings.gradle.kts`에 feature 모듈 추가 (필요 시)
 2. `TopLevelDestination`에 enum 항목 추가 (graphRoute/startRoute/label/icon)
-3. `KiriNavHost.kt`에 `navigation { ... }` 블록 추가 (시작 화면 + `detailRoute()` composable)
+3. `KiriNavHost.kt`에 `navigation { ... }` 블록 추가 (시작 화면 + `detailRoute()` composable). 탭 안에 하위 화면이 여러 개라면 8번처럼 feature 모듈의 `NavGraphBuilder` 확장 함수로 등록한다
 4. 새 화면에 `onDetailClick` 콜백과 `testTag` 추가
 5. `KiriAppNavigationTest.kt`에 해당 탭의 독립 백스택 테스트 추가
 6. `:app:assembleDebug`, `:app:lintDebug` 실행 후 결과 기록 (AGENTS.md 규칙)
+
+## 8. 마이페이지 그래프는 feature 모듈이 등록한다
+
+마이페이지는 목록에서 메뉴별 하위 화면으로 들어갔다 나오는 구조라서, 그래프 등록을 `feature/mypage`의 `com.kiri.feature.mypage.navigation.MypageNavigation.kt`가 맡는다. `KiriNavHost.kt`에서는 `mypageGraph(navController, onNavigateToLogin)` 한 줄만 호출한다.
+
+- **route 상수는 feature가 소유한다**: `MYPAGE_GRAPH_ROUTE`(`"mypage_graph"`), `MYPAGE_ROUTE`(`"mypage"`)는 `MypageNavigation.kt`에 있고, `TopLevelDestination.MY_PAGE`는 이 상수를 참조한다. app이 feature를 의존하는 방향만 허용되므로, feature가 `TopLevelDestination`을 참조하도록 바꾸지 않는다.
+- **메뉴 화면 추가 방법**: `MypageMenu` enum에 항목을 추가하고 `MypageNavigation.kt`의 `MypageMenuScreen` `when`에 분기를 추가한다. route(`mypage_graph/{메뉴 이름 소문자}`)는 enum 이름으로 자동 생성되므로 `KiriNavHost.kt`는 수정하지 않는다.
+- **화면을 고를 때만 `when`을 쓴다**: 온보딩처럼 상태 하나로 화면을 전환하지 않는다. 메뉴 화면마다 별도 route로 백스택에 쌓아야 탭 재선택, 상태 보존(2번), 화면별 ViewModel 범위가 Navigation 기준으로 동작한다.
+- **화면 Composable은 NavController를 모른다**: `NavController`는 `mypageGraph()` 안에서만 쓰고, 각 화면에는 `onBackClick` 같은 람다만 넘긴다. 다른 탭으로 이동해야 하면 feature의 route를 직접 참조하지 말고 `mypageGraph()`의 콜백 파라미터로 받아 `KiriNavHost.kt`에서 연결한다.
+- **메인 밖으로 나가는 이동은 콜백으로 올린다**: 로그아웃·회원탈퇴 뒤 로그인 화면 이동은 `mypageGraph(onNavigateToLogin)` → `KiriNavHost` → `MainScreen(onNavigateToLogin)` → `KiriApp` 순서로 올려, 루트 NavController에서 `main`을 지우고 `auth`로 이동한다.
+- `feature/mypage/build.gradle.kts`에는 이 때문에 `navigation-compose` 의존성이 있다.

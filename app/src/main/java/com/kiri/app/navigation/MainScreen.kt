@@ -7,8 +7,9 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.kiri.uikit.color.KiriColor
 
+// onNavigateToLogin: 로그아웃·회원탈퇴 뒤 로그인 화면으로 간다
 @Composable
-fun MainScreen() {
+fun MainScreen(onNavigateToLogin: () -> Unit = {}) {
     val navController = rememberNavController()
 
     Scaffold(
@@ -16,6 +17,6 @@ fun MainScreen() {
         contentColor = KiriColor.Text.Strong,
         bottomBar = { KiriBottomBar(navController) },
     ) { padding ->
-        KiriNavHost(navController, Modifier.padding(padding))
+        KiriNavHost(navController, Modifier.padding(padding), onNavigateToLogin = onNavigateToLogin)
     }
 }

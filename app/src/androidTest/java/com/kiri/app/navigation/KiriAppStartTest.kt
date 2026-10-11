@@ -8,16 +8,29 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kiri.app.MainActivity
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 // AuthRoute, OnboardingRoute가 hiltViewModel()을 쓰므로 Hilt가 적용된 MainActivity에서 실행한다
+// 테스트는 HiltTestApplication으로 실행되므로 @HiltAndroidTest와 HiltAndroidRule이 필요하다
+@HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class KiriAppStartTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val hiltRule = HiltAndroidRule(this)
+
+    @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule<MainActivity>()
+
+    @Before
+    fun setUp() {
+        hiltRule.inject()
+    }
 
     // 로그인 → 약관 전체동의 → 동의하고 계속하기 → 온보딩
     private fun passAuth() {

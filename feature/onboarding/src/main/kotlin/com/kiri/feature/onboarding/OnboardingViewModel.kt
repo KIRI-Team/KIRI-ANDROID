@@ -1,5 +1,6 @@
 package com.kiri.feature.onboarding
 
+import com.kiri.domain.model.nickname.NicknameValidator
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kiri.domain.model.invite.Invite
@@ -43,11 +44,6 @@ class OnboardingViewModel @Inject constructor(
     // 로딩 단계에서 발급한 초대. 초대하기를 다시 눌러도 재발급하지 않고 재사용한다
     private var invite: Invite? = null
     private var isSharing = false
-
-    fun initOnboarding() {
-        selectedPath = null
-        _uiState.update { it.copy(currentStep = OnboardingStep.INPUT_NICKNAME) }
-    }
 
     fun onEvent(event: OnboardingUiEvent) {
         when (event) {

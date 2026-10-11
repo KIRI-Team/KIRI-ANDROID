@@ -14,7 +14,8 @@ android {
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "0.1.0"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // hiltViewModel()을 쓰는 화면을 UI 테스트에서 띄울 수 있도록 Hilt 테스트용 Application으로 실행한다
+        testInstrumentationRunner = "com.kiri.app.HiltTestRunner"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -42,5 +43,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.hilt.android.testing)
+    kspAndroidTest(libs.hilt.compiler)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
