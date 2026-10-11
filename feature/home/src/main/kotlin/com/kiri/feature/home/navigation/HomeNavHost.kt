@@ -1,6 +1,8 @@
 package com.kiri.feature.home.navigation
 
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -16,6 +18,11 @@ import com.kiri.feature.detail.presentation.ConditionCustomRoute
 import com.kiri.feature.home.presentation.HomeRoute
 import com.kiri.feature.home.presentation.InviteFamilyScreen
 import com.kiri.feature.home.model.HomeUiDestination
+import com.kiri.feature.home.HomeViewModel
+import com.kiri.feature.home.model.HomeUiEvent
+import com.kiri.feature.home.presentation.NotificationRoute
+import com.kiri.domain.notification.NotificationTarget
+import com.kiri.feature.record.presentation.MemoryEditorScreen
 
 private const val GRAPH_ROUTE = "home_graph"
 private const val START_ROUTE = "home"
@@ -28,9 +35,28 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
             HomeRoute(
                 onMissionClick = { id -> navController.navigate("${DETAIL_ROUTE}/${Uri.encode(id)}") { launchSingleTop = true } },
                 onScheduleClick = { id -> navController.navigate("${DETAIL_ROUTE}/${Uri.encode(id)}") { launchSingleTop = true } },
-                onDestination = { destination -> if (destination == HomeUiDestination.OpenPlaces) onOpenPlaces() },
+                onDestination = { destination ->
+                    when (destination) {
+                        HomeUiDestination.OpenPlaces -> onOpenPlaces()
+                        HomeUiDestination.Notifications -> navController.navigate("home/notifications") { launchSingleTop = true }
+                        else -> Unit
+                    }
+                },
                 onInviteFamily = { code -> navController.navigate("home/invite/${Uri.encode(code)}") },
             )
+        }
+        composable("home/notifications") {
+            val homeEntry = remember { navController.getBackStackEntry(START_ROUTE) }
+            val homeViewModel: HomeViewModel = hiltViewModel(homeEntry)
+            NotificationRoute(onBack = { navController.popBackStack() }, onTarget = { notification ->
+                when (notification.target) {
+                    NotificationTarget.QUESTION -> {
+                        if (homeViewModel.uiState.value.home?.question?.id == notification.targetId) homeViewModel.onEvent(HomeUiEvent.AnswerEditClicked)
+                        navController.popBackStack()
+                    }
+                    else -> navController.navigate("$DETAIL_ROUTE/${Uri.encode(notification.targetId)}?memories=${notification.target == NotificationTarget.MEMORY}") { launchSingleTop = true }
+                }
+            })
         }
         composable("home/invite/{inviteCode}") { backStackEntry ->
             val context = LocalContext.current
@@ -47,14 +73,26 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
                 },
             )
         }
-        composable("${DETAIL_ROUTE}/{missionId}") { entry ->
+        composable("${DETAIL_ROUTE}/{missionId}?memories={memories}", arguments = listOf(androidx.navigation.navArgument("memories") { defaultValue = "false" })) { entry ->
+            val viewModel: DetailViewModel = hiltViewModel(entry)
             MissionDetailRoute(onBack = { navController.popBackStack() }, onCustom = {
                 val id = entry.arguments?.getString("missionId").orEmpty()
                 navController.navigate("${DETAIL_ROUTE}/${Uri.encode(id)}/custom") { launchSingleTop = true }
+            }, viewModel = viewModel, onRecord = {
+                val id = entry.arguments?.getString("missionId").orEmpty()
+                navController.navigate("$DETAIL_ROUTE/${Uri.encode(id)}/record") { launchSingleTop = true }
             })
         }
+        composable("${DETAIL_ROUTE}/{missionId}/record") { entry ->
+            val parent = remember(entry) { navController.getBackStackEntry("${DETAIL_ROUTE}/{missionId}?memories={memories}") }
+            val viewModel: DetailViewModel = hiltViewModel(parent)
+            val state by viewModel.uiState.collectAsStateWithLifecycle()
+            MemoryEditorScreen(state.memoryDraft, state.detail?.participants?.firstOrNull()?.name ?: "나",
+                onChange = viewModel::updateMemoryDraft, onBack = { navController.popBackStack() },
+                onSubmit = { if (viewModel.submitMemoryPreview()) navController.popBackStack() })
+        }
         composable("${DETAIL_ROUTE}/{missionId}/custom") { entry ->
-            val parent = remember(entry) { navController.getBackStackEntry("${DETAIL_ROUTE}/{missionId}") }
+            val parent = remember(entry) { navController.getBackStackEntry("${DETAIL_ROUTE}/{missionId}?memories={memories}") }
             val viewModel: DetailViewModel = hiltViewModel(parent)
             ConditionCustomRoute(viewModel, onBack = { navController.popBackStack() })
         }
