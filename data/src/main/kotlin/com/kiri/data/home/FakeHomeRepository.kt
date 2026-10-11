@@ -1,6 +1,8 @@
 ﻿package com.kiri.data.home
 
 import com.kiri.domain.home.*
+import com.kiri.domain.mission.MissionRepository
+import com.kiri.data.mission.FakeMissionRepository
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
@@ -15,6 +17,7 @@ class FakeHomeRepository(
     private val clock: Clock = Clock.systemUTC(),
     private val scenario: HomeScenario = HomeScenario.DEFAULT,
     private val latencyMillis: Long = 350,
+    private val missionRepository: MissionRepository = FakeMissionRepository(),
 ) : HomeRepository {
     private val mutex = Mutex()
     private var snapshot = seed(today())
@@ -30,6 +33,11 @@ class FakeHomeRepository(
             loadFailed = true
             throw HomeException(HomeFailure.NETWORK)
         }
+        val content = missionRepository.load(FakeMissionRepository.RIVER_MISSION_ID).summary
+        snapshot = snapshot.copy(
+            mission = snapshot.mission?.copy(title = content.title, description = content.place, place = content.place, tags = content.tags),
+            schedules = snapshot.schedules.map { it.copy(title = content.title) },
+        )
         snapshot
     }
 
@@ -93,9 +101,10 @@ class FakeHomeRepository(
                 listOf("대중교통 편리", "혼잡도 높음"), scenario == HomeScenario.COMPLETED_MISSION,
                 place = "여의도 한강 공원",
                 unavailable = scenario == HomeScenario.MISSION_UNAVAILABLE,
+                missionId = FakeMissionRepository.RIVER_MISSION_ID,
             ),
             schedules = if (browsing) emptyList() else listOf(
-                HomeSchedule("schedule-demo", "한강 뚜벅뚜벅 축제 가보기", date.atTime(14, 50).atZone(ZoneId.of("Asia/Seoul")).toInstant(), ScheduleStatus.CONFIRMED, true),
+                HomeSchedule("schedule-demo", "한강 뚜벅뚜벅 축제 가보기", date.atTime(14, 50).atZone(ZoneId.of("Asia/Seoul")).toInstant(), ScheduleStatus.CONFIRMED, true, missionId = FakeMissionRepository.RIVER_MISSION_ID),
             ),
             recommendations = if (browsing) emptyList() else listOf(
                 HomeRecommendation("gyeongbokgung", "경복궁에서 사진찍기", "경복궁 종로구", listOf("대중교통 편리", "가족과 함께"), "4.6", description = "대중교통이 편리하고, 부모님이랑 가기 좋아요! 추천합니다"),
