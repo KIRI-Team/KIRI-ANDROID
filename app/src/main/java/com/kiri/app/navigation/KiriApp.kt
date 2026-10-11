@@ -31,6 +31,12 @@ fun KiriApp() {
                         launchSingleTop = true
                     }
                 },
+                onBrowseClick = {
+                    rootNavController.navigate(ROUTE_MAIN) {
+                        popUpTo(ROUTE_AUTH) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
             )
         }
         composable(ROUTE_MAIN) {
