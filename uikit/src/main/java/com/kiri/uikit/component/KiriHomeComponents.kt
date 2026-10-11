@@ -38,6 +38,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -82,10 +85,11 @@ fun KiriMemberAvatarGroup(
                     showAddBadge = member.isCurrentUser,
                     modifier = Modifier.onGloballyPositioned { onPositioned(member.id, it) },
                 )
+                Spacer(Modifier.height(2.dp))
                 Text(
                     text = member.label,
-                    color = KiriColor.Text.Secondary,
-                    fontSize = 14.sp,
+                    color = KiriColor.Text.Primary,
+                    style = KiriDetailTypography.Body.copy(fontWeight = FontWeight.Medium, lineHeight = if (member.isCurrentUser) 24.sp else 19.sp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -98,23 +102,15 @@ fun KiriMemberAvatarGroup(
 fun KiriMemberAvatar(answered: Boolean, role: String? = null, showAddBadge: Boolean, modifier: Modifier = Modifier) {
     Box(
         modifier
-            .size(47.dp)
-            .background(KiriColor.Bg.Secondary)
-            .border(1.dp, if (answered) KiriColor.Text.Accent else KiriColor.Border.Default, CircleShape),
+            .size(width = 47.dp, height = 45.dp)
+            .semantics { stateDescription = if (answered) "답변 완료" else "미답변" },
         contentAlignment = Alignment.Center,
     ) {
         Image(
-            painter = painterResource(if (answered) R.drawable.kiri_avatar_active else R.drawable.kiri_avatar_inactive),
+            painter = painterResource(if (showAddBadge) R.drawable.kiri_my_answer else R.drawable.kiri_member_avatar),
             contentDescription = role,
-            modifier = Modifier.fillMaxSize().clip(CircleShape),
+            modifier = Modifier.size(width = if (showAddBadge) 47.dp else 45.dp, height = 45.dp),
         )
-        if (showAddBadge) {
-            Box(
-                Modifier.size(18.dp).align(Alignment.BottomEnd).offset(x = 4.dp, y = 4.dp).clip(CircleShape)
-                    .background(KiriColor.Bg.Elevated).border(1.dp, KiriColor.Border.Default, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) { Text("+", color = KiriColor.Text.Secondary, fontSize = 15.sp, lineHeight = 15.sp) }
-        }
     }
 }
 
@@ -188,9 +184,10 @@ fun KiriMissionCard(
     unavailable: Boolean,
     onPlacesClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onFlip: () -> Unit = {},
 ) {
     Box(
-        modifier = modifier.fillMaxWidth().height(136.dp)
+        modifier = modifier.fillMaxWidth().height(132.dp)
             .background(KiriColor.Bg.Secondary, RoundedCornerShape(8.dp)),
     ) {
         when {
@@ -225,29 +222,27 @@ fun KiriMissionCard(
                 ) { Text("오늘의 추억 기록하러가기") }
             }
             else -> Row(
-                Modifier.fillMaxSize().padding(horizontal = 15.dp),
-                horizontalArrangement = Arrangement.spacedBy(17.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                Modifier.fillMaxSize().padding(horizontal = 15.dp, vertical = 18.dp),
+                horizontalArrangement = Arrangement.spacedBy(9.dp),
+                verticalAlignment = Alignment.Top,
             ) {
-                Box(Modifier.size(91.dp).clip(RoundedCornerShape(10.dp)).background(KiriColor.Bg.Elevated))
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(title, color = KiriColor.Text.Strong, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                    Text(place.orEmpty(), color = KiriColor.Text.Secondary, fontSize = 14.sp)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        keywords.forEach { label ->
-                            Surface(color = KiriComponentColors.chipBackground, shape = RoundedCornerShape(5.dp)) {
-                                Text(label, Modifier.padding(horizontal = 8.dp, vertical = 6.dp), color = KiriColor.Text.Secondary, fontSize = 12.sp)
+                Column(Modifier.weight(1f).height(96.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(title, color = KiriColor.Text.Strong, style = KiriDetailTypography.Title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(place.orEmpty(), color = KiriColor.Text.Secondary, style = KiriDetailTypography.Small, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        keywords.take(2).forEach { label ->
+                            Surface(color = KiriColor.Bg.Elevated, shape = RoundedCornerShape(5.dp)) {
+                                Text(label, Modifier.padding(horizontal = 8.dp, vertical = 6.dp), color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Small.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 17.sp, letterSpacing = (-0.48).sp), maxLines = 1)
                             }
                         }
                     }
                 }
+                Image(painterResource(R.drawable.kiri_mission_flip), "질문 카드로 전환", Modifier.size(18.dp).clickable(role = Role.Button, onClick = onFlip))
             }
         }
     }
-}
-
-private object KiriComponentColors {
-    val chipBackground = KiriColor.Bg.Tertiary
 }
 
 @Composable
@@ -258,8 +253,9 @@ fun KiriPlaceCard(
     rating: String?,
     imageRes: Int = R.drawable.kiri_place_card_image,
     modifier: Modifier = Modifier,
+    detailStyle: Boolean = false,
 ) {
-    Card(modifier.width(251.dp).height(284.dp), colors = CardDefaults.cardColors(KiriColor.Bg.Elevated), shape = RoundedCornerShape(16.dp)) {
+    Card(modifier.width(251.dp).height(284.dp), colors = CardDefaults.cardColors(if (detailStyle) KiriColor.Bg.Elevated else KiriColor.Bg.Secondary), shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 16.dp, bottomEnd = 16.dp)) {
         Column {
             Image(
                 painter = painterResource(imageRes),
@@ -268,7 +264,7 @@ fun KiriPlaceCard(
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop,
             )
             Column(
-                Modifier.padding(start = 19.dp, end = 19.dp, top = 21.dp),
+                Modifier.padding(start = 19.dp, end = 18.dp, top = 21.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
                 Row(
@@ -276,20 +272,23 @@ fun KiriPlaceCard(
                     horizontalArrangement = Arrangement.spacedBy(31.dp),
                     verticalAlignment = Alignment.Top,
                 ) {
-                    Column(Modifier.width(138.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(title, color = KiriColor.Text.Strong, fontSize = 18.sp, lineHeight = 27.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(place, color = KiriColor.Text.Secondary, fontSize = 14.sp, lineHeight = 20.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Column(if (detailStyle) Modifier.fillMaxWidth() else Modifier.width(138.dp), verticalArrangement = Arrangement.spacedBy(if (detailStyle) 3.dp else 2.dp)) {
+                        Text(title, color = KiriColor.Text.Strong, style = KiriDetailTypography.Title.copy(lineHeight = if (detailStyle) 22.sp else 27.sp), maxLines = 1, softWrap = false, overflow = if (detailStyle) TextOverflow.Ellipsis else TextOverflow.Visible)
+                        Text(place, color = KiriColor.Text.Secondary, style = KiriDetailTypography.Small.copy(fontWeight = FontWeight.Medium, lineHeight = if (detailStyle) 17.sp else 20.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     rating?.let {
                         Surface(color = KiriColor.Bg.Tertiary, shape = RoundedCornerShape(100.dp)) {
                             Row(Modifier.padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text("★", color = KiriColor.Text.Strong, fontSize = 12.sp, lineHeight = 17.sp)
-                                Spacer(Modifier.width(4.dp)); Text(it, color = KiriColor.Text.Tertiary, fontSize = 12.sp, lineHeight = 17.sp)
+                                Image(painterResource(R.drawable.kiri_star_small), null, Modifier.size(12.dp))
+                                Spacer(Modifier.width(4.dp)); Text(it, color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Small.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 17.sp, letterSpacing = (-0.48).sp))
                             }
                         }
                     }
                 }
-                Text("“$description”", color = KiriColor.Text.Tertiary, fontSize = 12.sp, lineHeight = 18.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
+                    if (!detailStyle) Image(painterResource(R.drawable.kiri_place_comment), null, Modifier.size(width = 11.3965.dp, height = 10.4468.dp))
+                    Text("“$description”", Modifier.weight(1f), color = KiriColor.Text.Tertiary, fontSize = 12.sp, lineHeight = if (detailStyle) 16.8.sp else 18.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, fontFamily = KiriPretendard, letterSpacing = (-0.48).sp)
+                }
             }
         }
     }

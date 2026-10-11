@@ -16,3 +16,9 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
+
+dependencies {
+    implementation(libs.androidx.navigation.compose)
+    implementation(project(":feature:detail"))
+    implementation(project(":feature:onboarding"))
+}

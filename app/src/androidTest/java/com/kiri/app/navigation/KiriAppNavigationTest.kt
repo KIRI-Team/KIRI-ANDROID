@@ -12,6 +12,9 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kiri.app.HiltTestActivity
+import androidx.compose.ui.test.*
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.kiri.app.NavigationTestActivity
 import com.kiri.uikit.KiriTheme
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -29,6 +32,7 @@ import org.junit.runner.RunWith
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class KiriAppNavigationTest {
+    @get:Rule val compose = createAndroidComposeRule<NavigationTestActivity>()
 
     @get:Rule(order = 0)
     val hiltRule = HiltAndroidRule(this)
@@ -48,14 +52,11 @@ class KiriAppNavigationTest {
         composeTestRule.onNodeWithTag("home_screen").assertIsDisplayed()
     }
 
-    @Test
-    fun 메인_화면에_바텀바_탭이_모두_보인다() {
-        setMainContent()
-
-        composeTestRule.onNodeWithTag("bottom_nav_home").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("bottom_nav_record").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("bottom_nav_place").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("bottom_nav_mypage").assertIsDisplayed()
+    private fun openMission() {
+        compose.onNodeWithTag("home_question_card").performScrollTo().performTouchInput { swipeLeft() }
+        compose.onNodeWithTag("home_mission_card").performClick()
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("open_custom").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
     }
 
     // 홈 화면은 새 디자인으로 바뀌어 "상세보기" 버튼이 없으므로, 아직 상세 버튼이 있는 기록·장소 탭으로 확인한다

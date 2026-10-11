@@ -4,6 +4,13 @@
 
 ## 1. 두 단계 NavHost 구조
 
+홈·기록 모듈의 `navigation/*NavHost.kt`가 해당 탭의 `NavGraphBuilder` 등록과 내부 경로를 소유한다. `KiriNavHost`는 `homeNavHost`, `recordNavHost`를 호출하고, 장소·마이페이지 그래프는 기존처럼 앱에서 정의한다. 홈 상세·커스텀·초대 경로는 홈 모듈에서 정의한다.
+
+탭별 그래프는 Main NavController에 등록한다. 별도 컨트롤러를 중첩 생성하지 않아 기존 `saveState` / `restoreState` 다중 백스택과 바텀바 표시를 유지한다. 화면 Route/Screen은 컨트롤러 대신 콜백을 받고, 컨트롤러는 `navigation/`에서만 사용한다.
+
+공유 ViewModel의 이동 effect는 각 Route의 lifecycle이 `RESUMED`일 때만 수집한다. 전환 애니메이션 중 이전 화면이 다음 화면의 effect를 소비하는 것을 막는다.
+
+
 이 앱은 NavController를 두 계층으로 나눠 쓴다.
 
 - **Root NavHost** (`KiriApp.kt`): `auth` → `onboarding` → `main` 3개 route만 가진다. 로그인/온보딩 통과 여부만 책임지고, 탭이나 바텀바에 대해서는 전혀 모른다. `auth`와 `onboarding`은 하나의 진입 플로우로 취급한다 (5번 참고).

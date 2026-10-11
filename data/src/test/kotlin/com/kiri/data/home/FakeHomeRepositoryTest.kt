@@ -103,6 +103,12 @@ class FakeHomeRepositoryTest {
         assertFailure(HomeFailure.UNAVAILABLE) { repo.poke(home.question!!, "left") }
     }
 
+    @Test fun unavailableMissionIsExposedForPlaceFallback() = runBlocking {
+        val mission = repo(HomeScenario.MISSION_UNAVAILABLE).load().mission
+        assertNotNull(mission)
+        assertTrue(mission!!.unavailable)
+    }
+
     private suspend fun assertFailure(reason: HomeFailure, block: suspend () -> Unit) {
         try { block(); fail("Expected $reason") } catch (error: HomeException) { assertEquals(reason, error.reason) }
     }

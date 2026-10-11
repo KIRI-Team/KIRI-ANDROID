@@ -7,8 +7,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +21,7 @@ import androidx.compose.ui.window.Dialog
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.color.KiriComponentColor
 import com.kiri.uikit.component.KiriAnswerPopup
+import com.kiri.uikit.component.KiriAppBar
 
 internal val HomeBackground = KiriColor.Bg.Base
 internal val HomeCard = KiriColor.Bg.Secondary
@@ -42,11 +41,9 @@ internal fun AnswerEditor(
     onBack: () -> Unit,
 ) {
     BackHandler { if (!busy) onBack() }
-    Column(Modifier.fillMaxSize().background(HomeBackground).imePadding().padding(horizontal = 18.dp)) {
-        IconButton(onClick = onBack, enabled = !busy, modifier = Modifier.size(52.dp)) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, "뒤로", tint = HomeStrong)
-        }
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().background(HomeBackground).imePadding()) {
+        KiriAppBar("", onBack = onBack, backEnabled = !busy)
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 18.dp)) {
             Spacer(Modifier.height(20.dp))
             Text("Q1.", color = HomeSecondary, fontSize = 14.sp)
             Spacer(Modifier.height(12.dp))
@@ -74,7 +71,7 @@ internal fun AnswerEditor(
         }
         Button(
             onClick = onSave, enabled = draft.isNotBlank() && !busy,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp).heightIn(min = 54.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp).heightIn(min = 54.dp),
             shape = RoundedCornerShape(30.dp),
             colors = ButtonDefaults.buttonColors(containerColor = HomeAccent, contentColor = HomeBackground,
                 disabledContainerColor = HomeCard, disabledContentColor = HomeSecondary),
