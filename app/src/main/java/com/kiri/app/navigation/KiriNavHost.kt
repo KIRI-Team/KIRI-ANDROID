@@ -13,7 +13,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import com.kiri.feature.detail.presentation.DetailScreen
 import com.kiri.feature.home.presentation.HomeScreen
-import com.kiri.feature.home.presentation.HomeUiDestination
 import com.kiri.feature.home.presentation.InviteFamilyScreen
 import com.kiri.feature.mypage.navigation.mypageGraph
 import com.kiri.feature.place.presentation.PlaceScreen
