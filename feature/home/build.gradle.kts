@@ -20,5 +20,6 @@ dependencies {
 dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(project(":feature:detail"))
+    implementation(project(":feature:record"))
     implementation(project(":feature:onboarding"))
 }

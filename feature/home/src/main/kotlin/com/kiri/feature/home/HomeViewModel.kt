@@ -3,6 +3,7 @@ package com.kiri.feature.home
 import com.kiri.feature.home.model.*
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -21,8 +22,13 @@ import kotlinx.coroutines.launch
 class HomeViewModel @Inject constructor(
     private val repository: HomeRepository,
     private val clock: Clock = Clock.systemUTC(),
+    private val tutorialRepository: HomeTutorialRepository = NoHomeTutorial,
+    private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(HomeUiState())
+    private val _uiState = MutableStateFlow(HomeUiState(
+        tutorialStep = savedState.get<String>("homeTutorialStep")?.let { value -> HomeTutorialStep.entries.firstOrNull { it.name == value } },
+        showingMission = savedState["homeShowingMission"] ?: false,
+    ))
     val uiState = _uiState.asStateFlow()
     private val _effect = kotlinx.coroutines.channels.Channel<HomeUiEffect>(kotlinx.coroutines.channels.Channel.BUFFERED)
     val effect = _effect.receiveAsFlow()
@@ -31,6 +37,8 @@ class HomeViewModel @Inject constructor(
 
     fun onEvent(event: HomeUiEvent) {
         when (event) {
+            HomeUiEvent.TutorialNext -> advanceTutorial()
+            HomeUiEvent.TutorialDismissed -> setTutorial(null)
             is HomeUiEvent.DestinationClicked -> _effect.trySend(HomeUiEffect.Navigate(event.destination))
             is HomeUiEvent.MissionClicked -> _effect.trySend(HomeUiEffect.OpenMission(event.id))
             is HomeUiEvent.ScheduleClicked -> _effect.trySend(HomeUiEffect.OpenSchedule(event.id))
@@ -60,12 +68,31 @@ class HomeViewModel @Inject constructor(
             HomeUiEvent.AnswerSaveClicked -> save()
             HomeUiEvent.PokeClicked -> poke()
             HomeUiEvent.CardFlipped -> if (uiState.value.home?.browsing == false && !uiState.value.busy)
-                _uiState.update { it.copy(showingMission = !it.showingMission) }
+                setShowingMission(!uiState.value.showingMission)
             HomeUiEvent.BackClicked -> if (!uiState.value.busy) _uiState.update {
                 it.copy(editing = false, selectedMemberId = null, error = null, answerSaved = false)
             }
             HomeUiEvent.NoticeDismissed -> _uiState.update { it.copy(notice = null, editing = if (it.answerSaved) false else it.editing, answerSaved = false) }
             HomeUiEvent.MemberDismissed -> _uiState.update { it.copy(selectedMemberId = null) }
+        }
+    }
+
+    private fun setShowingMission(showing: Boolean) {
+        savedState["homeShowingMission"] = showing
+        _uiState.update { it.copy(showingMission = showing) }
+    }
+
+    private fun setTutorial(step: HomeTutorialStep?) {
+        savedState["homeTutorialStep"] = step?.name
+        _uiState.update { it.copy(tutorialStep = step) }
+    }
+
+    private fun advanceTutorial() {
+        when (uiState.value.tutorialStep) {
+            HomeTutorialStep.INITIAL -> { setShowingMission(true); setTutorial(HomeTutorialStep.MISSION) }
+            HomeTutorialStep.MISSION -> setTutorial(if (uiState.value.home?.recommendations?.isNotEmpty() == true) HomeTutorialStep.RECOMMENDATIONS else null)
+            HomeTutorialStep.RECOMMENDATIONS -> setTutorial(null)
+            null -> Unit
         }
     }
 
@@ -79,6 +106,16 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val home = repository.load().withTemporaryInviteCode()
+                if (!home.browsing && savedState.get<Boolean>("homeTutorialChecked") != true) {
+                    // Mark the visit before showing it: returning home or restarting cannot replay it.
+                    val firstVisit = runCatching { tutorialRepository.claimFirstVisit(home.currentUserId) }
+                        .getOrElse { error -> if (error is CancellationException) throw error else false }
+                    savedState["homeTutorialChecked"] = true
+                    if (uiState.value.tutorialStep == null && firstVisit) {
+                        setShowingMission(false)
+                        setTutorial(HomeTutorialStep.INITIAL)
+                    }
+                }
                 _uiState.update { old ->
                     val changed = old.home != null && old.home.date != home.date
                     old.copy(

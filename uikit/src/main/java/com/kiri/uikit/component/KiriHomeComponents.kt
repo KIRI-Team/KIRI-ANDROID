@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.GenericShape
@@ -30,25 +31,36 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.window.PopupPositionProvider
 import com.kiri.uikit.R
 import com.kiri.uikit.color.KiriColor
 
@@ -70,12 +82,13 @@ fun KiriMemberAvatarGroup(
 ) {
     Row(
         modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         members.forEach { member ->
             Column(
                 modifier = Modifier
-                    .width(47.dp)
+                    .width(if (member.isCurrentUser) 46.dp else 44.dp)
+                    .testTag("home_member_${member.id}")
                     .clickable(enabled = member.enabled) { onMemberClick(member) },
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -83,13 +96,13 @@ fun KiriMemberAvatarGroup(
                     answered = member.answered,
                     role = member.role,
                     showAddBadge = member.isCurrentUser,
-                    modifier = Modifier.onGloballyPositioned { onPositioned(member.id, it) },
+                    modifier = Modifier.testTag("home_avatar_${member.id}").onGloballyPositioned { onPositioned(member.id, it) },
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = member.label,
                     color = KiriColor.Text.Primary,
-                    style = KiriDetailTypography.Body.copy(fontWeight = FontWeight.Medium, lineHeight = if (member.isCurrentUser) 24.sp else 19.sp),
+                    style = KiriDetailTypography.Body.copy(fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 26.sp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -100,16 +113,27 @@ fun KiriMemberAvatarGroup(
 
 @Composable
 fun KiriMemberAvatar(answered: Boolean, role: String? = null, showAddBadge: Boolean, modifier: Modifier = Modifier) {
+    val character = when (role) {
+        "엄마", "MOTHER" -> R.drawable.kiri_avatar_mother
+        "아빠", "FATHER" -> R.drawable.kiri_avatar_father
+        "딸", "DAUGHTER" -> R.drawable.kiri_avatar_daughter
+        "아들", "SON" -> R.drawable.kiri_avatar_son
+        else -> R.drawable.kiri_avatar_son
+    }
+    val characterSize = when (role) { "엄마", "MOTHER" -> 28.dp; "아빠", "FATHER" -> 24.dp; else -> 27.dp }
     Box(
         modifier
-            .size(width = 47.dp, height = 45.dp)
+            .size(44.dp)
+            .border(1.dp, if (answered) KiriColor.Text.Accent else KiriColor.Border.Default, CircleShape)
             .semantics { stateDescription = if (answered) "답변 완료" else "미답변" },
         contentAlignment = Alignment.Center,
     ) {
         Image(
-            painter = painterResource(if (showAddBadge) R.drawable.kiri_my_answer else R.drawable.kiri_member_avatar),
+            painter = painterResource(character),
             contentDescription = role,
-            modifier = Modifier.size(width = if (showAddBadge) 47.dp else 45.dp, height = 45.dp),
+            modifier = Modifier.size(40.dp).background(KiriColor.Bg.Secondary, CircleShape).padding((40.dp - characterSize) / 2),
+            colorFilter = if (answered) null else ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }),
+            alpha = if (answered) 1f else 0.6f,
         )
     }
 }
@@ -120,23 +144,51 @@ fun KiriTooltip(
     answer: String,
     actionEnabled: Boolean,
     onAction: () -> Unit,
-    offset: IntOffset,
+    anchor: IntRect,
     onDismiss: () -> Unit = {},
 ) {
+    val density = LocalDensity.current
+    val width = (LocalConfiguration.current.screenWidthDp.dp - 36.dp).coerceAtMost(303.dp)
+    var placement by remember(anchor) { mutableStateOf(KiriTooltipPlacement(IntOffset.Zero, 72f, true)) }
+    val provider = remember(anchor, density) {
+        object : PopupPositionProvider {
+            override fun calculatePosition(anchorBounds: IntRect, windowSize: androidx.compose.ui.unit.IntSize, layoutDirection: androidx.compose.ui.unit.LayoutDirection, popupContentSize: androidx.compose.ui.unit.IntSize): IntOffset {
+                return calculateKiriTooltipPlacement(anchor, windowSize, popupContentSize, with(density) { 18.dp.roundToPx() }, with(density) { 72.dp.roundToPx() })
+                    .also { placement = it }.offset
+            }
+        }
+    }
+    val shape = remember(placement, density) {
+        GenericShape { size, _ ->
+            val radius = with(density) { 16.dp.toPx() }
+            val tipHeight = with(density) { 10.dp.toPx() }
+            val halfTip = with(density) { 7.dp.toPx() }
+            val x = placement.pointerX
+            val top = if (placement.below) tipHeight else 0f
+            val bottom = if (placement.below) size.height else size.height - tipHeight
+            moveTo(radius, top)
+            if (placement.below) { lineTo(x - halfTip, top); lineTo(x, 0f); lineTo(x + halfTip, top) }
+            lineTo(size.width - radius, top); quadraticTo(size.width, top, size.width, top + radius)
+            lineTo(size.width, bottom - radius); quadraticTo(size.width, bottom, size.width - radius, bottom)
+            if (!placement.below) { lineTo(x + halfTip, bottom); lineTo(x, size.height); lineTo(x - halfTip, bottom) }
+            lineTo(radius, bottom); quadraticTo(0f, bottom, 0f, bottom - radius)
+            lineTo(0f, top + radius); quadraticTo(0f, top, radius, top); close()
+        }
+    }
     Popup(
-        alignment = Alignment.TopStart,
-        offset = offset,
+        popupPositionProvider = provider,
+        onDismissRequest = onDismiss,
         properties = PopupProperties(focusable = false),
     ) {
         Surface(
-            modifier = Modifier.width(303.dp),
+            modifier = Modifier.width(width).testTag("member_answer_tooltip"),
             color = KiriColor.Bg.Elevated,
-            shape = KiriTooltipShape,
+            shape = shape,
         ) {
-            Row(Modifier.padding(start = 21.dp, top = 28.dp, end = 12.dp, bottom = 24.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.width(190.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text(title, color = KiriColor.Text.Secondary, fontSize = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(answer, color = if (actionEnabled) KiriColor.Text.Disabled else KiriColor.Text.Strong, fontSize = 20.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(Modifier.padding(start = 21.dp, top = if (placement.below) 28.dp else 18.dp, end = 12.dp, bottom = if (placement.below) 24.dp else 34.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(title, color = KiriColor.Text.Secondary, style = KiriDetailTypography.Title, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(answer, color = if (actionEnabled) KiriColor.Text.Disabled else KiriColor.Text.Strong, style = KiriDetailTypography.Title.copy(fontSize = 20.sp, lineHeight = 28.sp), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
                 Spacer(Modifier.width(12.dp))
                 Box(Modifier.width(1.dp).size(height = 50.dp, width = 1.dp).background(KiriColor.Border.Strong))
@@ -146,7 +198,7 @@ fun KiriTooltip(
                         Image(
                             painter = painterResource(R.drawable.kiri_poke),
                             contentDescription = "콕 찌르기",
-                            modifier = Modifier.size(22.dp),
+                            modifier = Modifier.size(24.dp),
                             alpha = if (actionEnabled) 1f else 0.45f,
                         )
                     }
@@ -185,9 +237,10 @@ fun KiriMissionCard(
     onPlacesClick: () -> Unit,
     modifier: Modifier = Modifier,
     onFlip: () -> Unit = {},
+    flipIconModifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = modifier.fillMaxWidth().height(132.dp)
+        modifier = modifier.fillMaxWidth().heightIn(min = 132.dp)
             .background(KiriColor.Bg.Secondary, RoundedCornerShape(8.dp)),
     ) {
         when {
@@ -239,9 +292,10 @@ fun KiriMissionCard(
                         }
                     }
                 }
-                Image(painterResource(R.drawable.kiri_mission_flip), "질문 카드로 전환", Modifier.size(18.dp).clickable(role = Role.Button, onClick = onFlip))
+                Spacer(Modifier.width(24.dp))
             }
         }
+        KiriCardFlipButton("질문 카드로 전환", onFlip, Modifier.align(Alignment.TopEnd).padding(end = 15.dp, top = 18.dp), flipIconModifier)
     }
 }
 
@@ -332,10 +386,9 @@ fun KiriContentCard(modifier: Modifier = Modifier, content: @Composable BoxScope
     Card(modifier, colors = CardDefaults.cardColors(KiriColor.Bg.Secondary), shape = RoundedCornerShape(8.dp)) { Box(content = content) }
 }
 
-private val KiriTooltipShape = GenericShape { size, _ ->
-    val radius = 16f; val x = size.width * .34f
-    moveTo(x - 13f, 0f); lineTo(x, -20f); lineTo(x + 13f, 0f); lineTo(size.width - radius, 0f)
-    quadraticTo(size.width, 0f, size.width, radius); lineTo(size.width, size.height - radius)
-    quadraticTo(size.width, size.height, size.width - radius, size.height); lineTo(radius, size.height)
-    quadraticTo(0f, size.height, 0f, size.height - radius); lineTo(0f, radius); quadraticTo(0f, 0f, radius, 0f); close()
+@Composable
+fun KiriCardFlipButton(description: String, onFlip: () -> Unit, modifier: Modifier = Modifier, iconModifier: Modifier = Modifier) {
+    Box(modifier.size(24.dp).testTag("home_card_flip").clickable(role = Role.Button, onClick = onFlip), contentAlignment = Alignment.TopEnd) {
+        Image(painterResource(R.drawable.kiri_card_flip), description, Modifier.size(18.dp).then(iconModifier))
+    }
 }

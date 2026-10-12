@@ -29,10 +29,12 @@ class KiriAppNavigationTest {
     private fun start() {
         compose.setContent { KiriTheme { MainScreen(onNavigateToLogin = { loginRequested = true }) } }
         compose.waitUntil(10_000) { compose.onAllNodesWithTag("home_question_card").fetchSemanticsNodes().isNotEmpty() }
+        if (compose.onAllNodesWithTag("home_tutorial_skip").fetchSemanticsNodes().isNotEmpty()) compose.onNodeWithTag("home_tutorial_skip").performClick()
     }
 
     private fun openMission() {
-        compose.onNodeWithTag("home_question_card").performScrollTo().performTouchInput { swipeLeft() }
+        compose.onNodeWithTag("home_question_card").performScrollTo()
+        compose.onNodeWithContentDescription("미션 카드로 전환").performClick()
         compose.onNodeWithTag("home_mission_card").performClick()
         compose.waitUntil(10_000) { compose.onAllNodesWithTag("open_custom").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()

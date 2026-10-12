@@ -22,7 +22,15 @@ class DetailViewModel @Inject constructor(
     private val savedState: SavedStateHandle,
 ) : ViewModel() {
     private val missionId: String = savedState["missionId"] ?: ""
-    private val _uiState = MutableStateFlow(DetailUiState())
+    private val _uiState = MutableStateFlow(DetailUiState(
+        memoriesSelected = savedState["memoriesSelected"] ?: (savedState.get<String>("memories") == "true"),
+        memoryDraft = MemoryDraft(
+            rating = savedState["memoryRating"] ?: 0,
+            photos = savedState.get<ArrayList<String>>("memoryPhotos").orEmpty(),
+            text = savedState["memoryText"] ?: "",
+            repeatActivity = savedState["memoryRepeat"],
+        ),
+    ))
     val uiState = _uiState.asStateFlow()
     private val _effect = Channel<DetailUiEffect>(Channel.BUFFERED)
     val effect = _effect.receiveAsFlow()
@@ -38,7 +46,37 @@ class DetailViewModel @Inject constructor(
             is DetailUiEvent.ConditionToggled -> toggle(event.condition)
             DetailUiEvent.CustomCancelled -> cancelCustom()
             DetailUiEvent.ApplyClicked -> apply()
+            is DetailUiEvent.MemoriesSelected -> selectMemories(event.selected)
+            DetailUiEvent.RecordClicked -> {
+                val detail = uiState.value.detail
+                if (detail != null && (detail.completed || detail.date?.let { !it.isAfter(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Seoul"))) } == true)) {
+                    uiState.value.submittedMemory?.let(::updateMemoryDraft)
+                    _effect.trySend(DetailUiEffect.OpenRecord)
+                }
+            }
         }
+    }
+
+    fun selectMemories(selected: Boolean) {
+        savedState["memoriesSelected"] = selected
+        _uiState.update { it.copy(memoriesSelected = selected) }
+    }
+
+    fun updateMemoryDraft(draft: MemoryDraft) {
+        val normalized = draft.copy(rating = draft.rating.coerceIn(0, 5), text = draft.text.take(500), photos = draft.photos.distinct())
+        savedState["memoryRating"] = normalized.rating
+        savedState["memoryText"] = normalized.text
+        savedState["memoryPhotos"] = ArrayList(normalized.photos)
+        savedState["memoryRepeat"] = normalized.repeatActivity
+        _uiState.update { it.copy(memoryDraft = normalized) }
+    }
+
+    fun submitMemoryPreview(): Boolean {
+        val draft = uiState.value.memoryDraft
+        if (!draft.canSubmit) return false
+        _uiState.update { it.copy(submittedMemory = draft.copy(text = draft.text.trim()), memoriesSelected = true) }
+        savedState["memoriesSelected"] = true
+        return true
     }
 
     private fun load() {

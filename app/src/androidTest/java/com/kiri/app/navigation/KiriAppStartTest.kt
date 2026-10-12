@@ -142,6 +142,17 @@ class KiriAppStartTest {
         composeTestRule.onNodeWithTag("input_family_code_screen").assertIsDisplayed()
     }
 
+    @Test
+    fun 온보딩에서_둘러보기를_누르면_홈과_하단탭으로_이동한다() {
+        passAuth()
+        passNicknameAndRole()
+
+        composeTestRule.onNodeWithText("먼저 둘러보러가기").performClick()
+
+        composeTestRule.onNodeWithTag("home_screen").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("bottom_nav_place").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("onboarding_screen").assertDoesNotExist()
+    }
     // 닉네임 입력 → 다음 → 역할 선택 → 다음 → 온보딩 메인
     private fun passNicknameAndRole() {
         composeTestRule.onNodeWithTag("onboarding_input_box").performTextInput("주연주")
