@@ -81,10 +81,11 @@ class FakeHomeRepository(
     private fun seed(date: LocalDate): FamilyHome {
         val browsing = scenario == HomeScenario.BROWSING
         val members = if (browsing) emptyList() else buildList {
-            add(FamilyMember("me", "끼리", "자녀"))
+            add(FamilyMember("me", "끼리", "아들"))
             add(FamilyMember("mother", "마마", "엄마"))
             add(FamilyMember("father", "빠빠", "아빠"))
-            add(FamilyMember("sibling", "돌돌이", "자녀"))
+            add(FamilyMember("sibling", "돌돌이", "아들"))
+            add(FamilyMember("daughter", "달달이", "딸"))
             if (scenario == HomeScenario.MANY_MEMBERS) {
                 repeat(20) { add(FamilyMember("member-$it", "아주 긴 닉네임을 사용하는 가족 $it", "기타")) }
                 add(FamilyMember("left", "탈퇴한 구성원", "기타", accessible = false))
