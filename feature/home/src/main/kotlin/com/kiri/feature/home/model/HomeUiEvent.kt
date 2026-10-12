@@ -1,6 +1,8 @@
 package com.kiri.feature.home.model
 
 sealed interface HomeUiEvent {
+    data object TutorialNext : HomeUiEvent
+    data object TutorialDismissed : HomeUiEvent
     data object RetryClicked : HomeUiEvent
     data object DateRefreshRequested : HomeUiEvent
     data class MemberSelected(val id: String) : HomeUiEvent

@@ -20,6 +20,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.kiri.domain.home.DailyQuestion
 import com.kiri.domain.home.FamilyHome
 import com.kiri.domain.home.FamilyMember
@@ -44,7 +45,9 @@ class HomeScreenTest {
         compose.onNodeWithText("오늘 나의 질문카드").assertIsDisplayed()
         compose.onNodeWithText("오늘 가족과 함께하고 싶은 일은 무엇인가요?", substring = true).assertIsDisplayed()
         capture("home-avatars")
-        compose.onNodeWithTag("home_question_card").performTouchInput { swipeLeft() }
+        compose.onNodeWithTag("home_question_card").performScrollTo().performTouchInput { swipeLeft() }
+        compose.onNodeWithTag("home_question_card").assertIsDisplayed()
+        compose.onNodeWithContentDescription("미션 카드로 전환").performClick()
         compose.onNodeWithText("이번주 미션이에요!").assertIsDisplayed()
         compose.onNodeWithText("광장시장에서 시장음식 먹어보기").assertIsDisplayed()
         capture("home-mission")
@@ -61,7 +64,7 @@ class HomeScreenTest {
         compose.setContent { HomeRoute(viewModel = viewModel) }
         compose.waitForIdle()
 
-        compose.onNodeWithTag("home_question_card").performClick()
+        compose.onNodeWithTag("home_question_card").performScrollTo().performClick()
         compose.onNodeWithText("답변 제출").assertIsDisplayed()
         compose.onNodeWithContentDescription("오늘의 질문 답변").performTextInput("가족과 산책하기")
         compose.onNodeWithText("답변 제출").performClick()

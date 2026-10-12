@@ -15,6 +15,7 @@ data class HomeUiState(
     val error: String? = null,
     val notice: String? = null,
     val answerSaved: Boolean = false,
+    val tutorialStep: HomeTutorialStep? = null,
 ) {
     val canSave: Boolean get() = editing && draft.isNotBlank() && !busy && home?.question != null
 }

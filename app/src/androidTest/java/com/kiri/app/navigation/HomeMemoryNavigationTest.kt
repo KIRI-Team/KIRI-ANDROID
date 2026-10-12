@@ -22,7 +22,8 @@ class HomeMemoryNavigationTest {
     @Test fun homeInboxMemoryEmptyAndEditorReturnKeepSelectedTab() {
         compose.setContent { KiriTheme { MainScreen() } }
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("home_taste_banner").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithTag("home_taste_banner").assertIsDisplayed()
+        if (compose.onAllNodesWithTag("home_tutorial_skip").fetchSemanticsNodes().isNotEmpty()) compose.onNodeWithTag("home_tutorial_skip").performClick()
+        compose.onNodeWithTag("home_taste_banner").performScrollTo().assertIsDisplayed()
         capture("home-banner")
         compose.onNodeWithTag("open_notifications").performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("notification_demo-question").fetchSemanticsNodes().isNotEmpty() }
