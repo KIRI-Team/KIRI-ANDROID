@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
@@ -52,10 +55,15 @@ fun AuthScreen(
     // 첫 단계(로그인)에서는 비활성화해서 시스템 뒤로가기로 앱을 종료할 수 있게 한다
     BackHandler(enabled = state.currentStep != AuthStep.LOGIN, onBack = onBackClick)
 
+    // 첫 화면 애니메이션은 한 번만 보여준다 (약관동의에서 돌아오거나 화면을 돌려도 다시 재생하지 않는다)
+    var introPlayed by rememberSaveable { mutableStateOf(false) }
+
     Box(modifier.testTag("auth_screen")) {
         when (state.currentStep) {
             AuthStep.LOGIN -> LoginScreen(
                 onLoginClick = { onEvent(AuthUiEvent.LoginClicked(it)) },
+                playIntro = !introPlayed,
+                onIntroFinished = { introPlayed = true },
             )
             AuthStep.TERMS_AGREEMENT -> TermsAgreementScreen(
                 agreedTerms = state.agreedTerms,
