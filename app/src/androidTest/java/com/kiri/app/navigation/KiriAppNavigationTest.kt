@@ -1,5 +1,9 @@
 package com.kiri.app.navigation
 
+import android.graphics.Bitmap
+import androidx.test.platform.app.InstrumentationRegistry
+import java.io.File
+
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -79,10 +83,38 @@ class KiriAppNavigationTest {
         listOf("home", "record", "place", "mypage").forEach { compose.onNodeWithTag("bottom_nav_$it").assertIsDisplayed() }
     }
 
+    @Test fun recordTabsKeepSelectionsAcrossMainTabSwitches() {
+        start()
+        compose.onNodeWithTag("bottom_nav_record").performClick().assertIsSelected()
+        compose.onNodeWithTag("record_calendar").assertIsDisplayed()
+        captureRecordScreen("record-calendar-main")
+        compose.onNodeWithTag("record_tab_BUCKET").performClick()
+        captureRecordScreen("record-bucket-main")
+        compose.onNodeWithTag("record_saver_father").performClick()
+        compose.onNodeWithTag("bottom_nav_home").performClick()
+        compose.onNodeWithTag("bottom_nav_record").performClick()
+        compose.onNodeWithTag("record_tab_BUCKET").assertIsSelected()
+        compose.onNodeWithTag("record_saver_father").assertIsSelected()
+        compose.onNodeWithTag("record_bucket_bucket-3").assertDoesNotExist()
+    }
+
+    private fun captureRecordScreen(name: String) {
+        compose.waitForIdle()
+        compose.onNodeWithTag("bottom_nav_record").assertIsDisplayed()
+        // Let native ripple/compositor frames settle before the full-display capture.
+        Thread.sleep(350)
+        val directory = InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")?.let(::File)
+            ?: InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null)!!
+        directory.mkdirs()
+        File(directory, "$name.png").outputStream().use {
+            InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot().compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
+    }
+
     @Test fun detailBackStacksRemainIndependentAcrossTabs() {
         start(); openMission()
         compose.onNodeWithTag("bottom_nav_record").performClick()
-        compose.onNodeWithText("상세보기").performClick()
+        compose.onNodeWithTag("record_schedule_schedule-1").performScrollTo().performClick()
         compose.onNodeWithText("기록 상세").assertIsDisplayed()
         compose.onNodeWithTag("bottom_nav_home").performClick()
         compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
@@ -115,7 +147,7 @@ class KiriAppNavigationTest {
         start()
         compose.onNodeWithTag("bottom_nav_record").performClick()
 
-        compose.onNodeWithText("상세보기").performClick()
+        compose.onNodeWithTag("record_schedule_schedule-1").performScrollTo().performClick()
         compose.onNodeWithText("기록 상세").assertIsDisplayed()
 
         compose.onNodeWithText("뒤로").performClick()
