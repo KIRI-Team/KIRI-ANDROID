@@ -9,8 +9,9 @@ class SdkSocialLogin @Inject constructor(
     private val kakao: KakaoLogin,
     private val google: GoogleLogin,
 ) : SocialLogin {
-    override suspend fun login(activity: Activity, provider: LoginProvider): SocialLoginResult = when (provider) {
-        LoginProvider.KAKAO -> kakao.login(activity)
-        LoginProvider.GOOGLE -> google.login(activity)
-    }
+    override suspend fun login(activity: Activity, provider: LoginProvider, nonce: String): SocialLoginResult =
+        when (provider) {
+            LoginProvider.KAKAO -> kakao.login(activity, nonce)
+            LoginProvider.GOOGLE -> google.login(activity, nonce)
+        }
 }

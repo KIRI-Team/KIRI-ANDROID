@@ -51,6 +51,8 @@ private val PIECE_IMAGES = listOf(
 fun LoginScreen(
     onLoginClick: (LoginProvider) -> Unit,
     modifier: Modifier = Modifier,
+    // 로그인이 진행 중이면 false. 버튼을 다시 누르지 못하게 한다
+    loginEnabled: Boolean = true,
     playIntro: Boolean = true,
     onIntroFinished: () -> Unit = {},
 ) {
@@ -122,12 +124,12 @@ fun LoginScreen(
             AuthLoginButton(
                 provider = LoginProvider.KAKAO,
                 onClick = { onLoginClick(LoginProvider.KAKAO) },
-                enabled = buttonsEnabled,
+                enabled = buttonsEnabled && loginEnabled,
             )
             AuthLoginButton(
                 provider = LoginProvider.GOOGLE,
                 onClick = { onLoginClick(LoginProvider.GOOGLE) },
-                enabled = buttonsEnabled,
+                enabled = buttonsEnabled && loginEnabled,
             )
             // Figma: 구글 버튼 아래로 홈 인디케이터까지 97dp
             Spacer(Modifier.height(97.dp))

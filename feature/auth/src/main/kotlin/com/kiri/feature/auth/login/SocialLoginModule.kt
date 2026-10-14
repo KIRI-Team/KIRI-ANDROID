@@ -2,6 +2,7 @@ package com.kiri.feature.auth.login
 
 import dagger.Binds
 import dagger.Module
+import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
@@ -11,4 +12,11 @@ import dagger.hilt.components.SingletonComponent
 abstract class SocialLoginModule {
     @Binds
     abstract fun bindSocialLogin(impl: SdkSocialLogin): SocialLogin
+}
+
+// SDK 로그인은 Activity 가 필요해 ViewModel 이 아닌 화면(AuthRoute)에서 실행한다. 화면에서 꺼내 쓰는 통로
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface SocialLoginEntryPoint {
+    fun socialLogin(): SocialLogin
 }

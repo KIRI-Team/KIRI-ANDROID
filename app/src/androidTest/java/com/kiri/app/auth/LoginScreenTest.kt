@@ -51,4 +51,14 @@ class LoginScreenTest {
 
         assertEquals(listOf(LoginProvider.KAKAO, LoginProvider.GOOGLE), clicked)
     }
+
+    @Test
+    fun 로그인이_진행_중이면_버튼을_누를_수_없다() {
+        composeTestRule.setContent {
+            KiriTheme { LoginScreen(onLoginClick = {}, loginEnabled = false, playIntro = false) }
+        }
+
+        composeTestRule.onNodeWithTag("auth_login_button_kakao").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("auth_login_button_google").assertIsNotEnabled()
+    }
 }

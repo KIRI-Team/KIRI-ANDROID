@@ -21,7 +21,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kiri.app.HiltTestActivity
 import com.kiri.feature.onboarding.TemporaryFamilyCode
 import com.kiri.uikit.KiriTheme
-import androidx.compose.ui.semantics.SemanticsProperties
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertFalse
@@ -49,96 +48,13 @@ class KiriAppNavigationTest {
         compose.waitUntil(10_000) { compose.onAllNodesWithTag("home_question_card").fetchSemanticsNodes().isNotEmpty() }
     }
 
-    // 홈 카드는 데이터를 불러온 뒤에 그려지므로 질문 카드가 나타날 때까지 기다린다
-    private fun startOnHome() {
-        setMainContent()
-        composeTestRule.waitUntil(10_000) {
-            composeTestRule.onAllNodesWithTag("home_question_card").fetchSemanticsNodes().isNotEmpty()
-        }
-    }
-
     private fun openMission() {
-        composeTestRule.onNodeWithTag("home_question_card").performScrollTo().performTouchInput { swipeLeft() }
-        composeTestRule.onNodeWithTag("home_mission_card").performClick()
-        composeTestRule.waitUntil(10_000) {
-            composeTestRule.onAllNodesWithTag("open_custom").fetchSemanticsNodes().isNotEmpty()
+        compose.onNodeWithTag("home_question_card").performScrollTo().performTouchInput { swipeLeft() }
+        compose.onNodeWithTag("home_mission_card").performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithTag("open_custom").fetchSemanticsNodes().isNotEmpty()
         }
-        composeTestRule.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
-    }
-
-    @Test
-    fun homeInvitationShowsOnboardingTemporaryCodeAndReturnsHome() {
-        startOnHome()
-        composeTestRule.onNodeWithText("가족 초대하기").performScrollTo().performClick()
-        composeTestRule.onNodeWithText(TemporaryFamilyCode.code).assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("뒤로").performClick()
-        composeTestRule.onNodeWithTag("home_screen").assertIsDisplayed()
-    }
-
-    @Test
-    fun tabSwitchRestoresSavedCustomConditions() {
-        startOnHome()
-        openMission()
-        composeTestRule.onNodeWithTag("open_custom").performClick()
-        composeTestRule.onNodeWithTag("condition_AVOID_CROWDS").performScrollTo().performClick()
-        composeTestRule.onNodeWithTag("apply_custom").performClick()
-        composeTestRule.waitUntil(10_000) {
-            composeTestRule.onAllNodesWithTag("condition_custom_screen").fetchSemanticsNodes().isEmpty()
-        }
-        composeTestRule.onNodeWithTag("bottom_nav_record").performClick()
-        composeTestRule.onNodeWithTag("bottom_nav_home").performClick()
-        composeTestRule.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("open_custom").performClick()
-        composeTestRule.onNodeWithTag("condition_AVOID_CROWDS").assertIsOn()
-    }
-
-    @Test
-    fun bottomTabsRemainVisibleOnDetail() {
-        startOnHome()
-        openMission()
-        listOf("home", "record", "place", "mypage").forEach {
-            composeTestRule.onNodeWithTag("bottom_nav_$it").assertIsDisplayed()
-        }
-    }
-
-    @Test
-    fun detailBackStacksRemainIndependentAcrossTabs() {
-        startOnHome()
-        openMission()
-        composeTestRule.onNodeWithTag("bottom_nav_record").performClick()
-        composeTestRule.onNodeWithText("상세보기").performClick()
-        composeTestRule.onNodeWithText("기록 상세").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("bottom_nav_home").performClick()
-        composeTestRule.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("bottom_nav_record").performClick()
-        composeTestRule.onNodeWithText("기록 상세").assertIsDisplayed()
-    }
-
-    @Test
-    fun backReturnsToHomeAndKeepsMissionSide() {
-        startOnHome()
-        openMission()
-        composeTestRule.onNodeWithContentDescription("뒤로").performClick()
-        composeTestRule.onNodeWithTag("home_mission_card").assertIsDisplayed()
-    }
-
-    @Test
-    fun customApplyReturnsToDetailAndRestoresSelectionOnReentry() {
-        startOnHome()
-        openMission()
-        composeTestRule.onNodeWithTag("open_custom").performClick()
-        composeTestRule.onNodeWithTag("condition_MORE_REST").performScrollTo().performClick()
-        composeTestRule.onNodeWithTag("apply_custom").performClick()
-        composeTestRule.waitUntil(10_000) {
-            composeTestRule.onAllNodesWithTag("condition_custom_screen").fetchSemanticsNodes().isEmpty()
-        }
-        composeTestRule.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("open_custom").performClick()
-        composeTestRule.onNodeWithTag("condition_MORE_REST").assertIsOn()
-        composeTestRule.onNodeWithTag("condition_LESS_WALKING").performClick()
-        composeTestRule.onNodeWithContentDescription("뒤로").performClick()
-        composeTestRule.onNodeWithTag("open_custom").performClick()
-        composeTestRule.onNodeWithTag("condition_LESS_WALKING").assertIsOff()
+        compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
     }
 
     @Test fun homeInvitationShowsOnboardingTemporaryCodeAndReturnsHome() {

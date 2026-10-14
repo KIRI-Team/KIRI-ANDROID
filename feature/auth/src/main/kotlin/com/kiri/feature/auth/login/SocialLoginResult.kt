@@ -4,7 +4,7 @@ import com.kiri.feature.auth.model.LoginProvider
 
 // 카카오·구글 SDK 로그인 결과
 sealed interface SocialLoginResult {
-    // SDK가 준 토큰. 서버에 보내 앱 로그인을 마친다 (카카오: 액세스 토큰, 구글: ID 토큰)
+    // SDK가 준 ID 토큰(nonce 포함). 서버에 보내 앱 로그인을 마친다
     data class Success(val provider: LoginProvider, val token: String) : SocialLoginResult
 
     // 사용자가 로그인 창을 닫았다. 따로 안내하지 않는다

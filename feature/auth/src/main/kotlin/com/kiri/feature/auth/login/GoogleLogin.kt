@@ -1,6 +1,7 @@
 package com.kiri.feature.auth.login
 
 import android.app.Activity
+import android.util.Log
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
@@ -16,13 +17,17 @@ import javax.inject.Inject
 // 구글 로그인. 로그인 버튼으로 시작하므로 Credential Manager 의 "Google로 로그인" 창을 띄우고 ID 토큰을 받는다
 class GoogleLogin @Inject constructor() {
 
-    suspend fun login(activity: Activity): SocialLoginResult {
+    private companion object {
+        const val TAG = "GoogleLogin"
+    }
+
+    suspend fun login(activity: Activity, nonce: String): SocialLoginResult {
         val webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
         if (webClientId.isBlank()) {
             return SocialLoginResult.Failure(LoginProvider.GOOGLE, MissingLoginKeyException("GOOGLE_WEB_CLIENT_ID"))
         }
         val request = GetCredentialRequest.Builder()
-            .addCredentialOption(GetSignInWithGoogleOption.Builder(webClientId).build())
+            .addCredentialOption(GetSignInWithGoogleOption.Builder(webClientId).setNonce(nonce).build())
             .build()
         return try {
             val credential = CredentialManager.create(activity).getCredential(activity, request).credential
@@ -37,6 +42,8 @@ class GoogleLogin @Inject constructor() {
                 )
             }
         } catch (e: GetCredentialException) {
+            // 구글 설정 문제(SHA-1·클라이언트 ID 불일치 등)도 취소로 올 때가 있어 원인 확인용으로 남긴다
+            Log.w(TAG, "구글 로그인 종료: ${e.type} ${e.errorMessage}", e)
             googleLoginFailure(e)
         } catch (e: GoogleIdTokenParsingException) {
             googleLoginFailure(e)
