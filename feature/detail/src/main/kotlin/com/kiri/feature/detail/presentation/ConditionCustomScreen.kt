@@ -43,12 +43,12 @@ fun ConditionCustomRoute(viewModel: DetailViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-fun ConditionCustomScreen(state: DetailUiState, onEvent: (DetailUiEvent) -> Unit) {
+fun ConditionCustomScreen(state: DetailUiState, onEvent: (DetailUiEvent) -> Unit, modifier: Modifier = Modifier) {
     val onBack = { onEvent(DetailUiEvent.CustomCancelled) }
     val onToggle: (Condition) -> Unit = { onEvent(DetailUiEvent.ConditionToggled(it)) }
     val onApply = { onEvent(DetailUiEvent.ApplyClicked) }
     BackHandler { if (!state.saving) onBack() }
-    Column(Modifier.fillMaxSize().background(KiriColor.Bg.Base).testTag("condition_custom_screen")) {
+    Column(modifier.fillMaxSize().background(KiriColor.Bg.Base).testTag("condition_custom_screen")) {
         KiriDetailAppBar("컨디션 커스텀", onBack, enabled = !state.saving)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 28.dp, bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("컨디션 조정이 필요하신가요?", style = KiriDetailTypography.Body, color = KiriColor.Text.Secondary)

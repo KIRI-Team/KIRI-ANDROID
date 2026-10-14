@@ -31,6 +31,9 @@ import com.kiri.uikit.R as UiR
 import java.time.LocalDate
 import java.time.ZoneId
 
+/** Calendar occurrences share mission content but own their header and available actions. */
+data class CalendarDetailHeader(val title: String, val badge: String, val showCustom: Boolean)
+
 @Composable
 fun MissionDetailRoute(onBack: () -> Unit, onCustom: () -> Unit, viewModel: DetailViewModel = hiltViewModel(), onRecord: () -> Unit = {}) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -57,6 +60,9 @@ fun MissionDetailScreen(
     state: DetailUiState, onEvent: (DetailUiEvent) -> Unit,
     discovery: Boolean = false, reviews: List<MissionReview> = emptyList(),
     reviewsSelected: Boolean = false, onSelectReviews: (Boolean) -> Unit = {}, curated: Boolean = false,
+    calendarHeader: CalendarDetailHeader? = null,
+    suggestionIcon: (@Composable () -> Unit)? = null,
+    nearbyImageRes: Int = UiR.drawable.kiri_place_card_image,
 ) {
     val onBack = { onEvent(DetailUiEvent.BackClicked) }
     val onCustom = { onEvent(DetailUiEvent.CustomClicked) }
@@ -72,7 +78,7 @@ fun MissionDetailScreen(
                 KiriDetailButton("다시 시도", onRetry)
             }
         } else {
-            DetailHeader(detail, onBack, onCustom, discovery, reviewsSelected, curated, onRecord, state.submittedMemory != null, state.memoriesSelected)
+            DetailHeader(detail, onBack, onCustom, discovery, reviewsSelected, curated, onRecord, state.submittedMemory != null, state.memoriesSelected, calendarHeader)
             Spacer(Modifier.height(36.dp))
             Row(
                 Modifier.align(Alignment.CenterHorizontally).background(KiriColor.Bg.Secondary, RoundedCornerShape(100.dp)).padding(horizontal = 6.dp, vertical = 4.dp),
@@ -104,20 +110,20 @@ fun MissionDetailScreen(
                         reviews.forEach { MissionReviewCard(it) }
                     }
                 } else {
-                    SectionTitle(detail.familyName.ifBlank { "우리 가족" }, if (discovery) "의 맞춤 활동" else "의 필수 활동")
+                    SectionTitle(detail.familyName.ifBlank { "우리 가족" }, if (discovery || calendarHeader != null) "의 맞춤 활동" else "의 필수 활동")
                     Spacer(Modifier.height(16.dp))
                     if (detail.activities.isEmpty()) EmptyInfo("아직 등록된 필수 활동이 없어요.")
                     detail.activities.forEachIndexed { index, activity ->
                         if (index > 0) Spacer(Modifier.height(16.dp))
-                        KiriDetailSuggestionCard(activity.title, activity.description, Modifier.fillMaxWidth())
+                        KiriDetailSuggestionCard(activity.title, activity.description, Modifier.fillMaxWidth(), leadingIcon = suggestionIcon)
                     }
                     Spacer(Modifier.height(48.dp))
-                    SectionTitle(detail.familyName.ifBlank { "우리 가족" }, if (discovery) "의 맞춤템" else "의 필수템")
+                    SectionTitle(detail.familyName.ifBlank { "우리 가족" }, if (discovery || calendarHeader != null) "의 맞춤템" else "의 필수템")
                     Spacer(Modifier.height(16.dp))
                     if (detail.essentials.isEmpty()) EmptyInfo("일정에 맞는 준비물 정보가 아직 없어요.")
                     detail.essentials.chunked(2).forEach { row ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            row.forEach { item -> KiriDetailSuggestionCard(item.title, item.description, Modifier.weight(1f), item = true) }
+                            row.forEach { item -> KiriDetailSuggestionCard(item.title, item.description, Modifier.weight(1f), item = true, leadingIcon = suggestionIcon) }
                             if (row.size == 1) Spacer(Modifier.weight(1f))
                         }
                     }
@@ -136,23 +142,23 @@ fun MissionDetailScreen(
                 if (state.nearby.isEmpty()) Box(Modifier.padding(horizontal = 18.dp)) { EmptyInfo("주변 추천 정보가 아직 없어요.") }
                 else Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 state.nearby.forEach { place ->
-                    KiriPlaceCard(place.title, place.address, place.description, rating = null, detailStyle = true)
+                    KiriPlaceCard(place.title, place.address, place.description, rating = null, detailStyle = true, imageRes = nearbyImageRes)
                 }
             }
             }
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(if (calendarHeader != null) 120.dp else 32.dp))
         }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DetailHeader(detail: MissionDetail, onBack: () -> Unit, onCustom: () -> Unit, discovery: Boolean = false, reviewsSelected: Boolean = false, curated: Boolean = false, onRecord: () -> Unit = {}, memorySubmitted: Boolean = false, memoriesSelected: Boolean = false) {
+private fun DetailHeader(detail: MissionDetail, onBack: () -> Unit, onCustom: () -> Unit, discovery: Boolean = false, reviewsSelected: Boolean = false, curated: Boolean = false, onRecord: () -> Unit = {}, memorySubmitted: Boolean = false, memoriesSelected: Boolean = false, calendarHeader: CalendarDetailHeader? = null) {
     Column(Modifier.fillMaxWidth().background(KiriColor.Bg.Primary)) {
-        KiriDetailAppBar(if (memorySubmitted) "${detail.familyName.ifBlank { "우리 가족" }} 기록" else if (discovery && reviewsSelected) "플레이스" else detail.date?.let { "${it.monthValue}월 ${it.dayOfMonth}일" } ?: if (discovery) "플레이스" else "미션 상세", onBack)
+        KiriDetailAppBar(calendarHeader?.title ?: if (memorySubmitted) "${detail.familyName.ifBlank { "우리 가족" }} 기록" else if (discovery && reviewsSelected) "플레이스" else detail.date?.let { "${it.monthValue}월 ${it.dayOfMonth}일" } ?: if (discovery) "플레이스" else "미션 상세", onBack)
         Column(Modifier.padding(start = 18.dp, end = 18.dp, top = 21.dp, bottom = 34.dp)) {
             val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
-            val badge = when {
+            val badge = calendarHeader?.badge ?: when {
                 discovery -> if (curated) "끼리추천" else "추천 활동"
                 detail.completed -> "완료한 미션이에요!"
                 detail.date == today -> "약속 당일이에요!"
@@ -160,8 +166,8 @@ private fun DetailHeader(detail: MissionDetail, onBack: () -> Unit, onCustom: ()
                 detail.date?.isBefore(today) == true -> "지난 약속이에요"
                 else -> "다가오는 약속이에요!"
             }
-            val neutralBadge = detail.completed || memoriesSelected || memorySubmitted
-            Text(badge, Modifier.background(if (neutralBadge) KiriColor.Bg.Elevated else KiriColor.Bg.GreenSoft, RoundedCornerShape(5.dp)).padding(horizontal = 8.dp, vertical = 6.dp), style = KiriDetailTypography.Small, color = if (neutralBadge) KiriColor.Text.Primary else KiriColor.Text.Accent)
+            val neutralBadge = calendarHeader == null && (detail.completed || memoriesSelected || memorySubmitted)
+            Text(badge, Modifier.background(if (neutralBadge) KiriColor.Bg.Elevated else if (calendarHeader != null) KiriColor.Primary.Default.copy(alpha = .2f) else KiriColor.Bg.GreenSoft, RoundedCornerShape(5.dp)).padding(horizontal = 8.dp, vertical = 6.dp), style = KiriDetailTypography.Small, color = if (neutralBadge) KiriColor.Text.Primary else KiriColor.Text.Accent)
             Spacer(Modifier.height(11.dp))
             Text(detail.title, color = KiriColor.Text.Strong, style = KiriDetailTypography.Display)
             Spacer(Modifier.height(4.dp))
@@ -193,14 +199,15 @@ private fun DetailHeader(detail: MissionDetail, onBack: () -> Unit, onCustom: ()
                     InfoText("활동시간 I ${detail.durationLabel}")
                 }
             }
-            if (!discovery) {
+            if (!discovery && (calendarHeader == null || calendarHeader.showCustom)) {
             Spacer(Modifier.height(16.dp))
             val canRecord = detail.completed || detail.date?.let { !it.isAfter(today) } == true
-            val showMemoryAction = memoriesSelected || detail.completed || memorySubmitted
+            val showMemoryAction = calendarHeader == null && (memoriesSelected || detail.completed || memorySubmitted)
             KiriDetailButton(
                 text = if (showMemoryAction) "오늘의 추억 기록하러가기" else "컨디션 조정하러가기",
                 onClick = if (showMemoryAction) onRecord else onCustom, accent = showMemoryAction && canRecord && !memorySubmitted, enabled = if (showMemoryAction) canRecord else !detail.completed,
                 modifier = Modifier.testTag(if (showMemoryAction) "open_memory_editor" else "open_custom"),
+                softAccent = calendarHeader != null,
             )
             }
         }
