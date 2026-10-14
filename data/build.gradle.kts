@@ -35,6 +35,9 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
 
+    // 로그인 토큰 저장
+    implementation(libs.androidx.datastore.preferences)
+
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
 }

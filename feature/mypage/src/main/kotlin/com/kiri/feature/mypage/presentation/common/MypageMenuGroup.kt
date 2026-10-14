@@ -129,7 +129,7 @@ internal fun MypageMenuCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(KiriColor.Bg.Secondary),
+            .background(KiriColor.Bg.Primary),
     ) {
         content()
     }

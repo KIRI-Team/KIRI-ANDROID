@@ -63,6 +63,7 @@ fun AuthLoginButton(
     provider: LoginProvider,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     val style = provider.style()
     val shape = RoundedCornerShape(30.dp)
@@ -74,7 +75,7 @@ fun AuthLoginButton(
             .clip(shape)
             .background(style.containerColor)
             .then(if (style.border != null) Modifier.border(style.border, shape) else Modifier)
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 24.dp, vertical = 16.dp)
             .testTag("auth_login_button_${provider.name.lowercase()}"),
         verticalAlignment = Alignment.CenterVertically,
