@@ -8,6 +8,12 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kiri.feature.record.RecordViewModel
+import com.kiri.data.record.FakeRecordRepository
+import com.kiri.data.home.FakeHomeRepository
+import com.kiri.data.mission.FakeMissionRepository
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import com.kiri.feature.record.model.*
 import com.kiri.uikit.KiriTheme
 import java.io.File
@@ -18,7 +24,8 @@ import org.junit.Test
 class RecordScreenTest {
     @get:Rule val compose = createComposeRule()
     private fun start() {
-        val vm = RecordViewModel(SavedStateHandle(mapOf("recordSeedDate" to "2026-10-13")))
+        val repo = FakeRecordRepository(FakeHomeRepository(Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC), latencyMillis = 0), FakeMissionRepository())
+        val vm = RecordViewModel(SavedStateHandle(mapOf("recordSeedDate" to "2026-10-13")), repo)
         compose.setContent { KiriTheme { RecordRoute(viewModel = vm) } }
     }
 
@@ -34,16 +41,14 @@ class RecordScreenTest {
         compose.onNodeWithTag("record_date_2026-10-22").assertIsSelected()
         compose.onNodeWithTag("record_tab_BUCKET").performClick()
         compose.onNodeWithTag("record_bucket_list").assertIsDisplayed()
-        compose.onNodeWithText("엄마 1").assertIsDisplayed()
-        compose.onNodeWithText("아빠 2").assertIsDisplayed()
+        compose.onNodeWithText("엄마 0").assertIsDisplayed()
+        compose.onNodeWithText("아빠 1").assertIsDisplayed()
         capture("record-bucket")
         compose.onNodeWithTag("record_saver_father").performClick().assertIsSelected()
-        compose.onNodeWithTag("record_bucket_bucket-1").assertIsDisplayed()
-        compose.onNodeWithTag("record_bucket_bucket-2").assertIsDisplayed()
-        compose.onNodeWithTag("record_bucket_bucket-3").assertDoesNotExist()
+        compose.onNodeWithTag("record_bucket_record-bucket").assertIsDisplayed()
         compose.onNodeWithTag("record_saver_mother").performClick()
-        compose.onNodeWithTag("record_bucket_bucket-3").assertIsDisplayed()
-        compose.onNodeWithTag("record_bucket_bucket-1").assertDoesNotExist()
+        compose.onNodeWithText("저장한 활동이 없어요").assertIsDisplayed()
+        compose.onNodeWithTag("record_bucket_record-bucket").assertDoesNotExist()
         compose.onNodeWithTag("record_tab_CALENDAR").performClick()
         compose.onNodeWithTag("record_date_2026-10-22").performScrollTo().assertIsSelected()
         compose.onNodeWithTag("record_tab_BUCKET").performClick()

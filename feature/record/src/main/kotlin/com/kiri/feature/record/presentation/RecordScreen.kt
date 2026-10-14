@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,12 +35,14 @@ import com.kiri.uikit.component.KiriDetailTypography
 fun RecordRoute(
     onScheduleClick: (String) -> Unit = {},
     onBucketClick: (String) -> Unit = {},
+    onEntryClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: RecordViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentScheduleClick by rememberUpdatedState(onScheduleClick)
     val currentBucketClick by rememberUpdatedState(onBucketClick)
+    val currentEntryClick by rememberUpdatedState(onEntryClick)
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
@@ -46,6 +50,7 @@ fun RecordRoute(
                 when (effect) {
                     is RecordUiEffect.OpenSchedule -> currentScheduleClick(effect.id)
                     is RecordUiEffect.OpenBucket -> currentBucketClick(effect.id)
+                    is RecordUiEffect.OpenEntry -> currentEntryClick(effect.id)
                 }
             }
         }
@@ -71,6 +76,11 @@ fun RecordScreen(state: RecordUiState, onEvent: (RecordUiEvent) -> Unit, modifie
                         null, Modifier.fillMaxWidth().height(1.dp), contentScale = ContentScale.FillBounds)
                 }
             }
+        }
+        if (state.loading) CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally).padding(24.dp))
+        state.error?.let {
+            Text(it, color = KiriColor.Status.Error, modifier = Modifier.padding(18.dp))
+            TextButton(onClick = { onEvent(RecordUiEvent.RetryClicked) }) { Text("다시 시도") }
         }
         when (state.tab) {
             RecordTab.CALENDAR -> RecordCalendar(state, onEvent, Modifier.weight(1f))

@@ -3,6 +3,8 @@ package com.kiri.feature.record.model
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
+import com.kiri.domain.record.CalendarEntry
+import com.kiri.domain.record.RecordPhoto
 
 enum class RecordTab(val label: String) { CALENDAR("캘린더"), BUCKET("버킷리스트") }
 enum class RecordCalendarMark { QUESTION, PLANNED, CONFIRMED, BUCKET, PHOTO_FIRST, PHOTO_SECOND }
@@ -21,6 +23,10 @@ data class RecordUiState(
     val buckets: List<RecordBucketItem> = emptyList(),
     val schedules: List<RecordSchedule> = emptyList(),
     val calendarMarks: Map<LocalDate, RecordCalendarMark> = emptyMap(),
+    val entries: List<CalendarEntry> = emptyList(),
+    val calendarPhotos: Map<LocalDate, RecordPhoto> = emptyMap(),
+    val loading: Boolean = false,
+    val error: String? = null,
 ) {
     val visibleBuckets get() = buckets.filter { selectedSaverId == null || it.saverId == selectedSaverId }
     val upcomingSchedules get() = schedules.filter { !it.date.isBefore(today) }.sortedBy { it.date }

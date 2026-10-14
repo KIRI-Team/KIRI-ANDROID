@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kiri.feature.record.R
 import com.kiri.feature.record.model.*
+import com.kiri.feature.record.presentation.RecordPhotoImage
+import com.kiri.domain.record.RecordPhoto
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.KiriDetailTypography
 import java.time.LocalDate
@@ -67,7 +69,10 @@ internal fun RecordCalendar(state: RecordUiState, onEvent: (RecordUiEvent) -> Un
                     week.forEach { date ->
                         if (date == null) Spacer(Modifier.weight(1f).aspectRatio(1f))
                         else CalendarCell(date, state.calendarMarks[date], date == state.selectedDate,
-                            { onEvent(RecordUiEvent.DateSelected(date)) }, Modifier.weight(1f))
+                            {
+                                onEvent(RecordUiEvent.DateSelected(date))
+                                state.entries.firstOrNull { it.date == date }?.let { onEvent(RecordUiEvent.CalendarEntryClicked(it.id)) }
+                            }, Modifier.weight(1f), state.calendarPhotos[date])
                     }
                 }
             }
@@ -85,7 +90,7 @@ internal fun RecordCalendar(state: RecordUiState, onEvent: (RecordUiEvent) -> Un
 }
 
 @Composable
-private fun CalendarCell(date: LocalDate, mark: RecordCalendarMark?, selected: Boolean, onClick: () -> Unit, modifier: Modifier) {
+private fun CalendarCell(date: LocalDate, mark: RecordCalendarMark?, selected: Boolean, onClick: () -> Unit, modifier: Modifier, photo: RecordPhoto? = null) {
     val shape = RoundedCornerShape(12.dp)
     val background = when {
         selected -> KiriColor.Primary.Default.copy(alpha = .2f)
@@ -110,7 +115,7 @@ private fun CalendarCell(date: LocalDate, mark: RecordCalendarMark?, selected: B
                 }
             }, contentAlignment = Alignment.Center,
     ) {
-        when (mark) {
+        if (photo != null) RecordPhotoImage(photo, Modifier.fillMaxSize()) else when (mark) {
             RecordCalendarMark.QUESTION -> Image(painterResource(R.drawable.record_question), null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
             RecordCalendarMark.PHOTO_FIRST -> Image(painterResource(R.drawable.record_photo_first), null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
             RecordCalendarMark.PHOTO_SECOND -> Image(painterResource(R.drawable.record_photo_second), null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)

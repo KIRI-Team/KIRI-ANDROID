@@ -10,9 +10,12 @@ sealed interface RecordUiEvent {
     data class SaverSelected(val saverId: String?) : RecordUiEvent
     data class ScheduleClicked(val id: String) : RecordUiEvent
     data class BucketClicked(val id: String) : RecordUiEvent
+    data class CalendarEntryClicked(val id: String) : RecordUiEvent
+    data object RetryClicked : RecordUiEvent
 }
 
 sealed interface RecordUiEffect {
     data class OpenSchedule(val id: String) : RecordUiEffect
     data class OpenBucket(val id: String) : RecordUiEffect
+    data class OpenEntry(val id: String) : RecordUiEffect
 }
