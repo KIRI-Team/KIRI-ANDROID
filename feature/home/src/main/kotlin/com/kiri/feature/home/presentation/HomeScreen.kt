@@ -69,6 +69,8 @@ fun HomeRoute(
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            // Another route can confirm an invitation; refresh the shared schedule snapshot on return.
+            viewModel.onEvent(HomeUiEvent.RetryClicked)
             viewModel.effect.collect { effect ->
                 when (effect) {
                     is HomeUiEffect.Navigate -> currentDestination(effect.destination)
