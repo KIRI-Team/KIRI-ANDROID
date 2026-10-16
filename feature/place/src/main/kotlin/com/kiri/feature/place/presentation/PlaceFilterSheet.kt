@@ -137,10 +137,10 @@ internal fun PlaceFilterSheet(applied: PlaceFilters, onDismiss: () -> Unit, onAp
     Text(text, style = KiriDetailTypography.Title, color = KiriColor.Text.Strong)
 }
 
-@Composable internal fun FilterActions(onReset: () -> Unit, onApply: () -> Unit, enabled: Boolean = true) {
+@Composable internal fun FilterActions(onReset: () -> Unit, onApply: () -> Unit, enabled: Boolean = true, tagPrefix: String = "filter") {
     Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        KiriButton(onClick = onReset, text = "초기화", tone = KiriButtonTone.Neutral, modifier = Modifier.weight(1f), testTag = "filter_reset")
-        KiriButton(onClick = onApply, text = "적용하기", modifier = Modifier.weight(1f), enabled = enabled, testTag = "filter_apply")
+        KiriButton(onClick = onReset, text = "초기화", tone = KiriButtonTone.Neutral, modifier = Modifier.weight(1f), testTag = "${tagPrefix}_reset")
+        KiriButton(onClick = onApply, text = "적용하기", modifier = Modifier.weight(1f), enabled = enabled, testTag = "${tagPrefix}_apply")
     }
 }
 

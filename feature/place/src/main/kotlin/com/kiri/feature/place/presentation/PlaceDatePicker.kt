@@ -78,7 +78,7 @@ internal fun PlaceDatePicker(applied: PlaceFilters, onBack: () -> Unit, onApply:
                 }
                 Spacer(Modifier.height(24.dp))
             }
-            FilterActions({ draft = draft.copy(dateEpochDay = null, minutesOfDay = 570, people = 2) }, { onApply(draft) }, draft.dateEpochDay != null)
+            FilterActions({ draft = draft.copy(dateEpochDay = null, minutesOfDay = 570, people = 2) }, { onApply(draft) }, draft.dateEpochDay != null, tagPrefix = "date_filter")
         }
     }
 }
