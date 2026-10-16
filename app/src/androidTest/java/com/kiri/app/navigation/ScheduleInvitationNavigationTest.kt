@@ -28,7 +28,8 @@ class ScheduleInvitationNavigationTest {
         compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
         compose.onNodeWithContentDescription("뒤로").performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("invitation_card").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText("약속 확정하기").performClick()
+        awaitReady()
+        compose.onNodeWithText("약속 확정하기").assertIsEnabled().performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("invitation_confirmed").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("확정 완료").assertIsNotEnabled()
         compose.onNodeWithText("취소").performClick()
@@ -55,9 +56,14 @@ class ScheduleInvitationNavigationTest {
         compose.onNodeWithTag("notification_list").performScrollToNode(hasTestTag("notification_$id"))
         compose.onNodeWithTag("notification_$id").performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("invitation_card").fetchSemanticsNodes().isNotEmpty() }
+        awaitReady()
+    }
+    private fun awaitReady() {
+        compose.waitUntil(15_000) { compose.onAllNodes(hasText("약속 확정하기") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
     }
     private fun capture(name: String) {
         compose.waitForIdle()
+        android.os.SystemClock.sleep(300) // Native dialog-window animations are outside Compose's clock.
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         File(instrumentation.targetContext.getExternalFilesDir(null), "$name.png").outputStream().use {
             instrumentation.uiAutomation.takeScreenshot().compress(Bitmap.CompressFormat.PNG, 100, it)

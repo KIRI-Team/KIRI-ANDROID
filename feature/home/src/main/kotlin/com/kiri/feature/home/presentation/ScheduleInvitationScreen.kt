@@ -12,6 +12,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -75,7 +77,7 @@ fun ScheduleInvitationScreen(state: ScheduleInvitationUiState, onBack: () -> Uni
         }
         Column(Modifier.weight(1f).fillMaxWidth().background(KiriColor.Bg.Base)
             .verticalScroll(rememberScrollState()).padding(horizontal = 18.dp).testTag("invitation_content")) {
-            if (state.loading) Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            if (state.loading && invitation == null) Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             if (state.confirmed) Text("약속이 확정되었어요", Modifier.padding(vertical = 12.dp).testTag("invitation_confirmed"), color = KiriColor.Text.Accent, style = KiriDetailTypography.Body)
             if (invitation != null) {
                 Spacer(Modifier.height(36.dp))
@@ -112,7 +114,13 @@ private fun InvitationCard(invitation: ScheduleInvitation) {
     val changed = invitation.kind == InvitationKind.CHANGED
     Box(Modifier.fillMaxWidth().heightIn(min = 181.dp).testTag("invitation_card")) {
         Image(painterResource(R.drawable.kiri_invitation_envelope), null,
-            Modifier.matchParentSize().offset(x = (-10).dp, y = (-8).dp), contentScale = ContentScale.FillBounds)
+            Modifier.matchParentSize().layout { measurable, constraints ->
+                // Figma's 364x189 export contains 10dp left and 8dp top shadow outside the 354x181 card.
+                val left = 10.dp.roundToPx()
+                val top = 8.dp.roundToPx()
+                val artwork = measurable.measure(Constraints.fixed(constraints.maxWidth + left, constraints.maxHeight + top))
+                layout(constraints.maxWidth, constraints.maxHeight) { artwork.place(-left, -top) }
+            }, contentScale = ContentScale.FillBounds)
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = 27.dp, bottom = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("활동명", style = KiriDetailTypography.Small.copy(fontSize = 12.sp, lineHeight = 16.sp), color = KiriColor.Text.Tertiary)
             Spacer(Modifier.height(8.dp))
