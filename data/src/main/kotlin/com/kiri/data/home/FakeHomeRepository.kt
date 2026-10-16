@@ -74,6 +74,24 @@ class FakeHomeRepository(
         if (snapshot.browsing || snapshot.question != question) throw HomeException(HomeFailure.UNAVAILABLE)
     }
 
+    override suspend fun confirmSchedule(scheduleId: String, expectedStartsAt: java.time.Instant): FamilyHome = mutex.withLock {
+        delay(latencyMillis)
+        refreshDate()
+        val schedule = snapshot.schedules.firstOrNull { it.id == scheduleId } ?: throw HomeException(HomeFailure.UNAVAILABLE)
+        if (snapshot.browsing || snapshot.members.none { it.id == snapshot.currentUserId && it.accessible } ||
+            schedule.startsAt != expectedStartsAt || schedule.status in setOf(ScheduleStatus.CANCELLED, ScheduleStatus.COMPLETED, ScheduleStatus.NOT_CONFIRMED)) {
+            throw HomeException(HomeFailure.UNAVAILABLE)
+        }
+        if (!clock.instant().isBefore(schedule.startsAt) || schedule.responseDeadline?.let { !clock.instant().isBefore(it) } == true) {
+            throw HomeException(HomeFailure.EXPIRED)
+        }
+        snapshot = snapshot.copy(schedules = snapshot.schedules.map {
+            if (it.id == scheduleId) it.copy(status = ScheduleStatus.CONFIRMED, finalParticipant = true,
+                acceptedMemberIds = it.acceptedMemberIds + snapshot.currentUserId) else it
+        })
+        snapshot
+    }
+
     private fun refreshDate() {
         if (snapshot.date != today()) snapshot = seed(today())
     }
@@ -106,6 +124,12 @@ class FakeHomeRepository(
             ),
             schedules = if (browsing) emptyList() else listOf(
                 HomeSchedule("schedule-demo", "한강 뚜벅뚜벅 축제 가보기", date.atTime(14, 50).atZone(ZoneId.of("Asia/Seoul")).toInstant(), ScheduleStatus.CONFIRMED, true, missionId = FakeMissionRepository.RIVER_MISSION_ID),
+                HomeSchedule("schedule-invite-demo", "한강 뚜벅뚜벅 축제 가보기", date.plusDays(3).atTime(14, 50).atZone(ZoneId.of("Asia/Seoul")).toInstant(), ScheduleStatus.PENDING_RESPONSE, false,
+                    missionId = FakeMissionRepository.RIVER_MISSION_ID, acceptedMemberIds = setOf("mother", "sibling", "daughter"),
+                    invitationMessage = "엄마, 아빠 나 여기 가고싶은데 우리 같이 갈래요??"),
+                HomeSchedule("schedule-changed-demo", "한강 뚜벅뚜벅 축제 가보기", date.plusDays(5).atTime(14, 50).atZone(ZoneId.of("Asia/Seoul")).toInstant(), ScheduleStatus.RECONFIRM_REQUIRED, false,
+                    missionId = FakeMissionRepository.RIVER_MISSION_ID, acceptedMemberIds = setOf("daughter"),
+                    invitationMessage = "엄마, 아빠 나 여기 가고싶은데 우리 같이 갈래요??"),
             ),
             recommendations = if (browsing) emptyList() else listOf(
                 HomeRecommendation("gyeongbokgung", "경복궁에서 사진찍기", "경복궁 종로구", listOf("대중교통 편리", "가족과 함께"), "4.6", description = "대중교통이 편리하고, 부모님이랑 가기 좋아요! 추천합니다"),

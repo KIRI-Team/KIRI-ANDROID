@@ -65,6 +65,8 @@ data class HomeSchedule(
     val finalParticipant: Boolean,
     val responseDeadline: java.time.Instant? = null,
     val missionId: String = id,
+    val acceptedMemberIds: Set<String> = emptySet(),
+    val invitationMessage: String = "",
 )
 
 data class HomeScheduleCard(val schedule: HomeSchedule, val kind: Kind) {
@@ -105,4 +107,7 @@ interface HomeRepository {
     suspend fun load(): FamilyHome
     suspend fun saveAnswer(question: DailyQuestion, answer: String): FamilyHome
     suspend fun poke(question: DailyQuestion, memberId: String): FamilyHome
+    /** Update an existing invitation atomically; reject an old date revision instead of creating a schedule. */
+    suspend fun confirmSchedule(scheduleId: String, expectedStartsAt: java.time.Instant): FamilyHome =
+        throw HomeException(HomeFailure.UNAVAILABLE)
 }

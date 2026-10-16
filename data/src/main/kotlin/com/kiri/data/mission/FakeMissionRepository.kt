@@ -18,6 +18,7 @@ class FakeMissionRepository : MissionRepository {
         if (missionId != RIVER_MISSION_ID) return MissionContent(summary)
         return MissionContent(
             summary, expectedSteps = 20000, durationMinutes = 480,
+            description = "2026 한강 뚜벅뚜벅 축제는 잠수교를 보행교로 전환해 시민이 직접 걸으며 공연·체험·미식 등 다양한 문화·여가 프로그램을 즐기는 서울 대표 한강 축제입니다.",
             activities = listOf(
                 DetailSuggestion("잠수교 위에서 한강 보며 걷기", "차 없는 잠수교를 천천히 걸으며 한강 풍경과 축제 분위기를 즐길 수 있어요!"),
                 DetailSuggestion("야외 취식존에서 한강 보며 식사하기", "한강을 바라보며 푸드트럭에서 산 음식을 여유롭게 먹을 수 있어요!"),

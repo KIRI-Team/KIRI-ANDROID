@@ -13,6 +13,7 @@ data class MissionContent(
     val essentials: List<DetailSuggestion> = emptyList(),
     val nearby: List<NearbyPlace> = emptyList(),
     val reviews: List<MissionReview> = emptyList(),
+    val description: String = "",
 )
 
 data class MissionReview(val id: String, val author: String, val text: String, val likes: Int)
