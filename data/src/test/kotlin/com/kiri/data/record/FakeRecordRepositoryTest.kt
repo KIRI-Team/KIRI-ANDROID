@@ -14,6 +14,27 @@ import java.time.Instant
 import java.time.ZoneOffset
 
 class FakeRecordRepositoryTest {
+    @Test fun refreshingConfirmedSchedulesPreservesEditedMemoriesAndRepresentativePhotos() = runTest {
+        val source = home()
+        var snapshot = source.load()
+        val mutableHome = object : com.kiri.domain.home.HomeRepository by source {
+            override suspend fun load() = snapshot
+        }
+        val repo = FakeRecordRepository(mutableHome, FakeMissionRepository())
+        repo.refresh()
+        repo.changeRepresentativePhoto("record-memory-1", "pixel-1")
+        val memory = repo.records.value.memories.first()
+        repo.updateMemory(memory.copy(text = "수정한 추억"))
+        val schedule = snapshot.schedules.first()
+        snapshot = snapshot.copy(schedules = snapshot.schedules + schedule.copy(id = "confirmed-later"))
+        repo.refresh()
+        assertTrue(repo.records.value.entries.any { it.id == "confirmed-later" })
+        assertEquals("수정한 추억", repo.records.value.memories.first().text)
+        assertEquals("pixel-1", repo.records.value.entries.first { it.id == "record-memory-1" }.representativePhotoId)
+        snapshot = snapshot.copy(schedules = snapshot.schedules.filterNot { it.id == "confirmed-later" })
+        repo.refresh()
+        assertFalse(repo.records.value.entries.any { it.id == "confirmed-later" })
+    }
     private val clock = Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC)
     private fun home(scenario: HomeScenario = HomeScenario.DEFAULT) = FakeHomeRepository(clock, scenario, latencyMillis = 0)
 

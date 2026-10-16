@@ -46,6 +46,7 @@ fun RecordRoute(
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.onEvent(RecordUiEvent.RetryClicked)
             viewModel.effect.collect { effect ->
                 when (effect) {
                     is RecordUiEffect.OpenSchedule -> currentScheduleClick(effect.id)

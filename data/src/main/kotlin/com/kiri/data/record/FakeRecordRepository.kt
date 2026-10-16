@@ -29,15 +29,16 @@ class FakeRecordRepository(
     private val state = MutableStateFlow(RecordCollection())
     override val records = state.asStateFlow()
     private var initialized = false
+    private var syncedScheduleIds: Set<String> = emptySet()
 
     override suspend fun refresh() = mutex.withLock {
         val family = home.load()
         if (family.browsing) {
             state.value = RecordCollection()
             initialized = false
+            syncedScheduleIds = emptySet()
             return@withLock
         }
-        if (initialized) return@withLock
         val river = missions.load(com.kiri.data.mission.FakeMissionRepository.RIVER_MISSION_ID).summary
         val members = family.members.filter { it.accessible }
         val participants = members.take(3).map { it.id }
@@ -46,6 +47,13 @@ class FakeRecordRepository(
             val time = schedule.startsAt.atZone(ZoneId.of("Asia/Seoul"))
             CalendarEntry(schedule.id, schedule.missionId, time.toLocalDate(), CalendarEntryKind.SCHEDULE,
                 missions.load(schedule.missionId).summary.title, time.toLocalTime(), participantIds = participants)
+        }
+        if (initialized) {
+            val previous = state.value
+            val refreshed = schedules.map { entry -> entry.copy(conditions = previous.entries.find { it.id == entry.id }?.conditions.orEmpty()) }
+            state.value = previous.copy(entries = previous.entries.filterNot { it.id in syncedScheduleIds } + refreshed)
+            syncedScheduleIds = family.schedules.map { it.id }.toSet()
+            return@withLock
         }
         val entries = schedules + listOf(
             CalendarEntry("record-upcoming", river.id, today.plusDays(3), CalendarEntryKind.SCHEDULE, river.title, LocalTime.of(14, 50), participantIds = participants),
@@ -65,6 +73,7 @@ class FakeRecordRepository(
                 "아빠가 자주 가는 식당에 처음 가봤다. 좋아하는 메뉴를 같이 먹으니 아빠를 조금 더 알게 된 기분이었다.", rating = 4, repeatActivity = true)
         }, photos, family.familyName.orEmpty(), family.currentUserId, members.associate { it.id to it.role })
         initialized = true
+        syncedScheduleIds = family.schedules.map { it.id }.toSet()
     }
 
     override suspend fun detail(entryId: String): MissionDetail {
