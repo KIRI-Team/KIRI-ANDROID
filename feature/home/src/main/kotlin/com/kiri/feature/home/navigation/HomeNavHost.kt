@@ -22,6 +22,7 @@ import com.kiri.feature.home.HomeViewModel
 import com.kiri.feature.home.model.HomeUiEvent
 import com.kiri.feature.home.presentation.NotificationRoute
 import com.kiri.domain.notification.NotificationTarget
+import com.kiri.feature.home.presentation.ScheduleInvitationRoute
 import com.kiri.feature.record.presentation.MemoryEditorScreen
 
 private const val GRAPH_ROUTE = "home_graph"
@@ -49,13 +50,20 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
             val homeEntry = remember { navController.getBackStackEntry(START_ROUTE) }
             val homeViewModel: HomeViewModel = hiltViewModel(homeEntry)
             NotificationRoute(onBack = { navController.popBackStack() }, onTarget = { notification ->
-                when (notification.target) {
+                if (notification.invitationKind != null) {
+                    navController.navigate("home/invitation/${Uri.encode(notification.id)}") { launchSingleTop = true }
+                } else when (notification.target) {
                     NotificationTarget.QUESTION -> {
                         if (homeViewModel.uiState.value.home?.question?.id == notification.targetId) homeViewModel.onEvent(HomeUiEvent.AnswerEditClicked)
                         navController.popBackStack()
                     }
                     else -> navController.navigate("$DETAIL_ROUTE/${Uri.encode(notification.targetId)}?memories=${notification.target == NotificationTarget.MEMORY}") { launchSingleTop = true }
                 }
+            })
+        }
+        composable("home/invitation/{notificationId}") {
+            ScheduleInvitationRoute(onBack = { navController.popBackStack() }, onDetails = { scheduleId ->
+                navController.navigate("$DETAIL_ROUTE/${Uri.encode(scheduleId)}") { launchSingleTop = true }
             })
         }
         composable("home/invite/{inviteCode}") { backStackEntry ->
