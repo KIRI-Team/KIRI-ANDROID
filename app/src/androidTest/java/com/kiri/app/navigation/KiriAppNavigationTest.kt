@@ -4,12 +4,27 @@ import android.graphics.Bitmap
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kiri.app.HiltTestActivity
+import com.kiri.feature.onboarding.TemporaryFamilyCode
 import com.kiri.uikit.KiriTheme
-import androidx.compose.ui.semantics.SemanticsProperties
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertFalse
@@ -23,7 +38,9 @@ import org.junit.runner.RunWith
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class KiriAppNavigationTest {
-    @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
+    @get:Rule(order = 0)
+    val hiltRule = HiltAndroidRule(this)
+
     @get:Rule(order = 1) val compose = createAndroidComposeRule<HiltTestActivity>()
 
     @Before fun setUp() { hiltRule.inject() }
@@ -40,7 +57,9 @@ class KiriAppNavigationTest {
         compose.onNodeWithTag("home_question_card").performScrollTo()
         compose.onNodeWithContentDescription("미션 카드로 전환").performClick()
         compose.onNodeWithTag("home_mission_card").performClick()
-        compose.waitUntil(10_000) { compose.onAllNodesWithTag("open_custom").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithTag("open_custom").fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
     }
 
@@ -114,8 +133,9 @@ class KiriAppNavigationTest {
     @Test fun detailBackStacksRemainIndependentAcrossTabs() {
         start(); openMission()
         compose.onNodeWithTag("bottom_nav_record").performClick()
-        compose.onNodeWithTag("record_schedule_schedule-1").performScrollTo().performClick()
-        compose.onNodeWithText("기록 상세").assertIsDisplayed()
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("record_schedule_schedule-demo").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("record_schedule_schedule-demo").performScrollTo().performClick()
+        compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
         compose.onNodeWithTag("bottom_nav_home").performClick()
         compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
         compose.onNodeWithTag("bottom_nav_record").performClick()
@@ -147,10 +167,11 @@ class KiriAppNavigationTest {
         start()
         compose.onNodeWithTag("bottom_nav_record").performClick()
 
-        compose.onNodeWithTag("record_schedule_schedule-1").performScrollTo().performClick()
-        compose.onNodeWithText("기록 상세").assertIsDisplayed()
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("record_schedule_schedule-demo").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("record_schedule_schedule-demo").performScrollTo().performClick()
+        compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
 
-        compose.onNodeWithText("뒤로").performClick()
+        compose.onNodeWithContentDescription("뒤로").performClick()
         compose.onNodeWithTag("record_screen").assertIsDisplayed()
     }
 

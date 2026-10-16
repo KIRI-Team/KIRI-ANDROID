@@ -20,6 +20,9 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kiri.feature.auth.AuthViewModel
 import com.kiri.domain.model.term.AgreementTerm
+import com.kiri.feature.auth.login.NonceGenerator
+import com.kiri.feature.auth.login.SocialLoginResult
+import com.kiri.feature.auth.model.AuthUiEvent
 import com.kiri.feature.auth.model.LoginProvider
 import com.kiri.feature.auth.presentation.AuthScreen
 import com.kiri.feature.auth.presentation.LoginScreen
@@ -35,6 +38,12 @@ class AuthScreensTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    // 로그인을 마치고 약관동의에 온 ViewModel (SDK·서버 대신 가짜 결과를 넣는다)
+    private fun loggedInViewModel() = AuthViewModel(FakeAuthRepository(), NonceGenerator()).apply {
+        onEvent(AuthUiEvent.LoginClicked(LoginProvider.KAKAO))
+        onEvent(AuthUiEvent.SocialLoginFinished(SocialLoginResult.Success(LoginProvider.KAKAO, "test-id-token")))
+    }
 
     @Test
     fun 로그인_화면에는_카카오와_구글_로그인_버튼만_있다() {
@@ -113,11 +122,10 @@ class AuthScreensTest {
     @Test
     fun 화살표를_누르면_세부_내용_창이_열리고_동의는_바뀌지_않는다() {
         composeTestRule.setContent {
-            val viewModel = remember { AuthViewModel() }
+            val viewModel = remember { loggedInViewModel() }
             val state by viewModel.uiState.collectAsState()
             KiriTheme { AuthScreen(state = state, onEvent = viewModel::onEvent) }
         }
-        composeTestRule.onNodeWithTag("auth_login_button_kakao").performClick()
         composeTestRule.onNodeWithTag("term_detail_sheet").assertDoesNotExist()
 
         composeTestRule.onNodeWithTag("agreement_term_1_detail").performClick()
@@ -130,11 +138,10 @@ class AuthScreensTest {
     @Test
     fun 세부_내용_창의_동의하기를_누르면_창이_닫히고_해당_약관이_체크된다() {
         composeTestRule.setContent {
-            val viewModel = remember { AuthViewModel() }
+            val viewModel = remember { loggedInViewModel() }
             val state by viewModel.uiState.collectAsState()
             KiriTheme { AuthScreen(state = state, onEvent = viewModel::onEvent) }
         }
-        composeTestRule.onNodeWithTag("auth_login_button_kakao").performClick()
         composeTestRule.onNodeWithTag("agreement_term_2_detail").performClick()
 
         composeTestRule.onNodeWithTag("term_detail_agree_button").performClick()

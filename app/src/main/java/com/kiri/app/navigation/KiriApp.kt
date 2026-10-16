@@ -19,7 +19,14 @@ fun KiriApp() {
         composable(ROUTE_AUTH) {
             AuthRoute(
                 // 로그인과 온보딩은 하나의 진입 플로우라 로그인을 백스택에 남겨둔다
-                onNavigateToOnboarding = { rootNavController.navigate(ROUTE_ONBOARDING) }
+                onNavigateToOnboarding = { rootNavController.navigate(ROUTE_ONBOARDING) },
+                // 약관에 동의한 기존 회원은 온보딩 없이 메인으로 가고, 로그인으로 뒤로가지 않게 지운다
+                onNavigateToMain = {
+                    rootNavController.navigate(ROUTE_MAIN) {
+                        popUpTo(ROUTE_AUTH) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
             )
         }
         composable(ROUTE_ONBOARDING) {

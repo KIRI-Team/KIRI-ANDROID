@@ -1,0 +1,132 @@
+package com.kiri.data.auth
+
+import com.kiri.data.network.KiriApiException
+import com.kiri.data.network.apiBaseUrl
+import com.kiri.data.network.kiriJson
+import com.kiri.domain.model.auth.LoginResult
+import com.kiri.domain.model.auth.SocialProvider
+import java.io.IOException
+import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import mockwebserver3.MockResponse
+import mockwebserver3.MockWebServer
+import mockwebserver3.SocketEffect
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import retrofit2.Retrofit
+import retrofit2.converter.kotlinx.serialization.asConverterFactory
+
+class AuthRepositoryImplTest {
+
+    private class FakeTokenStore : TokenStore {
+        var tokens: AuthTokens? = null
+        override suspend fun save(tokens: AuthTokens) {
+            this.tokens = tokens
+        }
+        override suspend fun get(): AuthTokens? = tokens
+        override suspend fun clear() {
+            tokens = null
+        }
+    }
+
+    private val server = MockWebServer()
+    private val tokenStore = FakeTokenStore()
+
+    @Before
+    fun setUp() = server.start()
+
+    @After
+    fun tearDown() = server.close()
+
+    private fun repository(): AuthRepositoryImpl {
+        val api = Retrofit.Builder()
+            .baseUrl(apiBaseUrl(server.url("/").toString()))
+            .client(OkHttpClient())
+            .addConverterFactory(kiriJson.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(AuthApi::class.java)
+        return AuthRepositoryImpl(api, tokenStore, kiriJson)
+    }
+
+    private fun enqueue(code: Int, body: String) {
+        server.enqueue(MockResponse.Builder().code(code).body(body).build())
+    }
+
+    @Test
+    fun 로그인하면_소셜_종류와_토큰과_nonce를_보낸다() = runTest {
+        enqueue(200, SUCCESS_BODY)
+
+        repository().login(SocialProvider.KAKAO, "kakao-id-token", "nonce-1")
+
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/v1/auth/login", request.url.encodedPath)
+        val body = kiriJson.parseToJsonElement(request.body!!.utf8()).jsonObject
+        assertEquals("KAKAO", body["socialProvider"]!!.jsonPrimitive.content)
+        assertEquals("kakao-id-token", body["socialProviderToken"]!!.jsonPrimitive.content)
+        assertEquals("nonce-1", body["nonce"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun 로그인에_성공하면_토큰을_저장하고_회원_상태를_돌려준다() = runTest {
+        enqueue(200, SUCCESS_BODY)
+
+        val result = repository().login(SocialProvider.GOOGLE, "google-id-token", "nonce-1")
+
+        assertEquals(LoginResult(isNewUser = true, termsAgreed = false), result.getOrThrow())
+        assertEquals(AuthTokens("access-1", "refresh-1"), tokenStore.tokens)
+    }
+
+    @Test
+    fun 서버가_실패로_답하면_서버의_code와_message를_담아_실패하고_토큰을_저장하지_않는다() = runTest {
+        enqueue(401, """{"isSuccess":false,"code":"AUTH401_3","message":"소셜 인증 토큰 검증에 실패했습니다.","result":null}""")
+
+        val error = repository().login(SocialProvider.KAKAO, "wrong", "nonce-1").exceptionOrNull()
+
+        assertTrue(error is KiriApiException)
+        assertEquals("AUTH401_3", (error as KiriApiException).code)
+        assertEquals("소셜 인증 토큰 검증에 실패했습니다.", error.message)
+        assertNull(tokenStore.tokens)
+    }
+
+    @Test
+    fun 성공_상태코드여도_isSuccess가_false면_실패로_본다() = runTest {
+        enqueue(200, """{"isSuccess":false,"code":"AUTH400_1","message":"실패","result":null}""")
+
+        val error = repository().login(SocialProvider.KAKAO, "token", "nonce-1").exceptionOrNull()
+
+        assertEquals("AUTH400_1", (error as KiriApiException).code)
+        assertNull(tokenStore.tokens)
+    }
+
+    @Test
+    fun 실패_응답_본문을_읽을_수_없으면_HTTP_상태코드로_구분한다() = runTest {
+        enqueue(502, "<html>Bad Gateway</html>")
+
+        val error = repository().login(SocialProvider.KAKAO, "token", "nonce-1").exceptionOrNull()
+
+        assertEquals("HTTP502", (error as KiriApiException).code)
+    }
+
+    @Test
+    fun 연결이_끊기면_네트워크_오류로_실패한다() = runTest {
+        server.enqueue(MockResponse.Builder().onRequestStart(SocketEffect.CloseSocket()).build())
+
+        val error = repository().login(SocialProvider.KAKAO, "token", "nonce-1").exceptionOrNull()
+
+        assertTrue(error is IOException)
+        assertNull(tokenStore.tokens)
+    }
+
+    private companion object {
+        const val SUCCESS_BODY = """{"isSuccess":true,"code":"AUTH200_1","message":"로그인 성공",""" +
+            """"result":{"accessToken":"access-1","refreshToken":"refresh-1","isNewUser":true,"termsAgreed":false}}"""
+    }
+}
