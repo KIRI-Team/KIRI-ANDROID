@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -94,7 +95,8 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
                     Box {
                         IconButton(onClick = { showingFilters = true }, modifier = Modifier.testTag("place_filters")) {
                             Surface(shape = RoundedCornerShape(100.dp), color = KiriColor.Bg.Tertiary, modifier = Modifier.size(28.dp)) {
-                                Box(contentAlignment = Alignment.Center) { Image(painterResource(R.drawable.kiri_filter_action), "상세 필터", Modifier.size(width = 8.dp, height = 8.421.dp)) }
+                                Box(contentAlignment = Alignment.Center) { Image(painterResource(R.drawable.kiri_filter_action), "상세 필터", Modifier.size(width = 8.dp, height = 8.421.dp),
+                                    colorFilter = ColorFilter.tint(if (state.query.filters.activeCount > 0) KiriColor.Text.Accent else KiriColor.Text.Secondary)) }
                             }
                         }
                         if (state.query.filters.activeCount > 0) Surface(color = KiriColor.Primary.Default, shape = RoundedCornerShape(100.dp), modifier = Modifier.align(Alignment.TopEnd).size(16.dp).testTag("place_filter_count")) {

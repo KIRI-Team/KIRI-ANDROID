@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.kiri.domain.place.PlaceFilters
@@ -49,7 +50,7 @@ internal fun PlaceFilterSheet(applied: PlaceFilters, onDismiss: () -> Unit, onAp
         containerColor = KiriColor.Bg.Primary, dragHandle = null, modifier = Modifier.testTag("place_filter_sheet")) {
         Column(Modifier.fillMaxWidth().fillMaxHeight(.92f)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                IconButton(onClick = onDismiss, modifier = Modifier.testTag("place_filter_close")) {
+                IconButton(onClick = onDismiss, modifier = Modifier.testTag("place_filter_close").semantics { contentDescription = "필터 닫기" }) {
                     Text("×", style = KiriDetailTypography.Title, color = KiriColor.Text.Secondary)
                 }
             }
@@ -114,12 +115,17 @@ internal fun PlaceFilterSheet(applied: PlaceFilters, onDismiss: () -> Unit, onAp
                     Column(Modifier.padding(horizontal = 18.dp).padding(bottom = 24.dp)) {
                         FilterHeading("가격")
                         Text("1인 기준 요금", style = KiriDetailTypography.Body, color = KiriColor.Text.Tertiary)
+                        val priceSelected = draft.minPrice != 0 || draft.maxPrice != 1_000_000
+                        val trackColor = if (priceSelected) KiriColor.Primary.Default else KiriColor.Bg.Secondary
                         RangeSlider(value = draft.minPrice.toFloat()..draft.maxPrice.toFloat(),
                             onValueChange = { draft = draft.copy(minPrice = it.start.toInt(), maxPrice = it.endInclusive.toInt()) },
                             valueRange = 0f..1_000_000f, modifier = Modifier.testTag("filter_price"),
-                            startThumb = { Image(painterResource(R.drawable.kiri_filter_thumb_selected), null, Modifier.size(18.dp)) },
-                            endThumb = { Image(painterResource(R.drawable.kiri_filter_thumb_selected), null, Modifier.size(18.dp)) },
-                            colors = SliderDefaults.colors(activeTrackColor = KiriColor.Primary.Default, inactiveTrackColor = KiriColor.Bg.Secondary))
+                            startThumb = { Image(painterResource(if (priceSelected) R.drawable.kiri_filter_thumb_selected else R.drawable.kiri_filter_thumb), null, Modifier.size(18.dp)) },
+                            endThumb = { Image(painterResource(if (priceSelected) R.drawable.kiri_filter_thumb_selected else R.drawable.kiri_filter_thumb), null, Modifier.size(18.dp)) },
+                            colors = SliderDefaults.colors(activeTrackColor = trackColor, inactiveTrackColor = KiriColor.Bg.Secondary),
+                            track = { range -> SliderDefaults.Track(rangeSliderState = range, modifier = Modifier.height(8.dp),
+                                colors = SliderDefaults.colors(activeTrackColor = trackColor, inactiveTrackColor = KiriColor.Bg.Secondary),
+                                drawStopIndicator = null, thumbTrackGapSize = 0.dp) })
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("${String.format(Locale.KOREAN, "%,d", draft.minPrice)}원", Modifier.testTag("filter_price_min"), color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Small)
                             Text("${String.format(Locale.KOREAN, "%,d", draft.maxPrice)}원", Modifier.testTag("filter_price_max"), color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Small)
