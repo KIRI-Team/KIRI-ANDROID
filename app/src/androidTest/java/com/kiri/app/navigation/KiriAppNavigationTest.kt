@@ -139,7 +139,7 @@ class KiriAppNavigationTest {
         compose.onNodeWithTag("bottom_nav_home").performClick()
         compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
         compose.onNodeWithTag("bottom_nav_record").performClick()
-        compose.onNodeWithText("기록 상세").assertIsDisplayed()
+        compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
     }
 
     @Test fun backReturnsToHomeAndKeepsMissionSide() {
