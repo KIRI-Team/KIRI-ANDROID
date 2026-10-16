@@ -112,7 +112,8 @@ fun KiriMemberAvatarGroup(
 }
 
 @Composable
-fun KiriMemberAvatar(answered: Boolean, role: String? = null, showAddBadge: Boolean, modifier: Modifier = Modifier) {
+fun KiriMemberAvatar(answered: Boolean, role: String? = null, showAddBadge: Boolean, modifier: Modifier = Modifier,
+    completedDescription: String = "답변 완료", pendingDescription: String = "미답변") {
     val character = when (role) {
         "엄마", "MOTHER" -> R.drawable.kiri_avatar_mother
         "아빠", "FATHER" -> R.drawable.kiri_avatar_father
@@ -125,7 +126,7 @@ fun KiriMemberAvatar(answered: Boolean, role: String? = null, showAddBadge: Bool
         modifier
             .size(44.dp)
             .border(1.dp, if (answered) KiriColor.Text.Accent else KiriColor.Border.Default, CircleShape)
-            .semantics { stateDescription = if (answered) "답변 완료" else "미답변" },
+            .semantics { stateDescription = if (answered) completedDescription else pendingDescription },
         contentAlignment = Alignment.Center,
     ) {
         Image(
