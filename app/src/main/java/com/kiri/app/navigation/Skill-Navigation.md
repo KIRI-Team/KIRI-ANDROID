@@ -56,6 +56,8 @@ Scaffold(bottomBar = { KiriBottomBar(navController) }) { padding ->
 
 ## 5. 로그인과 온보딩은 하나의 진입 플로우다
 
+바텀바는 플로팅 모양을 유지하되 화면 위에 겹쳐 그리지 않는다. `Scaffold.bottomBar`가 바텀바의 실제 높이, 바깥 16dp 간격, 시스템 내비게이션 인셋을 측정해 본문 공간에서 확보한다. 본문은 `padding(padding).consumeWindowInsets(padding)`을 적용해 마지막 목록 항목과 버튼이 가려지거나 자식에서 인셋이 중복 적용되지 않도록 한다. `main_content`와 `bottom_nav_area`의 경계 및 탭 전환 후 마지막 항목 접근은 자동 테스트로 확인한다.
+
 로그인(`auth`)과 온보딩(`onboarding`)은 다루는 정보가 달라서(계정 인증 / 사용자·가족 정보 설정) route를 나눴을 뿐, 전체적으로는 거의 하나의 플로우로 본다.
 
 - **로그인 → 온보딩**: 로그인을 백스택에서 제거하지 않는다. 온보딩 첫 화면에서 뒤로가기를 누르면 로그인으로 돌아갈 수 있다.

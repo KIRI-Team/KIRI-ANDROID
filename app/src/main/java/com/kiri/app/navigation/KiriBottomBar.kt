@@ -33,7 +33,7 @@ import com.kiri.uikit.component.KiriDetailTypography
 fun KiriBottomBar(navController: NavHostController) {
     val currentDestination = navController.currentBackStackEntryAsState().value?.destination
     Box(
-        Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 19.dp, vertical = 16.dp),
+        Modifier.fillMaxWidth().testTag("bottom_nav_area").navigationBarsPadding().padding(horizontal = 19.dp, vertical = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
         Surface(
