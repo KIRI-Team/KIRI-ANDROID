@@ -90,7 +90,9 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
                 }
             }
             Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(if (state.showingSaved) "저장한 활동 ${state.savedItems.size}개" else if (state.loading) "활동 불러오는 중" else "활동 ${state.totalCount}개", style = KiriDetailTypography.Small, color = KiriColor.Text.Secondary, modifier = Modifier.weight(1f).testTag("place_count"))
+                Text(if (state.showingSaved) "저장한 활동 ${state.savedItems.size}개" else if (state.loading) "활동 불러오는 중" else "활동 ${state.totalCount}개", style = KiriDetailTypography.Small,
+                    color = if (!state.showingSaved && state.query.filters.activeCount > 0) KiriColor.Text.Accent else KiriColor.Text.Secondary,
+                    modifier = Modifier.weight(1f).testTag("place_count"))
                 if (!state.showingSaved) {
                     Box {
                         IconButton(onClick = { showingFilters = true }, modifier = Modifier.testTag("place_filters")) {
