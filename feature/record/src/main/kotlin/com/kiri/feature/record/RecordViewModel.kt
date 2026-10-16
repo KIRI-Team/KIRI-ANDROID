@@ -29,6 +29,7 @@ class RecordViewModel @Inject constructor(private val savedState: SavedStateHand
     val uiState: StateFlow<RecordUiState> = _uiState.asStateFlow()
     private val _effect = Channel<RecordUiEffect>(Channel.BUFFERED)
     val effect = _effect.receiveAsFlow()
+    private var refreshing = false
 
     init {
         viewModelScope.launch {
@@ -58,12 +59,15 @@ class RecordViewModel @Inject constructor(private val savedState: SavedStateHand
     }
 
     private fun refresh() = viewModelScope.launch {
+        if (refreshing) return@launch
+        refreshing = true
         _uiState.update { it.copy(loading = true, error = null) }
         try {
             repository.refresh()
             _uiState.update { it.copy(loading = false) }
         } catch (e: CancellationException) { throw e }
         catch (_: Exception) { _uiState.update { it.copy(loading = false, error = "기록을 불러오지 못했어요.") } }
+        finally { refreshing = false }
     }
 
     fun onEvent(event: RecordUiEvent) {
