@@ -17,6 +17,22 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
+    @Test fun resumeRefreshPreservesCachedContentAndAnUnsubmittedAnswer() = runTest(dispatcher) {
+        val repo = TestRepository()
+        val vm = HomeViewModel(repo)
+        advanceUntilIdle()
+        vm.onEvent(HomeUiEvent.AnswerEditClicked)
+        vm.onEvent(HomeUiEvent.AnswerChanged("작성 중인 답변"))
+        repo.home = repo.home.copy(schedules = listOf(HomeSchedule("confirmed", "확정된 미션",
+            java.time.Instant.parse("2030-01-01T00:00:00Z"), ScheduleStatus.CONFIRMED, true)))
+        vm.refreshOnResume()
+        assertFalse(vm.uiState.value.loading)
+        assertNotNull(vm.uiState.value.home)
+        advanceUntilIdle()
+        assertEquals("confirmed", vm.uiState.value.home!!.schedules.single().id)
+        assertEquals("작성 중인 답변", vm.uiState.value.draft)
+        assertTrue(vm.uiState.value.editing)
+    }
     private val dispatcher = StandardTestDispatcher()
     @Before fun setup() { Dispatchers.setMain(dispatcher) }
     @After fun tearDown() { Dispatchers.resetMain() }

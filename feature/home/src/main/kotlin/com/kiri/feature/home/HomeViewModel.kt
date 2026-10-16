@@ -99,10 +99,12 @@ class HomeViewModel @Inject constructor(
     private fun FamilyHome.withTemporaryInviteCode(): FamilyHome =
         if (browsing) this else copy(inviteCode = com.kiri.feature.onboarding.TemporaryFamilyCode.code)
 
-    private fun load() {
+    fun refreshOnResume() = load(quiet = true)
+
+    private fun load(quiet: Boolean = false) {
         if (uiState.value.busy || loadingInProgress) return
         loadingInProgress = true
-        _uiState.update { it.copy(loading = true, loadError = false) }
+        _uiState.update { it.copy(loading = !quiet || it.home == null, loadError = false) }
         viewModelScope.launch {
             try {
                 val home = repository.load().withTemporaryInviteCode()
@@ -128,7 +130,8 @@ class HomeViewModel @Inject constructor(
                     )
                 }
             } catch (error: CancellationException) { throw error }
-            catch (_: Exception) { _uiState.update { it.copy(loading = false, loadError = true) } }
+            catch (_: Exception) { _uiState.update { it.copy(loading = false, loadError = !quiet || it.home == null,
+                notice = if (quiet && it.home != null) "최신 일정을 불러오지 못했어요. 아래로 당겨 다시 시도해주세요." else it.notice) } }
             finally { loadingInProgress = false }
         }
     }
