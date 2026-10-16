@@ -3,8 +3,8 @@ package com.kiri.feature.place.presentation
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,139 +16,143 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.kiri.domain.place.PlaceFilters
 import com.kiri.feature.place.R
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.*
-import java.time.Instant
-import java.time.ZoneOffset
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlinx.coroutines.launch
 
-/** Local UI selections; the repository does not yet support detailed filtering. */
-internal data class PlaceFilters(
-    val region: String = "서울특별시", val distance: String = "1km 이내",
-    val dateMillis: Long? = null, val hour: Int = 14, val minute: Int = 50,
-    val minPrice: Float = 0f, val maxPrice: Float = 1_000_000f,
-) {
-    companion object {
-        val Saver = listSaver<PlaceFilters, Any>(
-            save = { listOf(it.region, it.distance, it.dateMillis ?: -1L, it.hour, it.minute, it.minPrice, it.maxPrice) },
-            restore = { PlaceFilters(it[0] as String, it[1] as String, (it[2] as Long).takeIf { value -> value >= 0 }, it[3] as Int, it[4] as Int, it[5] as Float, it[6] as Float) },
-        )
-    }
-}
+internal val PlaceFiltersSaver = listSaver<PlaceFilters, Any>(
+    save = { listOf(it.regions.joinToString("|"), it.distanceKm ?: -1, it.dateEpochDay ?: Long.MIN_VALUE,
+        it.minutesOfDay, it.people, it.minPrice, it.maxPrice) },
+    restore = { PlaceFilters((it[0] as String).split('|').filter(String::isNotEmpty).toSet(),
+        (it[1] as Int).takeIf { v -> v > 0 }, (it[2] as Long).takeIf { v -> v != Long.MIN_VALUE },
+        it[3] as Int, it[4] as Int, it[5] as Int, it[6] as Int) },
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PlaceFilterSheet(applied: PlaceFilters, onDismiss: () -> Unit, onApply: (PlaceFilters) -> Unit) {
-    var draft by rememberSaveable(stateSaver = PlaceFilters.Saver) { mutableStateOf(applied) }
+    var draft by rememberSaveable(stateSaver = PlaceFiltersSaver) { mutableStateOf(applied) }
     var pickingDate by rememberSaveable { mutableStateOf(false) }
-    var pickingTime by rememberSaveable { mutableStateOf(false) }
-    val heading = KiriDetailTypography.Title.copy(fontSize = 20.sp, lineHeight = 28.sp, letterSpacing = (-.8).sp)
-    ModalBottomSheet(
-        onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp), containerColor = KiriColor.Bg.Primary,
-        dragHandle = null, modifier = Modifier.testTag("place_filter_sheet"),
-    ) {
-        Column(Modifier.fillMaxWidth().fillMaxHeight(.94f)) {
-            Box(Modifier.fillMaxWidth().height(95.dp)) {
-                Text("필터", Modifier.align(Alignment.TopStart).padding(start = 18.dp, top = 48.dp), style = heading, color = KiriColor.Text.Strong)
-                IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd).padding(top = 10.dp, end = 16.dp).testTag("place_filter_close")) {
-                    Box(Modifier.size(24.dp).semantics { contentDescription = "필터 닫기" }, contentAlignment = Alignment.Center) {
-                        Box(Modifier.rotate(45f).size(width = 3.54.dp, height = 23.227.dp).background(KiriColor.Bg.Elevated, RoundedCornerShape(100.dp)))
-                        Box(Modifier.rotate(-45f).size(width = 3.54.dp, height = 23.227.dp).background(KiriColor.Bg.Elevated, RoundedCornerShape(100.dp)))
-                    }
+    var selectedSection by rememberSaveable { mutableIntStateOf(0) }
+    val scroll = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    ModalBottomSheet(onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp),
+        containerColor = KiriColor.Bg.Primary, dragHandle = null, modifier = Modifier.testTag("place_filter_sheet")) {
+        Column(Modifier.fillMaxWidth().fillMaxHeight(.92f)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                IconButton(onClick = onDismiss, modifier = Modifier.testTag("place_filter_close")) {
+                    Text("×", style = KiriDetailTypography.Title, color = KiriColor.Text.Secondary)
                 }
             }
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 18.dp).testTag("place_filter_content")) {
-                Spacer(Modifier.height(16.dp))
-                Text("지역", style = heading, color = KiriColor.Text.Strong)
-                Spacer(Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("서울특별시", "경기", "인천").forEach { region ->
-                        FilterChip(region, draft.region == region, { draft = draft.copy(region = region) }, "filter_region_$region")
-                    }
-                }
-                Spacer(Modifier.height(91.dp))
-                Text("거리", style = heading, color = KiriColor.Text.Strong)
-                Spacer(Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("1km 이내", "3km 이내", "10km 이내").forEach { distance ->
-                        FilterChip(distance, draft.distance == distance, { draft = draft.copy(distance = distance) }, "filter_distance_$distance")
-                    }
-                }
-                Spacer(Modifier.height(48.dp))
-                Text("날짜", style = heading, color = KiriColor.Text.Strong)
-                Spacer(Modifier.height(12.dp))
-                Surface(onClick = { pickingDate = true }, color = KiriColor.Bg.Primary, shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 85.dp).testTag("filter_date")) {
-                    Row(Modifier.padding(horizontal = 18.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("날짜 선택", style = KiriDetailTypography.Small, color = KiriColor.Text.Secondary)
-                            val date = draft.dateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().format(DateTimeFormatter.ofPattern("yy.MM.dd(E)", Locale.KOREAN)) }
-                            Text(if (date == null) "날짜·시간 선택" else "$date · ${draft.hour}시 ${draft.minute.toString().padStart(2, '0')}분",
-                                style = heading.copy(lineHeight = 30.sp), color = KiriColor.Text.Strong)
+            Row(Modifier.padding(horizontal = 18.dp)) {
+                listOf("날짜·인원", "지역", "거리", "가격").forEachIndexed { index, label ->
+                    Column(Modifier.weight(if (index == 0) 1.5f else 1f)) {
+                        TextButton(onClick = { selectedSection = index; scope.launch { scroll.animateScrollToItem(index) } },
+                            modifier = Modifier.fillMaxWidth().testTag("filter_section_$index")) {
+                            Text(label, color = if (selectedSection == index) KiriColor.Text.Primary else KiriColor.Text.Secondary,
+                                style = KiriDetailTypography.Body)
                         }
-                        Image(painterResource(R.drawable.kiri_filter_back), null, Modifier.size(24.dp).rotate(180f))
+                        HorizontalDivider(thickness = if (selectedSection == index) 2.dp else 1.dp,
+                            color = if (selectedSection == index) KiriColor.Text.Primary else KiriColor.Bg.Elevated)
                     }
                 }
-                Spacer(Modifier.height(48.dp))
-                Text("가격", style = heading, color = KiriColor.Text.Strong)
-                Text("1인 기준 요금", style = KiriDetailTypography.Body, color = KiriColor.Text.Tertiary)
-                val priceSelected = draft.minPrice != 0f || draft.maxPrice != 1_000_000f
-                val priceTrackColor = if (priceSelected) KiriColor.Primary.Default else KiriColor.Bg.Secondary
-                RangeSlider(value = draft.minPrice..draft.maxPrice,
-                    onValueChange = { draft = draft.copy(minPrice = it.start, maxPrice = it.endInclusive) },
-                    valueRange = 0f..1_000_000f, modifier = Modifier.fillMaxWidth().testTag("filter_price"),
-                    startThumb = { Image(painterResource(if (priceSelected) R.drawable.kiri_filter_thumb_selected else R.drawable.kiri_filter_thumb), null, Modifier.size(18.dp)) },
-                    endThumb = { Image(painterResource(if (priceSelected) R.drawable.kiri_filter_thumb_selected else R.drawable.kiri_filter_thumb), null, Modifier.size(18.dp)) },
-                    colors = SliderDefaults.colors(activeTrackColor = priceTrackColor, inactiveTrackColor = KiriColor.Bg.Secondary),
-                    track = { range -> SliderDefaults.Track(rangeSliderState = range, modifier = Modifier.height(8.dp),
-                        colors = SliderDefaults.colors(activeTrackColor = priceTrackColor, inactiveTrackColor = KiriColor.Bg.Secondary), drawStopIndicator = null, thumbTrackGapSize = 0.dp) },
-                )
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    val style = KiriDetailTypography.Small.copy(fontSize = 12.sp, lineHeight = 17.sp, letterSpacing = (-.48).sp, fontWeight = FontWeight.Medium)
-                    Text("${String.format(Locale.KOREAN, "%,d", draft.minPrice.toInt())}원", style = style, color = KiriColor.Text.Tertiary, modifier = Modifier.testTag("filter_price_min"))
-                    Text("${String.format(Locale.KOREAN, "%,d", draft.maxPrice.toInt())}원", style = style, color = KiriColor.Text.Tertiary, modifier = Modifier.testTag("filter_price_max"))
+            }
+            LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("place_filter_content"), state = scroll) {
+                item {
+                    Surface(onClick = { pickingDate = true }, shape = RoundedCornerShape(8.dp),
+                        color = KiriColor.Bg.Primary, border = androidx.compose.foundation.BorderStroke(1.dp, KiriColor.Bg.Tertiary),
+                        modifier = Modifier.padding(18.dp).fillMaxWidth().heightIn(min = 48.dp).testTag("filter_date")) {
+                        Row(Modifier.padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Image(painterResource(R.drawable.kiri_filter_calendar), null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(draft.dateEpochDay?.let { day ->
+                                LocalDate.ofEpochDay(day).format(DateTimeFormatter.ofPattern("M. d (E)", Locale.KOREAN)) +
+                                    " · ${formatFilterTime(draft.minutesOfDay)} · ${draft.people}명"
+                            } ?: "날짜·인원·시간", Modifier.weight(1f), style = KiriDetailTypography.Small, color = KiriColor.Text.Primary)
+                            if (draft.dateEpochDay != null) IconButton(onClick = { draft = draft.copy(dateEpochDay = null) }, modifier = Modifier.testTag("filter_date_clear")) {
+                                Image(painterResource(R.drawable.kiri_filter_clear), "날짜 선택 해제", Modifier.size(18.dp))
+                            } else Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                                Image(painterResource(R.drawable.kiri_filter_back), null, Modifier.size(12.dp).rotate(180f))
+                            }
+                        }
+                    }
+                    HorizontalDivider(thickness = 6.dp, color = KiriColor.Bg.Secondary)
                 }
-                Spacer(Modifier.height(24.dp))
+                item {
+                    Column(Modifier.padding(start = 18.dp, end = 18.dp, top = 28.dp, bottom = 40.dp)) {
+                        FilterHeading("지역")
+                        Spacer(Modifier.height(12.dp))
+                        listOf("전체", "서울", "인천", "경기", "대전", "세종", "충청", "대구", "경상", "울산", "부산", "광주", "전라", "강원", "제주").chunked(5).forEach { row ->
+                            Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                row.forEach { region -> FilterChip(region, if (region == "전체") draft.regions.isEmpty() else region in draft.regions, {
+                                    draft = draft.copy(regions = if (region == "전체") emptySet() else if (region in draft.regions) draft.regions - region else draft.regions + region)
+                                }, "filter_region_$region", Modifier.weight(1f)) }
+                            }
+                        }
+                    }
+                }
+                item {
+                    Column(Modifier.padding(horizontal = 18.dp).padding(bottom = 48.dp)) {
+                        FilterHeading("거리")
+                        Spacer(Modifier.height(12.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(1, 3, 10).forEach { km -> FilterChip("${km}km 이내", draft.distanceKm == km,
+                                { draft = draft.copy(distanceKm = km.takeUnless { draft.distanceKm == km }) }, "filter_distance_${km}km 이내") }
+                        }
+                    }
+                }
+                item {
+                    Column(Modifier.padding(horizontal = 18.dp).padding(bottom = 24.dp)) {
+                        FilterHeading("가격")
+                        Text("1인 기준 요금", style = KiriDetailTypography.Body, color = KiriColor.Text.Tertiary)
+                        RangeSlider(value = draft.minPrice.toFloat()..draft.maxPrice.toFloat(),
+                            onValueChange = { draft = draft.copy(minPrice = it.start.toInt(), maxPrice = it.endInclusive.toInt()) },
+                            valueRange = 0f..1_000_000f, modifier = Modifier.testTag("filter_price"),
+                            startThumb = { Image(painterResource(R.drawable.kiri_filter_thumb_selected), null, Modifier.size(18.dp)) },
+                            endThumb = { Image(painterResource(R.drawable.kiri_filter_thumb_selected), null, Modifier.size(18.dp)) },
+                            colors = SliderDefaults.colors(activeTrackColor = KiriColor.Primary.Default, inactiveTrackColor = KiriColor.Bg.Secondary))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("${String.format(Locale.KOREAN, "%,d", draft.minPrice)}원", Modifier.testTag("filter_price_min"), color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Small)
+                            Text("${String.format(Locale.KOREAN, "%,d", draft.maxPrice)}원", Modifier.testTag("filter_price_max"), color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Small)
+                        }
+                    }
+                }
             }
-            Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 20.dp), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                KiriButton(onClick = { draft = PlaceFilters() }, text = "초기화", tone = KiriButtonTone.Neutral,
-                    modifier = Modifier.weight(130f), testTag = "filter_reset", leadingIcon = {
-                        Image(painterResource(R.drawable.kiri_filter_refresh), null, Modifier.size(18.dp))
-                    })
-                KiriButton(onClick = { onApply(draft) }, text = "적용하기", modifier = Modifier.weight(215f), testTag = "filter_apply")
-            }
+            FilterActions({ draft = PlaceFilters() }, { onApply(draft) })
         }
     }
-    if (pickingDate) {
-        val dateState = rememberDatePickerState(initialSelectedDateMillis = draft.dateMillis)
-        DatePickerDialog(onDismissRequest = { pickingDate = false }, confirmButton = {
-            TextButton(onClick = { draft = draft.copy(dateMillis = dateState.selectedDateMillis); pickingDate = false; pickingTime = true }, enabled = dateState.selectedDateMillis != null) { Text("시간 선택") }
-        }, dismissButton = { TextButton(onClick = { pickingDate = false }) { Text("취소") } }) { DatePicker(dateState) }
-    }
-    if (pickingTime) {
-        val timeState = rememberTimePickerState(initialHour = draft.hour, initialMinute = draft.minute, is24Hour = true)
-        AlertDialog(onDismissRequest = { pickingTime = false }, title = { Text("시간 선택") }, text = { TimePicker(timeState) },
-            confirmButton = { TextButton(onClick = { draft = draft.copy(hour = timeState.hour, minute = timeState.minute); pickingTime = false }) { Text("확인") } },
-            dismissButton = { TextButton(onClick = { pickingTime = false }) { Text("취소") } })
+    if (pickingDate) PlaceDatePicker(draft, { pickingDate = false }) { draft = it; pickingDate = false }
+}
+
+@Composable internal fun FilterHeading(text: String) {
+    Text(text, style = KiriDetailTypography.Title, color = KiriColor.Text.Strong)
+}
+
+@Composable internal fun FilterActions(onReset: () -> Unit, onApply: () -> Unit, enabled: Boolean = true) {
+    Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        KiriButton(onClick = onReset, text = "초기화", tone = KiriButtonTone.Neutral, modifier = Modifier.weight(1f), testTag = "filter_reset")
+        KiriButton(onClick = onApply, text = "적용하기", modifier = Modifier.weight(1f), enabled = enabled, testTag = "filter_apply")
     }
 }
 
-@Composable
-private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit, tag: String) {
+@Composable internal fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit, tag: String, modifier: Modifier = Modifier) {
     Surface(onClick = onClick, shape = RoundedCornerShape(100.dp),
         color = if (selected) KiriColor.Primary.Default.copy(alpha = .2f) else KiriColor.Bg.Tertiary,
-        modifier = Modifier.height(36.dp).testTag(tag).semantics { this.selected = selected }) {
-        Box(Modifier.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
-            Text(label, style = KiriDetailTypography.Small.copy(fontWeight = FontWeight.Medium, lineHeight = 20.sp),
+        modifier = modifier.heightIn(min = 36.dp).testTag(tag).semantics { this.selected = selected }) {
+        Box(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {
+            Text(label, style = KiriDetailTypography.Small, maxLines = 1,
                 color = if (selected) KiriColor.Text.Accent else KiriColor.Text.Secondary)
         }
     }
 }
+
+internal fun formatFilterTime(minutes: Int): String = String.format(Locale.ROOT, "%02d:%02d", minutes / 60, minutes % 60)

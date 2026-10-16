@@ -59,7 +59,6 @@ fun PlaceRoute(onBack: () -> Unit = {}, viewModel: PlaceViewModel = hiltViewMode
 @Composable
 fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
     var showingFilters by rememberSaveable { mutableStateOf(false) }
-    var appliedFilters by rememberSaveable(stateSaver = PlaceFilters.Saver) { mutableStateOf(PlaceFilters()) }
     val onSearch: (String) -> Unit = { onEvent(PlaceUiEvent.SearchChanged(it)) }
     val onCategory: (PlaceCategory?) -> Unit = { onEvent(PlaceUiEvent.CategorySelected(it)) }
     val onRetry = { onEvent(PlaceUiEvent.RetryClicked) }
@@ -92,9 +91,16 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
             Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(if (state.showingSaved) "저장한 활동 ${state.savedItems.size}개" else if (state.loading) "활동 불러오는 중" else "활동 ${state.totalCount}개", style = KiriDetailTypography.Small, color = KiriColor.Text.Secondary, modifier = Modifier.weight(1f).testTag("place_count"))
                 if (!state.showingSaved) {
-                    PlaceFilterTrigger("날짜·시간", "place_filter_date") { showingFilters = true }
-                    Spacer(Modifier.width(8.dp))
-                    PlaceFilterTrigger("지역·거리", "place_filter_region") { showingFilters = true }
+                    Box {
+                        IconButton(onClick = { showingFilters = true }, modifier = Modifier.testTag("place_filters")) {
+                            Surface(shape = RoundedCornerShape(100.dp), color = KiriColor.Bg.Tertiary, modifier = Modifier.size(28.dp)) {
+                                Box(contentAlignment = Alignment.Center) { Image(painterResource(R.drawable.kiri_filter_action), "상세 필터", Modifier.size(width = 8.dp, height = 8.421.dp)) }
+                            }
+                        }
+                        if (state.query.filters.activeCount > 0) Surface(color = KiriColor.Primary.Default, shape = RoundedCornerShape(100.dp), modifier = Modifier.align(Alignment.TopEnd).size(16.dp).testTag("place_filter_count")) {
+                            Box(contentAlignment = Alignment.Center) { Text("${state.query.filters.activeCount}", style = KiriDetailTypography.Small.copy(fontSize = 10.sp), color = KiriColor.Text.Inverse) }
+                        }
+                    }
                 }
             }
             if (state.error != null && state.pending == null) {
@@ -127,8 +133,8 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
             }
         }
     }
-    if (showingFilters) PlaceFilterSheet(appliedFilters, onDismiss = { showingFilters = false }, onApply = {
-        appliedFilters = it
+    if (showingFilters) PlaceFilterSheet(state.query.filters, onDismiss = { showingFilters = false }, onApply = {
+        onEvent(PlaceUiEvent.FiltersApplied(it))
         showingFilters = false
     })
     state.pending?.let { mission ->
@@ -160,12 +166,6 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
 private fun PlaceChip(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(onClick = onClick, modifier = modifier.height(36.dp).semantics { this.selected = selected }, color = if (selected) KiriColor.Primary.Default.copy(alpha = .2f) else KiriColor.Bg.Tertiary, shape = RoundedCornerShape(100.dp)) {
         Box(Modifier.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) { Text(label, style = KiriDetailTypography.Small.copy(fontWeight = FontWeight.Medium, lineHeight = 20.sp), color = if (selected) KiriColor.Text.Accent else KiriColor.Text.Secondary) }
-    }
-}
-@Composable
-private fun PlaceFilterTrigger(label: String, tag: String, onClick: () -> Unit) {
-    Surface(onClick = onClick, color = KiriColor.Bg.Base, modifier = Modifier.testTag(tag)) {
-        Text("$label ▾", color = KiriColor.Text.Secondary, style = KiriDetailTypography.Small)
     }
 }
 @Composable

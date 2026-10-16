@@ -1,94 +1,64 @@
 package com.kiri.feature.place.presentation
 
-import android.graphics.Bitmap
-import android.view.accessibility.AccessibilityNodeInfo
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Text
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.junit4.StateRestorationTester
-import androidx.test.platform.app.InstrumentationRegistry
-import com.kiri.feature.place.model.PlaceUiState
+import com.kiri.domain.place.PlaceFilters
 import com.kiri.uikit.KiriTheme
-import java.io.File
+import java.time.LocalDate
 import org.junit.Rule
 import org.junit.Test
 
 class PlaceFilterSheetTest {
     @get:Rule val compose = createComposeRule()
-
-    @Test fun applyPersistsSelectionsButDismissDiscardsDraftAndResetRestoresDefaults() {
-        compose.setContent { KiriTheme { PlaceScreen(PlaceUiState(loading = false)) {} } }
-        compose.onNodeWithTag("place_filter_region").performClick()
-        compose.onNodeWithTag("place_filter_sheet").assertIsDisplayed()
-        compose.onNodeWithTag("filter_region_경기").performClick()
-        compose.onNodeWithTag("filter_distance_3km 이내").performClick()
-        compose.onNodeWithTag("filter_apply").performClick()
-        compose.onNodeWithTag("place_filter_sheet").assertDoesNotExist()
-        compose.onNodeWithTag("place_filter_date").performClick()
-        compose.onNodeWithTag("filter_region_경기").assertIsSelected()
-        compose.onNodeWithTag("filter_distance_3km 이내").assertIsSelected()
+    @Composable private fun Harness() {
+        var open by rememberSaveable { mutableStateOf(true) }
+        var applied by rememberSaveable(stateSaver = PlaceFiltersSaver) { mutableStateOf(PlaceFilters()) }
+        TextButton(onClick = { open = true }) { Text("필터 열기") }
+        if (open) PlaceFilterSheet(applied, { open = false }) { applied = it; open = false }
+    }
+    @Test fun multiRegionApplyDismissAndResetAreTransactional() {
+        compose.setContent { KiriTheme { Harness() } }
+        compose.onNodeWithTag("filter_region_서울").performClick()
         compose.onNodeWithTag("filter_region_인천").performClick()
-        compose.onNodeWithTag("place_filter_close").performClick()
-        compose.onNodeWithTag("place_filter_region").performClick()
-        compose.onNodeWithTag("filter_region_경기").assertIsSelected()
-        compose.onNodeWithTag("filter_reset").performClick()
-        compose.onNodeWithTag("filter_region_서울특별시").assertIsSelected()
-        compose.onNodeWithTag("filter_distance_1km 이내").assertIsSelected()
         compose.onNodeWithTag("filter_apply").performClick()
-        compose.onNodeWithTag("place_filter_region").performClick()
-        compose.onNodeWithTag("filter_region_서울특별시").assertIsSelected()
-        capture("place-filter-sheet")
-        compose.onNodeWithTag("filter_price_min").performScrollTo().assertTextEquals("0원")
-        compose.onNodeWithTag("filter_price_max").assertTextEquals("1,000,000원")
-        capture("place-filter-price")
-    }
-
-    @Test fun datePickerCancelsWithoutChangingTheDateAndPriceRangeCanBeAdjusted() {
-        compose.setContent { KiriTheme { PlaceScreen(PlaceUiState(loading = false)) {} } }
-        compose.onNodeWithTag("place_filter_date").performClick()
-        compose.onNodeWithTag("filter_date").performScrollTo().performClick()
-        compose.onNodeWithText("취소").performClick()
-        compose.onNodeWithText("날짜·시간 선택").assertIsDisplayed()
-        compose.onNodeWithTag("filter_price").performScrollTo().performTouchInput {
-            swipe(centerLeft + androidx.compose.ui.geometry.Offset(10f, 0f), center)
-        }
-        compose.onNodeWithTag("filter_price_min").assert(!hasText("0원"))
-        compose.onNodeWithTag("filter_apply").assertIsDisplayed()
-        capture("place-filter-selected-price")
-    }
-
-    @Test fun appliedAndOpenDraftSelectionsSurviveStateRestoration() {
-        val restoration = StateRestorationTester(compose)
-        restoration.setContent { KiriTheme { PlaceScreen(PlaceUiState(loading = false)) {} } }
-        compose.onNodeWithTag("place_filter_region").performClick()
+        compose.onNodeWithText("필터 열기").performClick()
+        compose.onNodeWithTag("filter_region_서울").assertIsSelected()
+        compose.onNodeWithTag("filter_region_인천").assertIsSelected()
         compose.onNodeWithTag("filter_region_경기").performClick()
-        compose.onNodeWithTag("filter_apply").performClick()
-        restoration.emulateSavedInstanceStateRestore()
-        compose.onNodeWithTag("place_filter_region").performClick()
-        compose.onNodeWithTag("filter_region_경기").assertIsSelected()
-        compose.onNodeWithTag("filter_distance_10km 이내").performClick()
-        restoration.emulateSavedInstanceStateRestore()
-        compose.onNodeWithTag("filter_distance_10km 이내").assertIsSelected()
         compose.onNodeWithTag("place_filter_close").performClick()
-        compose.onNodeWithTag("place_filter_region").performClick()
-        compose.onNodeWithTag("filter_distance_1km 이내").assertIsSelected()
+        compose.onNodeWithText("필터 열기").performClick()
+        compose.onNodeWithTag("filter_region_경기").assertIsNotSelected()
+        compose.onNodeWithTag("filter_reset").performClick()
+        compose.onNodeWithTag("filter_region_전체").assertIsSelected()
     }
-
-    private fun capture(name: String) {
-        compose.waitForIdle()
-        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
-        val root = automation.rootInActiveWindow
-        // Android 16 warns about the library test APK's target SDK. It is not part of the UI.
-        if (root?.packageName?.toString() == "android") {
-            root.findAccessibilityNodeInfosByText("OK").forEach { it.performAction(AccessibilityNodeInfo.ACTION_CLICK) }
-            Thread.sleep(300)
-            compose.waitForIdle()
-        }
-        val directory = InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")?.let(::File)
-            ?: InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null)!!
-        directory.mkdirs()
-        File(directory, "$name.png").outputStream().use {
-            // Dialog bounds are offset from the activity; capture the actual display for visual QA.
-            automation.takeScreenshot().compress(Bitmap.CompressFormat.PNG, 100, it)
-        }
+    @Test fun datePeopleAndTimeApplyTogetherAndCanBeCleared() {
+        compose.setContent { KiriTheme { Harness() } }
+        compose.onNodeWithTag("filter_date").performClick()
+        val date = LocalDate.now().withDayOfMonth(15)
+        compose.onNodeWithTag("filter_day_$date").performClick()
+        compose.onNodeWithTag("filter_time_570").performClick()
+        compose.onNodeWithTag("filter_people_3").performScrollTo().performClick()
+        compose.onNodeWithTag("filter_apply").performClick()
+        compose.onNodeWithTag("filter_date_clear").assertIsDisplayed().performClick()
+        compose.onNodeWithText("날짜·인원·시간").assertIsDisplayed()
+        compose.onNodeWithTag("filter_date").performClick()
+        compose.onNodeWithContentDescription("뒤로").performClick()
+        compose.onNodeWithText("날짜·인원·시간").assertIsDisplayed()
+    }
+    @Test fun openDraftSurvivesRecreationAndSectionAnchorsReachPrice() {
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent { KiriTheme { Harness() } }
+        compose.onNodeWithTag("filter_region_경기").performClick()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("filter_region_경기").assertIsSelected()
+        compose.onNodeWithTag("filter_section_3").performClick()
+        compose.onNodeWithTag("filter_price_min").assertIsDisplayed()
+        compose.onNodeWithTag("filter_price_max").assertTextEquals("1,000,000원")
+        compose.onNodeWithTag("filter_apply").assertIsDisplayed()
     }
 }
