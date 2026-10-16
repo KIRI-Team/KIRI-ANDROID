@@ -36,7 +36,7 @@ class FakeMissionRepository : MissionRepository {
         const val RIVER_MISSION_ID = "place-river"
         fun demoCatalog(): List<PlaceMission> = listOf(
             PlaceMission("place-market", "광장시장에서 시장음식 먹어보기", "광장시장", "종로구", PlaceCategory.FOOD, "4.6", listOf("대중교통 편리", "혼잡도 높음"), pick = true),
-            PlaceMission(RIVER_MISSION_ID, "한강공원에서 산책하기", "여의도 한강 공원", "영등포구", PlaceCategory.OUTDOOR, "4.6", listOf("좌석 충분", "계단 없음")),
+            PlaceMission(RIVER_MISSION_ID, "한강 뚜벅뚜벅 축제 가보기", "여의도 한강 공원", "영등포구", PlaceCategory.OUTDOOR, "4.6", listOf("좌석 충분", "계단 없음")),
             PlaceMission("place-culture", "미술관에서 전시 관람하기", "미술관", "종로구", PlaceCategory.CULTURE, "4.6", listOf("실내 활동", "대중교통 편리")),
             PlaceMission("place-popup", "팝업 행사 방문하기", "팝업 공간", "성동구", PlaceCategory.POPUP, "4.6", listOf("대중교통 편리", "혼잡도 높음")),
             PlaceMission("place-show", "가족과 공연 관람하기", "공연장", "중구", PlaceCategory.SHOW, "4.6", listOf("실내 활동", "좌석 충분")),
