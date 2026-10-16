@@ -1,0 +1,4 @@
+<!-- Figma 달력 이전 달 버튼 State-layer (8286:68261). 다음 달 버튼은 좌우를 뒤집어 쓴다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="28dp" android:height="28dp" android:viewportWidth="28" android:viewportHeight="28">
+    <path android:strokeColor="#F7F7F7" android:strokeWidth="1" android:strokeLineCap="round" android:pathData="M17.1111 7.77778L10.8889 14.1518L17.1111 20.2222" />
+</vector>

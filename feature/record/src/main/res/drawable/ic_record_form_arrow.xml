@@ -1,0 +1,4 @@
+<!-- Figma KIRI/Form Select Row 의 Icon / Back (9244:10853). 좌우를 뒤집어 오른쪽 화살표로 쓴다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:strokeColor="#595959" android:strokeWidth="2" android:strokeLineCap="round" android:pathData="M16 4L8 12.1951L16 20" />
+</vector>
