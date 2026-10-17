@@ -38,11 +38,13 @@ fun KiriAppBar(
     onBack: (() -> Unit)? = null,
     backEnabled: Boolean = true,
     trailingIconSlot: (@Composable () -> Unit)? = null,
+    leadingIconSlot: (@Composable () -> Unit)? = null,
 ) {
     Box(modifier.fillMaxWidth().height(62.dp)) {
         Text(title, Modifier.align(Alignment.Center).padding(horizontal = 52.dp), color = KiriColor.Text.Strong, style = KiriDetailTypography.Title)
         if (onBack != null) {
-            KiriLeadingIconSlot(onBack, Modifier.align(Alignment.CenterStart), backEnabled)
+            if (leadingIconSlot != null) Box(Modifier.align(Alignment.CenterStart).size(52.dp), contentAlignment = Alignment.Center) { leadingIconSlot() }
+            else KiriLeadingIconSlot(onBack, Modifier.align(Alignment.CenterStart), backEnabled)
         }
         if (trailingIconSlot != null) {
             Box(Modifier.align(Alignment.CenterEnd).size(52.dp), contentAlignment = Alignment.Center) {
@@ -67,9 +69,9 @@ fun KiriDetailAppBar(title: String, onBack: () -> Unit, modifier: Modifier = Mod
 
 /** Figma 8431:8357 / 8448:17924. Keep the supplied colors even for a deferred action. */
 @Composable
-fun KiriDetailButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, accent: Boolean = false, enabled: Boolean = true, custom: Boolean = false) {
-    val background = if (accent) KiriColor.Primary.Default else if (custom) KiriColor.Bg.Secondary else KiriColor.Bg.Tertiary
-    val foreground = if (accent) KiriColor.Text.Inverse else KiriColor.Text.Strong
+fun KiriDetailButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, accent: Boolean = false, enabled: Boolean = true, custom: Boolean = false, softAccent: Boolean = false) {
+    val background = if (softAccent) KiriColor.Primary.Default.copy(alpha = .2f) else if (accent) KiriColor.Primary.Default else if (custom) KiriColor.Bg.Secondary else KiriColor.Bg.Tertiary
+    val foreground = if (softAccent) KiriColor.Text.Accent else if (accent) KiriColor.Text.Inverse else KiriColor.Text.Strong
     Button(
         onClick = onClick, enabled = enabled,
         modifier = modifier.fillMaxWidth().heightIn(min = if (custom) 58.dp else 48.dp),
@@ -94,7 +96,7 @@ fun KiriConditionCard(label: String, selected: Boolean, onClick: () -> Unit, mod
 }
 
 @Composable
-fun KiriDetailSuggestionCard(title: String, description: String, modifier: Modifier = Modifier, item: Boolean = false) {
+fun KiriDetailSuggestionCard(title: String, description: String, modifier: Modifier = Modifier, item: Boolean = false, leadingIcon: (@Composable () -> Unit)? = null) {
     KiriContentCard(modifier) {
         Column(
             Modifier.heightIn(min = 110.dp)
@@ -104,7 +106,7 @@ fun KiriDetailSuggestionCard(title: String, description: String, modifier: Modif
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
-                    Image(painterResource(R.drawable.kiri_umbrella_active), null, Modifier.size(width = 19.dp, height = 21.dp))
+                    if (leadingIcon != null) leadingIcon() else Image(painterResource(R.drawable.kiri_umbrella_active), null, Modifier.size(width = 19.dp, height = 21.dp))
                 }
                 Text(title, color = KiriColor.Text.Strong, style = if (item) KiriDetailTypography.Title.copy(lineHeight = 22.sp) else KiriDetailTypography.Title)
             }

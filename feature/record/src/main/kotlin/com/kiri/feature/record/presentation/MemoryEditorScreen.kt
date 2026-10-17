@@ -30,7 +30,7 @@ import com.kiri.feature.detail.presentation.MemoryPhoto
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.*
 
-/** UI-only activity review flow. No record repository or upload is performed. */
+/** Shared review editor. Its caller owns draft persistence, validation and saving. */
 @Composable
 fun MemoryEditorScreen(
     draft: MemoryDraft,
@@ -38,22 +38,27 @@ fun MemoryEditorScreen(
     onChange: (MemoryDraft) -> Unit,
     onBack: () -> Unit,
     onSubmit: () -> Unit,
+    editing: Boolean = false,
+    saving: Boolean = false,
+    error: String? = null,
 ) {
+    val canSubmit = !saving && (draft.canSubmit || (editing && draft.rating in 1..5 && draft.text.isNotBlank() && draft.text.length <= 500 && draft.repeatActivity != null))
     val resolver = LocalContext.current.contentResolver
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         uris.forEach { uri -> runCatching { resolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } }
         if (uris.isNotEmpty()) onChange(draft.copy(photos = (draft.photos + uris.map { it.toString() }).distinct()))
     }
-    BackHandler(onBack = onBack)
+    BackHandler { if (!saving) onBack() }
     Column(Modifier.fillMaxSize().background(KiriColor.Bg.Base).imePadding().testTag("memory_editor")) {
         Row(Modifier.fillMaxWidth().height(62.dp), verticalAlignment = Alignment.CenterVertically) {
-            KiriLeadingIconSlot(onBack)
+            KiriLeadingIconSlot(onBack, enabled = !saving)
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = onSubmit, enabled = draft.canSubmit, modifier = Modifier.padding(end = 12.dp).testTag("submit_memory")) {
-                Text("등록하기", color = if (draft.canSubmit) KiriColor.Text.Strong else KiriColor.Text.Disabled, style = KiriDetailTypography.Title)
+            TextButton(onClick = onSubmit, enabled = canSubmit, modifier = Modifier.padding(end = 12.dp).testTag("submit_memory")) {
+                Text(if (saving) "저장 중…" else if (editing) "저장하기" else "등록하기", color = if (canSubmit) KiriColor.Text.Strong else KiriColor.Text.Disabled, style = KiriDetailTypography.Title)
             }
         }
         Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 18.dp)) {
+            error?.let { Text(it, Modifier.padding(vertical = 12.dp), color = KiriColor.Status.Error, style = KiriDetailTypography.Small) }
             Spacer(Modifier.height(18.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Image(painterResource(DetailR.drawable.memory_author), null, Modifier.size(width = 32.1994.dp, height = 29.5167.dp))
@@ -111,7 +116,7 @@ fun MemoryEditorScreen(
                     }
                 }
             }
-            Spacer(Modifier.height(48.dp))
+            Spacer(Modifier.height(if (editing) 140.dp else 48.dp))
         }
     }
 }
