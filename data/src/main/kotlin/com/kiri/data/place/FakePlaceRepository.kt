@@ -24,7 +24,7 @@ class FakePlaceRepository(
     override suspend fun load(query: PlaceQuery): PlacePage = mutex.withLock {
         val keyword = query.keyword.trim()
         val catalog = missions ?: missionRepository.catalog()
-        val filtered = catalog.filter { (query.category == null || it.category == query.category) &&
+        val filtered = catalog.filter { query.filters.matches(it) && (query.category == null || it.category == query.category) &&
             (keyword.isEmpty() || listOf(it.title, it.place, it.region).any { value -> value.contains(keyword, true) }) }
             .let { if (query.category == null) it.sortedByDescending { mission -> mission.pick } else it }
         val start = query.cursor?.toIntOrNull() ?: 0

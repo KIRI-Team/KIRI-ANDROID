@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -61,6 +63,8 @@ fun KiriButton(
     enabled: Boolean = true,
     text: String = "다음",
     tone: KiriButtonTone = KiriButtonTone.Accent,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    testTag: String = "kiri_button",
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -89,14 +93,17 @@ fun KiriButton(
                 onClick = onClick,
             )
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .testTag("kiri_button"),
+            .testTag(testTag),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = text,
-            textAlign = TextAlign.Center,
-            style = textStyle,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            leadingIcon?.invoke()
+            Text(
+                text = text,
+                textAlign = TextAlign.Center,
+                style = textStyle,
+            )
+        }
     }
 }
 

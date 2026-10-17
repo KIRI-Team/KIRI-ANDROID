@@ -3,6 +3,7 @@ package com.kiri.feature.place
 import com.kiri.feature.place.model.*
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.kiri.domain.place.*
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -11,8 +12,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
 @HiltViewModel
-class PlaceViewModel @Inject constructor(private val repository: PlaceRepository) : ViewModel() {
-    private val _uiState = MutableStateFlow(PlaceUiState())
+class PlaceViewModel @Inject constructor(private val repository: PlaceRepository, private val savedState: SavedStateHandle = SavedStateHandle()) : ViewModel() {
+    private val _uiState = MutableStateFlow(PlaceUiState(query = PlaceQuery(filters = restoreFilters())))
     val uiState = _uiState.asStateFlow()
     private val _effect = kotlinx.coroutines.channels.Channel<PlaceUiEffect>(kotlinx.coroutines.channels.Channel.BUFFERED)
     val effect = _effect.receiveAsFlow()
@@ -21,6 +22,14 @@ class PlaceViewModel @Inject constructor(private val repository: PlaceRepository
     init { reload() }
     fun onEvent(event: PlaceUiEvent) {
         when (event) {
+            is PlaceUiEvent.FiltersApplied -> {
+                savedState["filter_regions"] = ArrayList(event.filters.regions)
+                savedState["filter_values"] = longArrayOf(event.filters.distanceKm?.toLong() ?: -1L,
+                    event.filters.dateEpochDay ?: Long.MIN_VALUE, event.filters.minutesOfDay.toLong(),
+                    event.filters.people.toLong(), event.filters.minPrice.toLong(), event.filters.maxPrice.toLong())
+                _uiState.update { it.copy(query = it.query.copy(filters = event.filters, cursor = null)) }
+                reload()
+            }
             is PlaceUiEvent.MissionClicked -> _effect.trySend(PlaceUiEffect.OpenMission(event.missionId))
             is PlaceUiEvent.SearchChanged -> search(event.keyword)
             is PlaceUiEvent.CategorySelected -> category(event.category)
@@ -34,6 +43,12 @@ class PlaceViewModel @Inject constructor(private val repository: PlaceRepository
             PlaceUiEvent.SavedBackClicked -> hideSaved()
             PlaceUiEvent.BackClicked -> _effect.trySend(PlaceUiEffect.NavigateBack)
         }
+    }
+    private fun restoreFilters(): PlaceFilters {
+        val values = savedState.get<LongArray>("filter_values") ?: return PlaceFilters()
+        return runCatching { PlaceFilters(savedState.get<ArrayList<String>>("filter_regions")?.toSet().orEmpty(),
+            values[0].toInt().takeIf { it > 0 }, values[1].takeIf { it != Long.MIN_VALUE },
+            values[2].toInt(), values[3].toInt(), values[4].toInt(), values[5].toInt()) }.getOrDefault(PlaceFilters())
     }
     private fun search(keyword: String) { _uiState.update { it.copy(query = it.query.copy(keyword = keyword, cursor = null)) }; reload(debounce = true) }
     private fun category(category: PlaceCategory?) { _uiState.update { it.copy(query = it.query.copy(category = category, cursor = null)) }; reload() }

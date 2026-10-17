@@ -6,6 +6,20 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class FakePlaceRepositoryTest {
+    @Test fun detailedFiltersCombineBeforePagingAndUnknownFactsDoNotMatch() = runTest {
+        val repo = FakePlaceRepository(pageSize = 1)
+        val day = java.time.LocalDate.of(2026, 10, 16).toEpochDay()
+        val filters = PlaceFilters(setOf("서울", "인천"), 3, day, 570, 3, 5000, 15000)
+        val page = repo.load(PlaceQuery(filters = filters))
+        assertEquals(3, page.totalCount)
+        assertEquals(1, page.items.size)
+        assertEquals(0, repo.load(PlaceQuery(filters = filters.copy(people = 7))).totalCount)
+        assertEquals(0, repo.load(PlaceQuery(filters = filters.copy(regions = setOf("부산")))).totalCount)
+        assertEquals(0, repo.load(PlaceQuery(filters = filters.copy(minutesOfDay = 60))).totalCount)
+        val unknown = PlaceMission("unknown", "활동", "장소", "서울", PlaceCategory.FOOD)
+        assertFalse(filters.matches(unknown))
+        assertTrue(PlaceFilters().matches(unknown))
+    }
     @Test fun searchCategoryAndPagingReturnMatchingCount() = runTest {
         val repo = FakePlaceRepository(pageSize = 2)
         val first = repo.load(PlaceQuery())

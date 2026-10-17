@@ -40,7 +40,12 @@ class FakeMissionRepository : MissionRepository {
             PlaceMission("place-popup", "팝업 행사 방문하기", "팝업 공간", "성동구", PlaceCategory.POPUP, "4.6", listOf("대중교통 편리", "혼잡도 높음")),
             PlaceMission("place-show", "가족과 공연 관람하기", "공연장", "중구", PlaceCategory.SHOW, "4.6", listOf("실내 활동", "좌석 충분")),
             PlaceMission("place-experience", "가족과 공예 체험하기", "공방", "마포구", PlaceCategory.EXPERIENCE, "4.6", listOf("실내 활동", "가족과 함께")),
-        )
+        ).mapIndexed { index, mission ->
+            // Search examples only: these are fixture distances, prices and availability, not live booking facts.
+            mission.copy(searchMetadata = PlaceSearchMetadata("서울", (index + 1) * .5,
+                index * 5000, 6, java.time.LocalDate.of(2026, 1, 1).toEpochDay(),
+                java.time.LocalDate.of(2027, 12, 31).toEpochDay(), 540, 1260))
+        }
     }
 }
 
