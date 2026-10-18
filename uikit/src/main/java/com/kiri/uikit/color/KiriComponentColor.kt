@@ -34,7 +34,7 @@ object KiriComponentColor {
     }
 
     object Card {
-        val BgDefault = P.Neutral700
+        val BgDefault = P.Neutral900
         val BgPressed = P.Neutral800
         val BgSelected = P.AlphaGreen16
         val BgDisabled = P.Neutral900
