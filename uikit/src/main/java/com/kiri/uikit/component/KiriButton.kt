@@ -70,13 +70,7 @@ fun KiriButton(
     val pressed by interactionSource.collectIsPressedAsState()
     val (containerColor, contentColor) = kiriButtonColors(tone, enabled, pressed)
     // KIRI/Button 컴포넌트는 톤과 관계없이 같은 글자 스타일(Title/Medium)을 쓴다
-    val textStyle = TextStyle(
-        color = contentColor,
-        fontSize = 16.sp,
-        fontWeight = FontWeight.Medium,
-        lineHeight = 24.sp,
-        letterSpacing = (-0.04).em,
-    )
+    val textStyle = com.kiri.uikit.KiriTypography.TitleMedium.copy(color = contentColor)
 
     Box(
         modifier = modifier
