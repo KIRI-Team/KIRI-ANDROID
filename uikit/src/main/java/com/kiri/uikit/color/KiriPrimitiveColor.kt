@@ -6,17 +6,17 @@ import androidx.compose.ui.graphics.Color
 // 화면에서는 직접 쓰지 않고 KiriColor(시맨틱), KiriComponentColor(컴포넌트)를 통해 사용한다
 object KiriPrimitiveColor {
     val Neutral0 = Color(0xFFFFFFFF)
-    val Neutral50 = Color(0xFFF7F7F7)
+    val Neutral50 = Color(0xFFF7F7F6)
     val Neutral100 = Color(0xFFEEEEEE)
-    val Neutral200 = Color(0xFFD9D9D9)
+    val Neutral200 = Color(0xFFD9D9D8)
     val Neutral300 = Color(0xFFB3B3B3)
     val Neutral400 = Color(0xFF8C8C8C)
-    val Neutral500 = Color(0xFF737373)
+    val Neutral500 = Color(0xFF737473)
     val Neutral600 = Color(0xFF595959)
-    val Neutral700 = Color(0xFF404040)
-    val Neutral800 = Color(0xFF333333)
-    val Neutral850 = Color(0xFF2B2B2B)
-    val Neutral900 = Color(0xFF242424)
+    val Neutral700 = Color(0xFF404140)
+    val Neutral800 = Color(0xFF343433)
+    val Neutral850 = Color(0xFF2C2C2B)
+    val Neutral900 = Color(0xFF252524)
     val Neutral950 = Color(0xFF1A1A1A)
     val Neutral1000 = Color(0xFF000000)
 
@@ -42,7 +42,7 @@ object KiriPrimitiveColor {
 
     // 투명도 값은 Figma 변수 값을 그대로 따른다 (이름의 숫자와 다를 수 있음)
     val AlphaBlack60 = Color(0xB2000000)
-    val AlphaGreen10 = Color(0x1A9BEA51)
+    val AlphaGreen10 = Color(0x339BEA51)
     val AlphaGreen16 = Color(0x339BEA51)
     val AlphaTransparent = Color(0x1A000000)
     val AlphaWhite05 = Color(0x1AFFFFFF)

@@ -11,6 +11,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import com.kiri.uikit.KiriTheme
 import com.kiri.domain.home.HomeRecommendation
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -18,6 +20,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipe
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -45,7 +49,11 @@ class HomeScreenTest {
         compose.onNodeWithText("오늘 나의 질문카드").assertIsDisplayed()
         compose.onNodeWithText("오늘 가족과 함께하고 싶은 일은 무엇인가요?", substring = true).assertIsDisplayed()
         capture("home-avatars")
-        compose.onNodeWithTag("home_question_card").performScrollTo().performTouchInput { swipeLeft() }
+        // 화면 오른쪽 끝에서 시작하면 Android 16의 시스템 뒤로가기 제스처가 개입한다.
+        compose.onNodeWithTag("home_question_card").performScrollTo().performTouchInput {
+            swipe(start = center + Offset(40f, 0f), end = center - Offset(40f, 0f))
+        }
+        capture("home-after-horizontal-swipe")
         compose.onNodeWithTag("home_question_card").assertIsDisplayed()
         compose.onNodeWithContentDescription("미션 카드로 전환").performClick()
         compose.onNodeWithText("이번주 미션이에요!").assertIsDisplayed()
@@ -82,6 +90,23 @@ class HomeScreenTest {
         compose.waitForIdle()
         compose.onNodeWithText("엄마의 가장 좋아하는 음식은", substring = true).assertIsDisplayed()
         compose.onNodeWithText("같이 산책하기").assertIsDisplayed()
+    }
+
+    @Test
+    fun inlineInviteButtonKeepsFigmaHeightAndClick() {
+        var clicks = 0
+        compose.setContent {
+            KiriTheme {
+                com.kiri.uikit.component.KiriButton(
+                    onClick = { clicks++ }, text = "가족 초대하기",
+                    tone = com.kiri.uikit.component.KiriButtonTone.Neutral,
+                    layout = com.kiri.uikit.component.KiriButtonLayout.Inline,
+                    testTag = "home_inline_invite",
+                )
+            }
+        }
+        compose.onNodeWithTag("home_inline_invite").assertHeightIsEqualTo(30.dp).performClick()
+        compose.runOnIdle { assertEquals(1, clicks) }
     }
 
     private class ScreenRepository : HomeRepository {

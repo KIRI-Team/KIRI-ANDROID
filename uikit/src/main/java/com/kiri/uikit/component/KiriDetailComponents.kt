@@ -21,12 +21,12 @@ import androidx.compose.ui.unit.sp
 import com.kiri.uikit.R
 import com.kiri.uikit.color.KiriColor
 
-val KiriPretendard = FontFamily(Font(R.font.pretendard_regular), Font(R.font.pretendard_medium, FontWeight.Medium))
+val KiriPretendard = com.kiri.uikit.KiriFontFamily
 
 object KiriDetailTypography {
-    val Body = TextStyle(fontFamily = KiriPretendard, fontSize = 16.sp, lineHeight = 26.sp, letterSpacing = (-0.64).sp)
-    val Small = TextStyle(fontFamily = KiriPretendard, fontSize = 14.sp, lineHeight = 21.sp, letterSpacing = (-0.56).sp)
-    val Title = TextStyle(fontFamily = KiriPretendard, fontWeight = FontWeight.Medium, fontSize = 18.sp, lineHeight = 27.sp, letterSpacing = (-0.72).sp)
+    val Body = com.kiri.uikit.KiriTypography.BodyLarge
+    val Small = com.kiri.uikit.KiriTypography.BodyMedium
+    val Title = com.kiri.uikit.KiriTypography.TitleLarge
     val Display = TextStyle(fontFamily = KiriPretendard, fontWeight = FontWeight.Medium, fontSize = 28.sp, lineHeight = 40.sp, letterSpacing = (-0.56).sp)
 }
 
@@ -41,7 +41,7 @@ fun KiriAppBar(
     leadingIconSlot: (@Composable () -> Unit)? = null,
 ) {
     Box(modifier.fillMaxWidth().height(62.dp)) {
-        Text(title, Modifier.align(Alignment.Center).padding(horizontal = 52.dp), color = KiriColor.Text.Strong, style = KiriDetailTypography.Title)
+        Text(title, Modifier.align(Alignment.Center).padding(horizontal = 52.dp), color = KiriColor.Text.Strong, style = com.kiri.uikit.KiriTypography.AppBar)
         if (onBack != null) {
             if (leadingIconSlot != null) Box(Modifier.align(Alignment.CenterStart).size(52.dp), contentAlignment = Alignment.Center) { leadingIconSlot() }
             else KiriLeadingIconSlot(onBack, Modifier.align(Alignment.CenterStart), backEnabled)

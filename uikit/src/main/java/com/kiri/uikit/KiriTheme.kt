@@ -19,5 +19,5 @@ private val KiriDarkColors = darkColorScheme(
 
 @Composable
 fun KiriTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = KiriDarkColors, content = content)
+    MaterialTheme(colorScheme = KiriDarkColors, typography = KiriTypography.Material, content = content)
 }
