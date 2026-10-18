@@ -124,7 +124,7 @@ fun KiriMemberAvatar(answered: Boolean, role: String? = null, showAddBadge: Bool
     Box(
         modifier
             .size(44.dp)
-            .border(1.dp, if (answered) KiriColor.Text.Accent else KiriColor.Border.Default, CircleShape)
+            .then(if (showAddBadge && !answered) Modifier else Modifier.border(1.dp, if (answered) KiriColor.Text.Accent else KiriColor.Border.Default, CircleShape))
             .semantics { stateDescription = if (answered) "답변 완료" else "미답변" },
         contentAlignment = Alignment.Center,
     ) {
@@ -135,6 +135,7 @@ fun KiriMemberAvatar(answered: Boolean, role: String? = null, showAddBadge: Bool
             colorFilter = if (answered) null else ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }),
             alpha = if (answered) 1f else 0.6f,
         )
+        if (showAddBadge && !answered) Image(painterResource(R.drawable.kiri_my_answer_ring), null, Modifier.size(44.dp))
     }
 }
 
@@ -182,13 +183,13 @@ fun KiriTooltip(
     ) {
         Surface(
             modifier = Modifier.width(width).testTag("member_answer_tooltip"),
-            color = KiriColor.Bg.Elevated,
+            color = KiriColor.Bg.Secondary,
             shape = shape,
         ) {
             Row(Modifier.padding(start = 21.dp, top = if (placement.below) 28.dp else 18.dp, end = 12.dp, bottom = if (placement.below) 24.dp else 34.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(title, color = KiriColor.Text.Secondary, style = KiriDetailTypography.Title, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(answer, color = if (actionEnabled) KiriColor.Text.Disabled else KiriColor.Text.Strong, style = KiriDetailTypography.Title.copy(fontSize = 20.sp, lineHeight = 28.sp), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(answer, color = if (actionEnabled) KiriColor.Text.Disabled else KiriColor.Text.Strong, style = com.kiri.uikit.KiriTypography.Value, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
                 Spacer(Modifier.width(12.dp))
                 Box(Modifier.width(1.dp).size(height = 50.dp, width = 1.dp).background(KiriColor.Border.Strong))
@@ -241,7 +242,7 @@ fun KiriMissionCard(
 ) {
     Box(
         modifier = modifier.fillMaxWidth().heightIn(min = 132.dp)
-            .background(KiriColor.Bg.Secondary, RoundedCornerShape(8.dp)),
+            .background(KiriColor.Bg.Primary, RoundedCornerShape(8.dp)),
     ) {
         when {
             unavailable || title == null -> Column(
@@ -309,7 +310,7 @@ fun KiriPlaceCard(
     modifier: Modifier = Modifier,
     detailStyle: Boolean = false,
 ) {
-    Card(modifier.width(251.dp).height(284.dp), colors = CardDefaults.cardColors(if (detailStyle) KiriColor.Bg.Elevated else KiriColor.Bg.Secondary), shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 16.dp, bottomEnd = 16.dp)) {
+    Card(modifier.width(251.dp).height(284.dp), colors = CardDefaults.cardColors(KiriColor.Bg.Primary), shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 16.dp, bottomEnd = 16.dp)) {
         Column {
             Image(
                 painter = painterResource(imageRes),
@@ -383,7 +384,7 @@ fun KiriAnswerPopup(onDismiss: () -> Unit) {
 
 @Composable
 fun KiriContentCard(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
-    Card(modifier, colors = CardDefaults.cardColors(KiriColor.Bg.Secondary), shape = RoundedCornerShape(8.dp)) { Box(content = content) }
+    Card(modifier, colors = CardDefaults.cardColors(KiriColor.Bg.Primary), shape = RoundedCornerShape(8.dp)) { Box(content = content) }
 }
 
 @Composable

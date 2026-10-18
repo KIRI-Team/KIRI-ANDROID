@@ -24,7 +24,7 @@ import com.kiri.uikit.component.KiriAnswerPopup
 import com.kiri.uikit.component.KiriAppBar
 
 internal val HomeBackground = KiriColor.Bg.Base
-internal val HomeCard = KiriColor.Bg.Secondary
+internal val HomeCard = KiriColor.Bg.Primary
 internal val HomeAccent = KiriColor.Primary.Default
 internal val HomeStrong = KiriColor.Text.Strong
 internal val HomeSecondary = KiriColor.Text.Secondary

@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -29,8 +31,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.kiri.uikit.color.KiriComponentColor
+import com.kiri.uikit.color.KiriColor
+import com.kiri.uikit.KiriTypography
 
 enum class KiriButtonTone { Accent, Neutral }
+enum class KiriButtonLayout { Full, Inline }
 
 internal data class KiriButtonColors(val container: Color, val content: Color)
 
@@ -65,17 +70,27 @@ fun KiriButton(
     tone: KiriButtonTone = KiriButtonTone.Accent,
     leadingIcon: (@Composable () -> Unit)? = null,
     testTag: String = "kiri_button",
+    layout: KiriButtonLayout = KiriButtonLayout.Full,
+    trailingIcon: (@Composable () -> Unit)? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val (containerColor, contentColor) = kiriButtonColors(tone, enabled, pressed)
+    val (containerColor, contentColor) = if (enabled && !pressed && tone == KiriButtonTone.Neutral) {
+        when (layout) {
+            KiriButtonLayout.Inline -> KiriButtonColors(KiriColor.Bg.Primary, KiriColor.Text.Tertiary)
+            KiriButtonLayout.Full -> kiriButtonColors(tone, enabled, pressed)
+        }
+    } else kiriButtonColors(tone, enabled, pressed)
     // KIRI/Button 컴포넌트는 톤과 관계없이 같은 글자 스타일(Title/Medium)을 쓴다
-    val textStyle = com.kiri.uikit.KiriTypography.TitleMedium.copy(color = contentColor)
+    val textStyle = when (layout) {
+        KiriButtonLayout.Full -> KiriTypography.TitleMedium
+        KiriButtonLayout.Inline -> KiriTypography.BodySmall
+    }.copy(color = contentColor)
 
     Box(
         modifier = modifier
-            .fillMaxWidth()
-            .height(54.dp)
+            .then(if (layout == KiriButtonLayout.Inline) Modifier else Modifier.fillMaxWidth())
+            .height(when (layout) { KiriButtonLayout.Full -> 54.dp; KiriButtonLayout.Inline -> 30.dp })
             .clip(RoundedCornerShape(8.dp))
             .background(containerColor)
             // 눌림 피드백은 Pressed 색상으로 표현해서 기본 리플은 끈다
@@ -86,17 +101,20 @@ fun KiriButton(
                 role = Role.Button,
                 onClick = onClick,
             )
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = when (layout) { KiriButtonLayout.Inline -> 12.dp; else -> 16.dp })
             .testTag(testTag),
         contentAlignment = Alignment.Center,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        CompositionLocalProvider(LocalContentColor provides contentColor) {
+          Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (layout == KiriButtonLayout.Inline) 2.dp else 8.dp)) {
             leadingIcon?.invoke()
             Text(
                 text = text,
                 textAlign = TextAlign.Center,
                 style = textStyle,
             )
+            trailingIcon?.invoke()
+          }
         }
     }
 }
