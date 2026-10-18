@@ -22,7 +22,7 @@ class PlaceMissionNavigationTest {
         compose.onNodeWithTag("place_card_place-river").performScrollTo().performClick()
         compose.waitUntil(10_000) { compose.onAllNodesWithTag("preview_activity_tab").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("mission_preview_screen").assertIsDisplayed()
-        compose.onNodeWithText("한강공원에서 산책하기").assertIsDisplayed()
+        compose.onNodeWithText("한강 뚜벅뚜벅 축제 가보기").assertIsDisplayed()
         compose.onNodeWithTag("preview_activity_tab").assertIsSelected()
         compose.onNodeWithTag("preview_review_tab").performScrollTo().performClick()
         compose.onNodeWithTag("mission_review_river-review-0").assertIsDisplayed()

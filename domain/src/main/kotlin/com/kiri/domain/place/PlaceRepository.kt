@@ -5,8 +5,10 @@ enum class PlaceCategory(val label: String) {
 }
 data class PlaceMission(val id: String, val title: String, val place: String, val region: String,
     val category: PlaceCategory, val rating: String? = null, val tags: List<String> = emptyList(),
-    val pick: Boolean = false, val saved: Boolean = false)
-data class PlaceQuery(val keyword: String = "", val category: PlaceCategory? = null, val cursor: String? = null)
+    val pick: Boolean = false, val saved: Boolean = false,
+    val searchMetadata: PlaceSearchMetadata? = null)
+data class PlaceQuery(val keyword: String = "", val category: PlaceCategory? = null, val cursor: String? = null,
+    val filters: PlaceFilters = PlaceFilters())
 /** totalCount is supplied by the repository/server, not the loaded page size. */
 data class PlacePage(val items: List<PlaceMission>, val totalCount: Int, val nextCursor: String? = null)
 interface PlaceRepository {

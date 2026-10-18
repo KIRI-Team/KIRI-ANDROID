@@ -13,6 +13,18 @@ import org.junit.Assert.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlaceViewModelTest {
+    @Test fun applyingFiltersReloadsAndRestoresTheAppliedQuery() = runTest(dispatcher) {
+        val handle = androidx.lifecycle.SavedStateHandle()
+        val repo = TestRepository()
+        val vm = PlaceViewModel(repo, handle)
+        advanceUntilIdle()
+        val filters = PlaceFilters(setOf("서울", "인천"), 3, 20000, 570, 3, 1000, 5000)
+        vm.onEvent(PlaceUiEvent.FiltersApplied(filters)); advanceUntilIdle()
+        assertEquals(filters, repo.last.filters)
+        assertNull(repo.last.cursor)
+        val restored = PlaceViewModel(repo, handle); advanceUntilIdle()
+        assertEquals(filters, restored.uiState.value.query.filters)
+    }
     private val dispatcher = StandardTestDispatcher()
     @Before fun setup() { Dispatchers.setMain(dispatcher) }
     @After fun teardown() { Dispatchers.resetMain() }
