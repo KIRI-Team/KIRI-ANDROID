@@ -1,13 +1,34 @@
 package com.kiri.feature.record.presentation.sheet
 
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.YearMonth
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RecordCalendarTest {
+
+    @Test
+    fun `가장 이른 시각보다 앞선 날짜와 시간은 고를 수 없다`() {
+        val earliest = LocalDateTime.of(2026, 10, 18, 14, 10)
+        assertFalse(isSelectableDate(LocalDate.of(2026, 10, 17), earliest))
+        assertTrue(isSelectableDate(LocalDate.of(2026, 10, 18), earliest))
+        assertTrue(isSelectableDate(LocalDate.of(2026, 10, 19), earliest))
+
+        val today = LocalDate.of(2026, 10, 18)
+        assertFalse(isSelectableTime(today, LocalTime.of(14, 0), earliest))
+        assertTrue(isSelectableTime(today, LocalTime.of(14, 30), earliest))
+        // 다음 날이면 이른 시간도 고를 수 있다
+        assertTrue(isSelectableTime(today.plusDays(1), LocalTime.of(9, 0), earliest))
+        // 날짜를 아직 안 골랐거나 제한이 없으면 막지 않는다
+        assertTrue(isSelectableTime(null, LocalTime.of(9, 0), earliest))
+        assertTrue(isSelectableTime(today, LocalTime.of(9, 0), null))
+        assertTrue(isSelectableDate(LocalDate.of(2000, 1, 1), null))
+    }
 
     @Test
     fun `월요일 시작 달력에서 첫 주 앞 칸은 비우고 마지막 주는 다음 달 날짜로 채운다`() {

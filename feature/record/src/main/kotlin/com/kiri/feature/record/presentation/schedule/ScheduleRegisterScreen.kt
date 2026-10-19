@@ -54,6 +54,7 @@ import com.kiri.uikit.component.KiriDetailTypography
 import com.kiri.uikit.component.KiriPretendard
 import com.kiri.uikit.component.KiriTopBar
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 
 private enum class ScheduleRegisterSheet { Schedule, Member }
@@ -71,6 +72,7 @@ fun ScheduleRegisterScreen(
     onDraftChange: (ScheduleRegisterDraft) -> Unit,
     onBackClick: () -> Unit,
     onCreateInviteClick: () -> Unit,
+    earliest: LocalDateTime? = null,
 ) {
     var openSheet by rememberSaveable { mutableStateOf<ScheduleRegisterSheet?>(null) }
 
@@ -101,6 +103,7 @@ fun ScheduleRegisterScreen(
                     openSheet = null
                 },
                 onDismiss = { openSheet = null },
+                earliest = earliest,
             )
         }
         ScheduleRegisterSheet.Member -> {
@@ -198,7 +201,7 @@ private fun ScheduleRegisterHeader(subtitle: String, title: String, description:
             )
             Text(title, color = KiriColor.Text.Strong, style = HeadingLarge)
         }
-        Text(description, color = KiriColor.Text.Secondary, style = KiriDetailTypography.Small)
+        if (description.isNotBlank()) Text(description, color = KiriColor.Text.Secondary, style = KiriDetailTypography.Small)
     }
 }
 

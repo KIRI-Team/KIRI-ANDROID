@@ -31,6 +31,7 @@ fun RecordDetailRoute(viewModel: RecordDetailViewModel, onBack: () -> Unit, onCu
     } else {
         val date = state.entry?.date
         val bucket = state.entry?.kind == CalendarEntryKind.BUCKET
+        // TODO: 오늘 기준 통일 - 실제 RecordRepository 를 만들 때 기기 시계(LocalDate.now)와 저장소의 가족 날짜(family.date) 중 하나로 맞춘다
         val today = date == LocalDate.now(ZoneId.of("Asia/Seoul"))
         MissionDetailScreen(state.detail, viewModel::onDetailEvent, calendarHeader = CalendarDetailHeader(
             title = if (bucket) "버킷리스트 저장" else date?.let { "${it.monthValue}월 ${it.dayOfMonth}일" } ?: "기록 상세",

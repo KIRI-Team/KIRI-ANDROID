@@ -44,11 +44,13 @@ import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.color.KiriComponentColor
 import com.kiri.uikit.component.KiriPretendard
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
-// 일정 잡기에서 날짜와 시간을 고르는 시트 (Figma 8286:68225). 날짜와 시간을 모두 골라야 다음으로 넘어간다
+// 일정 잡기에서 날짜와 시간을 고르는 시트 (Figma 8286:68225). 날짜와 시간을 모두 골라야 다음으로 넘어간다.
+// earliest 를 주면 그보다 이른 날짜·시간은 흐리게 보이고 고를 수 없다
 @Composable
 fun RecordScheduleSheet(
     selectedDate: LocalDate?,
@@ -58,7 +60,8 @@ fun RecordScheduleSheet(
     onTimeSelect: (LocalTime) -> Unit,
     onNextClick: () -> Unit,
     onDismiss: () -> Unit,
-    initialMonth: YearMonth = selectedDate?.let(YearMonth::from) ?: YearMonth.now(),
+    earliest: LocalDateTime? = null,
+    initialMonth: YearMonth = selectedDate?.let(YearMonth::from) ?: earliest?.let(YearMonth::from) ?: YearMonth.now(),
 ) {
     var month by rememberSaveable { mutableStateOf(initialMonth) }
     RecordModalSheet(onDismiss = onDismiss, testTag = "record_schedule_sheet") {
@@ -71,6 +74,7 @@ fun RecordScheduleSheet(
             onDateSelect = onDateSelect,
             onTimeSelect = onTimeSelect,
             onNextClick = onNextClick,
+            earliest = earliest,
         )
     }
 }
@@ -85,7 +89,10 @@ internal fun RecordScheduleSheetContent(
     onDateSelect: (LocalDate) -> Unit,
     onTimeSelect: (LocalTime) -> Unit,
     onNextClick: () -> Unit,
+    earliest: LocalDateTime? = null,
 ) {
+    // 날짜를 바꿔 이미 고른 시간이 지난 시간이 되면 고르지 않은 것으로 본다
+    val timeAllowed = selectedTime != null && isSelectableTime(selectedDate, selectedTime, earliest)
     Column(Modifier.fillMaxWidth()) {
         Spacer(Modifier.height(31.dp))
         RecordSheetTitle("날짜선택")
@@ -96,7 +103,7 @@ internal fun RecordScheduleSheetContent(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             RecordMonthHeader(month, onMonthChange)
-            RecordCalendar(month, selectedDate, onDateSelect)
+            RecordCalendar(month, selectedDate, earliest, onDateSelect)
         }
         Spacer(Modifier.height(29.dp))
         RecordSheetTitle("시간 선택")
@@ -105,10 +112,17 @@ internal fun RecordScheduleSheetContent(
             contentPadding = PaddingValues(horizontal = 18.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            items(times) { time -> RecordTimeChip(time, selected = time == selectedTime, onClick = { onTimeSelect(time) }) }
+            items(times) { time ->
+                RecordTimeChip(
+                    time = time,
+                    selected = timeAllowed && time == selectedTime,
+                    enabled = isSelectableTime(selectedDate, time, earliest),
+                    onClick = { onTimeSelect(time) },
+                )
+            }
         }
         Spacer(Modifier.height(46.dp))
-        RecordSheetBottomAction("다음", onNextClick, enabled = selectedDate != null && selectedTime != null)
+        RecordSheetBottomAction("다음", onNextClick, enabled = selectedDate != null && timeAllowed)
     }
 }
 
@@ -140,7 +154,7 @@ private fun RecordMonthArrow(description: String, mirrored: Boolean, testTag: St
 }
 
 @Composable
-private fun RecordCalendar(month: YearMonth, selectedDate: LocalDate?, onDateSelect: (LocalDate) -> Unit) {
+private fun RecordCalendar(month: YearMonth, selectedDate: LocalDate?, earliest: LocalDateTime?, onDateSelect: (LocalDate) -> Unit) {
     val weeks = remember(month) { recordCalendarWeeks(month) }
     Column(Modifier.width(312.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(CellGap)) {
@@ -161,7 +175,12 @@ private fun RecordCalendar(month: YearMonth, selectedDate: LocalDate?, onDateSel
                         if (day == null) {
                             Spacer(Modifier.size(CellSize))
                         } else {
-                            RecordCalendarCell(day, selected = day.isInMonth && day.date == selectedDate, onClick = { onDateSelect(day.date) })
+                            RecordCalendarCell(
+                                day = day,
+                                selected = day.isInMonth && day.date == selectedDate,
+                                enabled = day.isInMonth && isSelectableDate(day.date, earliest),
+                                onClick = { onDateSelect(day.date) },
+                            )
                         }
                     }
                 }
@@ -170,10 +189,10 @@ private fun RecordCalendar(month: YearMonth, selectedDate: LocalDate?, onDateSel
     }
 }
 
-// 다음 달 날짜는 달력을 채우는 용도로만 보여주고 고를 수 없다
+// 다음 달 날짜는 달력을 채우는 용도로만 보여주고 고를 수 없다. 지난 날짜는 흐리게 보이고 고를 수 없다
 @Composable
-private fun RecordCalendarCell(day: RecordCalendarDay, selected: Boolean, onClick: () -> Unit) {
-    val selectable = if (day.isInMonth) {
+private fun RecordCalendarCell(day: RecordCalendarDay, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val selectable = if (enabled) {
         Modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
     } else {
         Modifier
@@ -188,7 +207,11 @@ private fun RecordCalendarCell(day: RecordCalendarDay, selected: Boolean, onClic
     ) {
         Text(
             text = day.date.dayOfMonth.toString(),
-            color = if (selected) KiriColor.Text.Accent else KiriColor.Text.Primary,
+            color = when {
+                selected -> KiriColor.Text.Accent
+                day.isInMonth && !enabled -> KiriColor.Text.Disabled
+                else -> KiriColor.Text.Primary
+            },
             textAlign = TextAlign.Center,
             style = TextStyle(fontFamily = KiriPretendard, fontWeight = FontWeight.Medium, fontSize = 16.sp, letterSpacing = (-0.64).sp),
         )
@@ -197,7 +220,7 @@ private fun RecordCalendarCell(day: RecordCalendarDay, selected: Boolean, onClic
 
 // KIRI/Time Select (8450:20628 / 8450:20629)
 @Composable
-private fun RecordTimeChip(time: LocalTime, selected: Boolean, onClick: () -> Unit) {
+private fun RecordTimeChip(time: LocalTime, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .width(64.dp)
@@ -205,14 +228,18 @@ private fun RecordTimeChip(time: LocalTime, selected: Boolean, onClick: () -> Un
                 if (selected) KiriComponentColor.Chip.BgSelected else KiriColor.Bg.Tertiary,
                 RoundedCornerShape(16.dp),
             )
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
             .padding(10.dp)
             .testTag("record_time_$time"),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = time.format(TimeFormat),
-            color = if (selected) KiriColor.Text.Accent else KiriColor.Text.Primary,
+            color = when {
+                selected -> KiriColor.Text.Accent
+                !enabled -> KiriColor.Text.Disabled
+                else -> KiriColor.Text.Primary
+            },
             style = TextStyle(fontFamily = KiriPretendard, fontSize = 16.sp, letterSpacing = (-0.48).sp),
         )
     }

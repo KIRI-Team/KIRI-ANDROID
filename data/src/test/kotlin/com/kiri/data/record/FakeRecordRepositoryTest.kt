@@ -35,6 +35,52 @@ class FakeRecordRepositoryTest {
         repo.refresh()
         assertFalse(repo.records.value.entries.any { it.id == "confirmed-later" })
     }
+    private fun request(date: java.time.LocalDate, participants: Set<String> = setOf("mother", "father"), bucketId: String = "record-bucket") =
+        ScheduleRequest(bucketId, date, java.time.LocalTime.of(14, 0), participants, "같이 가요", ScheduleRequestChannel.APP)
+
+    @Test fun scheduleRequestTurnsBucketIntoPendingScheduleThatSurvivesRefresh() = runTest {
+        val repo = FakeRecordRepository(home(), FakeMissionRepository())
+        repo.refresh()
+        val bucket = repo.records.value.entries.single { it.id == "record-bucket" }
+        val date = home().load().date.plusDays(2)
+
+        val created = repo.requestSchedule(request(date))
+
+        assertEquals(CalendarEntryKind.SCHEDULE, created.kind)
+        assertEquals(com.kiri.domain.home.ScheduleStatus.PENDING_RESPONSE, created.status)
+        assertEquals(bucket.title, created.title)
+        assertEquals(date, created.date)
+        assertEquals(setOf("mother", "father"), created.participantIds.toSet())
+        assertFalse(repo.records.value.entries.any { it.id == "record-bucket" })
+        repo.refresh()
+        assertTrue(repo.records.value.entries.any { it.id == created.id && it.status == com.kiri.domain.home.ScheduleStatus.PENDING_RESPONSE })
+        assertFalse(repo.records.value.entries.any { it.id == "record-bucket" })
+    }
+
+    @Test fun scheduleRequestRejectsPastDatesStrangersMissingBucketsAndBrowsing() = runTest {
+        val repo = FakeRecordRepository(home(), FakeMissionRepository())
+        repo.refresh()
+        val today = home().load().date
+        assertFails { repo.requestSchedule(request(today.minusDays(1))) }
+        assertFails { repo.requestSchedule(request(today, participants = emptySet())) }
+        assertFails { repo.requestSchedule(request(today, participants = setOf("left"))) }
+        assertFails { repo.requestSchedule(request(today, bucketId = "record-memory-1")) }
+        assertFails { repo.requestSchedule(request(today).copy(message = "가".repeat(101))) }
+        // 거절된 요청은 버킷을 건드리지 않는다
+        assertTrue(repo.records.value.entries.any { it.id == "record-bucket" })
+        // 오늘 날짜는 요청할 수 있다
+        repo.requestSchedule(request(today))
+
+        val browsing = FakeRecordRepository(home(HomeScenario.BROWSING), FakeMissionRepository())
+        browsing.refresh()
+        assertFails { browsing.requestSchedule(request(today)) }
+    }
+
+    private suspend fun assertFails(block: suspend () -> Unit) {
+        val failed = try { block(); false } catch (_: IllegalArgumentException) { true } catch (_: IllegalStateException) { true }
+        assertTrue("요청이 거절되어야 한다", failed)
+    }
+
     private val clock = Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC)
     private fun home(scenario: HomeScenario = HomeScenario.DEFAULT) = FakeHomeRepository(clock, scenario, latencyMillis = 0)
 

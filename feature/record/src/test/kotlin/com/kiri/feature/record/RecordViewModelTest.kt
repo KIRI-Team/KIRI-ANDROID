@@ -2,6 +2,7 @@ package com.kiri.feature.record
 
 import androidx.lifecycle.SavedStateHandle
 import com.kiri.feature.record.model.*
+import com.kiri.feature.record.presentation.sheet.recordCalendarWeeks
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.flow.first
@@ -31,12 +32,12 @@ class RecordViewModelTest {
 
     @Test fun monthGridIncludesEveryDayAndAlignsMondayFirstAcrossLeapYears() {
         for (month in listOf(YearMonth.of(2024, 2), YearMonth.of(2026, 2), YearMonth.of(2026, 8))) {
-            val weeks = calendarWeeks(month)
+            val weeks = recordCalendarWeeks(month)
             assertTrue(weeks.all { it.size == 7 })
-            assertEquals((1..month.lengthOfMonth()).map(month::atDay), weeks.flatten().filterNotNull())
-            weeks.flatten().forEachIndexed { index, date -> if (date != null) assertEquals(date.dayOfWeek.value - 1, index % 7) }
+            assertEquals((1..month.lengthOfMonth()).map(month::atDay), weeks.flatten().filterNotNull().filter { it.isInMonth }.map { it.date })
+            weeks.flatten().forEachIndexed { index, day -> if (day != null) assertEquals(day.date.dayOfWeek.value - 1, index % 7) }
         }
-        assertEquals(6, calendarWeeks(YearMonth.of(2026, 8)).size)
+        assertEquals(6, recordCalendarWeeks(YearMonth.of(2026, 8)).size)
     }
 
     @Test fun yearBoundaryAndShortMonthClampSelectedDayWithoutLosingTabOrSaver() {
@@ -67,6 +68,21 @@ class RecordViewModelTest {
         assertEquals(1, restored.uiState.value.visibleBuckets.size)
         restored.onEvent(RecordUiEvent.SaverSelected(null))
         assertEquals(1, restored.uiState.value.visibleBuckets.size)
+    }
+
+    @Test fun requestedScheduleShowsAsPlannedAndLeavesBucketList() = runTest {
+        val repo = repository()
+        val vm = RecordViewModel(handle(), repo)
+        val date = LocalDate.of(2026, 10, 20)
+        repo.requestSchedule(com.kiri.domain.record.ScheduleRequest("record-bucket", date, java.time.LocalTime.of(14, 0),
+            setOf("mother"), "", com.kiri.domain.record.ScheduleRequestChannel.APP))
+
+        val state = vm.uiState.value
+        assertTrue(state.buckets.none { it.id == "record-bucket" })
+        assertEquals(RecordScheduleStatus.PLANNED, state.schedules.single { it.date == date }.status)
+        assertEquals(RecordCalendarMark.PLANNED, state.calendarMarks[date])
+        // 원래 있던 확정 일정은 그대로 확정이다
+        assertTrue(state.schedules.filter { it.date != date }.all { it.status == RecordScheduleStatus.CONFIRMED })
     }
 
     @Test fun cardEffectsCarryTheirItemIdsAndDoNotMutateTheFixtures() = runTest {

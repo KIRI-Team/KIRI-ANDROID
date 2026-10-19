@@ -2,6 +2,8 @@ package com.kiri.feature.record.presentation.sheet
 
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.YearMonth
 
 internal data class RecordCalendarDay(val date: LocalDate, val isInMonth: Boolean)
@@ -23,6 +25,13 @@ internal fun recordCalendarWeeks(month: YearMonth): List<List<RecordCalendarDay?
     }
     return cells.chunked(DAYS_IN_WEEK)
 }
+
+// earliest 보다 이른 날짜·시간은 고를 수 없다. earliest 가 없으면 모두 고를 수 있다
+internal fun isSelectableDate(date: LocalDate, earliest: LocalDateTime?): Boolean =
+    earliest == null || !date.isBefore(earliest.toLocalDate())
+
+internal fun isSelectableTime(date: LocalDate?, time: LocalTime, earliest: LocalDateTime?): Boolean =
+    earliest == null || date == null || !LocalDateTime.of(date, time).isBefore(earliest)
 
 internal fun YearMonth.toRecordLabel(): String = "${year}년 ${monthValue}월"
 

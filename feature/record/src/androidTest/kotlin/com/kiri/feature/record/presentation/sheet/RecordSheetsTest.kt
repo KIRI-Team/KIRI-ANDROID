@@ -101,6 +101,39 @@ class RecordSheetsTest {
         compose.onNodeWithTag("record_calendar_month").assertTextEquals("2026년 12월")
     }
 
+    @Test fun scheduleSheetBlocksPastDatesAndTimes() {
+        var date by mutableStateOf<LocalDate?>(null)
+        var time by mutableStateOf<LocalTime?>(null)
+        compose.setContent {
+            KiriTheme {
+                RecordScheduleSheetContent(
+                    month = YearMonth.of(2026, 10),
+                    selectedDate = date,
+                    selectedTime = time,
+                    times = listOf(LocalTime.of(9, 0), LocalTime.of(16, 30)),
+                    onMonthChange = {},
+                    onDateSelect = { date = it },
+                    onTimeSelect = { time = it },
+                    onNextClick = {},
+                    earliest = java.time.LocalDateTime.of(2026, 10, 18, 12, 0),
+                )
+            }
+        }
+        // 어제는 눌러도 고를 수 없다
+        compose.onNodeWithTag("record_calendar_day_2026-10-17").performClick()
+        assertEquals(null, date)
+        // 내일은 이른 시간도 고를 수 있다
+        compose.onNodeWithTag("record_calendar_day_2026-10-19").performClick()
+        compose.onNodeWithTag("record_time_09:00").performClick().assertIsSelected()
+        compose.onNodeWithText("다음").assertIsEnabled()
+        // 오늘로 바꾸면 이미 지난 09:00 은 고른 것으로 보지 않는다
+        compose.onNodeWithTag("record_calendar_day_2026-10-18").performClick()
+        compose.onNodeWithTag("record_time_09:00").assertIsNotEnabled().assertIsNotSelected()
+        compose.onNodeWithText("다음").assertIsNotEnabled()
+        compose.onNodeWithTag("record_time_16:30").performClick().assertIsSelected()
+        compose.onNodeWithText("다음").assertIsEnabled()
+    }
+
     @Test fun memberSheetTogglesSelectionAndConfirms() {
         var selected by mutableStateOf(emptySet<String>())
         var confirmed = false

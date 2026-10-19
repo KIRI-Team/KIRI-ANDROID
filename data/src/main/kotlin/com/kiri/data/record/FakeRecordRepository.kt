@@ -99,6 +99,7 @@ class FakeRecordRepository(
         }
         mutex.withLock {
             val entry = requireNotNull(state.value.entries.find { it.id == entryId })
+            // TODO: 오늘 기준 통일 - 실제 RecordRepository 를 만들 때 기기 시계(LocalDate.now)와 저장소의 가족 날짜(family.date) 중 하나로 맞춘다
             check(entry.kind == CalendarEntryKind.SCHEDULE && entry.date == family.date) { "Only today's schedule can be customized" }
             state.value = state.value.copy(entries = state.value.entries.map { if (it.id == entryId) it.copy(conditions = conditions.toSet()) else it })
         }
@@ -130,6 +131,21 @@ class FakeRecordRepository(
         val memory = requireNotNull(state.value.memories.find { it.id == memoryId })
         check(memory.authorId == family.currentUserId)
         state.value = state.value.copy(memories = state.value.memories.filterNot { it.id == memoryId })
+    }
+
+    override suspend fun requestSchedule(request: ScheduleRequest): CalendarEntry = mutex.withLock {
+        val family = home.load()
+        check(!family.browsing) { "Family access required" }
+        val bucket = requireNotNull(state.value.entries.find { it.id == request.bucketId && it.kind == CalendarEntryKind.BUCKET }) { "Bucket not found" }
+        // TODO: 오늘 기준 통일 - 실제 RecordRepository 를 만들 때 기기 시계(LocalDate.now)와 저장소의 가족 날짜(family.date) 중 하나로 맞춘다
+        require(!request.date.isBefore(family.date)) { "Past dates cannot be requested" }
+        val accessibleIds = family.members.filter { it.accessible }.map { it.id }.toSet()
+        require(request.participantIds.isNotEmpty() && request.participantIds.all { it in accessibleIds }) { "Participants must be family members" }
+        require(request.message.length <= 100)
+        val schedule = CalendarEntry("request-${bucket.id}", bucket.missionId, request.date, CalendarEntryKind.SCHEDULE, bucket.title,
+            request.time, bucket.saverId, request.participantIds.toList(), status = ScheduleStatus.PENDING_RESPONSE)
+        state.value = state.value.copy(entries = state.value.entries.filterNot { it.id == bucket.id } + schedule)
+        schedule
     }
 }
 

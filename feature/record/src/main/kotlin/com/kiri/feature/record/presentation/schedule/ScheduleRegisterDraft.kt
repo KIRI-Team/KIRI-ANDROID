@@ -1,5 +1,6 @@
 package com.kiri.feature.record.presentation.schedule
 
+import com.kiri.feature.record.presentation.bucket.withSubjectParticle
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -31,10 +32,10 @@ internal fun memberCountLabel(count: Int): String = "인원 ${count}명"
 internal fun requestDateLabel(date: LocalDate): String = date.format(DateFormat)
 
 // 아빠가 저장했어요! / 딸이 저장했어요!
-internal fun savedByLabel(name: String): String = "${name}${subjectParticle(name)} 저장했어요!"
+internal fun savedByLabel(name: String): String = "${withSubjectParticle(name)} 저장했어요!"
 
 // 아빠가 저장한 미션이에요! / 딸이 저장한 미션이에요!
-internal fun savedMissionLabel(name: String): String = "${name}${subjectParticle(name)} 저장한 미션이에요!"
+internal fun savedMissionLabel(name: String): String = "${withSubjectParticle(name)} 저장한 미션이에요!"
 
 // 카카오톡 등 공유 시트로 보낼 요청 문구. 초대 링크가 생기기 전까지는 요청 내용만 글로 보낸다
 internal fun scheduleRequestShareText(
@@ -51,14 +52,6 @@ internal fun scheduleRequestShareText(
     if (message.isNotBlank()) append("\n\n$message")
 }
 
-// 마지막 글자에 받침이 있으면 '이', 없거나 한글이 아니면 '가'
-internal fun subjectParticle(name: String): String {
-    val last = name.lastOrNull() ?: return "가"
-    if (last !in '가'..'힣') return "가"
-    return if ((last - '가') % FINAL_CONSONANT_COUNT != 0) "이" else "가"
-}
-
-private const val FINAL_CONSONANT_COUNT = 28
 private val DateFormat = DateTimeFormatter.ofPattern("yy.MM.dd")
 private val TimeFormat = DateTimeFormatter.ofPattern("HH:mm")
 

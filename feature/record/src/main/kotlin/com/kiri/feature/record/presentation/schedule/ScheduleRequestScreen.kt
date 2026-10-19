@@ -1,6 +1,7 @@
 package com.kiri.feature.record.presentation.schedule
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,9 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -26,6 +25,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.asAndroidPath
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -59,6 +66,8 @@ fun ScheduleRequestScreen(
     onBackClick: () -> Unit,
     onDetailClick: () -> Unit,
     onSendClick: () -> Unit,
+    sending: Boolean = false,
+    error: String? = null,
 ) {
     BackHandler(onBack = onBackClick)
     Column(
@@ -100,11 +109,13 @@ fun ScheduleRequestScreen(
             ) {
                 Text("자세히 보러가기", color = KiriColor.Text.Primary, style = TitleMedium)
             }
-            Spacer(Modifier.height(36.dp))
-            // KIRI/Description Block (8424:5918)
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("행사설명", color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Title)
-                Text(description, color = KiriColor.Text.Primary, style = KiriDetailTypography.Body)
+            // KIRI/Description Block (8424:5918). 설명이 없으면 블록째 숨긴다
+            if (description.isNotBlank()) {
+                Spacer(Modifier.height(36.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("행사설명", color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Title)
+                    Text(description, color = KiriColor.Text.Primary, style = KiriDetailTypography.Body)
+                }
             }
             if (message.isNotBlank()) {
                 Spacer(Modifier.height(24.dp))
@@ -115,13 +126,27 @@ fun ScheduleRequestScreen(
             }
             Spacer(Modifier.height(24.dp))
         }
+        error?.let {
+            Text(
+                text = it,
+                modifier = Modifier.padding(horizontal = 18.dp).testTag("schedule_request_error"),
+                color = KiriColor.Status.Error,
+                style = KiriDetailTypography.Small,
+            )
+        }
         // KIRI/Bottom Action, Layout=Dual
         Row(
             modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ScheduleRequestCancelButton(onBackClick, Modifier.weight(1f))
-            KiriButton(onClick = onSendClick, modifier = Modifier.weight(1f), text = "요청 보내기", tone = KiriButtonTone.Accent)
+            ScheduleRequestCancelButton(onBackClick, Modifier.weight(1f), enabled = !sending)
+            KiriButton(
+                onClick = onSendClick,
+                modifier = Modifier.weight(1f),
+                enabled = !sending,
+                text = if (sending) "보내는 중…" else "요청 보내기",
+                tone = KiriButtonTone.Accent,
+            )
         }
     }
 }
@@ -130,15 +155,7 @@ fun ScheduleRequestScreen(
 @Composable
 private fun ScheduleRequestCard(title: String, date: LocalDate, memberNames: List<String>) {
     Box(Modifier.fillMaxWidth().height(181.dp), contentAlignment = Alignment.TopCenter) {
-        // 그림은 그림자까지 담아 카드보다 왼쪽 10, 위 8 만큼 크다
-        Image(
-            painter = painterResource(R.drawable.img_record_request_envelope),
-            contentDescription = null,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .offset(x = (-10).dp, y = (-8).dp)
-                .requiredSize(width = 364.dp, height = 189.dp),
-        )
+        RequestEnvelope(Modifier.matchParentSize())
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(Modifier.height(27.dp))
             Text(
@@ -164,6 +181,31 @@ private fun ScheduleRequestCard(title: String, date: LocalDate, memberNames: Lis
     }
 }
 
+// 편지봉투 배경 (Figma 9424:23066). 몸통 위에 덮개 삼각형을 얹고 묶음 전체를 30% 불투명도로 그린다.
+// Figma 원본은 덮개 오른쪽 끝이 몸통보다 34 짧고 꼭짓점이 가운데에서 왼쪽으로 13.5 치우쳐 있어,
+// 덮개가 카드 폭 전체를 덮고 꼭짓점이 가운데 오도록 바로잡았다. 색·깊이·그림자는 원본 값을 쓴다
+@Composable
+private fun RequestEnvelope(modifier: Modifier) {
+    Canvas(modifier.graphicsLayer { alpha = 0.3f; compositingStrategy = CompositingStrategy.Offscreen }) {
+        drawRect(KiriColor.Bg.Secondary)
+        val flap = Path().apply {
+            moveTo(0f, 0f)
+            lineTo(size.width, 0f)
+            lineTo(size.width / 2f, EnvelopeFlapDepth.toPx())
+            close()
+        }
+        // 덮개 아래 그림자: y 2, 흐림 5 (Android 9 미만은 하드웨어 가속에서 그림자가 그려지지 않는다)
+        val paint = Paint().asFrameworkPaint().apply {
+            isAntiAlias = true
+            color = KiriColor.Bg.Tertiary.toArgb()
+            setShadowLayer(8.dp.toPx(), 0f, 2.dp.toPx(), KiriColor.Bg.Base.toArgb())
+        }
+        drawIntoCanvas { it.nativeCanvas.drawPath(flap.asAndroidPath(), paint) }
+    }
+}
+
+private val EnvelopeFlapDepth = 77.5.dp
+
 @Composable
 private fun ScheduleRequestInfo(icon: Int, text: String, gap: Int) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(gap.dp)) {
@@ -178,13 +220,13 @@ private fun ScheduleRequestInfo(icon: Int, text: String, gap: Int) {
 
 // Figma 의 취소 버튼은 KIRI/Button Neutral 에 배경만 Input 채움 색(#2B2B2B)으로 바꿔 쓴다. KiriButton 은 배경을 바꿀 수 없어 따로 그린다
 @Composable
-private fun ScheduleRequestCancelButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun ScheduleRequestCancelButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     Box(
         modifier = modifier
             .height(54.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(KiriComponentColor.Input.BgFilled)
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .testTag("schedule_request_cancel"),
         contentAlignment = Alignment.Center,
     ) {

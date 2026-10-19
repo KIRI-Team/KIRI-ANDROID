@@ -1,5 +1,6 @@
 package com.kiri.feature.record.presentation.schedule
 
+import com.kiri.feature.record.presentation.bucket.withSubjectParticle
 import java.time.LocalDate
 import java.time.LocalTime
 import org.junit.Assert.assertEquals
@@ -42,10 +43,10 @@ class ScheduleRegisterDraftTest {
         assertEquals("아빠가 저장한 미션이에요!", savedMissionLabel("아빠"))
         assertEquals("아빠가 저장했어요!", savedByLabel("아빠"))
         assertEquals("엄마가 저장했어요!", savedByLabel("엄마"))
-        assertEquals("이", subjectParticle("할아버지 지훈"))
+        assertEquals("할아버지 지훈이", withSubjectParticle("할아버지 지훈"))
         // 한글이 아니거나 비어 있으면 '가'로 둔다
-        assertEquals("가", subjectParticle("Kim"))
-        assertEquals("가", subjectParticle(""))
+        assertEquals("Kim가", withSubjectParticle("Kim"))
+        assertEquals("가", withSubjectParticle(""))
     }
 
     @Test fun requestDateLabelShowsDateOnly() {

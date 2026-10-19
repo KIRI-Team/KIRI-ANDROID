@@ -33,13 +33,6 @@ data class RecordUiState(
     fun saverName(id: String) = savers.firstOrNull { it.id == id }?.nickname ?: "탈퇴한 멤버"
 }
 
-/** Monday-first, padded complete weeks. Includes every day, including leap day. */
-fun calendarWeeks(month: YearMonth): List<List<LocalDate?>> {
-    val leading = month.atDay(1).dayOfWeek.value - 1
-    val days = List<LocalDate?>(leading) { null } + (1..month.lengthOfMonth()).map(month::atDay)
-    return (days + List<LocalDate?>((7 - days.size % 7) % 7) { null }).chunked(7)
-}
-
 /** UI-only fixtures until the record API is connected; never represent actual family records. */
 object RecordPreviewData {
     fun state(today: LocalDate = LocalDate.now(ZoneId.of("Asia/Seoul"))): RecordUiState {

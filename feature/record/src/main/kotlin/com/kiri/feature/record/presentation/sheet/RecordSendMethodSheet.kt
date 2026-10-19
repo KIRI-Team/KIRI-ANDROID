@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -111,7 +110,7 @@ internal fun RecordSendMethodSheetContent(
     }
 }
 
-// 324 x 87, 안쪽 내용은 276 폭으로 가운데 정렬
+// Figma 390 폭에서 324 x 87(좌우 33). 화면 폭이 달라도 좌우 여백이 같도록 가로를 채우고 안쪽은 좌우 24 를 둔다
 @Composable
 private fun RecordSendMethodRow(
     icon: Int,
@@ -122,7 +121,7 @@ private fun RecordSendMethodRow(
 ) {
     Box(
         modifier = Modifier
-            .width(324.dp)
+            .fillMaxWidth()
             .height(87.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(KiriColor.Bg.Tertiary)
@@ -130,7 +129,7 @@ private fun RecordSendMethodRow(
             .testTag(testTag),
         contentAlignment = Alignment.Center,
     ) {
-        Row(Modifier.width(276.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(48.dp).background(KiriColor.Bg.Secondary, CircleShape), contentAlignment = Alignment.Center) {
                     Image(painterResource(icon), contentDescription = null, modifier = Modifier.size(24.dp))
