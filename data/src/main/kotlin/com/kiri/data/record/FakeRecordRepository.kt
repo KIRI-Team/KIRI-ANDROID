@@ -24,6 +24,9 @@ class FakeRecordRepository(
     private val home: HomeRepository,
     private val missions: MissionRepository,
     private val scheduledDetails: DetailRepository = com.kiri.data.detail.FakeDetailRepository(home, missions),
+    private val familySchedules: com.kiri.domain.schedule.ScheduleRepository? = null,
+    private val familyBuckets: BucketRepository? = null,
+    private val clock: java.time.Clock = java.time.Clock.systemUTC(),
 ) : RecordRepository {
     private val mutex = Mutex()
     private val state = MutableStateFlow(RecordCollection())
@@ -39,11 +42,20 @@ class FakeRecordRepository(
             syncedScheduleIds = emptySet()
             return@withLock
         }
-        val river = missions.load(com.kiri.data.mission.FakeMissionRepository.RIVER_MISSION_ID).summary
         val members = family.members.filter { it.accessible }
         val participants = members.take(3).map { it.id }
         val today = family.date
-        val schedules = family.schedules.filter { it.status == ScheduleStatus.CONFIRMED && it.finalParticipant }.map { schedule ->
+        val question = family.question?.let { RecordedQuestion(it.date, it.text, family.answers,
+            family.members.associate { member -> member.id to if (member.accessible) member.nickname else "탈퇴한 멤버" },
+            members.isNotEmpty() && members.all { member -> member.id in family.answers }) }
+        val questions = state.value.questions + listOfNotNull(question).associateBy { it.date }
+        familySchedules?.refresh()
+        familyBuckets?.refresh()
+        val schedules = familySchedules?.schedules?.value?.filter { !it.cancelled && !it.completed }?.map { schedule ->
+            val time = schedule.startsAt.atZone(ZoneId.of("Asia/Seoul"))
+            CalendarEntry(schedule.id, schedule.missionId, time.toLocalDate(), CalendarEntryKind.SCHEDULE,
+                schedule.title, time.toLocalTime(), participantIds = schedule.acceptedIds.toList(), scheduleStatus = schedule.status(clock.instant()))
+        } ?: family.schedules.filter { it.status == ScheduleStatus.CONFIRMED && it.finalParticipant }.map { schedule ->
             val time = schedule.startsAt.atZone(ZoneId.of("Asia/Seoul"))
             CalendarEntry(schedule.id, schedule.missionId, time.toLocalDate(), CalendarEntryKind.SCHEDULE,
                 missions.load(schedule.missionId).summary.title, time.toLocalTime(), participantIds = participants)
@@ -51,16 +63,18 @@ class FakeRecordRepository(
         if (initialized) {
             val previous = state.value
             val refreshed = schedules.map { entry -> entry.copy(conditions = previous.entries.find { it.id == entry.id }?.conditions.orEmpty()) }
-            state.value = previous.copy(entries = previous.entries.filterNot { it.id in syncedScheduleIds } + refreshed)
-            syncedScheduleIds = family.schedules.map { it.id }.toSet()
+            state.value = previous.copy(entries = previous.entries.filterNot { it.id in syncedScheduleIds && it.kind == CalendarEntryKind.SCHEDULE || familyBuckets != null && it.kind == CalendarEntryKind.BUCKET } + refreshed + bucketEntries(),
+                savers = family.members.associate { it.id to if (it.accessible) it.nickname else "탈퇴한 멤버" }, questions = questions,
+                memories = previous.memories.map { memory -> if (family.members.any { it.id == memory.authorId && it.accessible }) memory else memory.copy(authorName = "탈퇴한 멤버", role = "기타") })
+            syncedScheduleIds = schedules.map { it.id }.toSet()
             return@withLock
         }
+        val river = missions.load(com.kiri.data.mission.FakeMissionRepository.RIVER_MISSION_ID).summary
         val entries = schedules + listOf(
-            CalendarEntry("record-upcoming", river.id, today.plusDays(3), CalendarEntryKind.SCHEDULE, river.title, LocalTime.of(14, 50), participantIds = participants),
-            CalendarEntry("record-bucket", river.id, today.plusDays(1), CalendarEntryKind.BUCKET, river.title, LocalTime.of(14, 50), "father", participants),
             CalendarEntry("record-memory-1", river.id, today.minusDays(2), CalendarEntryKind.MEMORY, river.title, participantIds = participants, representativePhotoId = "group-1"),
             CalendarEntry("record-memory-2", river.id, today.minusDays(4), CalendarEntryKind.MEMORY, river.title, participantIds = participants, representativePhotoId = "pixel-2"),
-        )
+        ) + (if (familySchedules == null) listOf(CalendarEntry("record-upcoming", river.id, today.plusDays(3), CalendarEntryKind.SCHEDULE, river.title, LocalTime.of(14, 50), participantIds = participants)) else emptyList()) +
+            (if (familyBuckets == null) listOf(CalendarEntry("record-bucket", river.id, today.plusDays(1), CalendarEntryKind.BUCKET, river.title, LocalTime.of(14, 50), "father", participants)) else bucketEntries())
         val photos = entries.filter { it.kind == CalendarEntryKind.MEMORY }.associate { entry ->
             val suffix = if (entry.id.endsWith("1")) "1" else "2"
             entry.id to (listOf(RecordPhoto("group-$suffix", "demo:group")) +
@@ -70,10 +84,15 @@ class FakeRecordRepository(
         state.value = RecordCollection(entries, entries.filter { it.kind == CalendarEntryKind.MEMORY }.map { entry ->
             val author = members.first { it.id == family.currentUserId }
             FamilyMemory("memory-${entry.id}", entry.id, author.id, author.nickname, author.role,
-                "아빠가 자주 가는 식당에 처음 가봤다. 좋아하는 메뉴를 같이 먹으니 아빠를 조금 더 알게 된 기분이었다.", rating = 4, repeatActivity = true)
-        }, photos, family.familyName.orEmpty(), family.currentUserId, members.associate { it.id to it.role })
+                "아빠가 자주 가는 식당에 처음 가봤다. 좋아하는 메뉴를 같이 먹으니 아빠를 조금 더 알게 된 기분이었다.", photos = photos[entry.id].orEmpty(), rating = 4, repeatActivity = true)
+        }, photos, family.familyName.orEmpty(), family.currentUserId, family.members.associate { it.id to if (it.accessible) it.nickname else "탈퇴한 멤버" }, questions)
         initialized = true
-        syncedScheduleIds = family.schedules.map { it.id }.toSet()
+        syncedScheduleIds = schedules.map { it.id }.toSet()
+    }
+
+    private suspend fun bucketEntries(): List<CalendarEntry> = familyBuckets?.buckets?.value.orEmpty().map { bucket ->
+        CalendarEntry(bucket.id, bucket.missionId, bucket.savedAt.atZone(ZoneId.of("Asia/Seoul")).toLocalDate(), CalendarEntryKind.BUCKET,
+            missions.load(bucket.missionId).summary.title, saverId = bucket.ownerId, completed = bucket.completed, linkedScheduleIds = bucket.linkedScheduleIds)
     }
 
     override suspend fun detail(entryId: String): MissionDetail {
@@ -81,19 +100,20 @@ class FakeRecordRepository(
         val family = home.load()
         check(!family.browsing) { "Family access required" }
         val entry = requireNotNull(state.value.entries.find { it.id == entryId }) { "Record not found" }
-        if (entry.kind == CalendarEntryKind.SCHEDULE && family.schedules.any { it.id == entryId }) return scheduledDetails.load(entryId)
-        val content = missions.load(entry.missionId)
+        val sharedSchedule = familySchedules?.schedules?.value?.find { it.id == entryId }
+        if (entry.kind == CalendarEntryKind.SCHEDULE && sharedSchedule == null && family.schedules.any { it.id == entryId }) return scheduledDetails.load(entryId)
+        val content = entry.missionSnapshot ?: missions.load(entry.missionId)
         return MissionDetail(content.summary.id, content.summary.title, family.familyName.orEmpty(), entry.date,
-            entry.startTime?.format(DateTimeFormatter.ofPattern("a h시 m분", Locale.KOREAN)), content.summary.place,
+            entry.startTime?.format(DateTimeFormatter.ofPattern("a h시 m분", Locale.KOREAN)), entry.placeSnapshot ?: content.summary.place,
             content.expectedSteps, content.durationMinutes,
-            entry.participantIds.mapNotNull { id -> family.members.find { it.id == id && it.accessible }?.let { DetailParticipant(it.role, true) } },
+            entry.participantIds.mapNotNull { id -> family.members.find { it.id == id }?.let { DetailParticipant(if (it.accessible) it.nickname else "탈퇴한 멤버", true) } },
             entry.kind == CalendarEntryKind.MEMORY, content.activities, content.essentials, content.nearby, entry.conditions)
     }
 
     override suspend fun applyConditions(entryId: String, conditions: Set<Condition>): MissionDetail {
         val family = home.load()
         check(!family.browsing)
-        if (family.schedules.any { it.id == entryId }) {
+        if (familySchedules == null && family.schedules.any { it.id == entryId }) {
             require(state.value.entries.any { it.id == entryId && it.kind == CalendarEntryKind.SCHEDULE && it.date == family.date })
             scheduledDetails.applyConditions(entryId, conditions)
         }
@@ -118,10 +138,9 @@ class FakeRecordRepository(
         val original = requireNotNull(state.value.memories.find { it.id == memory.id })
         check(original.authorId == family.currentUserId)
         require(memory.authorId == original.authorId && memory.entryId == original.entryId)
-        require(memory.text.isNotBlank() && memory.text.length <= 500 && memory.rating in 1..5 && memory.repeatActivity != null)
+        require(memory.isValidReview()) { "사진·기록·별점·재참여 의향은 필수예요." }
         val updated = original.copy(text = memory.text.trim(), photos = memory.photos.distinctBy { it.id }, rating = memory.rating, repeatActivity = memory.repeatActivity)
-        state.value = state.value.copy(memories = state.value.memories.map { if (it.id == memory.id) updated else it },
-            photos = state.value.photos + (memory.entryId to (state.value.photos[memory.entryId].orEmpty() + updated.photos).distinctBy { it.id }))
+        publishMemories(state.value.memories.map { if (it.id == memory.id) updated else it }, memory.entryId)
     }
 
     override suspend fun deleteMemory(memoryId: String) = mutex.withLock {
@@ -129,7 +148,36 @@ class FakeRecordRepository(
         check(!family.browsing)
         val memory = requireNotNull(state.value.memories.find { it.id == memoryId })
         check(memory.authorId == family.currentUserId)
-        state.value = state.value.copy(memories = state.value.memories.filterNot { it.id == memoryId })
+        publishMemories(state.value.memories.filterNot { it.id == memoryId }, memory.entryId)
+    }
+
+    private fun publishMemories(memories: List<FamilyMemory>, entryId: String) {
+        val photos = memories.filter { it.entryId == entryId }.flatMap { it.photos }.distinctBy { it.id }
+        state.value = state.value.copy(memories = memories, photos = state.value.photos + (entryId to photos),
+            entries = state.value.entries.map { entry -> if (entry.id != entryId) entry else entry.copy(
+                representativePhotoId = entry.representativePhotoId?.takeIf { id -> photos.any { it.id == id } } ?: photos.firstOrNull()?.id,
+            ) })
+    }
+
+    override suspend fun addMemory(entryId: String, text: String, photos: List<RecordPhoto>, rating: Int, repeatActivity: Boolean) = mutex.withLock {
+        val family = home.load(); check(!family.browsing)
+        val author = family.members.first { it.id == family.currentUserId && it.accessible }
+        val entry = requireNotNull(state.value.entries.find { it.id == entryId })
+        val memory = FamilyMemory(java.util.UUID.randomUUID().toString(), entryId, author.id, author.nickname, author.role, text.trim(), photos.distinctBy { it.id }, rating, repeatActivity)
+        require(memory.isValidReview()) { "사진·기록·별점·재참여 의향은 필수예요." }
+        check(state.value.memories.none { it.entryId == entryId && it.authorId == author.id }) { "이미 기록을 남겼어요. 수정하기를 이용해주세요." }
+        val schedule = familySchedules?.schedules?.value?.find { it.id == entryId }
+        check(schedule != null && schedule.canReview(author.id, clock.instant())) { "활동 후 참여자만 기록할 수 있어요." }
+        val snapshot = entry.missionSnapshot ?: missions.load(entry.missionId)
+        requireNotNull(familySchedules).complete(entryId)
+        state.value = state.value.copy(entries = state.value.entries.map { if (it.id == entryId) it.copy(kind = CalendarEntryKind.MEMORY, completed = true,
+            missionSnapshot = snapshot, placeSnapshot = schedule.place) else it })
+        publishMemories(state.value.memories + memory, entry.id)
+    }
+
+    override suspend fun deleteBucket(bucketId: String) {
+        requireNotNull(familyBuckets).delete(bucketId)
+        refresh()
     }
 }
 
@@ -137,5 +185,5 @@ class FakeRecordRepository(
 @InstallIn(SingletonComponent::class)
 object RecordRepositoryModule {
     @Provides @Singleton
-    fun provideRecordRepository(home: HomeRepository, missions: MissionRepository, details: DetailRepository): RecordRepository = FakeRecordRepository(home, missions, details)
+    fun provideRecordRepository(home: HomeRepository, missions: MissionRepository, details: DetailRepository, schedules: com.kiri.domain.schedule.ScheduleRepository, buckets: BucketRepository, clock: java.time.Clock): RecordRepository = FakeRecordRepository(home, missions, details, schedules, buckets, clock)
 }

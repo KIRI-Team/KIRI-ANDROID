@@ -20,9 +20,15 @@ data class CalendarEntry(
     val participantIds: List<String> = emptyList(),
     val representativePhotoId: String? = null,
     val conditions: Set<Condition> = emptySet(),
+    val completed: Boolean = false,
+    val linkedScheduleIds: Set<String> = emptySet(),
+    val scheduleStatus: com.kiri.domain.home.ScheduleStatus? = null,
+    val missionSnapshot: com.kiri.domain.mission.MissionContent? = null,
+    val placeSnapshot: String? = null,
 )
 
 data class RecordPhoto(val id: String, val source: String)
+data class RecordedQuestion(val date: LocalDate, val text: String, val answers: Map<String, String>, val memberNames: Map<String, String>, val everyoneAnswered: Boolean)
 data class FamilyMemory(
     val id: String,
     val entryId: String,
@@ -35,6 +41,9 @@ data class FamilyMemory(
     val repeatActivity: Boolean? = null,
 )
 
+fun FamilyMemory.isValidReview(): Boolean = photos.isNotEmpty() && photos.all { it.source.isNotBlank() } &&
+    text.isNotBlank() && text.length <= 500 && rating in 1..5 && repeatActivity != null
+
 data class RecordCollection(
     val entries: List<CalendarEntry> = emptyList(),
     val memories: List<FamilyMemory> = emptyList(),
@@ -42,6 +51,7 @@ data class RecordCollection(
     val familyName: String = "",
     val currentUserId: String = "",
     val savers: Map<String, String> = emptyMap(),
+    val questions: Map<LocalDate, RecordedQuestion> = emptyMap(),
 )
 
 /** Implementations enforce family access and author ownership before changing records. */
@@ -53,4 +63,8 @@ interface RecordRepository {
     suspend fun changeRepresentativePhoto(entryId: String, photoId: String)
     suspend fun updateMemory(memory: FamilyMemory)
     suspend fun deleteMemory(memoryId: String)
+    suspend fun addMemory(entryId: String, text: String, photos: List<RecordPhoto>, rating: Int, repeatActivity: Boolean) {
+        error("Review creation is unavailable")
+    }
+    suspend fun deleteBucket(bucketId: String) { error("Bucket deletion is unavailable") }
 }

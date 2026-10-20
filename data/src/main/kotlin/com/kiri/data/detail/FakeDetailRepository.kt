@@ -20,7 +20,7 @@ import javax.inject.Singleton
  * Missing schedule/forecast data stays unknown; no fabricated weather or participants.
  * Replace with an API implementation when the detail endpoint becomes available.
  */
-class FakeDetailRepository(private val homeRepository: HomeRepository, private val missionRepository: MissionRepository = FakeMissionRepository()) : DetailRepository {
+class FakeDetailRepository(private val homeRepository: HomeRepository, private val missionRepository: MissionRepository = FakeMissionRepository(), private val schedules: com.kiri.domain.schedule.ScheduleRepository? = null) : DetailRepository {
     private val mutex = Mutex()
     private val selections = mutableMapOf<String, Set<Condition>>()
     private fun selectionKey(id: String) = if (id == "schedule-demo") "weekly-demo" else id
@@ -29,7 +29,7 @@ class FakeDetailRepository(private val homeRepository: HomeRepository, private v
 
     override suspend fun preview(missionId: String): MissionPreview {
         val content = missionRepository.load(missionId)
-        val home = homeRepository.load()
+        val home = familySnapshot()
         val schedule = home.schedules.firstOrNull { it.missionId == missionId && it.status != ScheduleStatus.CANCELLED }
         val dateTime = schedule?.startsAt?.atZone(ZoneId.of("Asia/Seoul"))
         return MissionPreview(
@@ -52,7 +52,7 @@ class FakeDetailRepository(private val homeRepository: HomeRepository, private v
     }
 
     private suspend fun snapshot(id: String): MissionDetail {
-        val home = homeRepository.load()
+        val home = familySnapshot()
         check(!home.browsing) { "Family access required" }
         val mission = home.mission?.takeIf { it.id == id && !it.unavailable }
         val schedule = home.schedules.firstOrNull { it.id == id && it.status != ScheduleStatus.CANCELLED }
@@ -66,11 +66,22 @@ class FakeDetailRepository(private val homeRepository: HomeRepository, private v
             familyName = home.familyName.orEmpty(), date = dateTime?.toLocalDate(),
             startTime = dateTime?.format(DateTimeFormatter.ofPattern("a h시 m분", Locale.KOREAN)),
             place = content.summary.place, expectedSteps = content.expectedSteps, durationMinutes = content.durationMinutes,
-            participants = home.members.filter { it.accessible }.take(3).map { DetailParticipant(it.nickname, true) },
+            participants = schedules?.schedules?.value?.find { it.id == schedule?.id || it.weeklyMissionId == id }?.let { activity ->
+                activity.responses.map { (memberId, response) -> DetailParticipant(home.members.find { it.id == memberId && it.accessible }?.nickname ?: "탈퇴한 멤버", response == com.kiri.domain.schedule.MemberResponse.ACCEPTED) }
+            } ?: home.members.filter { it.accessible }.take(3).map { DetailParticipant(it.nickname, true) },
             completed = mission?.completed == true || schedule?.status == ScheduleStatus.COMPLETED || (isDemo && home.mission?.completed == true),
             activities = content.activities, essentials = content.essentials, nearby = content.nearby,
             conditions = selections[selectionKey(id)].orEmpty(),
         )
+    }
+
+    private suspend fun familySnapshot(): com.kiri.domain.home.FamilyHome {
+        val home = homeRepository.load()
+        val repository = schedules ?: return home
+        repository.refresh()
+        return home.copy(schedules = repository.schedules.value.map { activity ->
+            com.kiri.domain.home.HomeSchedule(activity.id, activity.title, activity.startsAt, activity.status(java.time.Instant.now()), home.currentUserId in activity.acceptedIds, activity.responseDeadline, activity.missionId)
+        }, mission = home.mission?.let { weekly -> weekly.copy(completed = weekly.completed || repository.schedules.value.any { it.weeklyMissionId == weekly.id && it.completed }) })
     }
 }
 
@@ -78,5 +89,5 @@ class FakeDetailRepository(private val homeRepository: HomeRepository, private v
 @InstallIn(SingletonComponent::class)
 object DetailRepositoryModule {
     @Provides @Singleton
-    fun provideDetailRepository(home: HomeRepository, missions: MissionRepository): DetailRepository = FakeDetailRepository(home, missions)
+    fun provideDetailRepository(home: HomeRepository, missions: MissionRepository, schedules: com.kiri.domain.schedule.ScheduleRepository): DetailRepository = FakeDetailRepository(home, missions, schedules)
 }

@@ -13,7 +13,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /** Explicit demo inbox. Read state lives in this process; no push delivery is simulated. */
-class FakeNotificationRepository(private val home: HomeRepository, private val clock: Clock = Clock.systemUTC()) : NotificationRepository {
+class FakeNotificationRepository(private val home: HomeRepository, private val clock: Clock = Clock.systemUTC(), private val schedules: com.kiri.domain.schedule.ScheduleRepository? = null) : NotificationRepository {
     private val mutex = Mutex()
     private val readIds = mutableSetOf<String>()
     private var inbox: List<FamilyNotification>? = null
@@ -37,6 +37,11 @@ class FakeNotificationRepository(private val home: HomeRepository, private val c
                 mission?.let { add(FamilyNotification("demo-mission", "끼리네", "[미션] 이번주 미션이 오픈 됐어요! ♥", "1주일동안 모인 취향데이터 기반 AI 미션이 생성되었어요", now.minus(5, ChronoUnit.DAYS), NotificationCategory.MISSION, NotificationTarget.MISSION, it.id)) }
             }
         }
+        val localEvents = schedules?.notices?.value.orEmpty().filter { family.currentUserId in it.recipientIds }.map { event ->
+            FamilyNotification(event.id, "우리 가족", event.message, schedules?.schedules?.value?.find { it.id == event.scheduleId }?.title.orEmpty(), event.createdAt,
+                NotificationCategory.SCHEDULE, NotificationTarget.SCHEDULE, event.scheduleId)
+        }
+        inbox = (inbox.orEmpty() + localEvents).distinctBy { it.id }
         inbox.orEmpty().map { it.copy(read = it.read || it.id in readIds) }.sortedByDescending { it.createdAt }
     }
     override suspend fun markRead(id: String) = mutex.withLock {
@@ -54,7 +59,7 @@ class FakeNotificationRepository(private val home: HomeRepository, private val c
         if (family.browsing) return false
         return when (notification.target) {
             NotificationTarget.QUESTION -> family.question?.id == notification.targetId
-            NotificationTarget.SCHEDULE, NotificationTarget.MEMORY -> family.schedules.any { it.id == notification.targetId }
+            NotificationTarget.SCHEDULE, NotificationTarget.MEMORY -> family.schedules.any { it.id == notification.targetId } || schedules?.schedules?.value?.any { it.id == notification.targetId } == true
             NotificationTarget.MISSION -> family.mission?.id == notification.targetId
         }
     }
@@ -63,5 +68,5 @@ class FakeNotificationRepository(private val home: HomeRepository, private val c
 @Module
 @InstallIn(SingletonComponent::class)
 object NotificationRepositoryModule {
-    @Provides @Singleton fun provideNotificationRepository(home: HomeRepository): NotificationRepository = FakeNotificationRepository(home)
+    @Provides @Singleton fun provideNotificationRepository(home: HomeRepository, schedules: com.kiri.domain.schedule.ScheduleRepository): NotificationRepository = FakeNotificationRepository(home, schedules = schedules)
 }
