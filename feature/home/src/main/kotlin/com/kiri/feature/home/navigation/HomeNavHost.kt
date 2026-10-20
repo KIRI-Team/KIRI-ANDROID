@@ -29,12 +29,13 @@ private const val START_ROUTE = "home"
 private const val DETAIL_ROUTE = "home_graph/detail"
 
 /** Registers this feature in the main tab back stack. */
-fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: () -> Unit) {
+fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: () -> Unit, onSchedule: (String) -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
     navigation(startDestination = START_ROUTE, route = GRAPH_ROUTE) {
+        scheduleDestinations()
         composable(START_ROUTE) {
             HomeRoute(
                 onMissionClick = { id -> navController.navigate("${DETAIL_ROUTE}/${Uri.encode(id)}") { launchSingleTop = true } },
-                onScheduleClick = { id -> navController.navigate("${DETAIL_ROUTE}/${Uri.encode(id)}") { launchSingleTop = true } },
+                onScheduleClick = onSchedule,
                 onDestination = { destination ->
                     when (destination) {
                         HomeUiDestination.OpenPlaces -> onOpenPlaces()
@@ -54,6 +55,7 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
                         if (homeViewModel.uiState.value.home?.question?.id == notification.targetId) homeViewModel.onEvent(HomeUiEvent.AnswerEditClicked)
                         navController.popBackStack()
                     }
+                    NotificationTarget.SCHEDULE -> onSchedule(notification.targetId)
                     else -> navController.navigate("$DETAIL_ROUTE/${Uri.encode(notification.targetId)}?memories=${notification.target == NotificationTarget.MEMORY}") { launchSingleTop = true }
                 }
             })
@@ -89,7 +91,7 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
             val state by viewModel.uiState.collectAsStateWithLifecycle()
             MemoryEditorScreen(state.memoryDraft, state.detail?.participants?.firstOrNull()?.name ?: "나",
                 onChange = viewModel::updateMemoryDraft, onBack = { navController.popBackStack() },
-                onSubmit = { if (viewModel.submitMemoryPreview()) navController.popBackStack() })
+                onSubmit = { viewModel.submitMemory { navController.popBackStack() } }, saving = state.saving, error = state.error)
         }
         composable("${DETAIL_ROUTE}/{missionId}/custom") { entry ->
             val parent = remember(entry) { navController.getBackStackEntry("${DETAIL_ROUTE}/{missionId}?memories={memories}") }

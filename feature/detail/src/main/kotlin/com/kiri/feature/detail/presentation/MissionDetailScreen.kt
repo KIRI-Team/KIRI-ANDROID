@@ -63,13 +63,14 @@ fun MissionDetailScreen(
     calendarHeader: CalendarDetailHeader? = null,
     suggestionIcon: (@Composable () -> Unit)? = null,
     nearbyImageRes: Int = UiR.drawable.kiri_place_card_image,
+    modifier: Modifier = Modifier,
 ) {
     val onBack = { onEvent(DetailUiEvent.BackClicked) }
     val onCustom = { onEvent(DetailUiEvent.CustomClicked) }
     val onRetry = { onEvent(DetailUiEvent.RetryClicked) }
     val onRecord = { onEvent(DetailUiEvent.RecordClicked) }
     val detail = state.detail
-    Column(Modifier.fillMaxSize().background(KiriColor.Bg.Base).testTag(if (discovery) "mission_preview_screen" else "mission_detail_screen").verticalScroll(rememberScrollState())) {
+    Column(modifier.fillMaxSize().background(KiriColor.Bg.Base).testTag(if (discovery) "mission_preview_screen" else "mission_detail_screen").verticalScroll(rememberScrollState())) {
         if (detail == null) {
             KiriDetailAppBar("미션 상세", onBack)
             if (state.loading) CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally).padding(32.dp))

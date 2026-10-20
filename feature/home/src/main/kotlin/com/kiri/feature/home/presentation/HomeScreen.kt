@@ -71,6 +71,7 @@ fun HomeRoute(
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.refreshOnResume()
             viewModel.effect.collect { effect ->
                 when (effect) {
                     is HomeUiEffect.Navigate -> currentDestination(effect.destination)
@@ -144,7 +145,9 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
                     Spacer(Modifier.height(48.dp))
                 }
                 when { state.loading -> LoadingHome(); state.loadError || home == null -> ErrorHome { onEvent(HomeUiEvent.RetryClicked) }; home.browsing -> BrowseCard(onDestination); else -> {
-                    selectHomeSchedule(home.schedules, Instant.now(), ZoneId.of("Asia/Seoul"))?.let { ScheduleCard(it) { onScheduleClick(it.schedule.id) }; Spacer(Modifier.height(18.dp)) }
+                    val responseSchedules = home.schedules.filter { it.status == ScheduleStatus.PENDING_RESPONSE || it.status == ScheduleStatus.RECONFIRM_REQUIRED }
+                    selectHomeSchedule(responseSchedules, Instant.now(), ZoneId.of("Asia/Seoul"))?.let { ScheduleCard(it) { onScheduleClick(it.schedule.id) }; Spacer(Modifier.height(18.dp)) }
+                    selectHomeSchedule(home.schedules - responseSchedules.toSet(), Instant.now(), ZoneId.of("Asia/Seoul"))?.let { ScheduleCard(it) { onScheduleClick(it.schedule.id) }; Spacer(Modifier.height(18.dp)) }
                     Column(Modifier.bringIntoViewRequester(initialTarget)) {
                         AnswersHeader(anchor(HomeTutorialTarget.ANSWERS), anchor(HomeTutorialTarget.INVITE)) { onEvent(HomeUiEvent.InviteFamilyClicked) }
                         StoryRow(home, { onEvent(HomeUiEvent.MemberSelected(it)) }, memberBounds)

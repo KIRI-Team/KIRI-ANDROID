@@ -33,6 +33,7 @@ dependencies {
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:detail"))
     implementation(project(":feature:record"))
+    implementation(project(":feature:schedule"))
     implementation(project(":feature:place"))
     implementation(project(":feature:mypage"))
     implementation(project(":data"))

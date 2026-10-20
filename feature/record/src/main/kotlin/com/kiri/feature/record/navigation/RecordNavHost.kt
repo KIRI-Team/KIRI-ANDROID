@@ -26,8 +26,9 @@ private const val START_ROUTE = "record"
 private const val DETAIL_ROUTE = "record_graph/detail"
 
 /** Registers this feature in the main tab back stack. */
-fun NavGraphBuilder.recordNavHost(navController: NavHostController) {
+fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSchedule: (String) -> Unit = {}, onManageSchedule: (String) -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
     navigation(startDestination = START_ROUTE, route = GRAPH_ROUTE) {
+        scheduleDestinations()
         composable(START_ROUTE) {
             RecordRoute(
                 onScheduleClick = { navController.navigate("$DETAIL_ROUTE/${Uri.encode(it)}") { launchSingleTop = true } },
@@ -44,7 +45,8 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController) {
             RecordDetailRoute(viewModel, onBack = { navController.popBackStack() },
                 onCustom = { navController.navigate("$DETAIL_ROUTE/$id/custom") { launchSingleTop = true } },
                 onPhoto = { navController.navigate("$DETAIL_ROUTE/$id/photos") { launchSingleTop = true } },
-                onEdit = { navController.navigate("$DETAIL_ROUTE/$id/edit") { launchSingleTop = true } })
+                onEdit = { navController.navigate("$DETAIL_ROUTE/$id/edit") { launchSingleTop = true } },
+                onCreateSchedule = onCreateSchedule, onManageSchedule = onManageSchedule)
         }
         composable("$DETAIL_ROUTE/{entryId}/custom") { entry ->
             val parent = remember(entry) { navController.getBackStackEntry("$DETAIL_ROUTE/{entryId}") }
