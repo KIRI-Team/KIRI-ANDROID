@@ -2,6 +2,7 @@ package com.kiri.domain.record
 
 import com.kiri.domain.detail.Condition
 import com.kiri.domain.detail.MissionDetail
+import com.kiri.domain.home.ScheduleStatus
 import kotlinx.coroutines.flow.StateFlow
 import java.time.LocalDate
 import java.time.LocalTime
@@ -20,6 +21,20 @@ data class CalendarEntry(
     val participantIds: List<String> = emptyList(),
     val representativePhotoId: String? = null,
     val conditions: Set<Condition> = emptySet(),
+    /** SCHEDULE only. A request waits for family responses (PENDING_RESPONSE) before it is confirmed. */
+    val status: ScheduleStatus = ScheduleStatus.CONFIRMED,
+)
+
+enum class ScheduleRequestChannel { APP, KAKAO }
+
+/** Turns one saved bucket into a schedule request sent to the chosen family members. */
+data class ScheduleRequest(
+    val bucketId: String,
+    val date: LocalDate,
+    val time: LocalTime,
+    val participantIds: Set<String>,
+    val message: String,
+    val channel: ScheduleRequestChannel,
 )
 
 data class RecordPhoto(val id: String, val source: String)
@@ -53,4 +68,6 @@ interface RecordRepository {
     suspend fun changeRepresentativePhoto(entryId: String, photoId: String)
     suspend fun updateMemory(memory: FamilyMemory)
     suspend fun deleteMemory(memoryId: String)
+    /** Creates a pending schedule from the bucket and removes the bucket from the list. */
+    suspend fun requestSchedule(request: ScheduleRequest): CalendarEntry
 }
