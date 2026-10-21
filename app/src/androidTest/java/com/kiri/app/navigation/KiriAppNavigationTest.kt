@@ -135,11 +135,12 @@ class KiriAppNavigationTest {
         compose.onNodeWithTag("bottom_nav_record").performClick()
         compose.waitUntil(10_000) { compose.onAllNodesWithTag("record_schedule_schedule-demo").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("record_schedule_schedule-demo").performScrollTo().performClick()
-        compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("schedule_status").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("schedule_screen").assertIsDisplayed()
         compose.onNodeWithTag("bottom_nav_home").performClick()
         compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
         compose.onNodeWithTag("bottom_nav_record").performClick()
-        compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
+        compose.onNodeWithTag("schedule_screen").assertIsDisplayed()
     }
 
     @Test fun backReturnsToHomeAndKeepsMissionSide() {
@@ -169,7 +170,8 @@ class KiriAppNavigationTest {
 
         compose.waitUntil(10_000) { compose.onAllNodesWithTag("record_schedule_schedule-demo").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("record_schedule_schedule-demo").performScrollTo().performClick()
-        compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("schedule_status").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("schedule_screen").assertIsDisplayed()
 
         compose.onNodeWithContentDescription("뒤로").performClick()
         compose.onNodeWithTag("record_screen").assertIsDisplayed()
