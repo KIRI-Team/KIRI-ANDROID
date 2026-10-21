@@ -47,9 +47,10 @@ fun RecordItemOptionSheet(
     onDismiss: () -> Unit,
     scheduleLabel: String = "일정 잡기",
     scheduleEnabled: Boolean = true,
+    deleteEnabled: Boolean = true,
 ) {
     RecordModalSheet(onDismiss = onDismiss, testTag = "record_item_option_sheet", containerColor = KiriColor.Bg.Primary) {
-        RecordItemOptionSheetContent(title, subtitle, onScheduleClick, onDeleteClick, onDismiss, scheduleLabel, scheduleEnabled)
+        RecordItemOptionSheetContent(title, subtitle, onScheduleClick, onDeleteClick, onDismiss, scheduleLabel, scheduleEnabled, deleteEnabled)
     }
 }
 
@@ -62,6 +63,7 @@ internal fun RecordItemOptionSheetContent(
     onCloseClick: () -> Unit,
     scheduleLabel: String = "일정 잡기",
     scheduleEnabled: Boolean = true,
+    deleteEnabled: Boolean = true,
 ) {
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(start = 30.dp, end = 30.dp, top = 44.dp, bottom = 44.dp)) {
@@ -93,6 +95,7 @@ internal fun RecordItemOptionSheetContent(
                 textColor = KiriColor.Status.Error,
                 onClick = onDeleteClick,
                 testTag = "record_option_delete",
+                enabled = deleteEnabled,
             )
         }
         // 닫기 표시는 위 25, 오른쪽 30 위치의 19 크기. 누르는 영역만 48 로 넓힌다

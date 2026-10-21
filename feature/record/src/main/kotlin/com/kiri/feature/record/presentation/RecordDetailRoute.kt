@@ -30,17 +30,16 @@ fun RecordDetailRoute(viewModel: RecordDetailViewModel, onBack: () -> Unit, onCu
         RecordMemoryScreen(state, onBack, {
             viewModel.beginPhotoSelection()
             onPhoto()
-        }, viewModel::editMemory, viewModel::deleteMemory, viewModel::dismissToast)
+        }, viewModel::editMemory, viewModel::deleteMemory, viewModel::dismissToast, onReview = state.entry?.takeIf { it.missionSnapshot != null }?.let { entry -> { onManageSchedule(entry.id) } })
     } else {
         val date = state.entry?.date
         val bucket = state.entry?.kind == CalendarEntryKind.BUCKET
-        // TODO: 오늘 기준 통일 - 실제 RecordRepository 를 만들 때 기기 시계(LocalDate.now)와 저장소의 가족 날짜(family.date) 중 하나로 맞춘다
-        val today = date == LocalDate.now(ZoneId.of("Asia/Seoul"))
+        val today = date == LocalDate.now(ZoneId.of("Asia/Seoul")) && (state.entry?.status == com.kiri.domain.home.ScheduleStatus.CONFIRMED) && state.collection.currentUserId in state.entry?.participantIds.orEmpty()
         var confirmDelete by remember { mutableStateOf(false) }
         Column(Modifier.fillMaxSize()) {
         MissionDetailScreen(state.detail, viewModel::onDetailEvent, modifier = Modifier.weight(1f), calendarHeader = CalendarDetailHeader(
             title = if (bucket) "버킷리스트 저장" else date?.let { "${it.monthValue}월 ${it.dayOfMonth}일" } ?: "기록 상세",
-            badge = if (bucket) "버킷리스트로 저장된 약속이에요!" else if (today) "약속 확정" else "끼리추천",
+            badge = if (bucket) "버킷리스트로 저장된 약속이에요!" else if (state.entry?.status == com.kiri.domain.home.ScheduleStatus.PENDING_RESPONSE) "응답 대기" else if (state.entry?.status == com.kiri.domain.home.ScheduleStatus.NOT_CONFIRMED) "미확정" else if (today) "약속 확정" else "끼리추천",
             showCustom = !bucket && today,
         ), suggestionIcon = { Image(painterResource(R.drawable.record_calendar_umbrella), null, Modifier.size(24.dp)) }, nearbyImageRes = R.drawable.record_calendar_nearby)
         state.entry?.let { entry ->

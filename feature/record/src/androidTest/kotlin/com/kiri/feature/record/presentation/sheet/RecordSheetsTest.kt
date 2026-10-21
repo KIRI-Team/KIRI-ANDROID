@@ -45,6 +45,16 @@ class RecordSheetsTest {
         assertEquals(listOf("schedule", "delete", "close"), clicks)
     }
 
+    @Test fun unavailableBucketActionsAreDisabled() {
+        compose.setContent { KiriTheme {
+            RecordItemOptionSheetContent("완료한 활동", "다른 가족이 저장했어요", {}, {}, {},
+                scheduleEnabled = false, deleteEnabled = false)
+        } }
+        compose.onNodeWithTag("record_option_schedule").assertIsNotEnabled()
+        compose.onNodeWithTag("record_option_delete").assertIsNotEnabled()
+        compose.onNodeWithTag("record_option_close").assertIsEnabled()
+    }
+
     @Test fun sendMethodSheetRoutesEachAction() {
         val clicks = mutableListOf<String>()
         compose.setContent {

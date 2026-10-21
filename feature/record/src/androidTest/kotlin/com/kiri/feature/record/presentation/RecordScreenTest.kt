@@ -23,6 +23,25 @@ import org.junit.Test
 
 class RecordScreenTest {
     @get:Rule val compose = createComposeRule()
+    @Test fun multipleActivitiesOnOneDateRequireAnExplicitActivityChoice() {
+        val date = LocalDate.of(2026, 10, 13)
+        val entries = listOf(
+            com.kiri.domain.record.CalendarEntry("photo", "river", date, com.kiri.domain.record.CalendarEntryKind.MEMORY, "오전 활동", java.time.LocalTime.of(10, 0)),
+            com.kiri.domain.record.CalendarEntry("schedule", "river", date, com.kiri.domain.record.CalendarEntryKind.SCHEDULE, "오후 약속", java.time.LocalTime.of(15, 0)),
+        )
+        val state = mutableStateOf(RecordUiState(today = date, entries = entries, calendarMarks = mapOf(date to RecordCalendarMark.PHOTO_FIRST)))
+        var opened: String? = null
+        compose.setContent { KiriTheme { RecordScreen(state.value, { event -> when (event) {
+            is RecordUiEvent.DateSelected -> state.value = state.value.copy(selectedDate = event.date)
+            is RecordUiEvent.CalendarEntryClicked -> opened = event.id
+            else -> Unit
+        } }) } }
+        compose.onNodeWithTag("record_date_$date").performScrollTo().performClick()
+        compose.runOnIdle { org.junit.Assert.assertNull(opened) }
+        compose.onNodeWithTag("record_day_count_$date").assertIsDisplayed()
+        compose.onNodeWithTag("record_day_schedule").performScrollTo().performClick()
+        compose.runOnIdle { org.junit.Assert.assertEquals("schedule", opened) }
+    }
     private fun start() {
         val repo = FakeRecordRepository(FakeHomeRepository(Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC), latencyMillis = 0), FakeMissionRepository())
         val vm = RecordViewModel(SavedStateHandle(mapOf("recordSeedDate" to "2026-10-13")), repo)
@@ -41,8 +60,8 @@ class RecordScreenTest {
         compose.onNodeWithTag("record_date_2026-10-22").assertIsSelected()
         compose.onNodeWithTag("record_tab_BUCKET").performClick()
         compose.onNodeWithTag("record_bucket_list").assertIsDisplayed()
-        compose.onNodeWithText("엄마 0").assertIsDisplayed()
-        compose.onNodeWithText("아빠 1").assertIsDisplayed()
+        compose.onNodeWithText("마마 0").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("빠빠 1").performScrollTo().assertIsDisplayed()
         capture("record-bucket")
         compose.onNodeWithTag("record_saver_father").performClick().assertIsSelected()
         compose.onNodeWithTag("record_bucket_record-bucket").assertIsDisplayed()

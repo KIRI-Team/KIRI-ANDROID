@@ -19,6 +19,7 @@ data class RecordUiState(
     val selectedDate: LocalDate = today,
     val tab: RecordTab = RecordTab.CALENDAR,
     val selectedSaverId: String? = null,
+    val currentUserId: String = "",
     val savers: List<RecordSaver> = emptyList(),
     val buckets: List<RecordBucketItem> = emptyList(),
     val schedules: List<RecordSchedule> = emptyList(),
@@ -27,7 +28,9 @@ data class RecordUiState(
     val calendarPhotos: Map<LocalDate, RecordPhoto> = emptyMap(),
     val loading: Boolean = false,
     val error: String? = null,
+    val questions: Map<LocalDate, com.kiri.domain.record.RecordedQuestion> = emptyMap(),
 ) {
+    val selectedEntries get() = entries.filter { it.date == selectedDate }.sortedWith(compareBy({ it.startTime ?: java.time.LocalTime.MAX }, { it.id }))
     val visibleBuckets get() = buckets.filter { selectedSaverId == null || it.saverId == selectedSaverId }
     val upcomingSchedules get() = schedules.filter { !it.date.isBefore(today) }.sortedBy { it.date }
     fun saverName(id: String) = savers.firstOrNull { it.id == id }?.nickname ?: "탈퇴한 멤버"

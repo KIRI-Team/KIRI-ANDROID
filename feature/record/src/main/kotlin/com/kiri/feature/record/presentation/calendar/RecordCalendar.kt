@@ -73,12 +73,31 @@ internal fun RecordCalendar(state: RecordUiState, onEvent: (RecordUiEvent) -> Un
                         else CalendarCell(date, state.calendarMarks[date], date == state.selectedDate,
                             {
                                 onEvent(RecordUiEvent.DateSelected(date))
-                                state.entries.firstOrNull { it.date == date }?.let { onEvent(RecordUiEvent.CalendarEntryClicked(it.id)) }
-                            }, Modifier.weight(1f), state.calendarPhotos[date])
+                                if (state.questions[date] == null) state.entries.filter { it.date == date }.singleOrNull()?.let { onEvent(RecordUiEvent.CalendarEntryClicked(it.id)) }
+                            }, Modifier.weight(1f), state.calendarPhotos[date], state.entries.count { it.date == date })
                     }
                 }
             }
         }
+        item(key = "selected-date") {
+            Text("${state.selectedDate.monthValue}월 ${state.selectedDate.dayOfMonth}일의 활동", style = KiriDetailTypography.Title, modifier = Modifier.padding(top = 18.dp, bottom = 8.dp))
+            if (state.selectedEntries.isEmpty() && state.questions[state.selectedDate] == null) Text("이 날의 활동이 없어요", style = KiriDetailTypography.Small, color = KiriColor.Text.Tertiary)
+        }
+        items(state.selectedEntries, key = { "day-${it.id}" }) { entry ->
+            Surface(onClick = { onEvent(RecordUiEvent.CalendarEntryClicked(entry.id)) }, color = KiriColor.Bg.Primary, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).testTag("record_day_${entry.id}")) {
+                Column(Modifier.padding(16.dp)) {
+                    Text(entry.title, style = KiriDetailTypography.Title)
+                    Text("${entry.startTime ?: "시간 미정"} · ${when(entry.kind) { com.kiri.domain.record.CalendarEntryKind.MEMORY -> "활동 기록"; com.kiri.domain.record.CalendarEntryKind.SCHEDULE -> "약속"; else -> "버킷리스트" }}", style = KiriDetailTypography.Small)
+                }
+            }
+        }
+        state.questions[state.selectedDate]?.let { question -> item(key = "past-question") {
+            Column(Modifier.fillMaxWidth().padding(vertical = 16.dp).testTag("record_question_read_only")) {
+                Text(question.text, style = KiriDetailTypography.Title)
+                Text("이 날의 가족 답변 · 읽기 전용", style = KiriDetailTypography.Small, color = KiriColor.Text.Tertiary)
+                question.answers.forEach { (id, answer) -> Text("${question.memberNames[id] ?: "탈퇴한 멤버"} · $answer", style = KiriDetailTypography.Body, modifier = Modifier.padding(top = 8.dp)) }
+            }
+        } }
         item(key = "upcoming-title") {
             Text("다가오는 약속", style = KiriDetailTypography.Title, color = KiriColor.Text.Strong,
                 modifier = Modifier.padding(top = 24.dp, bottom = 16.dp))
@@ -92,7 +111,7 @@ internal fun RecordCalendar(state: RecordUiState, onEvent: (RecordUiEvent) -> Un
 }
 
 @Composable
-private fun CalendarCell(date: LocalDate, mark: RecordCalendarMark?, selected: Boolean, onClick: () -> Unit, modifier: Modifier, photo: RecordPhoto? = null) {
+private fun CalendarCell(date: LocalDate, mark: RecordCalendarMark?, selected: Boolean, onClick: () -> Unit, modifier: Modifier, photo: RecordPhoto? = null, count: Int = 0) {
     val shape = RoundedCornerShape(12.dp)
     val background = when {
         selected -> KiriColor.Primary.Default.copy(alpha = .2f)
@@ -129,6 +148,7 @@ private fun CalendarCell(date: LocalDate, mark: RecordCalendarMark?, selected: B
         if (mark == null || mark == RecordCalendarMark.QUESTION || mark == RecordCalendarMark.PHOTO_FIRST || mark == RecordCalendarMark.PHOTO_SECOND) {
             Text(date.dayOfMonth.toString(), color = if (mark == RecordCalendarMark.PHOTO_SECOND) KiriColor.Text.Strong else KiriColor.Text.Primary, style = KiriDetailTypography.Body)
         }
+        if (count > 1) Text("+${count - 1}", Modifier.align(Alignment.TopEnd).background(KiriColor.Bg.Secondary, RoundedCornerShape(4.dp)).padding(2.dp).testTag("record_day_count_$date"), color = KiriColor.Text.Strong, style = KiriDetailTypography.Small)
     }
 }
 
