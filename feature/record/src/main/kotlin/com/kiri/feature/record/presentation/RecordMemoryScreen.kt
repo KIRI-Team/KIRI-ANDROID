@@ -56,6 +56,7 @@ fun RecordMemoryScreen(
     onEdit: (String) -> Unit,
     onDelete: (String) -> Unit,
     onDismissToast: () -> Unit,
+    onReview: (() -> Unit)? = null,
 ) {
     var photoActions by remember { mutableStateOf(false) }
     var deleteId by remember { mutableStateOf<String?>(null) }
@@ -100,6 +101,9 @@ fun RecordMemoryScreen(
                     FamilyMemoryCard(memory, memory.authorId == state.collection.currentUserId, state.detail.saving,
                         { onEdit(memory.id) }, { deleteId = memory.id })
                     Spacer(Modifier.height(16.dp))
+                }
+                if (onReview != null && state.collection.currentUserId in state.entry?.participantIds.orEmpty() && state.memories.none { it.authorId == state.collection.currentUserId }) {
+                    KiriButton(onReview, text = "나의 추억도 기록하기", layout = KiriButtonLayout.Record)
                 }
                 state.detail.error?.let { Text(it, color = KiriColor.Status.Error, style = KiriDetailTypography.Small, modifier = Modifier.testTag("record_mutation_error")) }
                 Spacer(Modifier.height(70.dp))

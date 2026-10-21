@@ -81,6 +81,20 @@ class FakeRecordRepositoryTest {
         assertTrue("요청이 거절되어야 한다", failed)
     }
 
+    @Test fun onlyAnAcceptedParticipantCanChangeTodaysConditions() = runTest {
+        val source = home()
+        var family = source.load()
+        val access = object : com.kiri.domain.home.HomeRepository by source {
+            override suspend fun load() = family
+        }
+        val repo = FakeRecordRepository(access, FakeMissionRepository())
+        repo.refresh()
+        val entry = repo.records.value.entries.first { it.id == "record-today" }
+        family = family.copy(currentUserId = "not-invited")
+        assertFails { repo.applyConditions(entry.id, setOf(Condition.MORE_REST)) }
+        assertTrue(repo.records.value.entries.first { it.id == entry.id }.conditions.isEmpty())
+    }
+
     private val clock = Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC)
     private fun home(scenario: HomeScenario = HomeScenario.DEFAULT) = FakeHomeRepository(clock, scenario, latencyMillis = 0)
 
