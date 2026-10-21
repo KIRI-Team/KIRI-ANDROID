@@ -60,13 +60,18 @@ private fun BucketCard(bucket: RecordBucketItem, saverName: String, onOpen: () -
         Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (bucket.completed) BucketBadge("완료")
-                val last = saverName.lastOrNull()
-                val particle = if (last != null && last in '가'..'힣' && (last.code - '가'.code) % 28 != 0) "이" else "가"
-                BucketBadge("$saverName$particle 저장했어요!")
+                BucketBadge("${withSubjectParticle(saverName)} 저장했어요!")
             }
             Text(bucket.title, style = KiriDetailTypography.Title.copy(fontSize = 20.sp, lineHeight = 30.sp, letterSpacing = (-.8).sp), color = KiriColor.Text.Strong)
         }
     }
+}
+
+// 이름 뒤에 주격 조사를 붙인다. 마지막 글자에 받침이 있으면 '이', 없거나 한글이 아니면 '가' (딸이, 아빠가)
+internal fun withSubjectParticle(name: String): String {
+    val last = name.lastOrNull()
+    val particle = if (last != null && last in '가'..'힣' && (last.code - '가'.code) % 28 != 0) "이" else "가"
+    return "$name$particle"
 }
 
 @Composable

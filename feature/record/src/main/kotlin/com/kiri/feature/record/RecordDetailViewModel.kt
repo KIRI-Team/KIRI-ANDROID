@@ -75,6 +75,7 @@ class RecordDetailViewModel @Inject constructor(
             DetailUiEvent.RetryClicked -> load()
             DetailUiEvent.CustomClicked -> {
                 val entry = uiState.value.entry ?: return
+                // TODO: 오늘 기준 통일 - 실제 RecordRepository 를 만들 때 기기 시계(LocalDate.now)와 저장소의 가족 날짜(family.date) 중 하나로 맞춘다
                 if (entry.kind != CalendarEntryKind.SCHEDULE || entry.date != LocalDate.now(ZoneId.of("Asia/Seoul")) || uiState.value.detail.saving) return
                 state.update { it.copy(detail = it.detail.copy(draft = it.detail.detail?.conditions.orEmpty(), error = null)) }
                 effects.trySend(RecordDetailEffect.Custom)

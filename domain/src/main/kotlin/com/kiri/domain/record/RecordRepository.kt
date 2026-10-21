@@ -22,9 +22,21 @@ data class CalendarEntry(
     val conditions: Set<Condition> = emptySet(),
     val completed: Boolean = false,
     val linkedScheduleIds: Set<String> = emptySet(),
-    val scheduleStatus: com.kiri.domain.home.ScheduleStatus? = null,
+    val status: com.kiri.domain.home.ScheduleStatus = com.kiri.domain.home.ScheduleStatus.CONFIRMED,
     val missionSnapshot: com.kiri.domain.mission.MissionContent? = null,
     val placeSnapshot: String? = null,
+)
+
+enum class ScheduleRequestChannel { APP, KAKAO }
+
+data class ScheduleRequest(
+    val bucketId: String,
+    val date: LocalDate,
+    val time: LocalTime,
+    val participantIds: Set<String>,
+    val message: String,
+    val channel: ScheduleRequestChannel,
+    val requestId: String = "",
 )
 
 data class RecordPhoto(val id: String, val source: String)
@@ -63,6 +75,7 @@ interface RecordRepository {
     suspend fun changeRepresentativePhoto(entryId: String, photoId: String)
     suspend fun updateMemory(memory: FamilyMemory)
     suspend fun deleteMemory(memoryId: String)
+    suspend fun requestSchedule(request: ScheduleRequest): CalendarEntry { error("Schedule creation is unavailable") }
     suspend fun addMemory(entryId: String, text: String, photos: List<RecordPhoto>, rating: Int, repeatActivity: Boolean) {
         error("Review creation is unavailable")
     }

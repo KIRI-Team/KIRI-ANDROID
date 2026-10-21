@@ -122,4 +122,26 @@ class ActivityPolicyTest {
         f.records.refresh()
         assertEquals(CalendarEntryKind.MEMORY, f.records.records.value.entries.first { it.id == created.id }.kind)
     }
+    @Test fun recordRegistrationUsesTheSharedScheduleAndKeepsTheLinkedBucket() = runTest {
+        val f = Fixture()
+        val draft = f.draft()
+        f.records.refresh()
+        val local = LocalDateTime.ofInstant(draft.startsAt, ZoneId.of("Asia/Seoul"))
+        val request = ScheduleRequest(draft.bucketId, local.toLocalDate(), local.toLocalTime(), setOf("me", "mother"), "함께 가요", ScheduleRequestChannel.APP, "record-request")
+        val first = f.records.requestSchedule(request)
+        val retry = f.records.requestSchedule(request)
+        assertEquals(first.id, retry.id)
+        assertEquals(com.kiri.domain.home.ScheduleStatus.PENDING_RESPONSE, first.status)
+        assertEquals(setOf(first.id), f.buckets.buckets.value.first { it.id == draft.bucketId }.linkedScheduleIds)
+        f.user = "mother"
+        val pending = f.schedules.schedules.value.first { it.id == first.id }
+        f.schedules.respond(first.id, MemberResponse.ACCEPTED, pending.revision)
+        f.records.refresh()
+        assertEquals(com.kiri.domain.home.ScheduleStatus.CONFIRMED, f.records.records.value.entries.first { it.id == first.id }.status)
+        f.user = "me"
+        f.schedules.cancel(first.id, f.schedules.schedules.value.first { it.id == first.id }.revision)
+        f.records.refresh()
+        assertFalse(f.records.records.value.entries.any { it.id == first.id })
+        assertTrue(f.buckets.buckets.value.first { it.id == draft.bucketId }.linkedScheduleIds.isEmpty())
+    }
 }

@@ -54,7 +54,7 @@ class FakeRecordRepository(
         val schedules = familySchedules?.schedules?.value?.filter { !it.cancelled && !it.completed }?.map { schedule ->
             val time = schedule.startsAt.atZone(ZoneId.of("Asia/Seoul"))
             CalendarEntry(schedule.id, schedule.missionId, time.toLocalDate(), CalendarEntryKind.SCHEDULE,
-                schedule.title, time.toLocalTime(), participantIds = schedule.acceptedIds.toList(), scheduleStatus = schedule.status(clock.instant()))
+                schedule.title, time.toLocalTime(), participantIds = schedule.acceptedIds.toList(), status = schedule.status(clock.instant()))
         } ?: family.schedules.filter { it.status == ScheduleStatus.CONFIRMED && it.finalParticipant }.map { schedule ->
             val time = schedule.startsAt.atZone(ZoneId.of("Asia/Seoul"))
             CalendarEntry(schedule.id, schedule.missionId, time.toLocalDate(), CalendarEntryKind.SCHEDULE,
@@ -119,6 +119,7 @@ class FakeRecordRepository(
         }
         mutex.withLock {
             val entry = requireNotNull(state.value.entries.find { it.id == entryId })
+            // TODO: 오늘 기준 통일 - 실제 RecordRepository 를 만들 때 기기 시계(LocalDate.now)와 저장소의 가족 날짜(family.date) 중 하나로 맞춘다
             check(entry.kind == CalendarEntryKind.SCHEDULE && entry.date == family.date) { "Only today's schedule can be customized" }
             state.value = state.value.copy(entries = state.value.entries.map { if (it.id == entryId) it.copy(conditions = conditions.toSet()) else it })
         }
@@ -178,6 +179,35 @@ class FakeRecordRepository(
     override suspend fun deleteBucket(bucketId: String) {
         requireNotNull(familyBuckets).delete(bucketId)
         refresh()
+    }
+
+    override suspend fun requestSchedule(request: ScheduleRequest): CalendarEntry {
+        if (familySchedules != null) {
+            val bucket = requireNotNull(state.value.entries.find { it.id == request.bucketId && it.kind == CalendarEntryKind.BUCKET })
+            val family = home.load()
+            require(request.message.length <= 100)
+            val start = java.time.LocalDateTime.of(request.date, request.time).atZone(java.time.ZoneId.of("Asia/Seoul")).toInstant()
+            val schedule = familySchedules.create(com.kiri.domain.schedule.ScheduleDraft(
+                bucket.id, bucket.missionId, start, request.participantIds - family.currentUserId,
+                request.message, missions.load(bucket.missionId).summary.place,
+            ), request.requestId.ifBlank { "record-${bucket.id}-${request.date}-${request.time}" })
+            refresh()
+            return requireNotNull(state.value.entries.find { it.id == schedule.id })
+        }
+        return mutex.withLock {
+            val family = home.load()
+            check(!family.browsing) { "Family access required" }
+            val bucket = requireNotNull(state.value.entries.find { it.id == request.bucketId && it.kind == CalendarEntryKind.BUCKET }) { "Bucket not found" }
+            // TODO: 오늘 기준 통일 - 실제 RecordRepository 를 만들 때 기기 시계(LocalDate.now)와 저장소의 가족 날짜(family.date) 중 하나로 맞춘다
+            require(!request.date.isBefore(family.date)) { "Past dates cannot be requested" }
+            val accessibleIds = family.members.filter { it.accessible }.map { it.id }.toSet()
+            require(request.participantIds.isNotEmpty() && request.participantIds.all { it in accessibleIds }) { "Participants must be family members" }
+            require(request.message.length <= 100)
+            val schedule = CalendarEntry("request-${bucket.id}", bucket.missionId, request.date, CalendarEntryKind.SCHEDULE, bucket.title,
+                request.time, bucket.saverId, request.participantIds.toList(), status = ScheduleStatus.PENDING_RESPONSE)
+            state.value = state.value.copy(entries = state.value.entries.filterNot { it.id == bucket.id } + schedule)
+            schedule
+        }
     }
 }
 
