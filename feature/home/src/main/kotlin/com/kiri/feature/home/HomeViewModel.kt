@@ -25,6 +25,7 @@ class HomeViewModel @Inject constructor(
     private val tutorialRepository: HomeTutorialRepository = NoHomeTutorial,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val scheduleRepository: com.kiri.domain.schedule.ScheduleRepository? = null,
+    private val preferences: com.kiri.domain.preferences.PreferenceRepository? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState(
         tutorialStep = savedState.get<String>("homeTutorialStep")?.let { value -> HomeTutorialStep.entries.firstOrNull { it.name == value } },
@@ -34,6 +35,7 @@ class HomeViewModel @Inject constructor(
     private val _effect = kotlinx.coroutines.channels.Channel<HomeUiEffect>(kotlinx.coroutines.channels.Channel.BUFFERED)
     val effect = _effect.receiveAsFlow()
     private var loadingInProgress = false
+    private var preferredCategories: Set<com.kiri.domain.place.PlaceCategory> = emptySet()
     init {
         load()
         scheduleRepository?.let { schedules -> viewModelScope.launch { schedules.schedules.collect {
@@ -119,6 +121,7 @@ class HomeViewModel @Inject constructor(
 
     private fun FamilyHome.withTemporaryInviteCode(): FamilyHome =
         if (browsing) this else copy(inviteCode = com.kiri.feature.onboarding.TemporaryFamilyCode.code)
+    private fun FamilyHome.withPreferenceOrder() = copy(recommendations = recommendations.sortedByDescending { it.category in preferredCategories })
 
     private fun load() {
         if (uiState.value.busy || loadingInProgress) return
@@ -127,7 +130,10 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 scheduleRepository?.refresh()
-                val home = repository.load().withTemporaryInviteCode().withSchedules()
+                val loaded = repository.load().withTemporaryInviteCode().withSchedules()
+                val taste = try { preferences?.load() } catch (e: CancellationException) { throw e } catch (_: Exception) { null }
+                preferredCategories = taste?.categories.orEmpty()
+                val home = loaded.withPreferenceOrder()
                 if (!home.browsing && savedState.get<Boolean>("homeTutorialChecked") != true) {
                     // Mark the visit before showing it: returning home or restarting cannot replay it.
                     val firstVisit = runCatching { tutorialRepository.claimFirstVisit(home.currentUserId) }
@@ -162,7 +168,7 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             try {
-                val home = repository.saveAnswer(question, s.draft).withTemporaryInviteCode().withSchedules()
+                val home = repository.saveAnswer(question, s.draft).withTemporaryInviteCode().withSchedules().withPreferenceOrder()
                 _uiState.update { it.copy(home = home, busy = false, editing = true, answerSaved = true) }
             } catch (error: CancellationException) { throw error }
             catch (error: Exception) { failed(error) }
@@ -178,7 +184,7 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             try {
-                val updated = repository.poke(question, member).withTemporaryInviteCode().withSchedules()
+                val updated = repository.poke(question, member).withTemporaryInviteCode().withSchedules().withPreferenceOrder()
                 val nickname = home.members.firstOrNull { it.id == member }?.nickname ?: "가족"
                 _uiState.update { it.copy(
                     home = updated, busy = false, selectedMemberId = null,

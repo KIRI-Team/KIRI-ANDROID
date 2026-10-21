@@ -108,8 +108,8 @@ class FakeHomeRepository(
                 HomeSchedule("schedule-demo", "한강 뚜벅뚜벅 축제 가보기", date.atTime(14, 50).atZone(ZoneId.of("Asia/Seoul")).toInstant(), ScheduleStatus.CONFIRMED, true, missionId = FakeMissionRepository.RIVER_MISSION_ID),
             ),
             recommendations = if (browsing) emptyList() else listOf(
-                HomeRecommendation("gyeongbokgung", "경복궁에서 사진찍기", "경복궁 종로구", listOf("대중교통 편리", "가족과 함께"), "4.6", description = "대중교통이 편리하고, 부모님이랑 가기 좋아요! 추천합니다"),
-                HomeRecommendation("namsan", "남산 산책하기", "남산 중구", listOf("대중교통 편리", "가족과 함께"), "4.4", description = "산책하기 좋고, 가족과 함께 여유를 즐길 수 있어요"),
+                HomeRecommendation("gyeongbokgung", "경복궁에서 사진찍기", "경복궁 종로구", listOf("대중교통 편리", "가족과 함께"), "4.6", description = "대중교통이 편리하고, 부모님이랑 가기 좋아요! 추천합니다", category = com.kiri.domain.place.PlaceCategory.CULTURE),
+                HomeRecommendation("namsan", "남산 산책하기", "남산 중구", listOf("대중교통 편리", "가족과 함께"), "4.4", description = "산책하기 좋고, 가족과 함께 여유를 즐길 수 있어요", category = com.kiri.domain.place.PlaceCategory.OUTDOOR),
             ),
             inviteCode = if (browsing) null else "KIRI-${date.toString().replace("-", "").takeLast(6)}",
         )

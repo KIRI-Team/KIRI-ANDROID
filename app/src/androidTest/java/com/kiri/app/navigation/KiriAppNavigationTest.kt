@@ -63,6 +63,22 @@ class KiriAppNavigationTest {
         compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
     }
 
+    @Inject lateinit var preferences: com.kiri.domain.preferences.PreferenceRepository
+
+    @Test fun homeTasteBannerOpensPreferencesAndRestoresSavedSelection() {
+        kotlinx.coroutines.runBlocking { preferences.save(com.kiri.domain.preferences.UserPreferences()) }
+        start()
+        compose.onNodeWithTag("home_taste_banner").performScrollTo().performClick()
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("my_preference_screen").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("preference_OUTDOOR").performClick()
+        compose.onNodeWithTag("preference_save").performClick()
+        compose.waitUntil(10_000) { compose.onAllNodesWithText("취향이 저장되었어요.").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("bottom_nav_home").performClick()
+        compose.onNodeWithTag("home_taste_banner").performScrollTo().performClick()
+        compose.waitUntil(10_000) { compose.onAllNodes(hasTestTag("preference_OUTDOOR") and isSelected()).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("preference_OUTDOOR").assertIsSelected()
+    }
+
     @Test fun homeInvitationShowsOnboardingTemporaryCodeAndReturnsHome() {
         start()
         compose.onNodeWithText("가족 초대하기").performScrollTo().performClick()

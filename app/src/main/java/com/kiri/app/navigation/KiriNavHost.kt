@@ -17,7 +17,7 @@ fun KiriNavHost(
     onNavigateToLogin: () -> Unit = {},
 ) {
     NavHost(navController, startDestination = TopLevelDestination.HOME.graphRoute, modifier = modifier) {
-        homeNavHost(navController, onOpenPlaces = { navController.navigate(TopLevelDestination.PLACE.graphRoute) }, onSchedule = { navController.navigate(scheduleRoute(it, "home_graph")) }, scheduleDestinations = { scheduleGraph(navController, "home_graph") })
+        homeNavHost(navController, onOpenPlaces = { navController.navigate(TopLevelDestination.PLACE.graphRoute) }, onSchedule = { navController.navigate(scheduleRoute(it, "home_graph")) }, scheduleDestinations = { scheduleGraph(navController, "home_graph") }, onPreferences = { navController.navigate("mypage_graph/my_preference") { launchSingleTop = true } })
         recordNavHost(navController, onCreateSchedule = { navController.navigate(scheduleCreateRoute(it, "record_graph")) }, onManageSchedule = { navController.navigate(scheduleRoute(it, "record_graph")) }, scheduleDestinations = { scheduleGraph(navController, "record_graph") })
         placeNavHost(navController)
         mypageGraph(navController, onNavigateToLogin = onNavigateToLogin)

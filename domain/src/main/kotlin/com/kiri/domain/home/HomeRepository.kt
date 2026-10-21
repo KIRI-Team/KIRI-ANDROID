@@ -33,6 +33,7 @@ data class HomeRecommendation(
     val rating: String? = null,
     val imageUrl: String? = null,
     val description: String = "",
+    val category: com.kiri.domain.place.PlaceCategory? = null,
 )
 
 data class FamilyHome(

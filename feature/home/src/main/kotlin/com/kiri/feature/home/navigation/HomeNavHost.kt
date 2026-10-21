@@ -29,7 +29,7 @@ private const val START_ROUTE = "home"
 private const val DETAIL_ROUTE = "home_graph/detail"
 
 /** Registers this feature in the main tab back stack. */
-fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: () -> Unit, onSchedule: (String) -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
+fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: () -> Unit, onSchedule: (String) -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}, onPreferences: () -> Unit = {}) {
     navigation(startDestination = START_ROUTE, route = GRAPH_ROUTE) {
         scheduleDestinations()
         composable(START_ROUTE) {
@@ -40,6 +40,7 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
                     when (destination) {
                         HomeUiDestination.OpenPlaces -> onOpenPlaces()
                         HomeUiDestination.Notifications -> navController.navigate("home/notifications") { launchSingleTop = true }
+                        HomeUiDestination.Preferences -> onPreferences()
                         else -> Unit
                     }
                 },

@@ -141,7 +141,7 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
                 TopBar(home?.familyName ?: "둘러보기") { onDestination(HomeUiDestination.Notifications) }; Spacer(Modifier.height(11.dp))
                 Column(Modifier.padding(horizontal = 18.dp)) {
                 if (home != null && !home.browsing && !state.loading && !state.loadError) {
-                    HomeTasteBanner(home.members.firstOrNull { it.id == home.currentUserId }?.nickname ?: "우리 가족")
+                    HomeTasteBanner(home.members.firstOrNull { it.id == home.currentUserId }?.nickname ?: "우리 가족") { onDestination(HomeUiDestination.Preferences) }
                     Spacer(Modifier.height(48.dp))
                 }
                 when { state.loading -> LoadingHome(); state.loadError || home == null -> ErrorHome { onEvent(HomeUiEvent.RetryClicked) }; home.browsing -> BrowseCard(onDestination); else -> {
@@ -179,8 +179,8 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
         }
     })
 }
-@Composable private fun HomeTasteBanner(name: String) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 84.dp).background(KiriColor.Bg.Primary, RoundedCornerShape(16.dp)).padding(horizontal = 21.dp, vertical = 15.dp).testTag("home_taste_banner"), verticalAlignment = Alignment.CenterVertically) {
+@Composable private fun HomeTasteBanner(name: String, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 84.dp).background(KiriColor.Bg.Primary, RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(horizontal = 21.dp, vertical = 15.dp).testTag("home_taste_banner"), verticalAlignment = Alignment.CenterVertically) {
         Text("${name}님의\n취향을 더 알고싶어요!", Modifier.weight(1f), color = KiriColor.Text.Strong, style = com.kiri.uikit.component.KiriDetailTypography.Title)
         Text("취향테스트 참여하러가기", color = KiriColor.Text.Secondary, style = com.kiri.uikit.component.KiriDetailTypography.Small)
     }

@@ -121,6 +121,26 @@ class HomeViewModelTest {
         assertTrue(vm.uiState.value.showingMission)
     }
 
+    @Test fun preferredRecommendationOrderSurvivesAnswerSubmission() = runTest(dispatcher) {
+        val repo = TestRepository()
+        repo.home = repo.home.copy(recommendations = listOf(
+            HomeRecommendation("culture", "전시", "미술관", category = com.kiri.domain.place.PlaceCategory.CULTURE),
+            HomeRecommendation("outdoor", "산책", "공원", category = com.kiri.domain.place.PlaceCategory.OUTDOOR),
+        ))
+        val preferences = object : com.kiri.domain.preferences.PreferenceRepository {
+            override suspend fun load() = com.kiri.domain.preferences.UserPreferences(setOf(com.kiri.domain.place.PlaceCategory.OUTDOOR))
+            override suspend fun save(preferences: com.kiri.domain.preferences.UserPreferences) = Unit
+        }
+        val vm = HomeViewModel(repo, preferences = preferences)
+        advanceUntilIdle()
+        assertEquals("outdoor", vm.uiState.value.home?.recommendations?.first()?.id)
+        vm.onEvent(HomeUiEvent.AnswerEditClicked)
+        vm.onEvent(HomeUiEvent.AnswerChanged("함께 산책하고 싶어요"))
+        vm.onEvent(HomeUiEvent.AnswerSaveClicked)
+        advanceUntilIdle()
+        assertEquals("outdoor", vm.uiState.value.home?.recommendations?.first()?.id)
+    }
+
     private class TestRepository : HomeRepository {
         var saves = 0
         var failSave = false
