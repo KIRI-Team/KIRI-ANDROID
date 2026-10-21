@@ -61,15 +61,18 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
                 }
             }
             state.buckets.find { it.id == optionBucketId }?.let { bucket ->
+                val activity = state.entries.find { it.id == bucket.id }
+                val linkedSchedules = activity?.linkedScheduleIds.orEmpty()
+                val completed = activity?.completed == true
                 RecordItemOptionSheet(
                     title = bucket.title,
                     subtitle = savedByLabel(state.saverName(bucket.saverId)),
-                    scheduleLabel = if (bucket.completed) "완료한 활동" else if (bucket.linkedScheduleIds.isEmpty()) "일정 잡기" else "연결된 약속 보기",
-                    scheduleEnabled = !bucket.completed,
+                    scheduleLabel = if (completed) "완료한 활동" else if (linkedSchedules.isEmpty()) "일정 잡기" else "연결된 약속 보기",
+                    scheduleEnabled = !completed,
                     onScheduleClick = {
                         optionBucketId = null
-                        if (bucket.linkedScheduleIds.isNotEmpty()) onManageSchedule(bucket.linkedScheduleIds.first())
-                        else if (!bucket.completed) navController.navigate("$SCHEDULE_ROUTE/${Uri.encode(bucket.id)}") { launchSingleTop = true }
+                        if (linkedSchedules.isNotEmpty()) onManageSchedule(linkedSchedules.first())
+                        else if (!completed) navController.navigate("$SCHEDULE_ROUTE/${Uri.encode(bucket.id)}") { launchSingleTop = true }
                     },
                     onDeleteClick = {
                         optionBucketId = null
