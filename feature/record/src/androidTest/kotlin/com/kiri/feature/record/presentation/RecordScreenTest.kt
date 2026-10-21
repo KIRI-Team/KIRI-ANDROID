@@ -38,7 +38,7 @@ class RecordScreenTest {
         } }) } }
         compose.onNodeWithTag("record_date_$date").performScrollTo().performClick()
         compose.runOnIdle { org.junit.Assert.assertNull(opened) }
-        compose.onNodeWithTag("record_day_count_$date").assertIsDisplayed()
+        compose.onNodeWithTag("record_day_count_$date", useUnmergedTree = true).assertIsDisplayed().assertTextEquals("+1")
         compose.onNodeWithTag("record_day_schedule").performScrollTo().performClick()
         compose.runOnIdle { org.junit.Assert.assertEquals("schedule", opened) }
     }
