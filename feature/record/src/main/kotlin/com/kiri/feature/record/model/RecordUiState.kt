@@ -54,6 +54,10 @@ object RecordPreviewData {
                 RecordSchedule("schedule-2", "한강 뚜벅뚜벅 축제 가보기", today.plusDays(6), RecordScheduleStatus.CONFIRMED),
                 RecordSchedule("schedule-3", "한강 뚜벅뚜벅 축제 가보기", today.plusDays(10), RecordScheduleStatus.CONFIRMED),
             ),
+            calendarPhotos = mapOf(
+                month.atDay(11) to RecordPhoto("preview-group", "demo:group"),
+                month.atDay(20) to RecordPhoto("preview-pixel", "demo:pixel"),
+            ),
             calendarMarks = mapOf(
                 month.atDay(3) to RecordCalendarMark.QUESTION,
                 month.atDay(9) to RecordCalendarMark.PLANNED,

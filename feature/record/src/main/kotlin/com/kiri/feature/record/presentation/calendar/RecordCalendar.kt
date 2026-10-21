@@ -138,11 +138,10 @@ private fun CalendarCell(date: LocalDate, mark: RecordCalendarMark?, selected: B
     ) {
         if (photo != null) RecordPhotoImage(photo, Modifier.fillMaxSize()) else when (mark) {
             RecordCalendarMark.QUESTION -> Image(painterResource(R.drawable.record_question), null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
-            RecordCalendarMark.PHOTO_FIRST -> Image(painterResource(R.drawable.record_photo_first), null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
-            RecordCalendarMark.PHOTO_SECOND -> Image(painterResource(R.drawable.record_photo_second), null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
             RecordCalendarMark.PLANNED -> Image(painterResource(R.drawable.record_clock_planned), null, Modifier.size(33.6.dp))
             RecordCalendarMark.CONFIRMED -> Image(painterResource(R.drawable.record_clock_confirmed), null, Modifier.size(33.6.dp))
             RecordCalendarMark.BUCKET -> Image(painterResource(R.drawable.record_bucket), null, Modifier.size(33.dp))
+            RecordCalendarMark.PHOTO_FIRST, RecordCalendarMark.PHOTO_SECOND -> Unit
             null -> Unit
         }
         if (mark == null || mark == RecordCalendarMark.QUESTION || mark == RecordCalendarMark.PHOTO_FIRST || mark == RecordCalendarMark.PHOTO_SECOND) {

@@ -144,4 +144,23 @@ class ActivityPolicyTest {
         assertFalse(f.records.records.value.entries.any { it.id == first.id })
         assertTrue(f.buckets.buckets.value.first { it.id == draft.bucketId }.linkedScheduleIds.isEmpty())
     }
+    @Test fun deletingTheLastReviewKeepsCompletionButClearsThePhotoGallery() = runTest {
+        val f = Fixture()
+        val draft = f.draft()
+        val schedule = f.schedules.create(draft, "complete-and-delete")
+        f.user = "mother"
+        f.schedules.respond(schedule.id, MemberResponse.ACCEPTED, schedule.revision)
+        f.user = "me"
+        f.clock.time = schedule.startsAt.plusSeconds(1)
+        f.records.refresh()
+        f.records.addMemory(schedule.id, "즐거웠어요", listOf(RecordPhoto("one", "content://test/photo")), 5, true)
+        val review = f.records.records.value.memories.single { it.entryId == schedule.id }
+        f.records.deleteMemory(review.id)
+        val entry = f.records.records.value.entries.single { it.id == schedule.id }
+        assertEquals(CalendarEntryKind.MEMORY, entry.kind)
+        assertTrue(entry.completed)
+        assertNull(entry.representativePhotoId)
+        assertTrue(f.records.records.value.photos[schedule.id].isNullOrEmpty())
+        assertTrue(f.buckets.buckets.value.first { it.id == draft.bucketId }.completed)
+    }
 }

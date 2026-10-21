@@ -89,7 +89,7 @@ class FakeRecordRepositoryTest {
         }
         val repo = FakeRecordRepository(access, FakeMissionRepository())
         repo.refresh()
-        val entry = repo.records.value.entries.first { it.id == "record-today" }
+        val entry = repo.records.value.entries.first { it.kind == CalendarEntryKind.SCHEDULE && it.date == family.date }
         family = family.copy(currentUserId = "not-invited")
         assertFails { repo.applyConditions(entry.id, setOf(Condition.MORE_REST)) }
         assertTrue(repo.records.value.entries.first { it.id == entry.id }.conditions.isEmpty())
