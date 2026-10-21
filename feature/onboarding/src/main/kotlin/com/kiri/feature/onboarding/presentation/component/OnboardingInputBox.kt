@@ -44,6 +44,7 @@ fun OnboardingInputBox(
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
     val inputTextStyle = TextStyle(
+        fontFamily = com.kiri.uikit.KiriFontFamily,
         fontSize = 16.sp,
         fontWeight = FontWeight.Medium,
         lineHeight = 24.sp,
@@ -57,7 +58,7 @@ fun OnboardingInputBox(
         isFocused = isFocused,
         isEmpty = value.isEmpty(),
     )
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(16.dp)
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -78,7 +79,7 @@ fun OnboardingInputBox(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(54.dp)
+                        .height(56.dp)
                         .background(color = state.background(), shape = shape)
                         .border(width = state.borderWidth(), color = state.borderColor(), shape = shape)
                         .padding(horizontal = 24.dp),

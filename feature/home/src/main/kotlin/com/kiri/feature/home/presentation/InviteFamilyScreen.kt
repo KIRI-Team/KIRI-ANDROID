@@ -17,7 +17,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.color.KiriComponentColor
-import com.kiri.uikit.component.KiriInviteCode
+import com.kiri.uikit.component.KiriInviteCodeCard
 import com.kiri.uikit.component.KiriAppBar
 
 @Composable
@@ -29,7 +29,7 @@ fun InviteFamilyScreen(inviteCode: String, onBack: () -> Unit, onShare: () -> Un
             Text("가족코드를\n전달해주세요", color = HomeStrong, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(10.dp)); Text("복사해서 가족에게 보내주세요", color = HomeSecondary, fontSize = 14.sp)
             Spacer(Modifier.height(36.dp))
-            KiriInviteCode(inviteCode, onCopy = { clipboard.setText(AnnotatedString(inviteCode)) })
+            KiriInviteCodeCard(label = "링크코드", value = inviteCode, onCopyClick = { clipboard.setText(AnnotatedString(inviteCode)) })
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f).height(54.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = HomeSecondary)) { Text("취소") }

@@ -53,7 +53,7 @@ fun MemoryPhoto(uri: String, modifier: Modifier = Modifier) {
 
 @Composable
 internal fun MemoryPreviewCard(memory: MemoryDraft, author: String, onEdit: () -> Unit) {
-    Column(Modifier.fillMaxWidth().background(KiriColor.Bg.Secondary, RoundedCornerShape(16.dp)).padding(horizontal = 16.dp, vertical = 24.dp).testTag("local_memory_preview")) {
+    Column(Modifier.fillMaxWidth().background(KiriColor.Bg.Primary, RoundedCornerShape(16.dp)).padding(horizontal = 16.dp, vertical = 24.dp).testTag("local_memory_preview")) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Image(painterResource(R.drawable.memory_card_avatar), null, Modifier.size(36.dp))
             Text("$author I 나", Modifier.weight(1f).padding(start = 14.dp), color = KiriColor.Text.Primary, style = KiriDetailTypography.Body)

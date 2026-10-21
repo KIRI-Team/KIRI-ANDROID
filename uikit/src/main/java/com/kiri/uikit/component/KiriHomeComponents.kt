@@ -212,20 +212,7 @@ fun KiriTooltip(
 
 @Composable
 fun KiriPokeNotice(message: String, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        color = KiriColor.Bg.Tertiary,
-        shape = RoundedCornerShape(12.dp),
-    ) {
-        Row(
-            Modifier.padding(start = 28.dp, top = 18.dp, end = 28.dp, bottom = 17.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Image(painterResource(R.drawable.kiri_poke_notice), "콕 찌르기", Modifier.size(24.dp))
-            Text(message, color = KiriColor.Text.Strong, fontSize = 18.sp)
-        }
-    }
+    KiriToast(message, modifier, icon = KiriToastIcon.Poke)
 }
 
 @Composable
@@ -344,23 +331,6 @@ fun KiriPlaceCard(
                     if (!detailStyle) Image(painterResource(R.drawable.kiri_place_comment), null, Modifier.size(width = 11.3965.dp, height = 10.4468.dp))
                     Text("“$description”", Modifier.weight(1f), color = KiriColor.Text.Tertiary, fontSize = 12.sp, lineHeight = if (detailStyle) 16.8.sp else 18.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, fontFamily = KiriPretendard, letterSpacing = (-0.48).sp)
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun KiriInviteCode(
-    code: String,
-    onCopy: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(modifier.fillMaxWidth(), color = KiriColor.Bg.Elevated, shape = RoundedCornerShape(8.dp)) {
-        Column(Modifier.padding(vertical = 15.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("링크코드", color = KiriColor.Text.Tertiary, fontSize = 12.sp)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(code, color = KiriColor.Text.Strong, fontSize = 20.sp, letterSpacing = 2.sp)
-                IconButton(onClick = onCopy, modifier = Modifier.size(28.dp)) { Image(painterResource(R.drawable.kiri_copy), "복사", Modifier.size(16.dp)) }
             }
         }
     }

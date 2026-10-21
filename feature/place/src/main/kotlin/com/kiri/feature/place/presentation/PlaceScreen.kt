@@ -130,12 +130,11 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
                 }
             }
         }
-        if (state.toast) Surface(Modifier.align(Alignment.TopCenter).padding(top = 62.dp, start = 18.dp, end = 18.dp).fillMaxWidth().testTag("place_saved_toast"), color = KiriColor.Bg.Tertiary, shape = RoundedCornerShape(12.dp)) {
-            Row(Modifier.padding(start = 28.dp, end = 12.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("버킷리스트에 저장되었습니다!", Modifier.weight(1f), style = KiriDetailTypography.Title, color = KiriColor.Text.Strong)
-                TextButton(onClick = onSaved) { Text("바로가기", style = KiriDetailTypography.Small, color = KiriColor.Text.Secondary) }
-            }
-        }
+        if (state.toast) com.kiri.uikit.component.KiriToast(
+            "버킷리스트에 저장되었습니다!",
+            Modifier.align(Alignment.TopCenter).padding(top = 62.dp, start = 18.dp, end = 18.dp).fillMaxWidth().testTag("place_saved_toast"),
+            actionLabel = "바로가기", onAction = onSaved,
+        )
     }
     if (showingFilters) PlaceFilterSheet(state.query.filters, onDismiss = { showingFilters = false }, onApply = {
         onEvent(PlaceUiEvent.FiltersApplied(it))
@@ -174,7 +173,7 @@ private fun PlaceChip(label: String, selected: Boolean, onClick: () -> Unit, mod
 }
 @Composable
 private fun PlaceMissionCard(mission: PlaceMission, onSave: () -> Unit, onOpen: () -> Unit) {
-    Surface(onClick = onOpen, color = KiriColor.Bg.Secondary, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().testTag("place_card_${mission.id}")) {
+    Surface(onClick = onOpen, color = KiriColor.Bg.Primary, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().testTag("place_card_${mission.id}")) {
         Row(Modifier.padding(horizontal = 15.dp, vertical = 18.dp), horizontalArrangement = Arrangement.spacedBy(17.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(91.dp).background(KiriColor.Bg.Elevated, RoundedCornerShape(10.dp))) {
                 run {

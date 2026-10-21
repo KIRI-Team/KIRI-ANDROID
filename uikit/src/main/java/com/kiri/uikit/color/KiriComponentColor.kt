@@ -60,11 +60,11 @@ object KiriComponentColor {
     }
 
     object Input {
-        val BgDefault = P.Neutral850
-        val BgFocus = P.Neutral850
+        val BgDefault = P.Neutral900
+        val BgFocus = P.Neutral900
         val BgFilled = P.Neutral850
-        val BgError = P.Neutral850
-        val BgDisabled = P.Neutral900
+        val BgError = P.Neutral900
+        val BgDisabled = P.Neutral850
         val BorderDefault = P.Neutral700
         val BorderFocus = P.Green500
         val BorderFilled = P.Neutral700

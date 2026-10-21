@@ -85,7 +85,7 @@ fun KiriDetailButton(text: String, onClick: () -> Unit, modifier: Modifier = Mod
 fun KiriConditionCard(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     Column(
         modifier.heightIn(min = 149.5.dp)
-            .background(if (selected) KiriColor.Bg.GreenSoft else KiriColor.Bg.Secondary, RoundedCornerShape(8.dp))
+            .background(if (selected) KiriColor.Bg.GreenSoft else KiriColor.Bg.Primary, RoundedCornerShape(8.dp))
             .toggleable(value = selected, enabled = enabled, role = Role.Checkbox, onValueChange = { onClick() })
             .padding(horizontal = 12.dp, vertical = 30.75.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally,

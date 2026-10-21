@@ -48,6 +48,7 @@ fun MypageInputBox(
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
     val inputTextStyle = TextStyle(
+        fontFamily = com.kiri.uikit.KiriFontFamily,
         fontSize = 16.sp,
         fontWeight = FontWeight.Medium,
         lineHeight = 24.sp,
@@ -56,7 +57,7 @@ fun MypageInputBox(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
     val isError = errors.isNotEmpty()
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(16.dp)
     val input = KiriComponentColor.Input
     // Disabled > Error > Focus > Filled > Default 순으로 우선한다
     val background = when {
@@ -73,8 +74,8 @@ fun MypageInputBox(
         value.isNotEmpty() -> input.BorderFilled
         else -> input.BorderDefault
     }
-    // Focus·Error는 2dp, 나머지는 1dp 테두리
-    val borderWidth = if (enabled && (isError || isFocused)) 2.dp else 1.dp
+    // 최신 Figma는 Error에만 1dp 외곽선, Focus는 커서로 표시한다.
+    val borderWidth = if (enabled && isError) 1.dp else 0.dp
     val contentColor = when {
         !enabled -> input.ContentDisabled
         isError -> input.ContentError
@@ -110,7 +111,7 @@ fun MypageInputBox(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(54.dp)
+                        .height(56.dp)
                         .background(color = background, shape = shape)
                         .border(width = borderWidth, color = borderColor, shape = shape)
                         .padding(horizontal = 24.dp),

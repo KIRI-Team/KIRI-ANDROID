@@ -97,8 +97,8 @@ private fun CalendarCell(date: LocalDate, mark: RecordCalendarMark?, selected: B
     val background = when {
         selected -> KiriColor.Primary.Default.copy(alpha = .2f)
         mark == RecordCalendarMark.QUESTION || mark == RecordCalendarMark.PHOTO_FIRST || mark == RecordCalendarMark.PHOTO_SECOND -> KiriColor.Bg.Base
-        mark == RecordCalendarMark.PLANNED -> KiriColor.Bg.Secondary
-        mark == RecordCalendarMark.CONFIRMED || mark == RecordCalendarMark.BUCKET -> KiriColor.Bg.Tertiary
+        mark == RecordCalendarMark.CONFIRMED -> KiriColor.Bg.GreenSoft
+        mark == RecordCalendarMark.PLANNED || mark == RecordCalendarMark.BUCKET -> KiriColor.Bg.Secondary
         else -> KiriColor.Bg.Primary
     }
     Box(

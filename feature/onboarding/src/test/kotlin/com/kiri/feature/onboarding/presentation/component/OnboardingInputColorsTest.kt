@@ -34,12 +34,12 @@ class OnboardingInputColorsTest {
     }
 
     @Test
-    fun Focus와_Error만_2dp_테두리를_쓴다() {
-        assertEquals(2.dp, OnboardingInputState.Focus.borderWidth())
-        assertEquals(2.dp, OnboardingInputState.Error.borderWidth())
-        assertEquals(1.dp, OnboardingInputState.Default.borderWidth())
-        assertEquals(1.dp, OnboardingInputState.Filled.borderWidth())
-        assertEquals(1.dp, OnboardingInputState.Disabled.borderWidth())
+    fun Error만_1dp_테두리를_쓴다() {
+        assertEquals(0.dp, OnboardingInputState.Focus.borderWidth())
+        assertEquals(1.dp, OnboardingInputState.Error.borderWidth())
+        assertEquals(0.dp, OnboardingInputState.Default.borderWidth())
+        assertEquals(0.dp, OnboardingInputState.Filled.borderWidth())
+        assertEquals(0.dp, OnboardingInputState.Disabled.borderWidth())
     }
 
     @Test

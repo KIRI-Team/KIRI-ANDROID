@@ -201,12 +201,11 @@ fun RecordPhotoSelectionScreen(state: RecordDetailUiState, onBack: () -> Unit, o
 @Composable
 private fun RecordToast(message: String?, onDismiss: () -> Unit) {
     LaunchedEffect(message) { if (message != null) { delay(3000); onDismiss() } }
-    if (message != null) Surface(color = KiriColor.Bg.Secondary, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 20.dp).testTag("record_success_toast").semantics { liveRegion = LiveRegionMode.Polite }) {
-        Row(Modifier.padding(horizontal = 28.dp, vertical = 18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Image(painterResource(R.drawable.record_memory_success), null, Modifier.size(18.dp))
-            Text(message, style = KiriDetailTypography.Body.copy(fontWeight = FontWeight.Medium), color = KiriColor.Text.Strong)
-        }
-    }
+    if (message != null) com.kiri.uikit.component.KiriToast(
+        message,
+        Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 20.dp).testTag("record_success_toast"),
+        icon = com.kiri.uikit.component.KiriToastIcon.Check,
+    )
 }
 
 @Composable

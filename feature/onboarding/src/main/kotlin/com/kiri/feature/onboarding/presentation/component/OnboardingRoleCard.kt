@@ -1,6 +1,9 @@
 package com.kiri.feature.onboarding.presentation.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.kiri.uikit.R as UiR
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,13 +29,17 @@ import com.kiri.uikit.color.KiriColor
 @Composable
 fun OnboardingRoleCard(
     koreanName: String,
-    englishName: String,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // KIRI/Selection Card (Type=Role): 선택 여부에 따라 배경만 바뀐다
-    val containerColor = if (selected) KiriColor.Bg.Elevated else KiriColor.Bg.Tertiary
+    val containerColor = if (selected) KiriColor.Bg.GreenSoft else KiriColor.Bg.Primary
+    val character = when (koreanName) {
+        "엄마" -> UiR.drawable.kiri_avatar_mother
+        "아빠" -> UiR.drawable.kiri_avatar_father
+        "아들" -> UiR.drawable.kiri_avatar_son
+        else -> UiR.drawable.kiri_avatar_daughter
+    }
 
     Box(
         modifier = modifier
@@ -44,38 +51,24 @@ fun OnboardingRoleCard(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            Image(painterResource(character), contentDescription = null, modifier = Modifier.size(48.dp))
             Text(
                 text = koreanName,
                 textAlign = TextAlign.Center,
-                style = roleTextStyle(fontSize = 20, lineHeight = 28),
-            )
-            Text(
-                text = englishName,
-                textAlign = TextAlign.Center,
-                style = roleTextStyle(fontSize = 18, lineHeight = 27),
+                style = com.kiri.uikit.KiriTypography.Value.copy(lineHeight = 28.sp),
+                color = if (selected) KiriColor.Text.Accent else KiriColor.Text.Disabled,
             )
         }
     }
 }
 
-private fun roleTextStyle(
-    fontSize: Int,
-    lineHeight: Int,
-) = TextStyle(
-    color = KiriColor.Text.Strong,
-    fontSize = fontSize.sp,
-    fontWeight = FontWeight.Medium,
-    lineHeight = lineHeight.sp,
-    letterSpacing = (-0.04).em,
-)
-
 @Preview(backgroundColor = 0xFF1A1A1A, showBackground = true)
 @Composable
 private fun OnboardingRoleCardPreview() {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        OnboardingRoleCard(koreanName = "엄마", englishName = "Mom", selected = false, onClick = {})
-        OnboardingRoleCard(koreanName = "아빠", englishName = "Dad", selected = true, onClick = {})
+        OnboardingRoleCard(koreanName = "엄마", selected = false, onClick = {})
+        OnboardingRoleCard(koreanName = "아빠", selected = true, onClick = {})
     }
 }

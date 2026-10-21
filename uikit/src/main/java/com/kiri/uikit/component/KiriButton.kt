@@ -35,7 +35,7 @@ import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.KiriTypography
 
 enum class KiriButtonTone { Accent, Neutral }
-enum class KiriButtonLayout { Full, Inline }
+enum class KiriButtonLayout { Full, Record, Inline }
 
 internal data class KiriButtonColors(val container: Color, val content: Color)
 
@@ -77,6 +77,7 @@ fun KiriButton(
     val pressed by interactionSource.collectIsPressedAsState()
     val (containerColor, contentColor) = if (enabled && !pressed && tone == KiriButtonTone.Neutral) {
         when (layout) {
+            KiriButtonLayout.Record -> KiriButtonColors(KiriColor.Bg.Secondary, KiriColor.Text.Strong)
             KiriButtonLayout.Inline -> KiriButtonColors(KiriColor.Bg.Primary, KiriColor.Text.Tertiary)
             KiriButtonLayout.Full -> kiriButtonColors(tone, enabled, pressed)
         }
@@ -84,13 +85,14 @@ fun KiriButton(
     // KIRI/Button 컴포넌트는 톤과 관계없이 같은 글자 스타일(Title/Medium)을 쓴다
     val textStyle = when (layout) {
         KiriButtonLayout.Full -> KiriTypography.TitleMedium
+        KiriButtonLayout.Record -> KiriTypography.TitleLarge
         KiriButtonLayout.Inline -> KiriTypography.BodySmall
     }.copy(color = contentColor)
 
     Box(
         modifier = modifier
             .then(if (layout == KiriButtonLayout.Inline) Modifier else Modifier.fillMaxWidth())
-            .height(when (layout) { KiriButtonLayout.Full -> 54.dp; KiriButtonLayout.Inline -> 30.dp })
+            .height(when (layout) { KiriButtonLayout.Full -> 54.dp; KiriButtonLayout.Record -> 48.dp; KiriButtonLayout.Inline -> 30.dp })
             .clip(RoundedCornerShape(8.dp))
             .background(containerColor)
             // 눌림 피드백은 Pressed 색상으로 표현해서 기본 리플은 끈다
@@ -101,7 +103,7 @@ fun KiriButton(
                 role = Role.Button,
                 onClick = onClick,
             )
-            .padding(horizontal = when (layout) { KiriButtonLayout.Inline -> 12.dp; else -> 16.dp })
+            .padding(horizontal = when (layout) { KiriButtonLayout.Inline -> 12.dp; KiriButtonLayout.Record -> 10.dp; else -> 16.dp })
             .testTag(testTag),
         contentAlignment = Alignment.Center,
     ) {

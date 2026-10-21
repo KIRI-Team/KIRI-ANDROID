@@ -61,7 +61,6 @@ fun ChooseRoleScreen(
                     rowRoles.forEach { role ->
                         OnboardingRoleCard(
                             koreanName = role.koreanName,
-                            englishName = role.englishName,
                             selected = role == selectedRole,
                             onClick = { onRoleSelect(role) },
                         )

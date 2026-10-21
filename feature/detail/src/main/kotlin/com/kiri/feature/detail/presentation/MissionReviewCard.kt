@@ -27,7 +27,7 @@ internal fun PreviewTab(label: String, selected: Boolean, onClick: () -> Unit, t
 
 @Composable
 internal fun MissionReviewCard(review: MissionReview) {
-    Column(Modifier.fillMaxWidth().background(KiriColor.Bg.Secondary, RoundedCornerShape(16.dp)).padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 23.dp).testTag("mission_review_${review.id}")) {
+    Column(Modifier.fillMaxWidth().background(KiriColor.Bg.Primary, RoundedCornerShape(16.dp)).padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 23.dp).testTag("mission_review_${review.id}")) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Image(painterResource(R.drawable.detail_review_avatar), null, Modifier.size(36.dp))
             Text(review.author, style = KiriDetailTypography.Body, color = KiriColor.Text.Primary)

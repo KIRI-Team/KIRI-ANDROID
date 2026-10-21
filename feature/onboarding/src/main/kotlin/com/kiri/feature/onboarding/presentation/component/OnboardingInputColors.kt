@@ -38,10 +38,10 @@ internal fun OnboardingInputState.borderColor(): Color = when (this) {
     OnboardingInputState.Disabled -> KiriComponentColor.Input.BorderDisabled
 }
 
-// Focus·Error는 2dp, 나머지는 1dp 테두리
+// 최신 Figma는 Error에만 1dp 외곽선, Focus는 커서로 표시한다.
 internal fun OnboardingInputState.borderWidth(): Dp = when (this) {
-    OnboardingInputState.Focus, OnboardingInputState.Error -> 2.dp
-    else -> 1.dp
+    OnboardingInputState.Error -> 1.dp
+    else -> 0.dp
 }
 
 internal fun OnboardingInputState.contentColor(): Color = when (this) {
