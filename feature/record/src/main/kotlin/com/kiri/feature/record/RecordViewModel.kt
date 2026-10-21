@@ -3,6 +3,7 @@ package com.kiri.feature.record
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kiri.domain.home.ScheduleStatus
 import com.kiri.domain.record.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
@@ -40,10 +41,10 @@ class RecordViewModel @Inject constructor(private val savedState: SavedStateHand
                         entries = entries,
                         savers = records.savers.map { RecordSaver(it.key, it.value) },
                         buckets = entries.filter { it.kind == CalendarEntryKind.BUCKET }.map { RecordBucketItem(it.id, it.title, it.saverId.orEmpty()) },
-                        schedules = entries.filter { it.kind == CalendarEntryKind.SCHEDULE }.map { RecordSchedule(it.id, it.title, it.date, RecordScheduleStatus.CONFIRMED) },
+                        schedules = entries.filter { it.kind == CalendarEntryKind.SCHEDULE }.map { RecordSchedule(it.id, it.title, it.date, if (it.pending) RecordScheduleStatus.PLANNED else RecordScheduleStatus.CONFIRMED) },
                         calendarMarks = entries.groupBy { it.date }.mapValues { (_, values) ->
                             when (values.first().kind) {
-                                CalendarEntryKind.SCHEDULE -> RecordCalendarMark.CONFIRMED
+                                CalendarEntryKind.SCHEDULE -> if (values.first().pending) RecordCalendarMark.PLANNED else RecordCalendarMark.CONFIRMED
                                 CalendarEntryKind.BUCKET -> RecordCalendarMark.BUCKET
                                 CalendarEntryKind.MEMORY -> RecordCalendarMark.PHOTO_FIRST
                             }
@@ -83,6 +84,9 @@ class RecordViewModel @Inject constructor(private val savedState: SavedStateHand
             RecordUiEvent.RetryClicked -> refresh()
         }
     }
+
+    // 가족 응답을 기다리는 일정 요청은 "약속 예정"으로 보여준다
+    private val CalendarEntry.pending get() = status == ScheduleStatus.PENDING_RESPONSE
 
     private fun changeMonth(offset: Long) {
         val month = runCatching { uiState.value.month.plusMonths(offset) }.getOrNull() ?: return

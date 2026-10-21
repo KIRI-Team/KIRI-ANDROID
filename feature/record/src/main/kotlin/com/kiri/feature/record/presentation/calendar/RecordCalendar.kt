@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.kiri.feature.record.R
 import com.kiri.feature.record.model.*
 import com.kiri.feature.record.presentation.RecordPhotoImage
+import com.kiri.feature.record.presentation.sheet.recordCalendarWeeks
 import com.kiri.domain.record.RecordPhoto
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.KiriDetailTypography
@@ -63,7 +64,8 @@ internal fun RecordCalendar(state: RecordUiState, onEvent: (RecordUiEvent) -> Un
             }
             Spacer(Modifier.height(16.dp))
         }
-        calendarWeeks(state.month).forEachIndexed { index, week ->
+        // 날짜 선택 시트와 같은 주 계산을 쓴다. 이 화면은 다음 달 날짜를 그리지 않으므로 빈 칸으로 바꾼다
+        recordCalendarWeeks(state.month).map { week -> week.map { day -> day?.takeIf { it.isInMonth }?.date } }.forEachIndexed { index, week ->
             item(key = "week-$index") {
                 Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     week.forEach { date ->
