@@ -107,6 +107,20 @@ class HomeViewModelTest {
         assertEquals("엄마를 콕 찔렀습니다!", vm.uiState.value.notice)
     }
 
+    @Test fun resumingHomeKeepsTheLoadedCardVisibleWhileRefreshing() = runTest(dispatcher) {
+        val vm = HomeViewModel(TestRepository())
+        advanceUntilIdle()
+        val previous = vm.uiState.value.home
+        vm.onEvent(HomeUiEvent.CardFlipped)
+        vm.refreshOnResume()
+        assertFalse(vm.uiState.value.loading)
+        assertEquals(previous, vm.uiState.value.home)
+        assertTrue(vm.uiState.value.showingMission)
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.loading)
+        assertTrue(vm.uiState.value.showingMission)
+    }
+
     private class TestRepository : HomeRepository {
         var saves = 0
         var failSave = false

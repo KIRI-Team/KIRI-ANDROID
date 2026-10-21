@@ -123,7 +123,7 @@ class HomeViewModel @Inject constructor(
     private fun load() {
         if (uiState.value.busy || loadingInProgress) return
         loadingInProgress = true
-        _uiState.update { it.copy(loading = true, loadError = false) }
+        _uiState.update { it.copy(loading = it.home == null, loadError = false) }
         viewModelScope.launch {
             try {
                 scheduleRepository?.refresh()
