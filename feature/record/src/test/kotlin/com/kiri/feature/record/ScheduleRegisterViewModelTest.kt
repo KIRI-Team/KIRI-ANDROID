@@ -45,13 +45,15 @@ class ScheduleRegisterViewModelTest {
     private val filled = ScheduleRegisterDraft(LocalDate.of(2026, 10, 20), LocalTime.of(14, 0), setOf("mother", "father"), "같이 가요")
 
     @Test fun loadsBucketSaverAndMembersFromRepository() = runTest {
-        val vm = ScheduleRegisterViewModel(handle(), repository(), clock)
+        val repo = repository()
+        val vm = ScheduleRegisterViewModel(handle(), repo, clock)
         val state = vm.uiState.value
         assertFalse(state.loading)
         assertTrue(state.bucketFound)
-        assertEquals("아빠", state.savedBy)
+        assertEquals(repo.records.value.savers["father"], state.savedBy)
         assertEquals("한강 뚜벅뚜벅 축제 가보기", state.title)
-        assertTrue(state.members.any { it.id == "father" && it.name == "아빠" })
+        assertTrue(state.members.any { it.id == "father" && it.name == repo.records.value.savers["father"] })
+        assertFalse(state.members.any { it.id == repo.records.value.currentUserId })
         assertEquals(LocalDateTime.of(2026, 10, 13, 21, 0), state.earliest)
     }
 
