@@ -16,6 +16,7 @@ import com.kiri.feature.mypage.presentation.nameedit.FamilyNameEditRoute
 import com.kiri.feature.mypage.presentation.nameedit.NicknameEditRoute
 import com.kiri.feature.mypage.presentation.notification.NotificationSettingRoute
 import com.kiri.feature.mypage.presentation.preference.MyPreferenceScreen
+import com.kiri.feature.mypage.presentation.preference.MyPreferenceRoute
 import com.kiri.feature.mypage.presentation.suggestion.SuggestionRoute
 import com.kiri.feature.mypage.presentation.terms.TermsRoute
 import com.kiri.feature.mypage.presentation.withdraw.WithdrawScreen
@@ -79,7 +80,7 @@ private fun MypageMenuScreen(
 ) {
     val onBackClick: () -> Unit = { navController.popBackStack() }
     when (menu) {
-        MypageMenu.MY_PREFERENCE -> MyPreferenceScreen(onBackClick = onBackClick)
+        MypageMenu.MY_PREFERENCE -> MyPreferenceRoute(onBackClick = onBackClick)
         MypageMenu.NOTIFICATION_SETTING -> NotificationSettingRoute(onNavigateBack = onBackClick)
         MypageMenu.FAMILY_SETTING -> FamilySettingScreen(
             onBackClick = onBackClick,
