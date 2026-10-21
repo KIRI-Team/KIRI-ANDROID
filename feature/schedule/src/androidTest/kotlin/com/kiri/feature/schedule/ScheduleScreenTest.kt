@@ -31,6 +31,8 @@ class ScheduleScreenTest {
             mapOf("mother" to MemberResponse.ACCEPTED, "father" to MemberResponse.ACCEPTED, "me" to MemberResponse.PENDING), "한강")
         compose.setContent { KiriTheme { ScheduleScreen(ScheduleUiState(loading = false, family = family, mission = mission, schedule = schedule, now = now), {}, {}, { _, _ -> }, {}, {}, { response = it }, {}, {}, {}, {}) } }
         compose.onNodeWithTag("schedule_status").assertTextEquals("약속 확정")
+        compose.onAllNodesWithContentDescription("뒤로").assertCountEquals(1)
+        compose.onNodeWithTag("mission_activity_tab").assertDoesNotExist()
         compose.onNodeWithTag("schedule_personal_response").assertTextEquals("내 응답: 미응답")
         compose.onNodeWithTag("schedule_decline").performClick()
         compose.runOnIdle { assertEquals(MemberResponse.DECLINED, response) }

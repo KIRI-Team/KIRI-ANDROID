@@ -116,8 +116,9 @@ fun ScheduleScreen(
             val mission = state.mission
             MissionDetailScreen(DetailUiState(detail = com.kiri.domain.detail.MissionDetail(
                 schedule.missionId, schedule.title, state.family?.familyName.orEmpty(), schedule.startsAt.atZone(ZoneId.of("Asia/Seoul")).toLocalDate(),
-                scheduleLabel(schedule.startsAt), schedule.place, mission.expectedSteps, mission.durationMinutes, emptyList(), schedule.completed, mission.activities, mission.essentials, mission.nearby)),
-                onEvent = { if (it == DetailUiEvent.BackClicked) onBack() }, discovery = true,
+                scheduleLabel(schedule.startsAt), schedule.place, mission.expectedSteps, mission.durationMinutes, schedule.acceptedIds.map { id -> com.kiri.domain.detail.DetailParticipant(state.family?.members?.find { it.id == id && it.accessible }?.nickname ?: "탈퇴한 멤버", true) }, schedule.completed, mission.activities, mission.essentials, mission.nearby)),
+                onEvent = { if (it == DetailUiEvent.BackClicked) onBack() },
+                calendarHeader = com.kiri.feature.detail.presentation.CalendarDetailHeader("", "약속 정보", false), showAppBar = false, showTabs = false,
                 modifier = Modifier.weight(1f))
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (schedule.canRespond(userId, state.now)) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
