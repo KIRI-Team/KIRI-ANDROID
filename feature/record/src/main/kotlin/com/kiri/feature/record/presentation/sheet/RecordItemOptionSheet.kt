@@ -45,9 +45,11 @@ fun RecordItemOptionSheet(
     onScheduleClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onDismiss: () -> Unit,
+    scheduleLabel: String = "일정 잡기",
+    scheduleEnabled: Boolean = true,
 ) {
     RecordModalSheet(onDismiss = onDismiss, testTag = "record_item_option_sheet", containerColor = KiriColor.Bg.Primary) {
-        RecordItemOptionSheetContent(title, subtitle, onScheduleClick, onDeleteClick, onDismiss)
+        RecordItemOptionSheetContent(title, subtitle, onScheduleClick, onDeleteClick, onDismiss, scheduleLabel, scheduleEnabled)
     }
 }
 
@@ -58,6 +60,8 @@ internal fun RecordItemOptionSheetContent(
     onScheduleClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onCloseClick: () -> Unit,
+    scheduleLabel: String = "일정 잡기",
+    scheduleEnabled: Boolean = true,
 ) {
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(start = 30.dp, end = 30.dp, top = 44.dp, bottom = 44.dp)) {
@@ -74,10 +78,11 @@ internal fun RecordItemOptionSheetContent(
             Spacer(Modifier.height(20.dp))
             RecordOptionRow(
                 icon = R.drawable.ic_record_check_circle,
-                text = "일정 잡기",
+                text = scheduleLabel,
                 textColor = KiriColor.Text.Strong,
                 onClick = onScheduleClick,
                 testTag = "record_option_schedule",
+                enabled = scheduleEnabled,
             )
             Spacer(Modifier.height(19.dp))
             HorizontalDivider(thickness = 1.dp, color = KiriColor.Border.Strong)
@@ -113,12 +118,13 @@ private fun RecordOptionRow(
     textColor: Color,
     onClick: () -> Unit,
     testTag: String,
+    enabled: Boolean = true,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(32.dp)
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .testTag(testTag),
         verticalAlignment = Alignment.CenterVertically,
     ) {

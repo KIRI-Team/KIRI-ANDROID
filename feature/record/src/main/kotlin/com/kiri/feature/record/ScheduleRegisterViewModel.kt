@@ -59,6 +59,7 @@ class ScheduleRegisterViewModel @Inject constructor(
     private val effects = Channel<ScheduleRegisterEffect>(Channel.BUFFERED)
     val effect = effects.receiveAsFlow()
 
+    private val requestId: String = savedState.get<String>("scheduleRequestId") ?: java.util.UUID.randomUUID().toString().also { savedState["scheduleRequestId"] = it }
     private var sent = false
     private var missingReported = false
 
@@ -90,7 +91,7 @@ class ScheduleRegisterViewModel @Inject constructor(
                 bucketFound = bucket != null,
                 savedBy = bucket?.let { b -> b.saverId?.let(records.savers::get) ?: "탈퇴한 멤버" } ?: it.savedBy,
                 title = bucket?.title ?: it.title,
-                members = records.savers.map { (id, name) -> RecordMember(id, name) },
+                members = records.savers.filterKeys { id -> id != records.currentUserId }.map { (id, name) -> RecordMember(id, name) },
             )
         }
     }
@@ -118,7 +119,7 @@ class ScheduleRegisterViewModel @Inject constructor(
         state.update { it.copy(sending = true, error = null) }
         viewModelScope.launch {
             try {
-                repository.requestSchedule(ScheduleRequest(bucketId, date, time, draft.memberIds, draft.message, channel))
+                repository.requestSchedule(ScheduleRequest(bucketId, date, time, draft.memberIds, draft.message, channel, requestId))
                 sent = true
                 val effect = when (channel) {
                     ScheduleRequestChannel.APP -> ScheduleRegisterEffect.SentByApp

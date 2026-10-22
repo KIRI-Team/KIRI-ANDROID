@@ -63,24 +63,27 @@ fun MissionDetailScreen(
     calendarHeader: CalendarDetailHeader? = null,
     suggestionIcon: (@Composable () -> Unit)? = null,
     nearbyImageRes: Int = UiR.drawable.kiri_place_card_image,
+    modifier: Modifier = Modifier,
+    showAppBar: Boolean = true,
+    showTabs: Boolean = true,
 ) {
     val onBack = { onEvent(DetailUiEvent.BackClicked) }
     val onCustom = { onEvent(DetailUiEvent.CustomClicked) }
     val onRetry = { onEvent(DetailUiEvent.RetryClicked) }
     val onRecord = { onEvent(DetailUiEvent.RecordClicked) }
     val detail = state.detail
-    Column(Modifier.fillMaxSize().background(KiriColor.Bg.Base).testTag(if (discovery) "mission_preview_screen" else "mission_detail_screen").verticalScroll(rememberScrollState())) {
+    Column(modifier.fillMaxSize().background(KiriColor.Bg.Base).testTag(if (discovery) "mission_preview_screen" else "mission_detail_screen").verticalScroll(rememberScrollState())) {
         if (detail == null) {
-            KiriDetailAppBar("미션 상세", onBack)
+            if (showAppBar) KiriDetailAppBar("미션 상세", onBack)
             if (state.loading) CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally).padding(32.dp))
             else Column(Modifier.padding(18.dp)) {
                 Text(state.error ?: "미션을 찾을 수 없어요.", style = KiriDetailTypography.Body)
                 KiriDetailButton("다시 시도", onRetry)
             }
         } else {
-            DetailHeader(detail, onBack, onCustom, discovery, reviewsSelected, curated, onRecord, state.submittedMemory != null, state.memoriesSelected, calendarHeader)
-            Spacer(Modifier.height(36.dp))
-            Row(
+            DetailHeader(detail, onBack, onCustom, discovery, reviewsSelected, curated, onRecord, state.submittedMemory != null, state.memoriesSelected, calendarHeader, showAppBar)
+            Spacer(Modifier.height(if (showTabs) 36.dp else 16.dp))
+            if (showTabs) Row(
                 Modifier.align(Alignment.CenterHorizontally).background(KiriColor.Bg.Secondary, RoundedCornerShape(100.dp)).padding(horizontal = 6.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -92,7 +95,7 @@ fun MissionDetailScreen(
                     PreviewTab("가족 추억", state.memoriesSelected, { onEvent(DetailUiEvent.MemoriesSelected(true)) }, "mission_memory_tab")
                 }
             }
-            Spacer(Modifier.height(36.dp))
+            Spacer(Modifier.height(if (showTabs) 36.dp else 0.dp))
             Column(Modifier.padding(horizontal = 18.dp)) {
                 if (!discovery && state.memoriesSelected) {
                     if (state.submittedMemory == null) {
@@ -153,9 +156,9 @@ fun MissionDetailScreen(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DetailHeader(detail: MissionDetail, onBack: () -> Unit, onCustom: () -> Unit, discovery: Boolean = false, reviewsSelected: Boolean = false, curated: Boolean = false, onRecord: () -> Unit = {}, memorySubmitted: Boolean = false, memoriesSelected: Boolean = false, calendarHeader: CalendarDetailHeader? = null) {
+private fun DetailHeader(detail: MissionDetail, onBack: () -> Unit, onCustom: () -> Unit, discovery: Boolean = false, reviewsSelected: Boolean = false, curated: Boolean = false, onRecord: () -> Unit = {}, memorySubmitted: Boolean = false, memoriesSelected: Boolean = false, calendarHeader: CalendarDetailHeader? = null, showAppBar: Boolean = true) {
     Column(Modifier.fillMaxWidth().background(KiriColor.Bg.Primary)) {
-        KiriDetailAppBar(calendarHeader?.title ?: if (memorySubmitted) "${detail.familyName.ifBlank { "우리 가족" }} 기록" else if (discovery && reviewsSelected) "플레이스" else detail.date?.let { "${it.monthValue}월 ${it.dayOfMonth}일" } ?: if (discovery) "플레이스" else "미션 상세", onBack)
+        if (showAppBar) KiriDetailAppBar(calendarHeader?.title ?: if (memorySubmitted) "${detail.familyName.ifBlank { "우리 가족" }} 기록" else if (discovery && reviewsSelected) "플레이스" else detail.date?.let { "${it.monthValue}월 ${it.dayOfMonth}일" } ?: if (discovery) "플레이스" else "미션 상세", onBack)
         Column(Modifier.padding(start = 18.dp, end = 18.dp, top = 21.dp, bottom = 34.dp)) {
             val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
             val badge = calendarHeader?.badge ?: when {

@@ -142,15 +142,32 @@ class RecordDetailViewModel @Inject constructor(
     }
 
     fun saveMemory() {
-        val memory = uiState.value.memories.find { it.id == uiState.value.editingMemoryId } ?: return
+        val memory = uiState.value.memories.find { it.id == uiState.value.editingMemoryId }
         val draft = uiState.value.memoryDraft
-        if (draft.text.isBlank() || draft.rating !in 1..5 || draft.repeatActivity == null) return
+        if (!draft.canSubmit) return
         mutate {
-            repository.updateMemory(memory.copy(text = draft.text, rating = draft.rating, repeatActivity = draft.repeatActivity,
-                photos = draft.photos.map { source -> memory.photos.find { it.source == source } ?: RecordPhoto(source, source) }))
-            state.update { it.copy(toast = "기록이 수정되었습니다!") }
+            val photos = draft.photos.map { source -> memory?.photos?.find { it.source == source } ?: RecordPhoto(source, source) }
+            if (memory == null) repository.addMemory(entryId, draft.text, photos, draft.rating, requireNotNull(draft.repeatActivity))
+            else repository.updateMemory(memory.copy(text = draft.text, rating = draft.rating, repeatActivity = draft.repeatActivity, photos = photos))
+            state.update { it.copy(toast = if (memory == null) "기록이 등록되었습니다!" else "기록이 수정되었습니다!") }
             effects.send(RecordDetailEffect.ReturnToDetail)
         }
+    }
+
+    fun prepareReview() {
+        if (savedState.get<Boolean>("reviewPrepared") == true || uiState.value.entry == null) return
+        val memory = uiState.value.memories.firstOrNull { it.authorId == uiState.value.collection.currentUserId }
+        if (memory != null) {
+            savedState["editingMemoryId"] = memory.id
+            state.update { it.copy(editingMemoryId = memory.id) }
+            updateDraft(MemoryDraft(memory.rating, memory.photos.map { it.source }, memory.text, memory.repeatActivity))
+        }
+        savedState["reviewPrepared"] = true
+    }
+
+    fun deleteBucket() = mutate {
+        repository.deleteBucket(entryId)
+        effects.send(RecordDetailEffect.Back)
     }
 
     fun deleteMemory(id: String) = mutate {

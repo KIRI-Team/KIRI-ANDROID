@@ -2,7 +2,6 @@ package com.kiri.domain.record
 
 import com.kiri.domain.detail.Condition
 import com.kiri.domain.detail.MissionDetail
-import com.kiri.domain.home.ScheduleStatus
 import kotlinx.coroutines.flow.StateFlow
 import java.time.LocalDate
 import java.time.LocalTime
@@ -21,13 +20,15 @@ data class CalendarEntry(
     val participantIds: List<String> = emptyList(),
     val representativePhotoId: String? = null,
     val conditions: Set<Condition> = emptySet(),
-    /** SCHEDULE only. A request waits for family responses (PENDING_RESPONSE) before it is confirmed. */
-    val status: ScheduleStatus = ScheduleStatus.CONFIRMED,
+    val completed: Boolean = false,
+    val linkedScheduleIds: Set<String> = emptySet(),
+    val status: com.kiri.domain.home.ScheduleStatus = com.kiri.domain.home.ScheduleStatus.CONFIRMED,
+    val missionSnapshot: com.kiri.domain.mission.MissionContent? = null,
+    val placeSnapshot: String? = null,
 )
 
 enum class ScheduleRequestChannel { APP, KAKAO }
 
-/** Turns one saved bucket into a schedule request sent to the chosen family members. */
 data class ScheduleRequest(
     val bucketId: String,
     val date: LocalDate,
@@ -35,9 +36,11 @@ data class ScheduleRequest(
     val participantIds: Set<String>,
     val message: String,
     val channel: ScheduleRequestChannel,
+    val requestId: String = "",
 )
 
 data class RecordPhoto(val id: String, val source: String)
+data class RecordedQuestion(val date: LocalDate, val text: String, val answers: Map<String, String>, val memberNames: Map<String, String>, val everyoneAnswered: Boolean)
 data class FamilyMemory(
     val id: String,
     val entryId: String,
@@ -50,6 +53,9 @@ data class FamilyMemory(
     val repeatActivity: Boolean? = null,
 )
 
+fun FamilyMemory.isValidReview(): Boolean = photos.isNotEmpty() && photos.all { it.source.isNotBlank() } &&
+    text.isNotBlank() && text.length <= 500 && rating in 1..5 && repeatActivity != null
+
 data class RecordCollection(
     val entries: List<CalendarEntry> = emptyList(),
     val memories: List<FamilyMemory> = emptyList(),
@@ -57,6 +63,7 @@ data class RecordCollection(
     val familyName: String = "",
     val currentUserId: String = "",
     val savers: Map<String, String> = emptyMap(),
+    val questions: Map<LocalDate, RecordedQuestion> = emptyMap(),
 )
 
 /** Implementations enforce family access and author ownership before changing records. */
@@ -68,6 +75,9 @@ interface RecordRepository {
     suspend fun changeRepresentativePhoto(entryId: String, photoId: String)
     suspend fun updateMemory(memory: FamilyMemory)
     suspend fun deleteMemory(memoryId: String)
-    /** Creates a pending schedule from the bucket and removes the bucket from the list. */
-    suspend fun requestSchedule(request: ScheduleRequest): CalendarEntry
+    suspend fun requestSchedule(request: ScheduleRequest): CalendarEntry { error("Schedule creation is unavailable") }
+    suspend fun addMemory(entryId: String, text: String, photos: List<RecordPhoto>, rating: Int, repeatActivity: Boolean) {
+        error("Review creation is unavailable")
+    }
+    suspend fun deleteBucket(bucketId: String) { error("Bucket deletion is unavailable") }
 }

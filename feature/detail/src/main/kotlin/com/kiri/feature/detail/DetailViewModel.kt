@@ -20,6 +20,8 @@ import kotlinx.coroutines.launch
 class DetailViewModel @Inject constructor(
     private val repository: DetailRepository,
     private val savedState: SavedStateHandle,
+    private val records: com.kiri.domain.record.RecordRepository? = null,
+    private val schedules: com.kiri.domain.schedule.ScheduleRepository? = null,
 ) : ViewModel() {
     private val missionId: String = savedState["missionId"] ?: ""
     private val _uiState = MutableStateFlow(DetailUiState(
@@ -77,6 +79,29 @@ class DetailViewModel @Inject constructor(
         _uiState.update { it.copy(submittedMemory = draft.copy(text = draft.text.trim()), memoriesSelected = true) }
         savedState["memoriesSelected"] = true
         return true
+    }
+
+    /** Production submission: persist the review before updating the visible completion state. */
+    fun submitMemory(onSaved: () -> Unit) {
+        val draft = uiState.value.memoryDraft
+        if (!draft.canSubmit || uiState.value.saving) return
+        val recordRepository = records ?: return
+        val scheduleRepository = schedules ?: return
+        _uiState.update { it.copy(saving = true, error = null) }
+        viewModelScope.launch {
+            try {
+                scheduleRepository.refresh(); recordRepository.refresh()
+                val schedule = requireNotNull(scheduleRepository.schedules.value.find { it.id == missionId || it.weeklyMissionId == missionId }) { "연결된 약속이 없어요." }
+                val existing = recordRepository.records.value.memories.find { it.entryId == schedule.id && it.authorId == recordRepository.records.value.currentUserId }
+                val photos = draft.photos.map { com.kiri.domain.record.RecordPhoto(it, it) }
+                if (existing == null) recordRepository.addMemory(schedule.id, draft.text, photos, draft.rating, requireNotNull(draft.repeatActivity))
+                else recordRepository.updateMemory(existing.copy(text = draft.text, photos = photos, rating = draft.rating, repeatActivity = draft.repeatActivity))
+                _uiState.update { it.copy(submittedMemory = draft.copy(text = draft.text.trim()), memoriesSelected = true, detail = it.detail?.copy(completed = true)) }
+                onSaved()
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _uiState.update { it.copy(error = e.message ?: "저장하지 못했어요. 입력은 유지했어요.") } }
+            finally { _uiState.update { it.copy(saving = false) } }
+        }
     }
 
     private fun load() {

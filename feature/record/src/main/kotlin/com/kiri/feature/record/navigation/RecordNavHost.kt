@@ -40,8 +40,9 @@ private const val SCHEDULE_ROUTE = "record_graph/schedule"
 private const val SENT_TOAST_KEY = "scheduleSentToast"
 
 /** Registers this feature in the main tab back stack. */
-fun NavGraphBuilder.recordNavHost(navController: NavHostController) {
+fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSchedule: (String) -> Unit = {}, onManageSchedule: (String) -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
     navigation(startDestination = START_ROUTE, route = GRAPH_ROUTE) {
+        scheduleDestinations()
         composable(START_ROUTE) { entry ->
             val viewModel: RecordViewModel = hiltViewModel()
             val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -50,7 +51,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController) {
             val showSentToast by entry.savedStateHandle.getStateFlow(SENT_TOAST_KEY, false).collectAsStateWithLifecycle()
             Box(Modifier.fillMaxSize()) {
                 RecordRoute(
-                    onScheduleClick = { navController.navigate("$DETAIL_ROUTE/${Uri.encode(it)}") { launchSingleTop = true } },
+                    onScheduleClick = onManageSchedule,
                     onBucketClick = { optionBucketId = it },
                     onEntryClick = { navController.navigate("$DETAIL_ROUTE/${Uri.encode(it)}") { launchSingleTop = true } },
                     viewModel = viewModel,
@@ -60,15 +61,23 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController) {
                 }
             }
             state.buckets.find { it.id == optionBucketId }?.let { bucket ->
+                val activity = state.entries.find { it.id == bucket.id }
+                val linkedSchedules = activity?.linkedScheduleIds.orEmpty()
+                val completed = activity?.completed == true
                 RecordItemOptionSheet(
                     title = bucket.title,
                     subtitle = savedByLabel(state.saverName(bucket.saverId)),
+                    scheduleLabel = if (completed) "완료한 활동" else if (linkedSchedules.isEmpty()) "일정 잡기" else "연결된 약속 보기",
+                    scheduleEnabled = !completed,
                     onScheduleClick = {
                         optionBucketId = null
-                        navController.navigate("$SCHEDULE_ROUTE/${Uri.encode(bucket.id)}") { launchSingleTop = true }
+                        if (linkedSchedules.isNotEmpty()) onManageSchedule(linkedSchedules.first())
+                        else if (!completed) navController.navigate("$SCHEDULE_ROUTE/${Uri.encode(bucket.id)}") { launchSingleTop = true }
                     },
-                    // TODO: 버킷 삭제 API 가 생기면 연결
-                    onDeleteClick = { optionBucketId = null },
+                    onDeleteClick = {
+                        optionBucketId = null
+                        navController.navigate("$DETAIL_ROUTE/${Uri.encode(bucket.id)}") { launchSingleTop = true }
+                    },
                     onDismiss = { optionBucketId = null },
                 )
             }
@@ -99,7 +108,8 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController) {
             RecordDetailRoute(viewModel, onBack = { navController.popBackStack() },
                 onCustom = { navController.navigate("$DETAIL_ROUTE/$id/custom") { launchSingleTop = true } },
                 onPhoto = { navController.navigate("$DETAIL_ROUTE/$id/photos") { launchSingleTop = true } },
-                onEdit = { navController.navigate("$DETAIL_ROUTE/$id/edit") { launchSingleTop = true } })
+                onEdit = { navController.navigate("$DETAIL_ROUTE/$id/edit") { launchSingleTop = true } },
+                onCreateSchedule = { navController.navigate("$SCHEDULE_ROUTE/${Uri.encode(it)}") { launchSingleTop = true } }, onManageSchedule = onManageSchedule)
         }
         composable("$DETAIL_ROUTE/{entryId}/custom") { entry ->
             val parent = remember(entry) { navController.getBackStackEntry("$DETAIL_ROUTE/{entryId}") }
