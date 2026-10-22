@@ -74,7 +74,8 @@ class KiriAppNavigationTest {
         compose.onNodeWithTag("preference_OUTDOOR").performClick()
         compose.onNodeWithTag("preference_save").performClick()
         compose.waitUntil(10_000) { compose.onAllNodesWithText("취향이 저장되었어요.").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithTag("bottom_nav_home").performClick()
+        compose.onNodeWithContentDescription("뒤로").performClick()
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("home_taste_banner").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("home_taste_banner").performScrollTo().performClick()
         compose.waitUntil(10_000) { compose.onAllNodes(hasTestTag("preference_OUTDOOR") and isSelected()).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("preference_OUTDOOR").assertIsSelected()
