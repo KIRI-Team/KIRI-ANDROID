@@ -6,6 +6,7 @@ import com.kiri.data.network.kiriJson
 import com.kiri.domain.model.auth.LoginResult
 import com.kiri.domain.model.auth.SocialProvider
 import java.io.IOException
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -16,6 +17,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -24,17 +26,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
 class AuthRepositoryImplTest {
-
-    private class FakeTokenStore : TokenStore {
-        var tokens: AuthTokens? = null
-        override suspend fun save(tokens: AuthTokens) {
-            this.tokens = tokens
-        }
-        override suspend fun get(): AuthTokens? = tokens
-        override suspend fun clear() {
-            tokens = null
-        }
-    }
 
     private val server = MockWebServer()
     private val tokenStore = FakeTokenStore()
@@ -75,13 +66,26 @@ class AuthRepositoryImplTest {
     }
 
     @Test
+    fun 로그인_상태는_저장된_토큰이_있는지를_따른다() = runTest {
+        val repository = repository()
+        assertFalse(repository.isLoggedIn.first())
+
+        tokenStore.save(AuthTokens("access-1", "refresh-1"))
+        assertTrue(repository.isLoggedIn.first())
+
+        // 토큰 재발급이 거절되면 토큰이 지워진다
+        tokenStore.clear()
+        assertFalse(repository.isLoggedIn.first())
+    }
+
+    @Test
     fun 로그인에_성공하면_토큰을_저장하고_회원_상태를_돌려준다() = runTest {
         enqueue(200, SUCCESS_BODY)
 
         val result = repository().login(SocialProvider.GOOGLE, "google-id-token", "nonce-1")
 
         assertEquals(LoginResult(isNewUser = true, termsAgreed = false), result.getOrThrow())
-        assertEquals(AuthTokens("access-1", "refresh-1"), tokenStore.tokens)
+        assertEquals(AuthTokens("access-1", "refresh-1"), tokenStore.saved)
     }
 
     @Test
@@ -93,7 +97,7 @@ class AuthRepositoryImplTest {
         assertTrue(error is KiriApiException)
         assertEquals("AUTH401_3", (error as KiriApiException).code)
         assertEquals("소셜 인증 토큰 검증에 실패했습니다.", error.message)
-        assertNull(tokenStore.tokens)
+        assertNull(tokenStore.saved)
     }
 
     @Test
@@ -103,7 +107,7 @@ class AuthRepositoryImplTest {
         val error = repository().login(SocialProvider.KAKAO, "token", "nonce-1").exceptionOrNull()
 
         assertEquals("AUTH400_1", (error as KiriApiException).code)
-        assertNull(tokenStore.tokens)
+        assertNull(tokenStore.saved)
     }
 
     @Test
@@ -122,7 +126,7 @@ class AuthRepositoryImplTest {
         val error = repository().login(SocialProvider.KAKAO, "token", "nonce-1").exceptionOrNull()
 
         assertTrue(error is IOException)
-        assertNull(tokenStore.tokens)
+        assertNull(tokenStore.saved)
     }
 
     private companion object {

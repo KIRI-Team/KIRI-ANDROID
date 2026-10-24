@@ -1,5 +1,6 @@
 package com.kiri.data.auth
 
+import com.kiri.data.network.ReissueClient
 import com.kiri.domain.repository.AuthRepository
 import dagger.Binds
 import dagger.Module
@@ -15,6 +16,10 @@ internal object AuthApiModule {
     @Provides
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideReissueApi(@ReissueClient retrofit: Retrofit): ReissueApi = retrofit.create(ReissueApi::class.java)
 }
 
 @Module

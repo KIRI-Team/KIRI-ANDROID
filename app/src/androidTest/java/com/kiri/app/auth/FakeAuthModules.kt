@@ -13,6 +13,9 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.components.SingletonComponent
 import dagger.hilt.testing.TestInstallIn
+import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 
 // UI 테스트에서는 카카오·구글 창을 띄우지 않고 바로 로그인에 성공한다
 class FakeSocialLogin : SocialLogin {
@@ -24,8 +27,19 @@ class FakeSocialLogin : SocialLogin {
 class FakeAuthRepository(
     private val result: LoginResult = LoginResult(isNewUser = true, termsAgreed = false),
 ) : AuthRepository {
-    override suspend fun login(provider: SocialProvider, socialToken: String, nonce: String): Result<LoginResult> =
-        Result.success(result)
+    // 실제 저장소처럼 로그인에 성공해야 로그인 상태가 된다
+    private val loggedIn = MutableStateFlow(false)
+    override val isLoggedIn: Flow<Boolean> = loggedIn
+
+    override suspend fun login(provider: SocialProvider, socialToken: String, nonce: String): Result<LoginResult> {
+        loggedIn.value = true
+        return Result.success(result)
+    }
+
+    // 토큰 재발급이 거절된 상황을 흉내 낸다
+    fun expireSession() {
+        loggedIn.value = false
+    }
 }
 
 @Module
@@ -38,6 +52,8 @@ object FakeSocialLoginModule {
 @Module
 @TestInstallIn(components = [SingletonComponent::class], replaces = [AuthRepositoryModule::class])
 object FakeAuthRepositoryModule {
+    // 화면(AuthViewModel)과 MainActivity 가 같은 로그인 상태를 보도록 하나만 만든다
     @Provides
+    @Singleton
     fun provideAuthRepository(): AuthRepository = FakeAuthRepository()
 }

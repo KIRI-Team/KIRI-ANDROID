@@ -5,6 +5,9 @@ import com.kiri.domain.model.auth.LoginResult
 import com.kiri.domain.model.auth.SocialProvider
 import com.kiri.domain.repository.AuthRepository
 import javax.inject.Inject
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 
 internal class AuthRepositoryImpl @Inject constructor(
@@ -12,6 +15,8 @@ internal class AuthRepositoryImpl @Inject constructor(
     private val tokenStore: TokenStore,
     private val json: Json,
 ) : AuthRepository {
+
+    override val isLoggedIn: Flow<Boolean> = tokenStore.tokens.map { it != null }.distinctUntilChanged()
 
     override suspend fun login(provider: SocialProvider, socialToken: String, nonce: String): Result<LoginResult> =
         apiResult(json) {

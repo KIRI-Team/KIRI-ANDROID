@@ -8,8 +8,11 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kiri.app.MainActivity
+import com.kiri.app.auth.FakeAuthRepository
+import com.kiri.domain.repository.AuthRepository
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import javax.inject.Inject
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -26,6 +29,9 @@ class KiriAppStartTest {
 
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule<MainActivity>()
+
+    @Inject
+    lateinit var authRepository: AuthRepository
 
     @Before
     fun setUp() {
@@ -153,6 +159,22 @@ class KiriAppStartTest {
         composeTestRule.onNodeWithTag("bottom_nav_place").assertIsDisplayed()
         composeTestRule.onNodeWithTag("onboarding_screen").assertDoesNotExist()
     }
+
+    @Test
+    fun 메인에서_로그인_토큰이_사라지면_로그인_화면으로_이동한다() {
+        passAuth()
+        passNicknameAndRole()
+        composeTestRule.onNodeWithText("먼저 둘러보러가기").performClick()
+        composeTestRule.onNodeWithTag("home_screen").assertIsDisplayed()
+
+        // 토큰 재발급이 거절되어 토큰이 지워진 상황
+        (authRepository as FakeAuthRepository).expireSession()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithTag("login_screen").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("home_screen").assertDoesNotExist()
+    }
+
     // 닉네임 입력 → 다음 → 역할 선택 → 다음 → 온보딩 메인
     private fun passNicknameAndRole() {
         composeTestRule.onNodeWithTag("onboarding_input_box").performTextInput("주연주")

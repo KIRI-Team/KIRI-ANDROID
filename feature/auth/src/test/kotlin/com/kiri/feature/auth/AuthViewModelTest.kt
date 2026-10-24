@@ -11,6 +11,8 @@ import com.kiri.feature.auth.model.AuthUiEvent
 import com.kiri.feature.auth.model.LoginProvider
 import java.io.IOException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -31,6 +33,7 @@ class AuthViewModelTest {
     private class FakeAuthRepository : AuthRepository {
         var result: Result<LoginResult> = Result.success(LoginResult(isNewUser = true, termsAgreed = false))
         val calls = mutableListOf<Triple<SocialProvider, String, String>>()
+        override val isLoggedIn: Flow<Boolean> = emptyFlow()
 
         override suspend fun login(provider: SocialProvider, socialToken: String, nonce: String): Result<LoginResult> {
             calls += Triple(provider, socialToken, nonce)
