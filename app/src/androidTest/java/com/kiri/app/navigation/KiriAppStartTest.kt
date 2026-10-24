@@ -32,13 +32,13 @@ class KiriAppStartTest {
         hiltRule.inject()
     }
 
-    // 로그인 → 약관 전체동의 → 동의하고 계속하기 → 온보딩
+    // 로그인 → 약관 전체동의 → 동의하기 → 온보딩
     private fun passAuth() {
         composeTestRule.onNodeWithTag("login_screen").assertIsDisplayed()
         composeTestRule.onNodeWithTag("auth_login_button_kakao").performClick()
         composeTestRule.onNodeWithTag("terms_agreement_screen").assertIsDisplayed()
         composeTestRule.onNodeWithTag("agreement_all").performClick()
-        composeTestRule.onNodeWithText("동의하고 계속하기").performClick()
+        composeTestRule.onNodeWithText("동의하기").performClick()
         composeTestRule.onNodeWithTag("onboarding_screen").assertIsDisplayed()
     }
 
@@ -52,7 +52,7 @@ class KiriAppStartTest {
     fun 약관에_모두_동의하기_전에는_계속할_수_없다() {
         composeTestRule.onNodeWithTag("auth_login_button_kakao").performClick()
 
-        composeTestRule.onNodeWithText("동의하고 계속하기").performClick()
+        composeTestRule.onNodeWithText("동의하기").performClick()
 
         composeTestRule.onNodeWithTag("terms_agreement_screen").assertIsDisplayed()
         composeTestRule.onNodeWithTag("onboarding_screen").assertDoesNotExist()

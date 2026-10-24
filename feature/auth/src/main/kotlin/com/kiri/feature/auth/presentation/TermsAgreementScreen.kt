@@ -80,7 +80,7 @@ fun TermsAgreementScreen(
         }
         KiriButton(
             onClick = onAgreeClick,
-            text = "동의하고 계속하기",
+            text = "동의하기",
             enabled = canContinue,
             modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 12.dp),
         )
