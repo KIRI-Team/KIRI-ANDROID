@@ -70,7 +70,7 @@ class RecordViewModelTest {
         assertEquals(1, restored.uiState.value.visibleBuckets.size)
     }
 
-    @Test fun requestedScheduleShowsAsPlannedAndLeavesBucketList() = runTest {
+    @Test fun requestedScheduleKeepsPlannedCalendarMarkerButIsExcludedFromConfirmedAppointments() = runTest {
         val repo = repository()
         val vm = RecordViewModel(handle(), repo)
         val date = LocalDate.of(2026, 10, 20)
@@ -79,7 +79,7 @@ class RecordViewModelTest {
 
         val state = vm.uiState.value
         assertTrue(state.buckets.none { it.id == "record-bucket" })
-        assertEquals(RecordScheduleStatus.PLANNED, state.schedules.single { it.date == date }.status)
+        assertTrue(state.schedules.none { it.date == date })
         assertEquals(RecordCalendarMark.PLANNED, state.calendarMarks[date])
         // 원래 있던 확정 일정은 그대로 확정이다
         assertTrue(state.schedules.filter { it.date != date }.all { it.status == RecordScheduleStatus.CONFIRMED })

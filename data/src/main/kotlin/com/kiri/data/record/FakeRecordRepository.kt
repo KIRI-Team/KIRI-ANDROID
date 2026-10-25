@@ -48,7 +48,9 @@ class FakeRecordRepository(
         val question = family.question?.let { RecordedQuestion(it.date, it.text, family.answers,
             family.members.associate { member -> member.id to if (member.accessible) member.nickname else "탈퇴한 멤버" },
             members.isNotEmpty() && members.all { member -> member.id in family.answers }) }
-        val questions = state.value.questions + listOfNotNull(question).associateBy { it.date }
+        val questions = (state.value.questions + listOfNotNull(question).associateBy { it.date }).mapValues { (_, past) ->
+            past.copy(memberNames = past.memberNames.mapValues { (id, _) -> family.members.find { it.id == id && it.accessible }?.nickname ?: "탈퇴한 멤버" })
+        }
         familySchedules?.refresh()
         familyBuckets?.refresh()
         val schedules = familySchedules?.schedules?.value?.filter { !it.cancelled && !it.completed }?.map { schedule ->
@@ -113,6 +115,8 @@ class FakeRecordRepository(
     override suspend fun applyConditions(entryId: String, conditions: Set<Condition>): MissionDetail {
         val family = home.load()
         check(!family.browsing)
+        val target = requireNotNull(state.value.entries.find { it.id == entryId })
+        check(target.status == ScheduleStatus.CONFIRMED && family.currentUserId in target.participantIds) { "확정된 약속의 참여자만 조건을 변경할 수 있어요." }
         if (familySchedules == null && family.schedules.any { it.id == entryId }) {
             require(state.value.entries.any { it.id == entryId && it.kind == CalendarEntryKind.SCHEDULE && it.date == family.date })
             scheduledDetails.applyConditions(entryId, conditions)
