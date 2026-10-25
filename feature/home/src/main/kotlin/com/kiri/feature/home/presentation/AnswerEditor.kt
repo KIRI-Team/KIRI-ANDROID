@@ -52,7 +52,7 @@ internal fun AnswerEditor(
             Text("오늘의 질문에 답변해주세요!", color = HomeSecondary, fontSize = 16.sp)
             Spacer(Modifier.height(36.dp))
             TextField(
-                value = draft, onValueChange = onChange, enabled = !busy,
+                value = draft, onValueChange = { onChange(it.take(500)) }, enabled = !busy,
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "오늘의 질문 답변" },
                 placeholder = { Text("답변을 입력하세요.") },
                 shape = RoundedCornerShape(18.dp),

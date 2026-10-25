@@ -311,7 +311,7 @@ private fun QuestionMissionCard(
 
 @Composable private fun MemberAnswerToast(home: FamilyHome, memberId:String, busy:Boolean, bounds:Rect, onPoke:()->Unit, onDismiss:()->Unit){
     val m=home.members.firstOrNull{it.id==memberId}?:return; val can=home.canPoke(m.id)
-    KiriTooltip("${m.nickname}의 가장 좋아하는 음식은",home.answers[m.id]?:"아직 답변하지 않았어요",can&&!busy,onPoke,IntRect(bounds.left.roundToInt(), bounds.top.roundToInt(), bounds.right.roundToInt(), bounds.bottom.roundToInt()), onDismiss)
+    KiriTooltip("${m.nickname}의 답변",home.answers[m.id]?:"아직 답변하지 않았어요",can&&!busy,onPoke,IntRect(bounds.left.roundToInt(), bounds.top.roundToInt(), bounds.right.roundToInt(), bounds.bottom.roundToInt()), onDismiss)
 }
 @Composable private fun NoticeBar(message:String){KiriPokeNotice(message, Modifier.fillMaxWidth().padding(horizontal=18.dp, vertical=12.dp))}
 
