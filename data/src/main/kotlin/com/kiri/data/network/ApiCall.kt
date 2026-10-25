@@ -22,6 +22,13 @@ internal suspend fun <T : Any> apiResult(json: Json, call: suspend () -> ApiResp
     Result.failure(e)
 }
 
+/** Commands may succeed without a result payload. Query results remain required. */
+internal suspend fun apiCommand(json: Json, call: suspend () -> ApiResponse<*>): Result<Unit> =
+    apiResult(json) {
+        val response = call()
+        ApiResponse(response.isSuccess, response.code, response.message, Unit)
+    }
+
 private fun HttpException.toKiriApiException(json: Json): KiriApiException {
     val body = runCatching { response()?.errorBody()?.string() }.getOrNull()
     val error = body?.let { runCatching { json.decodeFromString<ApiErrorBody>(it) }.getOrNull() }

@@ -41,4 +41,15 @@ class AnswerEditorTest {
         compose.onNodeWithText("저장 중…").assertIsNotEnabled()
         compose.onNodeWithContentDescription("뒤로").assertIsNotEnabled()
     }
+
+    @Test fun answerInputIsLimitedToFiveHundredCharacters() {
+        var draft = ""
+        compose.setContent {
+            var value by remember { mutableStateOf("") }
+            AnswerEditor("오늘의 질문", value, false, null,
+                { value = it; draft = it }, {}, {})
+        }
+        compose.onNodeWithContentDescription("오늘의 질문 답변").performTextInput("가".repeat(501))
+        compose.runOnIdle { assertEquals(500, draft.length) }
+    }
 }

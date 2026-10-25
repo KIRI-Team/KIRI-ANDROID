@@ -81,4 +81,35 @@ class RemoteHomeRepositoryTest {
             assertEquals(HomeFailure.ALREADY_POKED, (runCatching { repo.poke(home.question!!, "2") }.exceptionOrNull() as HomeException).reason)
         }
     }
+
+    @Test fun unassignedQuestionUsesEmptyStateInsteadOfLoadFailure() = runTest {
+        MockWebServer().use { server ->
+            server.start(); server.reply("null", "QUESTION404_1", 404)
+            val home = repository(server).load()
+            assertFalse(home.browsing)
+            assertNull(home.question)
+            assertTrue(home.members.isEmpty())
+            assertEquals(1, server.requestCount)
+        }
+    }
+
+    @Test fun missingTokenDoesNotSendRequest() = runTest {
+        MockWebServer().use { server ->
+            server.start()
+            val tokens = Tokens().apply { value = null }
+            val error = runCatching { repository(server, tokens).load() }.exceptionOrNull() as HomeException
+            assertEquals(HomeFailure.UNAVAILABLE, error.reason)
+            assertEquals(0, server.requestCount)
+        }
+    }
+
+    @Test fun failedMutationDoesNotReplaceSavedAnswer() = runTest {
+        MockWebServer().use { server ->
+            server.start(); server.family(); server.reply("null", "QUESTION409_1", 409)
+            server.reply("null")
+            val repo = repository(server); val home = repo.load()
+            assertTrue(runCatching { repo.saveAnswer(home.question!!, "실패 답변") }.isFailure)
+            assertFalse(repo.poke(home.question!!, "2").answers.containsKey("1"))
+        }
+    }
 }

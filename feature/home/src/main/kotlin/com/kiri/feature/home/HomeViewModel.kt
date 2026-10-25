@@ -124,8 +124,9 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(loading = it.home == null, loadError = false) }
         viewModelScope.launch {
             try {
-                scheduleRepository?.refresh()
-                val home = repository.load().withSchedules()
+                val loaded = repository.load()
+                if (!loaded.serverBacked) scheduleRepository?.refresh()
+                val home = loaded.withSchedules()
                 if (!home.browsing && savedState.get<Boolean>("homeTutorialChecked") != true) {
                     // Mark the visit before showing it: returning home or restarting cannot replay it.
                     val firstVisit = runCatching { tutorialRepository.claimFirstVisit(home.currentUserId) }

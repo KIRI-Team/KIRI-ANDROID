@@ -32,7 +32,11 @@ internal class RemoteHomeRepository(
 
     private suspend fun loadHome(token: String): FamilyHome {
         val date = today()
-        val daily = apiResult(json) { api.today(token) }.getOrThrow()
+        val daily = apiResult(json) { api.today(token) }.getOrElse { error ->
+            // A family may exist before its first daily question is assigned.
+            if ((error as? KiriApiException)?.code == "QUESTION404_1") TodayQuestionResponse(hasFamily = true)
+            else throw error
+        }
         val family = if (daily.hasFamily && daily.questionId != null) {
             apiResult(json) { api.answers(token, daily.questionId.toString()) }.getOrThrow()
         } else null
@@ -54,7 +58,7 @@ internal class RemoteHomeRepository(
         if (answer.length > 500) throw HomeException(HomeFailure.ANSWER_TOO_LONG)
         if (!home.canRead(home.currentUserId)) throw HomeException(HomeFailure.UNAVAILABLE)
         // Mutation responses intentionally have result:null, unlike query responses.
-        apiResult(json) { api.save(token, question.id, AnswerRequest(answer)).let { it.copy(result = it.result ?: kotlinx.serialization.json.JsonNull) } }.getOrThrow()
+        apiCommand(json) { api.save(token, question.id, AnswerRequest(answer)) }.getOrThrow()
         home.copy(answers = home.answers + (home.currentUserId to answer)).also { snapshot = it }
     } }
 
@@ -63,7 +67,7 @@ internal class RemoteHomeRepository(
         val home = validate(question)
         if (memberId in home.pokedMemberIds) throw HomeException(HomeFailure.ALREADY_POKED)
         if (!home.canPoke(memberId)) throw HomeException(HomeFailure.UNAVAILABLE)
-        apiResult(json) { api.poke(token, memberId).let { it.copy(result = it.result ?: kotlinx.serialization.json.JsonNull) } }.getOrThrow()
+        apiCommand(json) { api.poke(token, memberId) }.getOrThrow()
         home.copy(pokedMemberIds = home.pokedMemberIds + memberId).also { snapshot = it }
     } }
 
