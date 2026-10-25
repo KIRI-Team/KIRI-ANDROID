@@ -18,7 +18,7 @@ object HomeRepositoryModule {
 
     @Provides
     @Singleton
-    fun provideHomeRepository(missions: MissionRepository): HomeRepository = FakeHomeRepository(missionRepository = missions)
+    internal fun provideHomeRepository(retrofit: retrofit2.Retrofit, tokens: com.kiri.data.auth.TokenStore, json: kotlinx.serialization.json.Json, clock: Clock): HomeRepository = RemoteHomeRepository(retrofit.create(HomeApi::class.java), tokens, json, clock)
 
     @Provides
     @Singleton

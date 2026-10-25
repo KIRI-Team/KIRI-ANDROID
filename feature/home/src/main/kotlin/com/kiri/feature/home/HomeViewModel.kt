@@ -45,7 +45,7 @@ class HomeViewModel @Inject constructor(
 
     private fun FamilyHome.withSchedules(): FamilyHome {
         val shared = scheduleRepository?.schedules?.value ?: return this
-        if (browsing) return this
+        if (browsing || serverBacked) return this
         return copy(schedules = shared.map { schedule ->
             val status = schedule.status(clock.instant())
             val response = schedule.responses[currentUserId]
@@ -117,8 +117,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun FamilyHome.withTemporaryInviteCode(): FamilyHome =
-        if (browsing) this else copy(inviteCode = com.kiri.feature.onboarding.TemporaryFamilyCode.code)
 
     private fun load() {
         if (uiState.value.busy || loadingInProgress) return
@@ -127,7 +125,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 scheduleRepository?.refresh()
-                val home = repository.load().withTemporaryInviteCode().withSchedules()
+                val home = repository.load().withSchedules()
                 if (!home.browsing && savedState.get<Boolean>("homeTutorialChecked") != true) {
                     // Mark the visit before showing it: returning home or restarting cannot replay it.
                     val firstVisit = runCatching { tutorialRepository.claimFirstVisit(home.currentUserId) }
@@ -162,7 +160,7 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             try {
-                val home = repository.saveAnswer(question, s.draft).withTemporaryInviteCode().withSchedules()
+                val home = repository.saveAnswer(question, s.draft).withSchedules()
                 _uiState.update { it.copy(home = home, busy = false, editing = true, answerSaved = true) }
             } catch (error: CancellationException) { throw error }
             catch (error: Exception) { failed(error) }
@@ -178,7 +176,7 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             try {
-                val updated = repository.poke(question, member).withTemporaryInviteCode().withSchedules()
+                val updated = repository.poke(question, member).withSchedules()
                 val nickname = home.members.firstOrNull { it.id == member }?.nickname ?: "가족"
                 _uiState.update { it.copy(
                     home = updated, busy = false, selectedMemberId = null,
@@ -192,6 +190,7 @@ class HomeViewModel @Inject constructor(
     private fun failed(error: Exception) {
         val reason = (error as? HomeException)?.reason
         _uiState.update { it.copy(busy = false, error = when (reason) {
+            HomeFailure.ANSWER_TOO_LONG -> "답변은 500자 이내로 작성해주세요."
             HomeFailure.EMPTY_ANSWER -> "답변을 입력해주세요."
             HomeFailure.EXPIRED -> "날짜가 바뀌었어요. 오늘의 질문을 다시 불러옵니다."
             HomeFailure.ALREADY_ANSWERED -> "이미 답변한 가족이에요."

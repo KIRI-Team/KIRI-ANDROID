@@ -1,4 +1,4 @@
-﻿package com.kiri.data.home
+package com.kiri.data.home
 
 import com.kiri.domain.home.*
 import java.time.*
@@ -47,7 +47,7 @@ class FakeHomeRepositoryTest {
         assertEquals(before.answers, after.answers)
         assertEquals(before.mission, after.mission)
         assertFailure(HomeFailure.ALREADY_POKED) { repo.poke(before.question!!, "father") }
-        assertFailure(HomeFailure.ALREADY_ANSWERED) { repo.poke(before.question!!, "mother") }
+        assertTrue(repo.poke(before.question!!, "mother").pokedMemberIds.contains("mother"))
         assertFailure(HomeFailure.UNAVAILABLE) { repo.poke(before.question!!, "me") }
         assertFailure(HomeFailure.UNAVAILABLE) { repo.poke(before.question!!, "unknown") }
     }

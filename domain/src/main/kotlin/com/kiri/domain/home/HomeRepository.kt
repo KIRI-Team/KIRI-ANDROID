@@ -47,12 +47,13 @@ data class FamilyHome(
     val schedules: List<HomeSchedule> = emptyList(),
     val recommendations: List<HomeRecommendation> = emptyList(),
     val inviteCode: String? = null,
+    val serverBacked: Boolean = false,
 ) {
     val browsing: Boolean get() = familyName == null
     fun canRead(memberId: String): Boolean = !browsing && question != null &&
         members.any { it.id == memberId && it.accessible }
     fun canPoke(memberId: String): Boolean = canRead(memberId) &&
-        memberId != currentUserId && memberId !in answers && memberId !in pokedMemberIds
+        memberId != currentUserId && memberId !in pokedMemberIds
 }
 
 enum class ScheduleStatus { PENDING_RESPONSE, RECONFIRM_REQUIRED, CONFIRMED, NOT_CONFIRMED, CANCELLED, COMPLETED }
@@ -94,7 +95,7 @@ fun selectHomeSchedule(
     return upcoming?.let { HomeScheduleCard(it, HomeScheduleCard.Kind.UPCOMING) }
 }
 
-enum class HomeFailure { EMPTY_ANSWER, UNAVAILABLE, EXPIRED, ALREADY_ANSWERED, ALREADY_POKED, NETWORK }
+enum class HomeFailure { ANSWER_TOO_LONG, EMPTY_ANSWER, UNAVAILABLE, EXPIRED, ALREADY_ANSWERED, ALREADY_POKED, NETWORK }
 class HomeException(val reason: HomeFailure) : Exception(reason.name)
 
 /** Implementations must validate access, assignment date and poke uniqueness atomically.
