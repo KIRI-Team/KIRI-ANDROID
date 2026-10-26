@@ -6,6 +6,8 @@ import com.kiri.domain.home.*
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
@@ -18,7 +20,11 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 class RemoteHomeRepositoryTest {
     private val clock = Clock.fixed(Instant.parse("2026-10-22T16:00:00Z"), ZoneOffset.UTC)
     private class Tokens : TokenStore {
-        var value: AuthTokens? = AuthTokens("access", "refresh")
+        private val state = MutableStateFlow<AuthTokens?>(AuthTokens("access", "refresh"))
+        var value: AuthTokens?
+            get() = state.value
+            set(tokens) { state.value = tokens }
+        override val tokens: Flow<AuthTokens?> = state
         override suspend fun get() = value
         override suspend fun save(tokens: AuthTokens) { value = tokens }
         override suspend fun clear() { value = null }

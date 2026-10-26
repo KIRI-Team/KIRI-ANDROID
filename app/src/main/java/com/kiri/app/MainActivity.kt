@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.kiri.app.navigation.KiriApp
 import com.kiri.domain.model.invite.InviteLink
+import com.kiri.domain.repository.AuthRepository
 import com.kiri.domain.repository.PendingInviteRepository
 import com.kiri.uikit.KiriTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -19,6 +20,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var pendingInviteRepository: PendingInviteRepository
 
+    @Inject
+    lateinit var authRepository: AuthRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // 화면 배경이 상태바/내비게이션 바 뒤까지 이어지도록 하고, 어두운 배경에 맞춰 바 아이콘은 밝게 표시한다
         enableEdgeToEdge(
@@ -26,7 +30,7 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
-        setContent { KiriTheme { KiriApp() } }
+        setContent { KiriTheme { KiriApp(isLoggedIn = authRepository.isLoggedIn) } }
         // 화면 회전 등으로 다시 만들어질 때는 같은 링크를 다시 저장하지 않는다
         if (savedInstanceState == null) saveInviteCode(intent)
     }

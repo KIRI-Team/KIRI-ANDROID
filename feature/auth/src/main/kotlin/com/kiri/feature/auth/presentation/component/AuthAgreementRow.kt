@@ -1,6 +1,5 @@
 package com.kiri.feature.auth.presentation.component
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,11 +10,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,11 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -39,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.kiri.feature.auth.R
-import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.color.KiriComponentColor
 
 // KIRI/Agreement Row: Type=All(전체동의) / Type=Required(개별 약관)
@@ -83,19 +74,23 @@ fun AuthAgreementRow(
                 .testTag("${testTag}_checkbox"),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AgreementCheckbox(
-                checked = checked,
-                uncheckedBorderColor = when (type) {
-                    AuthAgreementRowType.All -> KiriColor.Border.Strong
-                    AuthAgreementRowType.Required -> KiriColor.Border.Transparent
-                },
+            Image(
+                painter = painterResource(
+                    if (checked) R.drawable.ic_auth_check_circle_active else R.drawable.ic_auth_check_circle_disabled,
+                ),
+                contentDescription = null,
             )
-            Spacer(Modifier.width(4.dp))
+            Spacer(
+                Modifier.width(
+                    when (type) {
+                        AuthAgreementRowType.All -> 8.dp
+                        AuthAgreementRowType.Required -> 6.dp
+                    },
+                ),
+            )
             Text(
                 text = title,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 2.dp),
+                modifier = Modifier.weight(1f),
                 style = TextStyle(
                     color = KiriComponentColor.Input.ContentFilled,
                     fontSize = 16.sp,
@@ -123,48 +118,6 @@ fun AuthAgreementRow(
                     contentDescription = "약관 상세 보기",
                 )
             }
-        }
-    }
-}
-
-// 표시만 담당한다 (동의 토글은 행의 동의 영역이 처리)
-@Composable
-private fun AgreementCheckbox(
-    checked: Boolean,
-    uncheckedBorderColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier.size(28.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        val boxShape = RoundedCornerShape(4.dp)
-        if (checked) {
-            // TODO: Figma에 체크된 상태가 없어 임시 스타일 (Primary 배경 + 체크 표시)
-            Box(
-                modifier = Modifier
-                    .size(18.dp)
-                    .background(KiriColor.Primary.Default, boxShape),
-            ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val path = Path().apply {
-                        moveTo(size.width * 0.24f, size.height * 0.52f)
-                        lineTo(size.width * 0.43f, size.height * 0.70f)
-                        lineTo(size.width * 0.77f, size.height * 0.33f)
-                    }
-                    drawPath(
-                        path = path,
-                        color = KiriColor.Icon.OnGreen,
-                        style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
-                    )
-                }
-            }
-        } else {
-            Box(
-                modifier = Modifier
-                    .size(18.dp)
-                    .border(1.dp, uncheckedBorderColor, boxShape),
-            )
         }
     }
 }
