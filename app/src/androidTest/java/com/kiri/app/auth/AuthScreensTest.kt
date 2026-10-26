@@ -18,8 +18,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.kiri.domain.model.term.Term
 import com.kiri.feature.auth.AuthViewModel
-import com.kiri.domain.model.term.AgreementTerm
 import com.kiri.feature.auth.login.NonceGenerator
 import com.kiri.feature.auth.login.SocialLoginResult
 import com.kiri.feature.auth.model.AuthUiEvent
@@ -40,9 +40,36 @@ class AuthScreensTest {
     val composeTestRule = createComposeRule()
 
     // 로그인을 마치고 약관동의에 온 ViewModel (SDK·서버 대신 가짜 결과를 넣는다)
-    private fun loggedInViewModel() = AuthViewModel(FakeAuthRepository(), NonceGenerator()).apply {
+    private fun loggedInViewModel() = AuthViewModel(FakeAuthRepository(), FakeTermRepository(), NonceGenerator()).apply {
         onEvent(AuthUiEvent.LoginClicked(LoginProvider.KAKAO))
         onEvent(AuthUiEvent.SocialLoginFinished(SocialLoginResult.Success(LoginProvider.KAKAO, "test-id-token")))
+    }
+
+    private fun setTermsAgreementScreen(
+        isLoadingTerms: Boolean = false,
+        termsLoadFailed: Boolean = false,
+        onRetryClick: () -> Unit = {},
+        onTermToggle: (Term) -> Unit = {},
+        onTermDetailClick: (Term) -> Unit = {},
+    ) {
+        composeTestRule.setContent {
+            KiriTheme {
+                TermsAgreementScreen(
+                    terms = if (isLoadingTerms || termsLoadFailed) emptyList() else FAKE_TERMS,
+                    agreedTermIds = emptySet(),
+                    allAgreed = false,
+                    canContinue = false,
+                    onAllToggle = {},
+                    onTermToggle = onTermToggle,
+                    onTermDetailClick = onTermDetailClick,
+                    onAgreeClick = {},
+                    onBackClick = {},
+                    isLoadingTerms = isLoadingTerms,
+                    termsLoadFailed = termsLoadFailed,
+                    onRetryClick = onRetryClick,
+                )
+            }
+        }
     }
 
     @Test
@@ -60,18 +87,27 @@ class AuthScreensTest {
     }
 
     @Test
+    fun 서버_약관마다_필수와_선택_표시가_붙은_제목이_보인다() {
+        setTermsAgreementScreen()
+
+        composeTestRule.onNodeWithText("[필수] 서비스 이용약관").assertIsDisplayed()
+        composeTestRule.onNodeWithText("[필수] 개인정보 처리방침").assertIsDisplayed()
+        composeTestRule.onNodeWithText("[선택] 마케팅 정보 수신 동의").assertIsDisplayed()
+    }
+
+    @Test
     fun 전체동의를_누르면_모든_약관이_체크되고_계속하기가_활성화된다() {
         composeTestRule.setContent {
-            var agreed by remember { mutableStateOf(emptySet<AgreementTerm>()) }
+            var agreed by remember { mutableStateOf(emptySet<Long>()) }
+            val allIds = FAKE_TERMS.map(Term::id).toSet()
             KiriTheme {
                 TermsAgreementScreen(
-                    agreedTerms = agreed,
-                    allAgreed = agreed.containsAll(AgreementTerm.entries),
-                    canContinue = agreed.containsAll(AgreementTerm.entries),
-                    onAllToggle = {
-                        agreed = if (agreed.containsAll(AgreementTerm.entries)) emptySet() else AgreementTerm.entries.toSet()
-                    },
-                    onTermToggle = { agreed = if (it in agreed) agreed - it else agreed + it },
+                    terms = FAKE_TERMS,
+                    agreedTermIds = agreed,
+                    allAgreed = agreed.containsAll(allIds),
+                    canContinue = agreed.containsAll(allIds),
+                    onAllToggle = { agreed = if (agreed.containsAll(allIds)) emptySet() else allIds },
+                    onTermToggle = { agreed = if (it.id in agreed) agreed - it.id else agreed + it.id },
                     onTermDetailClick = {},
                     onAgreeClick = {},
                     onBackClick = {},
@@ -85,38 +121,46 @@ class AuthScreensTest {
 
         composeTestRule.onNodeWithTag("agreement_all").performClick()
 
-        AgreementTerm.entries.forEach {
-            composeTestRule.onNodeWithTag("agreement_${it.name.lowercase()}_checkbox").assertIsOn()
+        FAKE_TERMS.forEach {
+            composeTestRule.onNodeWithTag("agreement_term_${it.id}_checkbox").assertIsOn()
         }
         composeTestRule.onNodeWithTag("kiri_button").assertIsEnabled()
     }
 
     @Test
     fun 개별_약관은_화살표만_세부_내용을_열고_나머지_영역은_동의를_바꾼다() {
-        val toggled = mutableListOf<AgreementTerm>()
-        val detail = mutableListOf<AgreementTerm>()
-        composeTestRule.setContent {
-            KiriTheme {
-                TermsAgreementScreen(
-                    agreedTerms = emptySet(),
-                    allAgreed = false,
-                    canContinue = false,
-                    onAllToggle = {},
-                    onTermToggle = { toggled += it },
-                    onTermDetailClick = { detail += it },
-                    onAgreeClick = {},
-                    onBackClick = {},
-                )
-            }
-        }
+        val toggled = mutableListOf<Term>()
+        val detail = mutableListOf<Term>()
+        setTermsAgreementScreen(onTermToggle = { toggled += it }, onTermDetailClick = { detail += it })
 
         // 동의 영역의 가운데(약관 문구)와 왼쪽 끝(체크박스)을 누른다
         composeTestRule.onNodeWithTag("agreement_term_2_checkbox").performClick()
         composeTestRule.onNodeWithTag("agreement_term_1_checkbox").performTouchInput { click(centerLeft + Offset(40f, 0f)) }
         composeTestRule.onNodeWithTag("agreement_term_3_detail").performClick()
 
-        assertEquals(listOf(AgreementTerm.TERM_2, AgreementTerm.TERM_1), toggled)
-        assertEquals(listOf(AgreementTerm.TERM_3), detail)
+        assertEquals(listOf(FAKE_TERMS[1], FAKE_TERMS[0]), toggled)
+        assertEquals(listOf(FAKE_TERMS[2]), detail)
+    }
+
+    @Test
+    fun 약관을_받는_동안에는_로딩만_보이고_동의하기를_누를_수_없다() {
+        setTermsAgreementScreen(isLoadingTerms = true)
+
+        composeTestRule.onNodeWithTag("kiri_loading_indicator").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("agreement_all").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("kiri_button").assertIsNotEnabled()
+    }
+
+    @Test
+    fun 약관을_받지_못하면_다시_시도를_누를_수_있다() {
+        var retried = 0
+        setTermsAgreementScreen(termsLoadFailed = true, onRetryClick = { retried++ })
+
+        composeTestRule.onNodeWithTag("terms_load_failed").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("agreement_all").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("terms_retry_button").performClick()
+
+        assertEquals(1, retried)
     }
 
     @Test

@@ -3,8 +3,9 @@ package com.kiri.feature.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kiri.domain.model.auth.SocialProvider
-import com.kiri.domain.model.term.AgreementTerm
+import com.kiri.domain.model.term.Term
 import com.kiri.domain.repository.AuthRepository
+import com.kiri.domain.repository.TermRepository
 import com.kiri.feature.auth.login.NonceGenerator
 import com.kiri.feature.auth.login.SocialLoginResult
 import com.kiri.feature.auth.model.AuthUiEffect
@@ -25,6 +26,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val termRepository: TermRepository,
     private val nonceGenerator: NonceGenerator,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -41,13 +43,14 @@ class AuthViewModel @Inject constructor(
         when (event) {
             is AuthUiEvent.LoginClicked -> startSocialLogin(event.provider)
             is AuthUiEvent.SocialLoginFinished -> finishSocialLogin(event.result)
+            AuthUiEvent.TermsRetryClicked -> loadTerms()
             AuthUiEvent.AllTermsToggled -> toggleAllTerms()
             is AuthUiEvent.TermToggled -> toggleTerm(event.term)
             is AuthUiEvent.TermDetailClicked -> openTermDetail(event.term)
             AuthUiEvent.TermDetailDismissed -> _uiState.update { it.copy(viewingTerm = null) }
             // 이미 동의한 약관이어도 해제하지 않고 동의 상태로 두고 창을 닫는다
             is AuthUiEvent.TermDetailAgreed -> _uiState.update {
-                it.copy(agreedTerms = it.agreedTerms + event.term, viewingTerm = null)
+                it.copy(agreedTermIds = it.agreedTermIds + event.term.id, viewingTerm = null)
             }
             AuthUiEvent.AgreeClicked -> agree()
             AuthUiEvent.BackClicked -> previous()
@@ -85,7 +88,7 @@ class AuthViewModel @Inject constructor(
                             currentStep = if (login.needsTermsAgreement) AuthStep.TERMS_AGREEMENT else it.currentStep,
                         )
                     }
-                    if (!login.needsTermsAgreement) _effect.send(AuthUiEffect.NavigateToMain)
+                    if (login.needsTermsAgreement) loadTerms() else _effect.send(AuthUiEffect.NavigateToMain)
                 }
                 .onFailure(::failLogin)
         }
@@ -96,31 +99,58 @@ class AuthViewModel @Inject constructor(
         _effect.trySend(AuthUiEffect.ShowLoginError(cause))
     }
 
+    // 이미 받았거나 받는 중이면 다시 요청하지 않는다 (로그인으로 돌아갔다 다시 와도 받은 목록을 쓴다)
+    private fun loadTerms() {
+        val state = _uiState.value
+        if (state.currentStep != AuthStep.TERMS_AGREEMENT || state.isLoadingTerms || state.terms.isNotEmpty()) return
+        _uiState.update { it.copy(isLoadingTerms = true, termsLoadFailed = false) }
+        viewModelScope.launch {
+            termRepository.getTerms()
+                .onSuccess { terms -> _uiState.update { it.copy(terms = terms, isLoadingTerms = false) } }
+                .onFailure { _uiState.update { it.copy(isLoadingTerms = false, termsLoadFailed = true) } }
+        }
+    }
+
     private fun toggleAllTerms() {
         _uiState.update {
-            it.copy(agreedTerms = if (it.allAgreed) emptySet() else AgreementTerm.entries.toSet())
+            it.copy(agreedTermIds = if (it.allAgreed) emptySet() else it.terms.map(Term::id).toSet())
         }
     }
 
-    private fun toggleTerm(term: AgreementTerm) {
+    private fun toggleTerm(term: Term) {
         _uiState.update {
-            it.copy(agreedTerms = if (term in it.agreedTerms) it.agreedTerms - term else it.agreedTerms + term)
+            it.copy(agreedTermIds = if (term.id in it.agreedTermIds) it.agreedTermIds - term.id else it.agreedTermIds + term.id)
         }
     }
 
-    private fun openTermDetail(term: AgreementTerm) {
+    private fun openTermDetail(term: Term) {
         if (_uiState.value.currentStep != AuthStep.TERMS_AGREEMENT) return
         _uiState.update { it.copy(viewingTerm = term) }
     }
 
+    // 저장 중에 다시 누르면 canContinue 가 false 라 무시된다
     private fun agree() {
-        if (!_uiState.value.canContinue) return
-        // TODO: 약관 동의 저장 API 가 나오면 서버에 동의 내용을 보낸 뒤 이동한다
-        _effect.trySend(if (_uiState.value.isNewUser) AuthUiEffect.NavigateToOnboarding else AuthUiEffect.NavigateToMain)
+        val state = _uiState.value
+        if (state.currentStep != AuthStep.TERMS_AGREEMENT || !state.canContinue) return
+        _uiState.update { it.copy(isAgreeing = true) }
+        // 선택 약관에 동의하지 않은 것도 서버에 알린다
+        val agreements = state.terms.associate { it.id to (it.id in state.agreedTermIds) }
+        viewModelScope.launch {
+            termRepository.agree(agreements)
+                .onSuccess {
+                    _uiState.update { it.copy(isAgreeing = false) }
+                    _effect.send(if (state.isNewUser) AuthUiEffect.NavigateToOnboarding else AuthUiEffect.NavigateToMain)
+                }
+                .onFailure { cause ->
+                    _uiState.update { it.copy(isAgreeing = false) }
+                    _effect.send(AuthUiEffect.ShowAgreeError(cause))
+                }
+        }
     }
 
+    // 동의를 저장하는 중에는 로그인으로 돌아가지 않는다 (저장이 끝나면 화면을 옮겨야 해서)
     private fun previous() {
-        if (_uiState.value.currentStep != AuthStep.TERMS_AGREEMENT) return
+        if (_uiState.value.currentStep != AuthStep.TERMS_AGREEMENT || _uiState.value.isAgreeing) return
         _uiState.update { it.copy(currentStep = AuthStep.LOGIN, viewingTerm = null) }
     }
 }

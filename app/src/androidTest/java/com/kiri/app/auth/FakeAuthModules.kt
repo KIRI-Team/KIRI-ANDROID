@@ -2,9 +2,12 @@ package com.kiri.app.auth
 
 import android.app.Activity
 import com.kiri.data.auth.AuthRepositoryModule
+import com.kiri.data.term.TermRepositoryModule
 import com.kiri.domain.model.auth.LoginResult
 import com.kiri.domain.model.auth.SocialProvider
+import com.kiri.domain.model.term.Term
 import com.kiri.domain.repository.AuthRepository
+import com.kiri.domain.repository.TermRepository
 import com.kiri.feature.auth.login.SocialLogin
 import com.kiri.feature.auth.login.SocialLoginModule
 import com.kiri.feature.auth.login.SocialLoginResult
@@ -42,6 +45,21 @@ class FakeAuthRepository(
     }
 }
 
+// UI 테스트에서는 실제 서버 대신 고정된 약관 목록을 주고, 동의는 바로 저장된 것으로 본다
+class FakeTermRepository(
+    private val terms: List<Term> = FAKE_TERMS,
+) : TermRepository {
+    override suspend fun getTerms(): Result<List<Term>> = Result.success(terms)
+
+    override suspend fun agree(agreements: Map<Long, Boolean>): Result<Unit> = Result.success(Unit)
+}
+
+val FAKE_TERMS = listOf(
+    Term(id = 1, title = "서비스 이용약관", content = "제1조 (목적)\n서비스 이용 조건을 정합니다.", required = true),
+    Term(id = 2, title = "개인정보 처리방침", content = "제1조 (수집 항목)\n수집하는 정보를 안내합니다.", required = true),
+    Term(id = 3, title = "마케팅 정보 수신 동의", content = "이벤트, 혜택 안내", required = false),
+)
+
 @Module
 @TestInstallIn(components = [SingletonComponent::class], replaces = [SocialLoginModule::class])
 object FakeSocialLoginModule {
@@ -56,4 +74,11 @@ object FakeAuthRepositoryModule {
     @Provides
     @Singleton
     fun provideAuthRepository(): AuthRepository = FakeAuthRepository()
+}
+
+@Module
+@TestInstallIn(components = [SingletonComponent::class], replaces = [TermRepositoryModule::class])
+object FakeTermRepositoryModule {
+    @Provides
+    fun provideTermRepository(): TermRepository = FakeTermRepository()
 }
