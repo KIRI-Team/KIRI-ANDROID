@@ -69,6 +69,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
                     subtitle = savedByLabel(state.saverName(bucket.saverId)),
                     scheduleLabel = if (completed) "완료한 활동" else if (linkedSchedules.isEmpty()) "일정 잡기" else "연결된 약속 보기",
                     scheduleEnabled = !completed,
+                    deleteEnabled = activity?.saverId == state.currentUserId && !completed && linkedSchedules.isEmpty(),
                     onScheduleClick = {
                         optionBucketId = null
                         if (linkedSchedules.isNotEmpty()) onManageSchedule(linkedSchedules.first())

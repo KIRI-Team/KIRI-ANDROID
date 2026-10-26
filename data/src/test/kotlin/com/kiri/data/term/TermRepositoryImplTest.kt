@@ -99,6 +99,15 @@ class TermRepositoryImplTest {
     }
 
     @Test
+    fun 동의_저장_응답에_result가_와도_성공으로_본다() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"TERM200_2","message":"저장","result":{"saved":true}}""")
+
+        val result = repository().agree(mapOf(1L to true))
+
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
     fun 성공_상태코드여도_isSuccess가_false면_동의_저장에_실패한다() = runTest {
         enqueue(200, """{"isSuccess":false,"code":"TERM400_1","message":"필수 약관 미동의","result":null}""")
 

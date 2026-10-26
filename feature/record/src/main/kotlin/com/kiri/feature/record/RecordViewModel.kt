@@ -39,19 +39,21 @@ class RecordViewModel @Inject constructor(private val savedState: SavedStateHand
                     val entries = records.entries
                     state.copy(
                         entries = entries,
+                        currentUserId = records.currentUserId,
                         savers = records.savers.map { RecordSaver(it.key, it.value) },
-                        buckets = entries.filter { it.kind == CalendarEntryKind.BUCKET }.map { RecordBucketItem(it.id, it.title, it.saverId.orEmpty()) },
-                        schedules = entries.filter { it.kind == CalendarEntryKind.SCHEDULE }.map { RecordSchedule(it.id, it.title, it.date, if (it.pending) RecordScheduleStatus.PLANNED else RecordScheduleStatus.CONFIRMED) },
+                        buckets = entries.filter { it.kind == CalendarEntryKind.BUCKET }.map { RecordBucketItem(it.id, it.title, it.saverId.orEmpty(), it.completed) },
+                        schedules = entries.filter { it.kind == CalendarEntryKind.SCHEDULE && (it.status == com.kiri.domain.home.ScheduleStatus.CONFIRMED) }.map { RecordSchedule(it.id, it.title, it.date, RecordScheduleStatus.CONFIRMED) },
                         calendarMarks = entries.groupBy { it.date }.mapValues { (_, values) ->
-                            when (values.first().kind) {
-                                CalendarEntryKind.SCHEDULE -> if (values.first().pending) RecordCalendarMark.PLANNED else RecordCalendarMark.CONFIRMED
+                            when (values.minWith(compareBy<CalendarEntry> { when (it.kind) { CalendarEntryKind.MEMORY -> 0; CalendarEntryKind.SCHEDULE -> 1; CalendarEntryKind.BUCKET -> 2 } }.thenBy { it.startTime }.thenBy { it.id }).kind) {
+                                CalendarEntryKind.SCHEDULE -> if (values.any { it.kind == CalendarEntryKind.SCHEDULE && (it.status == com.kiri.domain.home.ScheduleStatus.CONFIRMED) }) RecordCalendarMark.CONFIRMED else RecordCalendarMark.PLANNED
                                 CalendarEntryKind.BUCKET -> RecordCalendarMark.BUCKET
                                 CalendarEntryKind.MEMORY -> RecordCalendarMark.PHOTO_FIRST
                             }
-                        },
-                        calendarPhotos = entries.filter { it.kind == CalendarEntryKind.MEMORY }.mapNotNull { entry ->
+                        } + records.questions.filterValues { it.everyoneAnswered }.keys.filter { date -> entries.none { it.date == date } }.associateWith { RecordCalendarMark.QUESTION },
+                        questions = records.questions,
+                        calendarPhotos = entries.filter { it.kind == CalendarEntryKind.MEMORY }.sortedWith(compareBy({ it.startTime }, { it.id })).mapNotNull { entry ->
                             records.photos[entry.id]?.find { it.id == entry.representativePhotoId }?.let { entry.date to it }
-                        }.toMap(),
+                        }.groupBy({ it.first }, { it.second }).mapValues { it.value.first() },
                     )
                 }
             }

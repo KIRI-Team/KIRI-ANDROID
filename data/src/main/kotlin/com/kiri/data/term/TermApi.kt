@@ -2,6 +2,7 @@ package com.kiri.data.term
 
 import com.kiri.data.network.ApiResponse
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -11,9 +12,9 @@ internal interface TermApi {
     @GET("api/v1/terms")
     suspend fun getTerms(): ApiResponse<List<TermResponse>>
 
-    // 성공하면 result 는 null 이다
+    // 성공하면 result 는 null 이다. 나중에 값이 와도 읽기에 실패하지 않도록 JsonElement 로 받고 쓰지 않는다
     @POST("api/v1/terms/agreements")
-    suspend fun agree(@Body request: TermAgreeRequest): ApiResponse<Unit>
+    suspend fun agree(@Body request: TermAgreeRequest): ApiResponse<JsonElement>
 }
 
 // shortDescription, updatedAt 도 오지만 동의 화면에서 쓰지 않아 읽지 않는다

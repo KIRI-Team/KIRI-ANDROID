@@ -42,7 +42,7 @@ fun MemoryEditorScreen(
     saving: Boolean = false,
     error: String? = null,
 ) {
-    val canSubmit = !saving && (draft.canSubmit || (editing && draft.rating in 1..5 && draft.text.isNotBlank() && draft.text.length <= 500 && draft.repeatActivity != null))
+    val canSubmit = !saving && draft.canSubmit
     val resolver = LocalContext.current.contentResolver
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         uris.forEach { uri -> runCatching { resolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } }
@@ -82,7 +82,7 @@ fun MemoryEditorScreen(
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 draft.photos.forEachIndexed { index, uri ->
                     Box(Modifier.size(137.dp)) {
-                        MemoryPhoto(uri, Modifier.fillMaxSize())
+                        RecordPhotoImage(com.kiri.domain.record.RecordPhoto(uri, uri), Modifier.fillMaxSize())
                         TextButton(onClick = { onChange(draft.copy(photos = draft.photos - uri)) }, modifier = Modifier.align(Alignment.TopEnd).testTag("remove_memory_photo_$index")) {
                             Text("삭제", color = KiriColor.Text.Strong, style = KiriDetailTypography.Small)
                         }

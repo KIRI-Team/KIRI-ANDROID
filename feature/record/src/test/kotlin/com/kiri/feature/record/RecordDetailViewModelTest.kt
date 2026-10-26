@@ -14,6 +14,17 @@ import org.junit.Assert.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RecordDetailViewModelTest {
+    @Test fun editingCannotSaveAfterRemovingTheLastPhoto() = runTest {
+        val repo = repository()
+        val vm = RecordDetailViewModel(repo, handle())
+        val original = vm.uiState.value.memories.single()
+        vm.editMemory(original.id)
+        vm.updateDraft(vm.uiState.value.memoryDraft.copy(photos = emptyList(), text = "사진 없는 수정"))
+        vm.saveMemory()
+        assertFalse(vm.uiState.value.memoryDraft.canSubmit)
+        assertEquals(original, repo.records.value.memories.find { it.id == original.id })
+        assertFalse(vm.uiState.value.detail.saving)
+    }
     @Before fun setup() { Dispatchers.setMain(UnconfinedTestDispatcher()) }
     @After fun teardown() { Dispatchers.resetMain() }
     private fun repository() = FakeRecordRepository(FakeHomeRepository(latencyMillis = 0), FakeMissionRepository())

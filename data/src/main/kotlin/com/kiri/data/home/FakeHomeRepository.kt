@@ -1,4 +1,4 @@
-﻿package com.kiri.data.home
+package com.kiri.data.home
 
 import com.kiri.domain.home.*
 import com.kiri.domain.mission.MissionRepository
@@ -58,7 +58,6 @@ class FakeHomeRepository(
         delay(latencyMillis)
         validate(question)
         if (!snapshot.canRead(memberId) || memberId == snapshot.currentUserId) throw HomeException(HomeFailure.UNAVAILABLE)
-        if (memberId in snapshot.answers) throw HomeException(HomeFailure.ALREADY_ANSWERED)
         if (memberId in snapshot.pokedMemberIds) throw HomeException(HomeFailure.ALREADY_POKED)
         if (scenario == HomeScenario.POKE_FAILURE && !pokeFailed) {
             pokeFailed = true

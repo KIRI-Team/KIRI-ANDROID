@@ -1,7 +1,7 @@
 package com.kiri.data.term
 
+import com.kiri.data.network.apiCommand
 import com.kiri.data.network.apiResult
-import com.kiri.data.network.apiUnitResult
 import com.kiri.domain.model.term.Term
 import com.kiri.domain.repository.TermRepository
 import javax.inject.Inject
@@ -18,7 +18,7 @@ internal class TermRepositoryImpl @Inject constructor(
         }
 
     override suspend fun agree(agreements: Map<Long, Boolean>): Result<Unit> =
-        apiUnitResult(json) {
+        apiCommand(json) {
             api.agree(TermAgreeRequest(agreements.map { (id, agreed) -> TermAgreement(termId = id, isAgreed = agreed) }))
         }
 }

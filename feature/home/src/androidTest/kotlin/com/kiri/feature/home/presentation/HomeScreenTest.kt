@@ -88,7 +88,7 @@ class HomeScreenTest {
 
         compose.onNodeWithText("엄마").performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("엄마의 가장 좋아하는 음식은", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("엄마의 답변", substring = true).assertIsDisplayed()
         compose.onNodeWithText("같이 산책하기").assertIsDisplayed()
     }
 
