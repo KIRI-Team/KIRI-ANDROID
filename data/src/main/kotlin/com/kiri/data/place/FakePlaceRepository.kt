@@ -1,64 +1,19 @@
 package com.kiri.data.place
 
-import com.kiri.domain.place.*
-import com.kiri.domain.mission.MissionRepository
 import com.kiri.data.mission.FakeMissionRepository
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import com.kiri.domain.mission.MissionRepository
+import com.kiri.domain.place.PlaceMission
+import com.kiri.domain.record.BucketRepository
 
-/** Explicit demo fixtures. Replace this binding with an API repository; saves live for this process only. */
+/** Explicit demo catalogue for tests and previews, never the application binding. */
 class FakePlaceRepository(
-    private val userId: String = "demo-user",
-    private val missions: List<PlaceMission>? = null,
-    private val pageSize: Int = 12,
-    private val missionRepository: MissionRepository = FakeMissionRepository(),
-    private val familyBuckets: com.kiri.domain.record.BucketRepository? = null,
-) : PlaceRepository {
-    init { require(pageSize > 0) }
-    private val mutex = Mutex()
-    private val bookmarks = mutableSetOf<Pair<String, String>>()
-    override suspend fun load(query: PlaceQuery): PlacePage = mutex.withLock {
-        syncBookmarks()
-        val keyword = query.keyword.trim()
-        val catalog = missions ?: missionRepository.catalog()
-        val filtered = catalog.filter { query.filters.matches(it) && (query.category == null || it.category == query.category) &&
-            (keyword.isEmpty() || listOf(it.title, it.place, it.region).any { value -> value.contains(keyword, true) }) }
-            .let { if (query.category == null) it.sortedByDescending { mission -> mission.pick } else it }
-        val start = query.cursor?.toIntOrNull() ?: 0
-        require(start in 0..filtered.size)
-        val end = minOf(start + pageSize, filtered.size)
-        PlacePage(filtered.subList(start, end).map(::snapshot), filtered.size, end.takeIf { it < filtered.size }?.toString())
-    }
-    override suspend fun save(missionId: String) = mutex.withLock {
-        require((missions ?: missionRepository.catalog()).any { it.id == missionId }) { "현재 저장할 수 없는 미션이에요." }
-        familyBuckets?.save(missionId)
-        bookmarks.add(userId to missionId)
-        Unit
-    }
-    override suspend fun saved(): List<PlaceMission> = mutex.withLock {
-        syncBookmarks()
-        (missions ?: missionRepository.catalog()).filter { (userId to it.id) in bookmarks }.map(::snapshot)
-    }
-    private fun snapshot(mission: PlaceMission) = mission.copy(saved = (userId to mission.id) in bookmarks)
-    private suspend fun syncBookmarks() {
-        val repository = familyBuckets ?: return
-        repository.refresh()
-        // This repository represents the current user's discovery view; family ownership lives in BucketRepository.
-        val owned = repository.mine().map { it.missionId }
-        bookmarks.clear()
-        bookmarks += owned.map { userId to it }
-    }
+    userId: String = "demo-user",
+    missions: List<PlaceMission>? = null,
+    pageSize: Int = 12,
+    missionRepository: MissionRepository = FakeMissionRepository(),
+    familyBuckets: BucketRepository? = null,
+) : LocalPlaceRepository(userId, missions, pageSize, missionRepository, familyBuckets) {
     companion object {
         fun demoMissions(): List<PlaceMission> = FakeMissionRepository.demoCatalog()
     }
-}
-@Module
-@InstallIn(SingletonComponent::class)
-object PlaceRepositoryModule {
-    @Provides @Singleton fun providePlaceRepository(missions: MissionRepository, buckets: com.kiri.domain.record.BucketRepository): PlaceRepository = FakePlaceRepository(missionRepository = missions, familyBuckets = buckets)
 }

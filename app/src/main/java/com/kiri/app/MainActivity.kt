@@ -17,8 +17,9 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    @Inject
-    lateinit var pendingInviteRepository: PendingInviteRepository
+    @Inject lateinit var pendingInviteRepository: PendingInviteRepository
+
+    @Inject lateinit var clock: java.time.Clock
 
     @Inject
     lateinit var authRepository: AuthRepository
@@ -30,7 +31,13 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
-        setContent { KiriTheme { KiriApp(isLoggedIn = authRepository.isLoggedIn) } }
+        setContent {
+            androidx.compose.runtime.CompositionLocalProvider(
+                com.kiri.uikit.LocalKiriClock provides clock
+            ) {
+                KiriTheme { KiriApp(isLoggedIn = authRepository.isLoggedIn) }
+            }
+        }
         // 화면 회전 등으로 다시 만들어질 때는 같은 링크를 다시 저장하지 않는다
         if (savedInstanceState == null) saveInviteCode(intent)
     }

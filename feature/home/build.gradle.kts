@@ -23,3 +23,5 @@ dependencies {
     implementation(project(":feature:record"))
     implementation(project(":feature:onboarding"))
 }
+
+android { testOptions { targetSdk = libs.versions.targetSdk.get().toInt() } }
