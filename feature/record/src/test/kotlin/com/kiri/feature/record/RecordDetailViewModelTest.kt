@@ -14,7 +14,8 @@ import org.junit.Assert.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RecordDetailViewModelTest {
-    @Test fun editingCannotSaveAfterRemovingTheLastPhoto() = runTest {
+    @Test
+    fun editingCannotSaveAfterRemovingTheLastPhoto() = runTest {
         val repo = repository()
         val vm = RecordDetailViewModel(repo, handle())
         val original = vm.uiState.value.memories.single()
@@ -25,12 +26,43 @@ class RecordDetailViewModelTest {
         assertEquals(original, repo.records.value.memories.find { it.id == original.id })
         assertFalse(vm.uiState.value.detail.saving)
     }
-    @Before fun setup() { Dispatchers.setMain(UnconfinedTestDispatcher()) }
-    @After fun teardown() { Dispatchers.resetMain() }
-    private fun repository() = FakeRecordRepository(FakeHomeRepository(latencyMillis = 0), FakeMissionRepository())
+
+    @Test
+    fun customAccessUsesInjectedClockInsteadOfDeviceDate() = runTest {
+        val clock =
+            java.time.Clock.fixed(
+                java.time.Instant.parse("2026-10-13T12:00:00Z"),
+                java.time.ZoneOffset.UTC,
+            )
+        val repo =
+            FakeRecordRepository(
+                FakeHomeRepository(clock, latencyMillis = 0),
+                FakeMissionRepository(),
+                clock = clock,
+            )
+        val vm = RecordDetailViewModel(repo, handle("schedule-demo"), clock)
+        vm.onDetailEvent(com.kiri.feature.detail.model.DetailUiEvent.CustomClicked)
+        assertEquals(java.time.LocalDate.of(2026, 10, 13), vm.uiState.value.today)
+        assertEquals(RecordDetailEffect.Custom, vm.effect.first())
+    }
+
+    @Before
+    fun setup() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+    }
+
+    @After
+    fun teardown() {
+        Dispatchers.resetMain()
+    }
+
+    private fun repository() =
+        FakeRecordRepository(FakeHomeRepository(latencyMillis = 0), FakeMissionRepository())
+
     private fun handle(id: String = "record-memory-1") = SavedStateHandle(mapOf("entryId" to id))
 
-    @Test fun photoSaveUpdatesCalendarSourceAndEmitsBackOnlyAfterSuccess() = runTest {
+    @Test
+    fun photoSaveUpdatesCalendarSourceAndEmitsBackOnlyAfterSuccess() = runTest {
         val repo = repository()
         val calendar = RecordViewModel(SavedStateHandle(), repo)
         val detail = RecordDetailViewModel(repo, handle())
@@ -46,15 +78,17 @@ class RecordDetailViewModelTest {
         assertEquals("사진 변경이 완료되었습니다!", detail.uiState.value.toast)
     }
 
-    @Test fun failedPhotoSaveKeepsSelectionAndRetriesWithoutAFalseSuccessToast() = runTest {
+    @Test
+    fun failedPhotoSaveKeepsSelectionAndRetriesWithoutAFalseSuccessToast() = runTest {
         val backing = repository()
         var fail = true
-        val repo = object : RecordRepository by backing {
-            override suspend fun changeRepresentativePhoto(entryId: String, photoId: String) {
-                if (fail) error("network")
-                backing.changeRepresentativePhoto(entryId, photoId)
+        val repo =
+            object : RecordRepository by backing {
+                override suspend fun changeRepresentativePhoto(entryId: String, photoId: String) {
+                    if (fail) error("network")
+                    backing.changeRepresentativePhoto(entryId, photoId)
+                }
             }
-        }
         val vm = RecordDetailViewModel(repo, handle())
         vm.selectPhoto("pixel-1")
         vm.savePhoto()
@@ -68,7 +102,8 @@ class RecordDetailViewModelTest {
         assertEquals(RecordDetailEffect.ReturnToDetail, vm.effect.first())
     }
 
-    @Test fun editDraftRestoresAndSavingUpdatesOnlyTheSelectedMemory() = runTest {
+    @Test
+    fun editDraftRestoresAndSavingUpdatesOnlyTheSelectedMemory() = runTest {
         val repo = repository()
         val handle = handle()
         val vm = RecordDetailViewModel(repo, handle)

@@ -16,3 +16,5 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(project(":feature:detail"))
 }
+
+android { testOptions { targetSdk = libs.versions.targetSdk.get().toInt() } }

@@ -13,3 +13,5 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 android { defaultConfig { testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" } }
+
+android { testOptions { targetSdk = libs.versions.targetSdk.get().toInt() } }
