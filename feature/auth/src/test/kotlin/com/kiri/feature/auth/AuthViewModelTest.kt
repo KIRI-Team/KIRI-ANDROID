@@ -2,15 +2,19 @@ package com.kiri.feature.auth
 
 import com.kiri.domain.model.auth.LoginResult
 import com.kiri.domain.model.auth.SocialProvider
-import com.kiri.domain.model.term.AgreementTerm
+import com.kiri.domain.model.term.Term
 import com.kiri.domain.repository.AuthRepository
+import com.kiri.domain.repository.TermRepository
 import com.kiri.feature.auth.login.NonceGenerator
 import com.kiri.feature.auth.login.SocialLoginResult
 import com.kiri.feature.auth.model.AuthUiEffect
 import com.kiri.feature.auth.model.AuthUiEvent
 import com.kiri.feature.auth.model.LoginProvider
 import java.io.IOException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -31,6 +35,7 @@ class AuthViewModelTest {
     private class FakeAuthRepository : AuthRepository {
         var result: Result<LoginResult> = Result.success(LoginResult(isNewUser = true, termsAgreed = false))
         val calls = mutableListOf<Triple<SocialProvider, String, String>>()
+        override val isLoggedIn: Flow<Boolean> = emptyFlow()
 
         override suspend fun login(provider: SocialProvider, socialToken: String, nonce: String): Result<LoginResult> {
             calls += Triple(provider, socialToken, nonce)
@@ -38,8 +43,32 @@ class AuthViewModelTest {
         }
     }
 
+    private class FakeTermRepository : TermRepository {
+        var termsResult: Result<List<Term>> = Result.success(TERMS)
+        var agreeResult: Result<Unit> = Result.success(Unit)
+
+        // 값을 넣으면 응답을 그때까지 붙잡아 둔다 (요청 중 상태를 확인할 때 쓴다)
+        var termsGate: CompletableDeferred<Unit>? = null
+        var agreeGate: CompletableDeferred<Unit>? = null
+        var getTermsCalls = 0
+        val agreeCalls = mutableListOf<Map<Long, Boolean>>()
+
+        override suspend fun getTerms(): Result<List<Term>> {
+            getTermsCalls++
+            termsGate?.await()
+            return termsResult
+        }
+
+        override suspend fun agree(agreements: Map<Long, Boolean>): Result<Unit> {
+            agreeCalls += agreements
+            agreeGate?.await()
+            return agreeResult
+        }
+    }
+
     private val repository = FakeAuthRepository()
-    private val viewModel = AuthViewModel(repository, NonceGenerator())
+    private val termRepository = FakeTermRepository()
+    private val viewModel = AuthViewModel(repository, termRepository, NonceGenerator())
     private val state get() = viewModel.uiState.value
 
     // 로그인 버튼 → SDK 로그인 시작 요청을 받고 → SDK 결과를 돌려준다
@@ -169,6 +198,63 @@ class AuthViewModelTest {
     }
 
     @Test
+    fun 약관동의로_넘어가면_약관_목록을_받는다() = runTest {
+        moveToTerms()
+
+        assertEquals(TERMS, state.terms)
+        assertFalse(state.isLoadingTerms)
+        assertFalse(state.termsLoadFailed)
+    }
+
+    @Test
+    fun 약관_목록을_받는_동안_로딩을_보여주고_계속할_수_없다() = runTest {
+        termRepository.termsGate = CompletableDeferred()
+
+        moveToTerms()
+
+        assertTrue(state.isLoadingTerms)
+        assertFalse(state.canContinue)
+    }
+
+    @Test
+    fun 약관에_동의한_기존_회원은_약관_목록을_받지_않는다() = runTest {
+        repository.result = Result.success(LoginResult(isNewUser = false, termsAgreed = true))
+
+        login()
+
+        assertEquals(0, termRepository.getTermsCalls)
+    }
+
+    @Test
+    fun 약관_목록을_받지_못하면_실패를_보여주고_다시_시도하면_다시_받는다() = runTest {
+        termRepository.termsResult = Result.failure(IOException("offline"))
+        moveToTerms()
+        assertTrue(state.termsLoadFailed)
+        assertTrue(state.terms.isEmpty())
+        assertFalse(state.canContinue)
+
+        termRepository.termsResult = Result.success(TERMS)
+        viewModel.onEvent(AuthUiEvent.TermsRetryClicked)
+
+        assertEquals(TERMS, state.terms)
+        assertFalse(state.termsLoadFailed)
+        assertEquals(2, termRepository.getTermsCalls)
+    }
+
+    @Test
+    fun 로그인으로_돌아갔다_다시_와도_받은_약관_목록과_동의_상태를_그대로_쓴다() = runTest {
+        moveToTerms()
+        viewModel.onEvent(AuthUiEvent.TermToggled(SERVICE))
+        viewModel.onEvent(AuthUiEvent.BackClicked)
+
+        login()
+
+        assertEquals(AuthStep.TERMS_AGREEMENT, state.currentStep)
+        assertEquals(1, termRepository.getTermsCalls)
+        assertEquals(setOf(SERVICE.id), state.agreedTermIds)
+    }
+
+    @Test
     fun 약관동의에서_뒤로가면_로그인으로_돌아간다() = runTest {
         moveToTerms()
 
@@ -183,20 +269,31 @@ class AuthViewModelTest {
 
         viewModel.onEvent(AuthUiEvent.AllTermsToggled)
         assertTrue(state.allAgreed)
-        assertEquals(AgreementTerm.entries.toSet(), state.agreedTerms)
+        assertEquals(TERMS.map(Term::id).toSet(), state.agreedTermIds)
 
         viewModel.onEvent(AuthUiEvent.AllTermsToggled)
-        assertTrue(state.agreedTerms.isEmpty())
+        assertTrue(state.agreedTermIds.isEmpty())
     }
 
     @Test
     fun 개별_약관을_모두_선택하면_전체동의_상태가_된다() = runTest {
         moveToTerms()
 
-        AgreementTerm.entries.forEach { viewModel.onEvent(AuthUiEvent.TermToggled(it)) }
+        TERMS.forEach { viewModel.onEvent(AuthUiEvent.TermToggled(it)) }
 
         assertTrue(state.allAgreed)
         assertTrue(state.canContinue)
+    }
+
+    @Test
+    fun 필수_약관에만_동의해도_계속할_수_있지만_전체동의는_아니다() = runTest {
+        moveToTerms()
+
+        viewModel.onEvent(AuthUiEvent.TermToggled(SERVICE))
+        viewModel.onEvent(AuthUiEvent.TermToggled(PRIVACY))
+
+        assertTrue(state.canContinue)
+        assertFalse(state.allAgreed)
     }
 
     @Test
@@ -204,7 +301,7 @@ class AuthViewModelTest {
         moveToTerms()
         viewModel.onEvent(AuthUiEvent.AllTermsToggled)
 
-        viewModel.onEvent(AuthUiEvent.TermToggled(AgreementTerm.TERM_1))
+        viewModel.onEvent(AuthUiEvent.TermToggled(SERVICE))
 
         assertFalse(state.allAgreed)
         assertFalse(state.canContinue)
@@ -221,11 +318,55 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun 필수_약관에_동의하지_않으면_계속해도_이동하지_않는다() = runTest {
+    fun 동의하면_선택_약관_미동의까지_약관마다_동의_여부를_보낸다() = runTest {
+        moveToTerms()
+        viewModel.onEvent(AuthUiEvent.TermToggled(SERVICE))
+        viewModel.onEvent(AuthUiEvent.TermToggled(PRIVACY))
+
+        viewModel.onEvent(AuthUiEvent.AgreeClicked)
+
+        assertEquals(listOf(mapOf(SERVICE.id to true, PRIVACY.id to true, MARKETING.id to false)), termRepository.agreeCalls)
+    }
+
+    @Test
+    fun 동의를_저장하는_동안에는_다시_눌러도_한_번만_보내고_뒤로가지_않는다() = runTest {
+        termRepository.agreeGate = CompletableDeferred()
+        moveToTerms()
+        viewModel.onEvent(AuthUiEvent.AllTermsToggled)
+
+        viewModel.onEvent(AuthUiEvent.AgreeClicked)
+        viewModel.onEvent(AuthUiEvent.AgreeClicked)
+        viewModel.onEvent(AuthUiEvent.BackClicked)
+
+        assertTrue(state.isAgreeing)
+        assertFalse(state.canContinue)
+        assertEquals(1, termRepository.agreeCalls.size)
+        assertEquals(AuthStep.TERMS_AGREEMENT, state.currentStep)
+    }
+
+    @Test
+    fun 동의_저장에_실패하면_오류를_안내하고_동의_상태를_유지한다() = runTest {
+        val cause = IOException("offline")
+        termRepository.agreeResult = Result.failure(cause)
+        moveToTerms()
+        viewModel.onEvent(AuthUiEvent.AllTermsToggled)
+
+        viewModel.onEvent(AuthUiEvent.AgreeClicked)
+
+        assertEquals(AuthUiEffect.ShowAgreeError(cause), viewModel.effect.first())
+        assertFalse(state.isAgreeing)
+        assertTrue(state.canContinue)
+        assertEquals(TERMS.map(Term::id).toSet(), state.agreedTermIds)
+        assertEquals(AuthStep.TERMS_AGREEMENT, state.currentStep)
+    }
+
+    @Test
+    fun 필수_약관에_동의하지_않으면_계속해도_보내지_않고_이동하지_않는다() = runTest {
         moveToTerms()
 
         viewModel.onEvent(AuthUiEvent.AgreeClicked)
 
+        assertTrue(termRepository.agreeCalls.isEmpty())
         assertNull(withTimeoutOrNull(1_000) { viewModel.effect.first() })
     }
 
@@ -233,24 +374,24 @@ class AuthViewModelTest {
     fun 약관_화살표를_누르면_해당_약관의_세부_내용_창이_열린다() = runTest {
         moveToTerms()
 
-        viewModel.onEvent(AuthUiEvent.TermDetailClicked(AgreementTerm.TERM_2))
+        viewModel.onEvent(AuthUiEvent.TermDetailClicked(PRIVACY))
 
-        assertEquals(AgreementTerm.TERM_2, viewModel.uiState.value.viewingTerm)
+        assertEquals(PRIVACY, viewModel.uiState.value.viewingTerm)
     }
 
     @Test
     fun 세부_내용을_열어도_동의_상태는_바뀌지_않는다() = runTest {
         moveToTerms()
 
-        viewModel.onEvent(AuthUiEvent.TermDetailClicked(AgreementTerm.TERM_2))
+        viewModel.onEvent(AuthUiEvent.TermDetailClicked(PRIVACY))
 
-        assertEquals(emptySet<AgreementTerm>(), viewModel.uiState.value.agreedTerms)
+        assertEquals(emptySet<Long>(), viewModel.uiState.value.agreedTermIds)
     }
 
     @Test
     fun 세부_내용_창을_닫으면_보고_있던_약관이_비워진다() = runTest {
         moveToTerms()
-        viewModel.onEvent(AuthUiEvent.TermDetailClicked(AgreementTerm.TERM_2))
+        viewModel.onEvent(AuthUiEvent.TermDetailClicked(PRIVACY))
 
         viewModel.onEvent(AuthUiEvent.TermDetailDismissed)
 
@@ -260,7 +401,7 @@ class AuthViewModelTest {
     @Test
     fun 약관동의에서_로그인으로_돌아가면_세부_내용_창도_닫힌다() = runTest {
         moveToTerms()
-        viewModel.onEvent(AuthUiEvent.TermDetailClicked(AgreementTerm.TERM_2))
+        viewModel.onEvent(AuthUiEvent.TermDetailClicked(PRIVACY))
 
         viewModel.onEvent(AuthUiEvent.BackClicked)
 
@@ -271,22 +412,29 @@ class AuthViewModelTest {
     @Test
     fun 세부_내용_창에서_동의하기를_누르면_해당_약관에_동의하고_창이_닫힌다() = runTest {
         moveToTerms()
-        viewModel.onEvent(AuthUiEvent.TermDetailClicked(AgreementTerm.TERM_2))
+        viewModel.onEvent(AuthUiEvent.TermDetailClicked(PRIVACY))
 
-        viewModel.onEvent(AuthUiEvent.TermDetailAgreed(AgreementTerm.TERM_2))
+        viewModel.onEvent(AuthUiEvent.TermDetailAgreed(PRIVACY))
 
-        assertEquals(setOf(AgreementTerm.TERM_2), state.agreedTerms)
+        assertEquals(setOf(PRIVACY.id), state.agreedTermIds)
         assertNull(state.viewingTerm)
     }
 
     @Test
     fun 이미_동의한_약관을_세부_내용_창에서_동의해도_해제되지_않는다() = runTest {
         moveToTerms()
-        viewModel.onEvent(AuthUiEvent.TermToggled(AgreementTerm.TERM_2))
-        viewModel.onEvent(AuthUiEvent.TermDetailClicked(AgreementTerm.TERM_2))
+        viewModel.onEvent(AuthUiEvent.TermToggled(PRIVACY))
+        viewModel.onEvent(AuthUiEvent.TermDetailClicked(PRIVACY))
 
-        viewModel.onEvent(AuthUiEvent.TermDetailAgreed(AgreementTerm.TERM_2))
+        viewModel.onEvent(AuthUiEvent.TermDetailAgreed(PRIVACY))
 
-        assertEquals(setOf(AgreementTerm.TERM_2), state.agreedTerms)
+        assertEquals(setOf(PRIVACY.id), state.agreedTermIds)
+    }
+
+    private companion object {
+        val SERVICE = Term(id = 1, title = "서비스 이용약관", content = "서비스 본문", required = true)
+        val PRIVACY = Term(id = 2, title = "개인정보 처리방침", content = "개인정보 본문", required = true)
+        val MARKETING = Term(id = 3, title = "마케팅 정보 수신 동의", content = "마케팅 본문", required = false)
+        val TERMS = listOf(SERVICE, PRIVACY, MARKETING)
     }
 }

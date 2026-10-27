@@ -2,8 +2,8 @@ package com.kiri.domain.model.term
 
 import java.time.LocalDate
 
-// 회원가입 약관 동의와 마이페이지 이용 약관이 함께 쓰는 약관 목록
-// TODO: 실제 약관 목록과 본문이 정해지면 이름/필수 여부/본문/최종 업데이트일 교체 (현재 이름은 Figma 문구, 본문은 예시)
+// 마이페이지 이용 약관 화면이 쓰는 임시 약관 목록 (회원가입 약관 동의는 서버 약관 Term 을 쓴다)
+// TODO: 마이페이지를 약관 목록 API(TermRepository.getTerms)에 연결하면 Term 으로 바꾸고 이 enum 을 지운다
 enum class AgreementTerm(
     val displayName: String,
     val required: Boolean,

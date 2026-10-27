@@ -12,4 +12,7 @@ sealed interface AuthUiEffect {
 
     // 로그인하지 못했다는 안내. cause 는 원인 확인용으로 로그에 남긴다
     data class ShowLoginError(val cause: Throwable) : AuthUiEffect
+
+    // 약관 동의를 저장하지 못했다는 안내. 선택한 동의 상태는 그대로 두고 다시 누를 수 있다
+    data class ShowAgreeError(val cause: Throwable) : AuthUiEffect
 }

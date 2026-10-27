@@ -71,6 +71,10 @@ fun AuthRoute(
                     Log.w(TAG, "로그인 실패", effect.cause)
                     Toast.makeText(context, "로그인하지 못했어요. 잠시 후 다시 시도해 주세요.", Toast.LENGTH_SHORT).show()
                 }
+                is AuthUiEffect.ShowAgreeError -> {
+                    Log.w(TAG, "약관 동의 저장 실패", effect.cause)
+                    Toast.makeText(context, "동의 내용을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -105,7 +109,8 @@ fun AuthScreen(
                 onIntroFinished = { introPlayed = true },
             )
             AuthStep.TERMS_AGREEMENT -> TermsAgreementScreen(
-                agreedTerms = state.agreedTerms,
+                terms = state.terms,
+                agreedTermIds = state.agreedTermIds,
                 allAgreed = state.allAgreed,
                 canContinue = state.canContinue,
                 onAllToggle = { onEvent(AuthUiEvent.AllTermsToggled) },
@@ -113,6 +118,9 @@ fun AuthScreen(
                 onTermDetailClick = { onEvent(AuthUiEvent.TermDetailClicked(it)) },
                 onAgreeClick = { onEvent(AuthUiEvent.AgreeClicked) },
                 onBackClick = onBackClick,
+                isLoadingTerms = state.isLoadingTerms,
+                termsLoadFailed = state.termsLoadFailed,
+                onRetryClick = { onEvent(AuthUiEvent.TermsRetryClicked) },
                 viewingTerm = state.viewingTerm,
                 onTermDetailDismiss = { onEvent(AuthUiEvent.TermDetailDismissed) },
                 onTermDetailAgree = { onEvent(AuthUiEvent.TermDetailAgreed(it)) },

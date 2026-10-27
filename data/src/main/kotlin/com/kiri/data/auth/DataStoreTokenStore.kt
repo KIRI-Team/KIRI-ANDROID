@@ -9,7 +9,9 @@ import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
 // 같은 파일을 여는 DataStore 는 앱에 하나만 있어야 해서 파일 수준에서 만든다
 private val Context.authDataStore: DataStore<Preferences> by preferencesDataStore(name = "auth_tokens")
@@ -29,10 +31,13 @@ internal class DataStoreTokenStore @Inject constructor(
         }
     }
 
-    override suspend fun get(): AuthTokens? {
-        val preferences = dataStore.data.first()
-        val accessToken = preferences[ACCESS_TOKEN] ?: return null
-        val refreshToken = preferences[REFRESH_TOKEN] ?: return null
+    override val tokens: Flow<AuthTokens?> = dataStore.data.map { it.toTokens() }
+
+    override suspend fun get(): AuthTokens? = tokens.first()
+
+    private fun Preferences.toTokens(): AuthTokens? {
+        val accessToken = this[ACCESS_TOKEN] ?: return null
+        val refreshToken = this[REFRESH_TOKEN] ?: return null
         return AuthTokens(accessToken, refreshToken)
     }
 
