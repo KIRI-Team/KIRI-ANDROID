@@ -27,7 +27,7 @@ retrofit = "3.0.0"
 okhttp = "5.4.0"
 kotlinxSerialization = "1.11.0"
 googleServices = "4.5.0"
-firebaseBom = "35.1.0"
+firebaseBom = "34.0.0"
 
 [libraries]
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
