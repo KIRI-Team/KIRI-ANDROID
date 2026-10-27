@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "932646982366",
+    "project_id": "kiri-510502",
+    "storage_bucket": "kiri-510502.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:932646982366:android:90fafbb715d9bdf8b6a84f",
+        "android_client_info": {
+          "package_name": "com.kiri.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "932646982366-u4d2vt0gmg1boulr74jrd21ajjokij2s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBX8Gvm3VAjlvjPpmj-UtLhGeDcOqoumOg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "932646982366-u4d2vt0gmg1boulr74jrd21ajjokij2s.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "932646982366-gmqn82k2fqe0b4umi3fskh3p15f662ct.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.kiriteam.KIRI"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
