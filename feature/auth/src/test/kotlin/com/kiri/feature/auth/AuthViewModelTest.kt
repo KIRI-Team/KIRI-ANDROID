@@ -41,6 +41,8 @@ class AuthViewModelTest {
             calls += Triple(provider, socialToken, nonce)
             return result
         }
+
+        override suspend fun logout(): Result<Unit> = Result.success(Unit)
     }
 
     private class FakeTermRepository : TermRepository {
