@@ -43,6 +43,8 @@ class AuthViewModelTest {
         }
 
         override suspend fun logout(): Result<Unit> = Result.success(Unit)
+
+        override suspend fun withdraw(): Result<Unit> = Result.success(Unit)
     }
 
     private class FakeTermRepository : TermRepository {

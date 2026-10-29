@@ -4,6 +4,7 @@ import com.kiri.data.network.ApiResponse
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.POST
 
 internal interface AuthApi {
@@ -14,6 +15,10 @@ internal interface AuthApi {
     // 로그인 토큰이 필요하다. 성공하면 result 는 null 이다
     @POST("api/v1/auth/logout")
     suspend fun logout(): ApiResponse<JsonElement>
+
+    // 로그인 토큰이 필요하다. 성공하면 result 는 null 이다
+    @DELETE("api/v1/members/me")
+    suspend fun withdraw(): ApiResponse<JsonElement>
 }
 
 // socialProvider: KAKAO 또는 GOOGLE, socialProviderToken: SDK 가 준 ID 토큰

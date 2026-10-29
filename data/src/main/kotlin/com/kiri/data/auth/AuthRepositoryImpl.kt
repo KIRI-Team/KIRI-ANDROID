@@ -35,4 +35,7 @@ internal class AuthRepositoryImpl @Inject constructor(
     } finally {
         withContext(NonCancellable) { tokenStore.clear() }
     }
+
+    override suspend fun withdraw(): Result<Unit> =
+        apiCommand(json) { api.withdraw() }.onSuccess { tokenStore.clear() }
 }

@@ -18,7 +18,7 @@ import com.kiri.feature.mypage.presentation.notification.NotificationSettingRout
 import com.kiri.feature.mypage.presentation.preference.MyPreferenceScreen
 import com.kiri.feature.mypage.presentation.suggestion.SuggestionRoute
 import com.kiri.feature.mypage.presentation.terms.TermsRoute
-import com.kiri.feature.mypage.presentation.withdraw.WithdrawScreen
+import com.kiri.feature.mypage.presentation.withdraw.WithdrawRoute
 
 const val MYPAGE_GRAPH_ROUTE = "mypage_graph"
 const val MYPAGE_ROUTE = "mypage"
@@ -56,10 +56,9 @@ fun NavGraphBuilder.mypageGraph(
             OpenLicenseRoute(onNavigateBack = navController::popBackStack)
         }
         composable(WITHDRAW_ROUTE) {
-            WithdrawScreen(
-                onBackClick = navController::popBackStack,
-                // TODO: 회원탈퇴 API가 생기면 탈퇴를 처리한 뒤 이동
-                onWithdrawClick = onNavigateToLogin,
+            WithdrawRoute(
+                onNavigateBack = navController::popBackStack,
+                onNavigateToLogin = onNavigateToLogin,
             )
         }
         MypageMenu.entries.forEach { menu ->

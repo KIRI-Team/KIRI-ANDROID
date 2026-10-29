@@ -1,6 +1,7 @@
 package com.kiri.app.mypage
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -33,5 +34,14 @@ class WithdrawScreenTest {
         composeTestRule.onNodeWithTag("kiri_back_button").performClick()
 
         assertEquals(listOf("withdraw", "back"), clicks)
+    }
+
+    @Test
+    fun 탈퇴_요청_중에는_탈퇴할게요를_누를_수_없다() {
+        composeTestRule.setContent {
+            KiriTheme { WithdrawScreen(onBackClick = {}, onWithdrawClick = {}, isWithdrawing = true) }
+        }
+
+        composeTestRule.onNodeWithTag("withdraw_button").assertIsNotEnabled()
     }
 }

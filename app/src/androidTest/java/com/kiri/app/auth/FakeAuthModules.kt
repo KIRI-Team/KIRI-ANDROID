@@ -44,6 +44,11 @@ class FakeAuthRepository(
         return Result.success(Unit)
     }
 
+    override suspend fun withdraw(): Result<Unit> {
+        loggedIn.value = false
+        return Result.success(Unit)
+    }
+
     // 토큰 재발급이 거절된 상황을 흉내 낸다
     fun expireSession() {
         loggedIn.value = false

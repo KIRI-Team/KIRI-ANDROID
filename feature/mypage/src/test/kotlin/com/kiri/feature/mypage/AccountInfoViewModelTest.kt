@@ -42,6 +42,8 @@ class AccountInfoViewModelTest {
             logoutGate?.await()
             return logoutResult
         }
+
+        override suspend fun withdraw(): Result<Unit> = error("계정 정보 화면에서는 탈퇴하지 않는다")
     }
 
     private val authRepository = FakeAuthRepository()
