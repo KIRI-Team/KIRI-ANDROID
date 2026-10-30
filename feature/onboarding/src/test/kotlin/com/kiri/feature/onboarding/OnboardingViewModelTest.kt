@@ -1,5 +1,7 @@
 package com.kiri.feature.onboarding
 
+import com.kiri.domain.model.family.DuplicateFamilyNameException
+import com.kiri.domain.model.family.Family
 import com.kiri.domain.model.nickname.DuplicateNicknameException
 import com.kiri.domain.model.nickname.NicknameRule
 import com.kiri.domain.model.invite.Invite
@@ -30,9 +32,9 @@ class OnboardingViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val inviteRepository = TestInviteRepository()
+    private val familyRepository = TestFamilyRepository()
     private val memberRepository = TestMemberRepository()
-    private val viewModel = OnboardingViewModel(inviteRepository, memberRepository)
+    private val viewModel = OnboardingViewModel(familyRepository, memberRepository)
     private val state get() = viewModel.uiState.value
 
     // 닉네임 저장처럼 viewModelScope 에서 시작한 작업을 지금 시점까지 실행한다
@@ -64,17 +66,41 @@ class OnboardingViewModelTest {
         advanceTimeBy(1)
         runCurrent()
         assertEquals(OnboardingStep.GENERATE_FAMILY_CODE, state.currentStep)
-        assertEquals(inviteRepository.result.getOrThrow().code, state.familyCode)
+        assertEquals(familyRepository.result.getOrThrow().invite.code, state.familyCode)
     }
 
     @Test
-    fun 로딩_중에_뒤로가면_자동으로_넘어가지_않는다() = runTest(mainDispatcherRule.testDispatcher) {
+    fun 가족명_입력에서_다음을_누르면_로딩_화면에서_입력한_가족명으로_가족_공간을_만든다() = runTest(mainDispatcherRule.testDispatcher) {
         moveToLoading()
+        assertEquals(OnboardingStep.GENERATE_FAMILY_CODE_LOADING, state.currentStep)
 
-        viewModel.onEvent(OnboardingUiEvent.BackClicked)
+        runCurrent()
+
+        assertEquals(listOf("끼리네가족"), familyRepository.sentNames)
+    }
+
+    @Test
+    fun 가족명이_규칙에_맞지_않으면_가족_공간을_만들지_않는다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToOnboardingMain()
+        viewModel.onEvent(OnboardingUiEvent.PathSelected(OnboardingPath.CREATE_FAMILY))
+        viewModel.onEvent(OnboardingUiEvent.FamilyNameChanged("끼리!"))
+
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
         advanceUntilIdle()
 
         assertEquals(OnboardingStep.INPUT_FAMILY_NAME, state.currentStep)
+        assertEquals(emptyList<String>(), familyRepository.sentNames)
+    }
+
+    @Test
+    fun 로딩_중에는_뒤로가기를_무시하고_가족_공간을_다_만든_뒤_넘어간다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToLoading()
+
+        viewModel.onEvent(OnboardingUiEvent.BackClicked)
+        assertEquals(OnboardingStep.GENERATE_FAMILY_CODE_LOADING, state.currentStep)
+        advanceUntilIdle()
+
+        assertEquals(OnboardingStep.GENERATE_FAMILY_CODE, state.currentStep)
     }
 
     @Test
@@ -140,33 +166,56 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun 코드_생성_로딩에서_발급한_초대_코드를_화면에_보여준다() = runTest(mainDispatcherRule.testDispatcher) {
+    fun 가족_공간을_만들며_발급된_초대_코드를_화면에_보여준다() = runTest(mainDispatcherRule.testDispatcher) {
         moveToGeneratedCode()
 
         assertEquals(OnboardingStep.GENERATE_FAMILY_CODE, state.currentStep)
         assertEquals("AB12CD", state.familyCode)
-        assertEquals(1, inviteRepository.createCount)
+        assertEquals(1, familyRepository.sentNames.size)
     }
 
     @Test
-    fun 초대_코드_발급에_실패하면_가족명_입력으로_돌아가고_오류를_알린다() = runTest(mainDispatcherRule.testDispatcher) {
-        inviteRepository.result = Result.failure(IllegalStateException())
+    fun 가족_공간을_만들지_못하면_가족명_입력으로_돌아가고_오류를_알린다() = runTest(mainDispatcherRule.testDispatcher) {
+        familyRepository.result = Result.failure(IOException())
         val effects = collectEffects()
 
         moveToGeneratedCode()
 
         assertEquals(OnboardingStep.INPUT_FAMILY_NAME, state.currentStep)
-        assertEquals(listOf(OnboardingUiEffect.ShowInviteError), effects)
+        assertFalse(state.isFamilyNameDuplicated)
+        assertEquals(listOf(OnboardingUiEffect.ShowCreateFamilyError), effects)
     }
 
     @Test
-    fun 코드_생성_완료_화면에서_초대하기를_누르면_발급한_초대를_공유한다() = runTest(mainDispatcherRule.testDispatcher) {
+    fun 이미_존재하는_가족_이름이면_가족명_입력으로_돌아가_중복을_표시한다() = runTest(mainDispatcherRule.testDispatcher) {
+        familyRepository.result = Result.failure(DuplicateFamilyNameException())
+        val effects = collectEffects()
+
+        moveToGeneratedCode()
+
+        assertEquals(OnboardingStep.INPUT_FAMILY_NAME, state.currentStep)
+        assertTrue(state.isFamilyNameDuplicated)
+        assertEquals(emptyList<OnboardingUiEffect>(), effects)
+    }
+
+    @Test
+    fun 가족명_중복_표시_후_가족명을_수정하면_중복_표시가_사라진다() = runTest(mainDispatcherRule.testDispatcher) {
+        familyRepository.result = Result.failure(DuplicateFamilyNameException())
+        moveToGeneratedCode()
+
+        viewModel.onEvent(OnboardingUiEvent.FamilyNameChanged("끼리네집"))
+
+        assertFalse(state.isFamilyNameDuplicated)
+    }
+
+    @Test
+    fun 코드_생성_완료_화면에서_초대하기를_누르면_발급된_초대를_공유한다() = runTest(mainDispatcherRule.testDispatcher) {
         moveToGeneratedCode()
         val effects = collectEffects()
 
         viewModel.onEvent(OnboardingUiEvent.InviteClicked)
 
-        assertEquals(listOf(OnboardingUiEffect.ShareInvite(inviteRepository.result.getOrThrow())), effects)
+        assertEquals(listOf(OnboardingUiEffect.ShareInvite(familyRepository.result.getOrThrow().invite)), effects)
     }
 
     @Test
@@ -211,20 +260,37 @@ class OnboardingViewModelTest {
         viewModel.onEvent(OnboardingUiEvent.InviteClicked)
 
         assertEquals(2, effects.count { it is OnboardingUiEffect.ShareInvite })
-        assertEquals(1, inviteRepository.createCount)
+        assertEquals(1, familyRepository.sentNames.size)
     }
 
     @Test
-    fun 가족명_입력으로_돌아갔다가_다시_만들면_새로_발급한다() = runTest(mainDispatcherRule.testDispatcher) {
+    fun 만든_가족명_그대로_다시_다음을_누르면_다시_만들지_않고_코드_화면으로_간다() = runTest(mainDispatcherRule.testDispatcher) {
         moveToGeneratedCode()
         viewModel.onEvent(OnboardingUiEvent.BackClicked)
-        inviteRepository.result = Result.success(Invite(code = "ZZ99ZZ", url = "https://kiri.example.com/invite/ZZ99ZZ"))
+        assertEquals(OnboardingStep.INPUT_FAMILY_NAME, state.currentStep)
+
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        advanceUntilIdle()
+
+        assertEquals(OnboardingStep.GENERATE_FAMILY_CODE, state.currentStep)
+        assertEquals("AB12CD", state.familyCode)
+        assertEquals(1, familyRepository.sentNames.size)
+    }
+
+    @Test
+    fun 가족명을_바꿔_다시_다음을_누르면_새_이름으로_다시_만든다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToGeneratedCode()
+        viewModel.onEvent(OnboardingUiEvent.BackClicked)
+        viewModel.onEvent(OnboardingUiEvent.FamilyNameChanged("끼리네집"))
+        familyRepository.result = Result.success(
+            Family(id = 2, name = "끼리네집", invite = Invite(code = "ZZ99ZZ", url = "https://kiri.example.com/invite/ZZ99ZZ")),
+        )
 
         viewModel.onEvent(OnboardingUiEvent.NextClicked)
         advanceUntilIdle()
 
         assertEquals("ZZ99ZZ", state.familyCode)
-        assertEquals(2, inviteRepository.createCount)
+        assertEquals(listOf("끼리네가족", "끼리네집"), familyRepository.sentNames)
     }
 
     @Test

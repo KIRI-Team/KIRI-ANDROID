@@ -11,15 +11,16 @@ private fun ruleTexts(maxLength: Int) = listOf(
     NicknameRule.NO_SPECIAL_CHARACTERS to "특수 문자 입력 불가능",
 )
 
-private fun guides(violations: Set<NicknameRule>, maxLength: Int): List<OnboardingInputGuide> =
-    ruleTexts(maxLength).map { (rule, text) -> OnboardingInputGuide(text = text, isError = rule in violations) }
-
 // 서버가 중복이라고 답했으면 규칙 안내 아래에 중복 안내를 오류로 덧붙인다
+private fun guides(violations: Set<NicknameRule>, maxLength: Int, duplicatedText: String?): List<OnboardingInputGuide> =
+    ruleTexts(maxLength).map { (rule, text) -> OnboardingInputGuide(text = text, isError = rule in violations) } +
+        listOfNotNull(duplicatedText?.let { OnboardingInputGuide(text = it, isError = true) })
+
 internal fun nicknameGuides(violations: Set<NicknameRule>, isDuplicated: Boolean = false): List<OnboardingInputGuide> =
-    guides(violations, NicknameValidator.MAX_LENGTH) +
-        listOfNotNull(OnboardingInputGuide(text = DUPLICATED_TEXT, isError = true).takeIf { isDuplicated })
+    guides(violations, NicknameValidator.MAX_LENGTH, DUPLICATED_NICKNAME_TEXT.takeIf { isDuplicated })
 
-internal fun familyNameGuides(violations: Set<NicknameRule>): List<OnboardingInputGuide> =
-    guides(violations, NicknameValidator.FAMILY_NAME_MAX_LENGTH)
+internal fun familyNameGuides(violations: Set<NicknameRule>, isDuplicated: Boolean = false): List<OnboardingInputGuide> =
+    guides(violations, NicknameValidator.FAMILY_NAME_MAX_LENGTH, DUPLICATED_FAMILY_NAME_TEXT.takeIf { isDuplicated })
 
-private const val DUPLICATED_TEXT = "이미 사용 중인 닉네임입니다."
+private const val DUPLICATED_NICKNAME_TEXT = "이미 사용 중인 닉네임입니다."
+private const val DUPLICATED_FAMILY_NAME_TEXT = "이미 존재하는 가족 이름입니다."

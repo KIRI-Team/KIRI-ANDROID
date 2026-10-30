@@ -34,6 +34,14 @@ class NicknameGuidesTest {
     }
 
     @Test
+    fun 가족명이_중복이면_가족_이름_중복_안내를_오류로_덧붙인다() {
+        val guides = familyNameGuides(emptySet(), isDuplicated = true)
+
+        assertEquals(4, guides.size)
+        assertEquals("이미 존재하는 가족 이름입니다." to true, guides.last().let { it.text to it.isError })
+    }
+
+    @Test
     fun 중복이면_규칙_안내_아래에_중복_안내를_오류로_덧붙인다() {
         val guides = nicknameGuides(emptySet(), isDuplicated = true)
 

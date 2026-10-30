@@ -3,9 +3,11 @@ package com.kiri.feature.onboarding
 import com.kiri.domain.model.nickname.NicknameValidator
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kiri.domain.model.family.DuplicateFamilyNameException
+import com.kiri.domain.model.family.Family
 import com.kiri.domain.model.invite.Invite
 import com.kiri.domain.model.nickname.DuplicateNicknameException
-import com.kiri.domain.repository.InviteRepository
+import com.kiri.domain.repository.FamilyRepository
 import com.kiri.domain.repository.MemberRepository
 import com.kiri.feature.onboarding.model.FamilyRole
 import com.kiri.domain.model.member.FamilyRole as MemberFamilyRole
@@ -13,7 +15,6 @@ import com.kiri.feature.onboarding.model.OnboardingUiEffect
 import com.kiri.feature.onboarding.model.OnboardingUiEvent
 import com.kiri.feature.onboarding.model.OnboardingUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -34,7 +35,7 @@ enum class OnboardingPath {
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
-    private val inviteRepository: InviteRepository,
+    private val familyRepository: FamilyRepository,
     private val memberRepository: MemberRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -48,9 +49,11 @@ class OnboardingViewModel @Inject constructor(
     // 서버에 저장한 닉네임·역할. 뒤로 왔다가 바꾸지 않고 다음을 누르면 다시 보내지 않는다
     private var savedNickname: String? = null
     private var savedRole: FamilyRole? = null
-    private var loadingJob: Job? = null
 
-    // 로딩 단계에서 발급한 초대. 초대하기를 다시 눌러도 재발급하지 않고 재사용한다
+    // 로딩 단계에서 만든 가족 공간
+    private var createdFamily: Family? = null
+
+    // 가족 공간을 만들 때 발급된 초대. 초대하기를 다시 눌러도 재발급하지 않고 재사용한다
     private var invite: Invite? = null
     private var isSharing = false
 
@@ -64,7 +67,7 @@ class OnboardingViewModel @Inject constructor(
             }
             is OnboardingUiEvent.PathSelected -> selectPath(event.path)
             is OnboardingUiEvent.FamilyNameChanged -> _uiState.update {
-                it.copy(familyName = event.familyName, familyNameViolations = emptySet())
+                it.copy(familyName = event.familyName, familyNameViolations = emptySet(), isFamilyNameDuplicated = false)
             }
             is OnboardingUiEvent.InputFamilyCodeChanged -> _uiState.update { it.copy(inputFamilyCode = event.code) }
             OnboardingUiEvent.NextClicked -> next()
@@ -86,9 +89,12 @@ class OnboardingViewModel @Inject constructor(
         if (_uiState.value.isSubmitting || !validateInput(currentStep)) return
         val state = _uiState.value
         // 닉네임·역할은 서버에 저장한 뒤에 넘어간다. 이미 저장한 값으로 돌아온 경우는 다시 보내지 않는다
+        // 가족 공간은 로딩 단계에서 만든다. 이미 같은 이름으로 만들었으면 다시 만들지 않고 코드 화면으로 간다
+        val created = createdFamily
         when {
             currentStep == OnboardingStep.INPUT_NICKNAME && state.nickname != savedNickname -> submitNickname(state.nickname)
             currentStep == OnboardingStep.CHOOSE_ROLE && state.selectedRole != savedRole -> submitRole(requireNotNull(state.selectedRole))
+            currentStep == OnboardingStep.INPUT_FAMILY_NAME && created?.name == state.familyName -> showCreatedFamily(created)
             else -> moveToNextStep(currentStep)
         }
     }
@@ -182,33 +188,42 @@ class OnboardingViewModel @Inject constructor(
         _effect.trySend(OnboardingUiEffect.NavigateToMainFlow)
     }
 
-    // 초대 코드를 발급하고, 로딩 화면이 깜빡이지 않도록 최소 1초는 보여준다
+    // 가족 공간을 만들고 함께 발급된 초대 코드를 받는다. 로딩 화면이 깜빡이지 않도록 최소 1초는 보여준다
     private fun startLoading() {
-        loadingJob?.cancel()
+        val familyName = _uiState.value.familyName
         invite = null
         isSharing = false
-        loadingJob = viewModelScope.launch {
+        viewModelScope.launch {
             val minimumLoading = launch { delay(LOADING_DURATION_MILLIS) }
-            val result = inviteRepository.createInvite()
+            val result = familyRepository.createFamily(familyName)
             minimumLoading.join()
-            if (_uiState.value.currentStep != OnboardingStep.GENERATE_FAMILY_CODE_LOADING) return@launch
             result
-                .onSuccess { created ->
-                    invite = created
-                    _uiState.update { it.copy(familyCode = created.code) }
-                    next()
+                .onSuccess { family ->
+                    createdFamily = family
+                    showCreatedFamily(family)
                 }
-                .onFailure {
+                .onFailure { error ->
                     // 실패하면 가족명 입력으로 돌아가 다시 시도할 수 있게 한다
-                    _uiState.update { it.copy(currentStep = OnboardingStep.INPUT_FAMILY_NAME) }
-                    _effect.trySend(OnboardingUiEffect.ShowInviteError)
+                    _uiState.update {
+                        it.copy(
+                            currentStep = OnboardingStep.INPUT_FAMILY_NAME,
+                            isFamilyNameDuplicated = error is DuplicateFamilyNameException,
+                        )
+                    }
+                    if (error !is DuplicateFamilyNameException) _effect.trySend(OnboardingUiEffect.ShowCreateFamilyError)
                 }
         }
     }
 
+    private fun showCreatedFamily(family: Family) {
+        invite = family.invite
+        _uiState.update { it.copy(familyCode = family.invite.code, currentStep = OnboardingStep.GENERATE_FAMILY_CODE) }
+    }
+
     private fun previous() {
-        if (_uiState.value.isSubmitting) return
         val currentStep = _uiState.value.currentStep
+        // 가족 공간을 만드는 요청은 취소해도 서버에서 만들어질 수 있어 로딩 중에는 뒤로가지 않는다
+        if (_uiState.value.isSubmitting || currentStep == OnboardingStep.GENERATE_FAMILY_CODE_LOADING) return
         val steps = stepsOf(selectedPath)
         // 로딩 단계는 뒤로가기로 돌아오지 않도록 건너뜀
         val previousStep = steps
@@ -216,7 +231,6 @@ class OnboardingViewModel @Inject constructor(
             .lastOrNull { it != OnboardingStep.GENERATE_FAMILY_CODE_LOADING }
             ?: return
 
-        loadingJob?.cancel()
         // 메인으로 돌아오면 선택한 경로 초기화
         if (previousStep == OnboardingStep.ONBOARDING_MAIN) selectedPath = null
         _uiState.update { it.copy(currentStep = previousStep) }

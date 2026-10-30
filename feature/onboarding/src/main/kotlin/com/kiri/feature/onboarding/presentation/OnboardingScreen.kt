@@ -50,6 +50,8 @@ fun OnboardingRoute(
                     Toast.makeText(context, "닉네임을 저장하지 못했어요. 잠시 후 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
                 OnboardingUiEffect.ShowRoleError ->
                     Toast.makeText(context, "역할을 저장하지 못했어요. 잠시 후 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
+                OnboardingUiEffect.ShowCreateFamilyError ->
+                    Toast.makeText(context, "가족 공간을 만들지 못했어요. 잠시 후 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -105,6 +107,7 @@ fun OnboardingScreen(
                 onNextClick = { onEvent(OnboardingUiEvent.NextClicked) },
                 onBackClick = onBackClick,
                 violations = state.familyNameViolations,
+                isDuplicated = state.isFamilyNameDuplicated,
             )
             OnboardingStep.GENERATE_FAMILY_CODE_LOADING -> GenerateFamilyCodeLoadingScreen()
             OnboardingStep.GENERATE_FAMILY_CODE -> GenerateFamilyCodeScreen(

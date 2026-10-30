@@ -23,8 +23,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kiri.domain.model.family.Family
 import com.kiri.domain.model.invite.Invite
-import com.kiri.domain.repository.InviteRepository
+import com.kiri.domain.repository.FamilyRepository
 import com.kiri.domain.repository.MemberRepository
 import com.kiri.feature.onboarding.OnboardingStep
 import com.kiri.feature.onboarding.OnboardingViewModel
@@ -169,7 +170,7 @@ class OnboardingScreensTest {
     fun 닉네임은_12자를_넘어도_잘리지_않고_다음을_누르면_닉네임_화면에_머문다() {
         lateinit var viewModel: OnboardingViewModel
         composeTestRule.setContent {
-            viewModel = remember { OnboardingViewModel(StubInviteRepository, StubMemberRepository) }
+            viewModel = remember { OnboardingViewModel(StubFamilyRepository, StubMemberRepository) }
             val state by viewModel.uiState.collectAsState()
             KiriTheme { OnboardingScreen(state = state, onEvent = viewModel::onEvent) }
         }
@@ -184,7 +185,7 @@ class OnboardingScreensTest {
     @Test
     fun 규칙에_맞지_않는_닉네임으로_다음을_누르면_닉네임_화면에_머문다() {
         composeTestRule.setContent {
-            val viewModel = remember { OnboardingViewModel(StubInviteRepository, StubMemberRepository) }
+            val viewModel = remember { OnboardingViewModel(StubFamilyRepository, StubMemberRepository) }
             val state by viewModel.uiState.collectAsState()
             KiriTheme { OnboardingScreen(state = state, onEvent = viewModel::onEvent) }
         }
@@ -293,10 +294,10 @@ class OnboardingScreensTest {
     }
 
     // 실제 서버 없이 ViewModel을 만들기 위한 고정 응답
-    private object StubInviteRepository : InviteRepository {
-        override suspend fun createInvite() = Result.success(Invite(code = "AB12CD", url = "https://kiri.example.com/invite/AB12CD"))
-
-        override suspend fun getCurrentInvite(): Invite? = null
+    private object StubFamilyRepository : FamilyRepository {
+        override suspend fun createFamily(name: String) = Result.success(
+            Family(id = 1, name = name, invite = Invite(code = "AB12CD", url = "https://kiri.example.com/invite/AB12CD")),
+        )
     }
 
     private object StubMemberRepository : MemberRepository {
