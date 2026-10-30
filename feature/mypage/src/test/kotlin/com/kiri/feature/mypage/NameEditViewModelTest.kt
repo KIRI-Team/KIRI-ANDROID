@@ -58,6 +58,37 @@ class NameEditViewModelTest {
     }
 
     @Test
+    fun 닉네임_수정은_12자까지_허용한다() {
+        viewModel.onEvent(NameEditUiEvent.NameChanged("가".repeat(13)))
+        viewModel.onEvent(NameEditUiEvent.NextClicked)
+
+        assertEquals(setOf(NicknameRule.LENGTH), state.violations)
+        assertEquals(12, state.maxLength)
+    }
+
+    @Test
+    fun 가족명_수정은_15자까지_허용한다() = runTest {
+        val familyNameViewModel = FamilyNameEditViewModel()
+
+        familyNameViewModel.onEvent(NameEditUiEvent.NameChanged("가".repeat(15)))
+        familyNameViewModel.onEvent(NameEditUiEvent.NextClicked)
+
+        assertTrue(familyNameViewModel.uiState.value.violations.isEmpty())
+        assertEquals(15, familyNameViewModel.uiState.value.maxLength)
+        assertEquals(NameEditUiEffect.NavigateBack, familyNameViewModel.effect.first())
+    }
+
+    @Test
+    fun 가족명이_15자를_넘으면_길이_오류를_표시한다() {
+        val familyNameViewModel = FamilyNameEditViewModel()
+
+        familyNameViewModel.onEvent(NameEditUiEvent.NameChanged("가".repeat(16)))
+        familyNameViewModel.onEvent(NameEditUiEvent.NextClicked)
+
+        assertEquals(setOf(NicknameRule.LENGTH), familyNameViewModel.uiState.value.violations)
+    }
+
+    @Test
     fun 입력을_바꾸면_이전_오류를_비운다() {
         viewModel.onEvent(NameEditUiEvent.NameChanged("쥬"))
         viewModel.onEvent(NameEditUiEvent.NextClicked)

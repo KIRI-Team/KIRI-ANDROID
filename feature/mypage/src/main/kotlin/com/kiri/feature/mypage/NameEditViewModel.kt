@@ -13,9 +13,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 
-// 닉네임·가족명 수정이 함께 쓰는 동작. 둘 다 온보딩과 같은 닉네임 규칙을 따른다
-abstract class NameEditViewModel(currentName: String) : ViewModel() {
-    private val _uiState = MutableStateFlow(NameEditUiState(currentName = currentName))
+// 닉네임·가족명 수정이 함께 쓰는 동작. 둘 다 온보딩과 같은 규칙을 따르고 최대 길이만 다르다
+abstract class NameEditViewModel(
+    currentName: String,
+    maxLength: Int = NicknameValidator.MAX_LENGTH,
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(NameEditUiState(currentName = currentName, maxLength = maxLength))
     val uiState: StateFlow<NameEditUiState> = _uiState.asStateFlow()
 
     // 화면 이동처럼 한 번만 처리해야 하는 동작은 구독 전에 보내도 사라지지 않도록 Channel 로 전달한다
@@ -34,7 +37,7 @@ abstract class NameEditViewModel(currentName: String) : ViewModel() {
 
     // 규칙을 지키지 못하면 오류를 표시하고 머문다
     private fun next() {
-        val violations = NicknameValidator.violations(_uiState.value.name)
+        val violations = NicknameValidator.violations(_uiState.value.name, _uiState.value.maxLength)
         _uiState.update { it.copy(violations = violations) }
         if (violations.isNotEmpty()) return
         // TODO: 수정 API가 정해지면 저장 후 이동 (월 1회 제한도 서버 응답으로 처리)

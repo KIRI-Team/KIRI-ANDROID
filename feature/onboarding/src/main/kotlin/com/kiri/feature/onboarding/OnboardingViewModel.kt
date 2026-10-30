@@ -4,7 +4,11 @@ import com.kiri.domain.model.nickname.NicknameValidator
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kiri.domain.model.invite.Invite
+import com.kiri.domain.model.nickname.DuplicateNicknameException
 import com.kiri.domain.repository.InviteRepository
+import com.kiri.domain.repository.MemberRepository
+import com.kiri.feature.onboarding.model.FamilyRole
+import com.kiri.domain.model.member.FamilyRole as MemberFamilyRole
 import com.kiri.feature.onboarding.model.OnboardingUiEffect
 import com.kiri.feature.onboarding.model.OnboardingUiEvent
 import com.kiri.feature.onboarding.model.OnboardingUiState
@@ -31,6 +35,7 @@ enum class OnboardingPath {
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val inviteRepository: InviteRepository,
+    private val memberRepository: MemberRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
@@ -39,6 +44,10 @@ class OnboardingViewModel @Inject constructor(
     val effect: Flow<OnboardingUiEffect> = _effect.receiveAsFlow()
 
     private var selectedPath: OnboardingPath? = null
+
+    // 서버에 저장한 닉네임·역할. 뒤로 왔다가 바꾸지 않고 다음을 누르면 다시 보내지 않는다
+    private var savedNickname: String? = null
+    private var savedRole: FamilyRole? = null
     private var loadingJob: Job? = null
 
     // 로딩 단계에서 발급한 초대. 초대하기를 다시 눌러도 재발급하지 않고 재사용한다
@@ -48,9 +57,11 @@ class OnboardingViewModel @Inject constructor(
     fun onEvent(event: OnboardingUiEvent) {
         when (event) {
             is OnboardingUiEvent.NicknameChanged -> _uiState.update {
-                it.copy(nickname = event.nickname, nicknameViolations = emptySet())
+                it.copy(nickname = event.nickname, nicknameViolations = emptySet(), isNicknameDuplicated = false)
             }
-            is OnboardingUiEvent.RoleSelected -> _uiState.update { it.copy(selectedRole = event.role) }
+            is OnboardingUiEvent.RoleSelected -> if (!_uiState.value.isSubmitting) {
+                _uiState.update { it.copy(selectedRole = event.role) }
+            }
             is OnboardingUiEvent.PathSelected -> selectPath(event.path)
             is OnboardingUiEvent.FamilyNameChanged -> _uiState.update {
                 it.copy(familyName = event.familyName, familyNameViolations = emptySet())
@@ -72,12 +83,62 @@ class OnboardingViewModel @Inject constructor(
 
     private fun next() {
         val currentStep = _uiState.value.currentStep
-        if (!validateInput(currentStep)) return
+        if (_uiState.value.isSubmitting || !validateInput(currentStep)) return
+        val state = _uiState.value
+        // 닉네임·역할은 서버에 저장한 뒤에 넘어간다. 이미 저장한 값으로 돌아온 경우는 다시 보내지 않는다
+        when {
+            currentStep == OnboardingStep.INPUT_NICKNAME && state.nickname != savedNickname -> submitNickname(state.nickname)
+            currentStep == OnboardingStep.CHOOSE_ROLE && state.selectedRole != savedRole -> submitRole(requireNotNull(state.selectedRole))
+            else -> moveToNextStep(currentStep)
+        }
+    }
+
+    private fun moveToNextStep(currentStep: OnboardingStep) {
         val steps = stepsOf(selectedPath)
         // 메인에서 경로를 선택하기 전이거나 마지막 단계면 이동하지 않음
         val nextStep = steps.getOrNull(steps.indexOf(currentStep) + 1) ?: return
         _uiState.update { it.copy(currentStep = nextStep) }
         if (nextStep == OnboardingStep.GENERATE_FAMILY_CODE_LOADING) startLoading()
+    }
+
+    private fun submitNickname(nickname: String) = submit(
+        step = OnboardingStep.INPUT_NICKNAME,
+        request = { memberRepository.updateNickname(nickname) },
+        onSaved = { savedNickname = nickname },
+        onFailure = { error ->
+            if (error is DuplicateNicknameException) {
+                _uiState.update { it.copy(isNicknameDuplicated = true) }
+            } else {
+                _effect.trySend(OnboardingUiEffect.ShowNicknameError)
+            }
+        },
+    )
+
+    private fun submitRole(role: FamilyRole) = submit(
+        step = OnboardingStep.CHOOSE_ROLE,
+        request = { memberRepository.updateFamilyRole(role.toMemberRole()) },
+        onSaved = { savedRole = role },
+        onFailure = { _effect.trySend(OnboardingUiEffect.ShowRoleError) },
+    )
+
+    // 저장하는 동안에는 입력·뒤로가기·다음을 막고, 성공하면 다음 단계로 넘어간다
+    private fun submit(
+        step: OnboardingStep,
+        request: suspend () -> Result<Unit>,
+        onSaved: () -> Unit,
+        onFailure: (Throwable) -> Unit,
+    ) {
+        _uiState.update { it.copy(isSubmitting = true) }
+        viewModelScope.launch {
+            val result = request()
+            _uiState.update { it.copy(isSubmitting = false) }
+            result
+                .onSuccess {
+                    onSaved()
+                    moveToNextStep(step)
+                }
+                .onFailure(onFailure)
+        }
     }
 
     // 닉네임·가족명 단계에서는 규칙을 지키지 못하면 오류를 표시하고 넘어가지 않는다
@@ -91,7 +152,7 @@ class OnboardingViewModel @Inject constructor(
                 violations.isEmpty()
             }
             OnboardingStep.INPUT_FAMILY_NAME -> {
-                val violations = NicknameValidator.violations(state.familyName)
+                val violations = NicknameValidator.familyNameViolations(state.familyName)
                 _uiState.update { it.copy(familyNameViolations = violations) }
                 violations.isEmpty()
             }
@@ -146,6 +207,7 @@ class OnboardingViewModel @Inject constructor(
     }
 
     private fun previous() {
+        if (_uiState.value.isSubmitting) return
         val currentStep = _uiState.value.currentStep
         val steps = stepsOf(selectedPath)
         // 로딩 단계는 뒤로가기로 돌아오지 않도록 건너뜀
@@ -169,6 +231,14 @@ class OnboardingViewModel @Inject constructor(
         OnboardingPath.JOIN_FAMILY -> listOf(OnboardingStep.INPUT_FAMILY_CODE)
         // TODO: 둘러보기 단계가 OnboardingStep에 추가되면 연결
         OnboardingPath.BROWSE, null -> emptyList()
+    }
+
+    // 화면의 역할(엄마·아빠·딸·아들)을 서버가 받는 역할 값으로 바꾼다
+    private fun FamilyRole.toMemberRole(): MemberFamilyRole = when (this) {
+        FamilyRole.MOM -> MemberFamilyRole.MOTHER
+        FamilyRole.DAD -> MemberFamilyRole.FATHER
+        FamilyRole.DAUGHTER -> MemberFamilyRole.DAUGHTER
+        FamilyRole.SON -> MemberFamilyRole.SON
     }
 
     private companion object {

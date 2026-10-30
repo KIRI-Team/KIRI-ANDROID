@@ -53,7 +53,7 @@ fun InputFamilyNameScreen(
             OnboardingInputBox(
                 value = familyName,
                 onValueChange = onFamilyNameChange,
-                guides = nicknameGuides(violations),
+                guides = familyNameGuides(violations),
                 isError = violations.isNotEmpty(),
                 placeholder = "가족명을 입력하세요.",
             )

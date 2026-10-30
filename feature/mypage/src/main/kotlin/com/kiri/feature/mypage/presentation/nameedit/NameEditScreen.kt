@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kiri.domain.model.nickname.NicknameRule
+import com.kiri.domain.model.nickname.NicknameValidator
 import com.kiri.feature.mypage.NameEditViewModel
 import com.kiri.feature.mypage.model.nameedit.NameEditUiEffect
 import com.kiri.feature.mypage.model.nameedit.NameEditUiEvent
@@ -81,7 +82,7 @@ internal fun NameEditScreen(
                 value = state.name,
                 onValueChange = { onEvent(NameEditUiEvent.NameChanged(it)) },
                 placeholder = placeholder,
-                errors = nameErrors(state.violations),
+                errors = nameErrors(state.violations, state.maxLength),
             )
         }
         KiriButton(
@@ -91,12 +92,12 @@ internal fun NameEditScreen(
     }
 }
 
-// 지키지 못한 규칙만 오류 문구로 보여준다
-private val nameRuleTexts = listOf(
+// 지키지 못한 규칙만 오류 문구로 보여준다. 길이 문구는 화면마다 다른 최대 길이를 쓴다
+private fun nameRuleTexts(maxLength: Int) = listOf(
     NicknameRule.ALLOWED_LETTERS to "한글/영어/숫자만 입력할 수 있어요",
-    NicknameRule.LENGTH to "최소 2자 ~ 최대 10자 이내로 입력해주세요",
+    NicknameRule.LENGTH to "최소 ${NicknameValidator.MIN_LENGTH}자 ~ 최대 ${maxLength}자 이내로 입력해주세요",
     NicknameRule.NO_SPECIAL_CHARACTERS to "특수 문자는 입력할 수 없어요",
 )
 
-internal fun nameErrors(violations: Set<NicknameRule>): List<String> =
-    nameRuleTexts.filter { (rule, _) -> rule in violations }.map { (_, text) -> text }
+internal fun nameErrors(violations: Set<NicknameRule>, maxLength: Int = NicknameValidator.MAX_LENGTH): List<String> =
+    nameRuleTexts(maxLength).filter { (rule, _) -> rule in violations }.map { (_, text) -> text }

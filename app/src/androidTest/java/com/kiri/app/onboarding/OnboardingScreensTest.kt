@@ -25,6 +25,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kiri.domain.model.invite.Invite
 import com.kiri.domain.repository.InviteRepository
+import com.kiri.domain.repository.MemberRepository
 import com.kiri.feature.onboarding.OnboardingStep
 import com.kiri.feature.onboarding.OnboardingViewModel
 import com.kiri.feature.onboarding.model.FamilyRole
@@ -143,25 +144,47 @@ class OnboardingScreensTest {
     }
 
     @Test
-    fun 닉네임은_10자를_넘어도_잘리지_않고_다음을_누르면_닉네임_화면에_머문다() {
+    fun 이미_사용_중인_닉네임이면_중복_안내가_보인다() {
+        composeTestRule.setContent {
+            KiriTheme {
+                InputNicknameScreen(nickname = "주연주", onNicknameChange = {}, onNextClick = {}, onBackClick = {}, isDuplicated = true)
+            }
+        }
+
+        composeTestRule.onNodeWithText("이미 사용 중인 닉네임입니다.", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun 닉네임을_저장하는_동안_다음_버튼이_비활성화된다() {
+        composeTestRule.setContent {
+            KiriTheme {
+                InputNicknameScreen(nickname = "주연주", onNicknameChange = {}, onNextClick = {}, onBackClick = {}, isSubmitting = true)
+            }
+        }
+
+        composeTestRule.onNodeWithTag("kiri_button").assertIsNotEnabled()
+    }
+
+    @Test
+    fun 닉네임은_12자를_넘어도_잘리지_않고_다음을_누르면_닉네임_화면에_머문다() {
         lateinit var viewModel: OnboardingViewModel
         composeTestRule.setContent {
-            viewModel = remember { OnboardingViewModel(StubInviteRepository) }
+            viewModel = remember { OnboardingViewModel(StubInviteRepository, StubMemberRepository) }
             val state by viewModel.uiState.collectAsState()
             KiriTheme { OnboardingScreen(state = state, onEvent = viewModel::onEvent) }
         }
 
-        composeTestRule.onNodeWithTag("onboarding_input_box").performTextInput("가나다라마바사아자차카")
+        composeTestRule.onNodeWithTag("onboarding_input_box").performTextInput("가나다라마바사아자차카타파하")
         composeTestRule.onNodeWithTag("kiri_button").performClick()
 
-        assertEquals("가나다라마바사아자차카", viewModel.uiState.value.nickname)
+        assertEquals("가나다라마바사아자차카타파하", viewModel.uiState.value.nickname)
         composeTestRule.onNodeWithTag("input_nickname_screen").assertIsDisplayed()
     }
 
     @Test
     fun 규칙에_맞지_않는_닉네임으로_다음을_누르면_닉네임_화면에_머문다() {
         composeTestRule.setContent {
-            val viewModel = remember { OnboardingViewModel(StubInviteRepository) }
+            val viewModel = remember { OnboardingViewModel(StubInviteRepository, StubMemberRepository) }
             val state by viewModel.uiState.collectAsState()
             KiriTheme { OnboardingScreen(state = state, onEvent = viewModel::onEvent) }
         }
@@ -274,6 +297,12 @@ class OnboardingScreensTest {
         override suspend fun createInvite() = Result.success(Invite(code = "AB12CD", url = "https://kiri.example.com/invite/AB12CD"))
 
         override suspend fun getCurrentInvite(): Invite? = null
+    }
+
+    private object StubMemberRepository : MemberRepository {
+        override suspend fun updateNickname(nickname: String) = Result.success(Unit)
+
+        override suspend fun updateFamilyRole(role: com.kiri.domain.model.member.FamilyRole) = Result.success(Unit)
     }
 
     // 시스템 클립보드 읽기 제한(Android 10+)에 영향받지 않도록 복사된 값을 기록만 한다

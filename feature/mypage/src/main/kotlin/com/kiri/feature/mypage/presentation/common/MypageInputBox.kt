@@ -155,6 +155,6 @@ private fun MypageInputBoxPreview() {
     MypageInputBox(
         value = "주",
         onValueChange = {},
-        errors = listOf("최소 2자 ~ 최대 10자 이내로 입력해주세요"),
+        errors = listOf("최소 2자 ~ 최대 12자 이내로 입력해주세요"),
     )
 }

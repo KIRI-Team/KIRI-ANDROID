@@ -1,7 +1,10 @@
 package com.kiri.feature.onboarding
 
+import com.kiri.domain.model.nickname.DuplicateNicknameException
 import com.kiri.domain.model.nickname.NicknameRule
 import com.kiri.domain.model.invite.Invite
+import java.io.IOException
+import com.kiri.domain.model.member.FamilyRole as MemberFamilyRole
 import com.kiri.feature.onboarding.model.FamilyRole
 import com.kiri.feature.onboarding.model.OnboardingUiEffect
 import com.kiri.feature.onboarding.model.OnboardingUiEvent
@@ -16,6 +19,8 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -26,14 +31,18 @@ class OnboardingViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val inviteRepository = TestInviteRepository()
-    private val viewModel = OnboardingViewModel(inviteRepository)
+    private val memberRepository = TestMemberRepository()
+    private val viewModel = OnboardingViewModel(inviteRepository, memberRepository)
     private val state get() = viewModel.uiState.value
 
+    // 닉네임 저장처럼 viewModelScope 에서 시작한 작업을 지금 시점까지 실행한다
+    private fun runPending() = mainDispatcherRule.testDispatcher.scheduler.runCurrent()
+
     private fun moveToOnboardingMain() {
-        viewModel.onEvent(OnboardingUiEvent.NicknameChanged("주연주"))
-        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        moveToChooseRole()
         viewModel.onEvent(OnboardingUiEvent.RoleSelected(FamilyRole.DAD))
         viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        runPending()
     }
 
     private fun moveToLoading() {
@@ -257,13 +266,111 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun 닉네임이_규칙에_맞으면_다음을_눌렀을_때_역할_선택으로_넘어간다() {
+    fun 닉네임이_규칙에_맞으면_서버에_저장한_뒤_역할_선택으로_넘어간다() {
         viewModel.onEvent(OnboardingUiEvent.NicknameChanged("주연주"))
+
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        assertEquals(OnboardingStep.INPUT_NICKNAME, state.currentStep)
+        assertTrue(state.isSubmitting)
+
+        runPending()
+        assertEquals(OnboardingStep.CHOOSE_ROLE, state.currentStep)
+        assertFalse(state.isSubmitting)
+        assertEquals(listOf("주연주"), memberRepository.sentNicknames)
+        assertEquals(emptySet<NicknameRule>(), state.nicknameViolations)
+    }
+
+    @Test
+    fun 닉네임이_규칙에_맞지_않으면_서버에_보내지_않는다() {
+        viewModel.onEvent(OnboardingUiEvent.NicknameChanged("주!"))
+
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        runPending()
+
+        assertEquals(emptyList<String>(), memberRepository.sentNicknames)
+        assertFalse(state.isSubmitting)
+    }
+
+    @Test
+    fun 저장하는_동안_다음을_다시_눌러도_한_번만_보낸다() {
+        viewModel.onEvent(OnboardingUiEvent.NicknameChanged("주연주"))
+
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        runPending()
+
+        assertEquals(listOf("주연주"), memberRepository.sentNicknames)
+        assertEquals(OnboardingStep.CHOOSE_ROLE, state.currentStep)
+    }
+
+    @Test
+    fun 이미_사용_중인_닉네임이면_넘어가지_않고_중복을_표시한다() {
+        memberRepository.result = Result.failure(DuplicateNicknameException())
+        viewModel.onEvent(OnboardingUiEvent.NicknameChanged("주연주"))
+
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        runPending()
+
+        assertEquals(OnboardingStep.INPUT_NICKNAME, state.currentStep)
+        assertTrue(state.isNicknameDuplicated)
+        assertFalse(state.isSubmitting)
+    }
+
+    @Test
+    fun 중복_표시_후_닉네임을_수정하면_중복_표시가_사라진다() {
+        memberRepository.result = Result.failure(DuplicateNicknameException())
+        viewModel.onEvent(OnboardingUiEvent.NicknameChanged("주연주"))
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        runPending()
+
+        viewModel.onEvent(OnboardingUiEvent.NicknameChanged("주연주2"))
+
+        assertFalse(state.isNicknameDuplicated)
+    }
+
+    @Test
+    fun 닉네임_저장에_실패하면_넘어가지_않고_오류를_알리며_다시_시도할_수_있다() = runTest(mainDispatcherRule.testDispatcher) {
+        memberRepository.result = Result.failure(IOException())
+        val effects = collectEffects()
+        viewModel.onEvent(OnboardingUiEvent.NicknameChanged("주연주"))
+
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        runCurrent()
+
+        assertEquals(OnboardingStep.INPUT_NICKNAME, state.currentStep)
+        assertFalse(state.isNicknameDuplicated)
+        assertEquals(listOf(OnboardingUiEffect.ShowNicknameError), effects)
+
+        memberRepository.result = Result.success(Unit)
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        runCurrent()
+
+        assertEquals(OnboardingStep.CHOOSE_ROLE, state.currentStep)
+        assertEquals(listOf("주연주", "주연주"), memberRepository.sentNicknames)
+    }
+
+    @Test
+    fun 저장한_닉네임으로_돌아왔다가_그대로_다음을_누르면_다시_보내지_않는다() {
+        moveToChooseRole()
+        viewModel.onEvent(OnboardingUiEvent.BackClicked)
 
         viewModel.onEvent(OnboardingUiEvent.NextClicked)
 
         assertEquals(OnboardingStep.CHOOSE_ROLE, state.currentStep)
-        assertEquals(emptySet<NicknameRule>(), state.nicknameViolations)
+        assertEquals(listOf("주연주"), memberRepository.sentNicknames)
+    }
+
+    @Test
+    fun 저장한_닉네임으로_돌아와_바꾸면_새_닉네임을_보낸다() {
+        moveToChooseRole()
+        viewModel.onEvent(OnboardingUiEvent.BackClicked)
+        viewModel.onEvent(OnboardingUiEvent.NicknameChanged("주연"))
+
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        runPending()
+
+        assertEquals(OnboardingStep.CHOOSE_ROLE, state.currentStep)
+        assertEquals(listOf("주연주", "주연"), memberRepository.sentNicknames)
     }
 
     @Test
@@ -279,6 +386,30 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun 가족명은_닉네임보다_긴_15자까지_넘어간다() {
+        moveToOnboardingMain()
+        viewModel.onEvent(OnboardingUiEvent.PathSelected(OnboardingPath.CREATE_FAMILY))
+        viewModel.onEvent(OnboardingUiEvent.FamilyNameChanged("가".repeat(15)))
+
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+
+        assertEquals(OnboardingStep.GENERATE_FAMILY_CODE_LOADING, state.currentStep)
+        assertEquals(emptySet<NicknameRule>(), state.familyNameViolations)
+    }
+
+    @Test
+    fun 가족명이_15자를_넘으면_길이_오류를_표시한다() {
+        moveToOnboardingMain()
+        viewModel.onEvent(OnboardingUiEvent.PathSelected(OnboardingPath.CREATE_FAMILY))
+        viewModel.onEvent(OnboardingUiEvent.FamilyNameChanged("가".repeat(16)))
+
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+
+        assertEquals(OnboardingStep.INPUT_FAMILY_NAME, state.currentStep)
+        assertEquals(setOf(NicknameRule.LENGTH), state.familyNameViolations)
+    }
+
+    @Test
     fun 오류가_난_뒤_가족명을_수정하면_오류가_사라진다() {
         moveToOnboardingMain()
         viewModel.onEvent(OnboardingUiEvent.PathSelected(OnboardingPath.CREATE_FAMILY))
@@ -291,12 +422,12 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun 닉네임이_10자를_넘으면_그대로_저장하고_다음을_누르면_길이_오류를_표시한다() {
-        viewModel.onEvent(OnboardingUiEvent.NicknameChanged("가".repeat(11)))
+    fun 닉네임이_12자를_넘으면_그대로_저장하고_다음을_누르면_길이_오류를_표시한다() {
+        viewModel.onEvent(OnboardingUiEvent.NicknameChanged("가".repeat(13)))
 
         viewModel.onEvent(OnboardingUiEvent.NextClicked)
 
-        assertEquals("가".repeat(11), state.nickname)
+        assertEquals("가".repeat(13), state.nickname)
         assertEquals(OnboardingStep.INPUT_NICKNAME, state.currentStep)
         assertEquals(setOf(NicknameRule.LENGTH), state.nicknameViolations)
     }
@@ -304,6 +435,7 @@ class OnboardingViewModelTest {
     private fun moveToChooseRole() {
         viewModel.onEvent(OnboardingUiEvent.NicknameChanged("주연주"))
         viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        runPending()
     }
 
     @Test
@@ -332,8 +464,93 @@ class OnboardingViewModelTest {
 
         viewModel.onEvent(OnboardingUiEvent.RoleSelected(FamilyRole.MOM))
         viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        runPending()
 
         assertEquals(FamilyRole.MOM, state.selectedRole)
         assertEquals(OnboardingStep.ONBOARDING_MAIN, state.currentStep)
+        assertEquals(listOf(MemberFamilyRole.MOTHER), memberRepository.sentRoles)
+    }
+
+    @Test
+    fun 역할을_서버에_저장한_뒤_온보딩_메인으로_넘어간다() {
+        moveToChooseRole()
+        viewModel.onEvent(OnboardingUiEvent.RoleSelected(FamilyRole.DAD))
+
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        assertEquals(OnboardingStep.CHOOSE_ROLE, state.currentStep)
+        assertTrue(state.isSubmitting)
+
+        runPending()
+        assertEquals(OnboardingStep.ONBOARDING_MAIN, state.currentStep)
+        assertFalse(state.isSubmitting)
+        assertEquals(listOf(MemberFamilyRole.FATHER), memberRepository.sentRoles)
+    }
+
+    @Test
+    fun 화면의_역할을_서버의_역할_값으로_바꿔_보낸다() {
+        val expected = mapOf(
+            FamilyRole.MOM to MemberFamilyRole.MOTHER,
+            FamilyRole.DAD to MemberFamilyRole.FATHER,
+            FamilyRole.DAUGHTER to MemberFamilyRole.DAUGHTER,
+            FamilyRole.SON to MemberFamilyRole.SON,
+        )
+        moveToChooseRole()
+
+        expected.keys.forEach { role ->
+            viewModel.onEvent(OnboardingUiEvent.RoleSelected(role))
+            viewModel.onEvent(OnboardingUiEvent.NextClicked)
+            runPending()
+            viewModel.onEvent(OnboardingUiEvent.BackClicked)
+        }
+
+        assertEquals(expected.values.toList(), memberRepository.sentRoles)
+    }
+
+    @Test
+    fun 역할_저장에_실패하면_넘어가지_않고_오류를_알리며_다시_시도할_수_있다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToChooseRole()
+        memberRepository.roleResult = Result.failure(IOException())
+        val effects = collectEffects()
+        viewModel.onEvent(OnboardingUiEvent.RoleSelected(FamilyRole.SON))
+
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        runCurrent()
+
+        assertEquals(OnboardingStep.CHOOSE_ROLE, state.currentStep)
+        assertEquals(listOf(OnboardingUiEffect.ShowRoleError), effects)
+
+        memberRepository.roleResult = Result.success(Unit)
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        runCurrent()
+
+        assertEquals(OnboardingStep.ONBOARDING_MAIN, state.currentStep)
+        assertEquals(listOf(MemberFamilyRole.SON, MemberFamilyRole.SON), memberRepository.sentRoles)
+    }
+
+    @Test
+    fun 역할을_저장하는_동안에는_역할_변경과_뒤로가기와_다시_누르기를_무시한다() {
+        moveToChooseRole()
+        viewModel.onEvent(OnboardingUiEvent.RoleSelected(FamilyRole.DAD))
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+
+        viewModel.onEvent(OnboardingUiEvent.RoleSelected(FamilyRole.MOM))
+        viewModel.onEvent(OnboardingUiEvent.BackClicked)
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+        runPending()
+
+        assertEquals(FamilyRole.DAD, state.selectedRole)
+        assertEquals(OnboardingStep.ONBOARDING_MAIN, state.currentStep)
+        assertEquals(listOf(MemberFamilyRole.FATHER), memberRepository.sentRoles)
+    }
+
+    @Test
+    fun 저장한_역할로_돌아왔다가_그대로_다음을_누르면_다시_보내지_않는다() {
+        moveToOnboardingMain()
+        viewModel.onEvent(OnboardingUiEvent.BackClicked)
+
+        viewModel.onEvent(OnboardingUiEvent.NextClicked)
+
+        assertEquals(OnboardingStep.ONBOARDING_MAIN, state.currentStep)
+        assertEquals(listOf(MemberFamilyRole.FATHER), memberRepository.sentRoles)
     }
 }
