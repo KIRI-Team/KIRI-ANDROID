@@ -73,6 +73,9 @@ fun MissionDetailScreen(
     modifier: Modifier = Modifier,
     showAppBar: Boolean = true,
     showTabs: Boolean = true,
+    discoverySaveLabel: String? = null,
+    discoverySaveEnabled: Boolean = true,
+    onDiscoverySave: () -> Unit = {},
 ) {
     val onBack = { onEvent(DetailUiEvent.BackClicked) }
     val onCustom = { onEvent(DetailUiEvent.CustomClicked) }
@@ -111,6 +114,15 @@ fun MissionDetailScreen(
                 calendarHeader,
                 showAppBar,
             )
+            if (discovery && discoverySaveLabel != null) {
+                Column(Modifier.padding(horizontal = 18.dp)) {
+                    KiriDetailButton(discoverySaveLabel, onDiscoverySave,
+                        enabled = discoverySaveEnabled,
+                        modifier = Modifier.testTag("preview_save"))
+                    if (state.error != null) Text(state.error, color = KiriColor.Text.Primary,
+                        style = KiriDetailTypography.Body)
+                }
+            }
             Spacer(Modifier.height(if (showTabs) 36.dp else 16.dp))
             if (showTabs)
                 Row(

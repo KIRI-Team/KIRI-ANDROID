@@ -20,6 +20,124 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class LocalActivityPersistenceTest {
+    @Test
+    fun completedMissionCanBeSavedAgainWithoutChangingItsReviewOrSchedule() = runTest {
+        val clock = MutableClock()
+        val home = Home(clock)
+        val store = Store()
+        val buckets = LocalBucketRepository(home, missions, clock, store)
+        var schedules = LocalScheduleRepository(home, missions, buckets, clock, store)
+        val first = buckets.save("real-place")
+        val draft = ScheduleDraft(first.id, first.missionId, clock.instant().plusSeconds(86400),
+            setOf("2"), "", "장소")
+        val schedule = schedules.create(draft, "first")
+        store.write("schedules/${home.load().localStorageScope()}", ActivityCodec.schedules(
+            ScheduleState(listOf(schedule.copy(responses = mapOf("1" to MemberResponse.ACCEPTED,
+                "2" to MemberResponse.ACCEPTED))))))
+        schedules = LocalScheduleRepository(home, missions, buckets, clock, store)
+        clock.at = requireNotNull(draft.startsAt)
+        val records = LocalRecordRepository(home, missions, familySchedules = schedules,
+            familyBuckets = buckets, clock = clock, store = store)
+        records.refresh()
+        records.addMemory(schedule.id, "완료 기록", listOf(RecordPhoto("p", "content://photo")), 5, true)
+        val memory = records.records.value.memories.single()
+        val completed = schedules.schedules.value.single()
+        assertTrue(completed.completed)
+        assertEquals(BucketStatus.COMPLETED, buckets.mine().single().status)
+        val place = com.kiri.data.place.LocalPlaceRepository(missionRepository = missions, familyBuckets = buckets)
+        assertEquals("다시 버킷에 저장", place.load(PlaceQuery()).items.single().saveLabel)
+        assertEquals("다시 버킷에 저장", place.saved().single().saveLabel)
+        val second = buckets.save(first.missionId)
+        assertNotEquals(first.id, second.id)
+        assertEquals(BucketStatus.SAVED, second.status)
+        assertTrue(second.canCreateSchedule)
+        assertEquals(second.id, buckets.save(first.missionId).id)
+        assertEquals("저장됨", place.load(PlaceQuery()).items.single().saveLabel)
+        assertTrue(runCatching { schedules.cancel(completed.id, completed.revision) }.isFailure)
+        assertTrue(runCatching { schedules.create(draft.copy(startsAt = clock.at.plusSeconds(86400)), "old-again") }.isFailure)
+        val next = schedules.create(draft.copy(bucketId = second.id,
+            startsAt = clock.at.plusSeconds(86400)), "second")
+        records.refresh()
+        assertEquals(memory, records.records.value.memories.single())
+        assertEquals(completed, schedules.schedules.value.first { it.id == schedule.id })
+        assertEquals(second.id, next.bucketId)
+        val restarted = LocalBucketRepository(home, missions, clock, store)
+        assertEquals(2, restarted.mine().size)
+        assertEquals(BucketStatus.COMPLETED, restarted.mine().first { it.id == first.id }.status)
+        assertEquals(BucketStatus.SCHEDULED, restarted.mine().first { it.id == second.id }.status)
+    }
+
+    @Test
+    fun cancellationRestoresSavedBucketAndKeepsHistoryAfterReschedulingAndRestart() = runTest {
+        val clock = MutableClock()
+        val home = Home(clock)
+        val store = Store()
+        val buckets = LocalBucketRepository(home, missions, clock, store)
+        val bucket = buckets.save("real-place")
+        val schedules = LocalScheduleRepository(home, missions, buckets, clock, store)
+        val draft = ScheduleDraft(bucket.id, bucket.missionId, clock.at.plusSeconds(86400),
+            setOf("2"), "", "장소")
+        val first = schedules.create(draft, "first")
+        assertTrue(runCatching { schedules.create(draft, "duplicate") }.isFailure)
+        schedules.cancel(first.id, first.revision)
+        assertEquals(BucketStatus.SAVED, buckets.mine().single().status)
+        val records = LocalRecordRepository(home, missions, familySchedules = schedules,
+            familyBuckets = buckets, clock = clock, store = store)
+        records.refresh()
+        assertFalse(records.records.value.entries.any { it.id == first.id })
+        val second = schedules.create(draft.copy(startsAt = clock.at.plusSeconds(172800)), "second")
+        val restored = LocalScheduleRepository(home, missions,
+            LocalBucketRepository(home, missions, clock, store), clock, store)
+        restored.refresh()
+        assertTrue(restored.schedules.value.first { it.id == first.id }.cancelled)
+        assertEquals(second.id, restored.schedules.value.single { !it.cancelled }.id)
+        assertEquals(bucket.id, buckets.save(bucket.missionId).id)
+    }
+
+    @Test
+    fun durableReviewBlocksCancellationEvenBeforeCompletionFlagIsWritten() = runTest {
+        val clock = MutableClock()
+        val home = Home(clock)
+        val store = Store()
+        val buckets = LocalBucketRepository(home, missions, clock, store)
+        val bucket = buckets.save("real-place")
+        val schedules = LocalScheduleRepository(home, missions, buckets, clock, store)
+        val schedule = schedules.create(ScheduleDraft(bucket.id, bucket.missionId,
+            clock.at.plusSeconds(86400), setOf("2"), "", "장소"), "request")
+        val memory = FamilyMemory("review", schedule.id, "1", "나", "", "완료 리뷰",
+            listOf(RecordPhoto("p", "content://photo")), 5, true)
+        store.write("records/${home.load().localStorageScope()}",
+            ActivityCodec.records(RecordCollection(memories = listOf(memory))))
+        assertTrue(runCatching { schedules.cancel(schedule.id, schedule.revision) }.isFailure)
+        assertFalse(schedules.schedules.value.single().cancelled)
+        assertEquals(setOf(schedule.id), buckets.mine().single().linkedScheduleIds)
+    }
+
+    @Test
+    fun familyBucketProjectionIncludesOtherMembersButOnlySavedBucketsCanSchedule() = runTest {
+        val clock = MutableClock()
+        val home = Home(clock)
+        val store = Store()
+        val stored = listOf(
+            FamilyBucket("mine", "real-place", "1", clock.at),
+            FamilyBucket("family", "real-place", "2", clock.at),
+            FamilyBucket("completed", "real-place", "2", clock.at, completed = true),
+            FamilyBucket("linked", "real-place", "2", clock.at, linkedScheduleIds = setOf("s")),
+        )
+        store.write("buckets/${home.load().localStorageScope()}", ActivityCodec.buckets(stored))
+        val buckets = LocalBucketRepository(home, missions, clock, store)
+        val records = LocalRecordRepository(home, missions, familyBuckets = buckets, clock = clock, store = store)
+        records.refresh()
+        assertEquals(stored.map { it.id }.toSet(), records.records.value.entries.map { it.id }.toSet())
+        assertEquals(setOf("mine", "family"), buckets.buckets.value.filter { it.canCreateSchedule }.map { it.id }.toSet())
+        val schedules = LocalScheduleRepository(home, missions, buckets, clock, store)
+        val draft = ScheduleDraft("family", "real-place", clock.at.plusSeconds(86400), setOf("2"), "", "장소")
+        assertTrue(runCatching { schedules.create(draft.copy(bucketId = "completed"), "completed") }.isFailure)
+        assertTrue(runCatching { schedules.create(draft.copy(bucketId = "linked"), "linked") }.isFailure)
+        assertEquals("family", schedules.create(draft, "family").bucketId)
+        assertEquals("mine", buckets.save("real-place").id)
+    }
+
     private class MutableClock(
         var at: Instant = Instant.parse("2026-10-25T03:00:00Z"),
         private val zone: ZoneId = ZoneOffset.UTC,

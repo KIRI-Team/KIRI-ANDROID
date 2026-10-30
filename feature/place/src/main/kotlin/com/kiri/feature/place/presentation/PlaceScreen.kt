@@ -46,6 +46,7 @@ fun PlaceRoute(onBack: () -> Unit = {}, viewModel: PlaceViewModel = hiltViewMode
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.refreshSaves()
             viewModel.effect.collect { effect ->
                 when (effect) {
                     PlaceUiEffect.NavigateBack -> currentBack()
@@ -200,8 +201,12 @@ private fun PlaceMissionCard(mission: PlaceMission, onSave: () -> Unit, onOpen: 
                         }
                     }
                     Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) { IconButton(onClick = onSave, enabled = !mission.saved, modifier = Modifier.requiredSize(48.dp).testTag("place_save_${mission.id}")) {
-                        Image(painterResource(if (mission.saved) R.drawable.place_bookmark_filled else R.drawable.place_bookmark_outline), if (mission.saved) "저장됨" else "버킷리스트에 저장", Modifier.size(24.dp))
+                        Image(painterResource(if (mission.saved) R.drawable.place_bookmark_filled else R.drawable.place_bookmark_outline), mission.saveLabel, Modifier.size(24.dp))
                     } }
+                }
+                TextButton(onClick = onSave, enabled = !mission.saved,
+                    modifier = Modifier.align(Alignment.End)) {
+                    Text(mission.saveLabel, style = KiriDetailTypography.Small)
                 }
             }
         }

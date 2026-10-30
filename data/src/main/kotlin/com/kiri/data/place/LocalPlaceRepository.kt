@@ -25,6 +25,7 @@ open class LocalPlaceRepository(
 
     private val mutex = Mutex()
     private val bookmarks = mutableSetOf<Pair<String, String>>()
+    private val completedMissions = mutableSetOf<String>()
 
     override suspend fun load(query: PlaceQuery): PlacePage = mutex.withLock {
         syncBookmarks()
@@ -66,21 +67,26 @@ open class LocalPlaceRepository(
     override suspend fun saved(): List<PlaceMission> = mutex.withLock {
         syncBookmarks()
         (missions ?: missionRepository.catalog())
-            .filter { (userId to it.id) in bookmarks }
+            .filter { (userId to it.id) in bookmarks || it.id in completedMissions }
             .map(::snapshot)
     }
 
     private fun snapshot(mission: PlaceMission) =
-        mission.copy(saved = (userId to mission.id) in bookmarks)
+        mission.copy(
+            saved = (userId to mission.id) in bookmarks,
+            previouslyCompleted = mission.id in completedMissions,
+        )
 
     private suspend fun syncBookmarks() {
         val repository = familyBuckets ?: return
         repository.refresh()
         // This repository represents the current user's discovery view; family ownership lives in
         // BucketRepository.
-        val owned = repository.mine().map { it.missionId }
+        val owned = repository.mine()
         bookmarks.clear()
-        bookmarks += owned.map { userId to it }
+        bookmarks += owned.filterNot { it.completed }.map { userId to it.missionId }
+        completedMissions.clear()
+        completedMissions += owned.filter { it.completed }.map { it.missionId }
     }
 }
 
