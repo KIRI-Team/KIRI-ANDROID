@@ -1,7 +1,11 @@
 package com.kiri.app.onboarding
 
 import com.kiri.data.family.FamilyRepositoryModule
+import com.kiri.data.family.InviteRepositoryModule
 import com.kiri.data.member.MemberRepositoryModule
+import com.kiri.data.repository.FakeInviteRepository
+import com.kiri.domain.repository.InviteRepository
+import javax.inject.Singleton
 import com.kiri.domain.model.family.Family
 import com.kiri.domain.model.invite.Invite
 import com.kiri.domain.model.member.FamilyRole
@@ -38,4 +42,13 @@ object FakeMemberRepositoryModule {
 object FakeFamilyRepositoryModule {
     @Provides
     fun provideFamilyRepository(): FamilyRepository = FakeFamilyRepository()
+}
+
+// UI 테스트에서는 서버 대신 메모리에서 초대를 발급·기억하는 가짜 저장소를 쓴다 (화면 사이에서 같은 초대를 보도록 하나만 만든다)
+@Module
+@TestInstallIn(components = [SingletonComponent::class], replaces = [InviteRepositoryModule::class])
+object FakeInviteRepositoryModule {
+    @Provides
+    @Singleton
+    fun provideInviteRepository(): InviteRepository = FakeInviteRepository()
 }

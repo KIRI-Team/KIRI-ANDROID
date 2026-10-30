@@ -85,6 +85,8 @@ fun InviteLinkRoute(
                     shareLauncher.launch(context.createInviteShareIntent(effect.url, effect.code))
                 InviteLinkUiEffect.ShowInviteError ->
                     Toast.makeText(context, UikitR.string.invite_create_error, Toast.LENGTH_SHORT).show()
+                InviteLinkUiEffect.ShowLoadError ->
+                    Toast.makeText(context, "초대 정보를 불러오지 못했어요.", Toast.LENGTH_SHORT).show()
                 InviteLinkUiEffect.NavigateBack -> currentOnNavigateBack()
             }
         }

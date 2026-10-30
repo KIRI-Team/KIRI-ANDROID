@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// 공용 초대 링크. 온보딩과 같은 InviteRepository에서 지금 초대를 불러오고, 리셋하면 새로 발급한다
+// 공용 초대 링크. 서버에서 내 가족 공간의 지금 초대를 불러오고, 리셋하면 새로 발급한다
 @HiltViewModel
 class InviteLinkViewModel @Inject constructor(
     private val inviteRepository: InviteRepository,
@@ -36,10 +36,11 @@ class InviteLinkViewModel @Inject constructor(
     private var isSharing = false
 
     init {
-        // 아직 발급한 초대가 없으면 (예: 코드로 가족에 참여한 경우) 바로 새로 발급한다
+        // 서버에서 지금 초대를 불러온다. 불러오지 못하면 초대 없이 두고 오류를 알린다 (리셋하면 새로 발급할 수 있다)
         viewModelScope.launch {
-            val current = inviteRepository.getCurrentInvite()
-            if (current != null) _uiState.update { it.copy(invite = current) } else issue()
+            inviteRepository.getCurrentInvite()
+                .onSuccess { current -> _uiState.update { it.copy(invite = current) } }
+                .onFailure { _effect.trySend(InviteLinkUiEffect.ShowLoadError) }
         }
     }
 

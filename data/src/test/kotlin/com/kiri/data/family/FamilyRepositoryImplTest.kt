@@ -28,6 +28,7 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 class FamilyRepositoryImplTest {
 
     private val server = MockWebServer()
+    private val familyIdStore = FakeFamilyIdStore()
 
     @Before
     fun setUp() = server.start()
@@ -42,7 +43,7 @@ class FamilyRepositoryImplTest {
             .addConverterFactory(kiriJson.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(FamilyApi::class.java)
-        return FamilyRepositoryImpl(api, kiriJson)
+        return FamilyRepositoryImpl(api, familyIdStore, kiriJson)
     }
 
     private fun enqueue(code: Int, body: String) {
@@ -76,6 +77,24 @@ class FamilyRepositoryImplTest {
             ),
             family,
         )
+    }
+
+    @Test
+    fun 만들면_초대를_불러올_수_있도록_가족_ID를_기억한다() = runTest {
+        enqueue(201, SUCCESS_BODY)
+
+        repository().createFamily("끼리네가족")
+
+        assertEquals(1L, familyIdStore.saved)
+    }
+
+    @Test
+    fun 만들지_못하면_가족_ID를_기억하지_않는다() = runTest {
+        enqueue(409, """{"isSuccess":false,"code":"FAMILY409_1","message":"이미 존재하는 가족 이름입니다.","result":null}""")
+
+        repository().createFamily("끼리네가족")
+
+        assertNull(familyIdStore.saved)
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.kiri.data.repository
 
+import com.kiri.domain.model.family.NoFamilyException
 import com.kiri.domain.model.invite.InviteLink
 import java.time.Clock
 import java.time.Instant
@@ -7,7 +8,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -34,15 +35,15 @@ class FakeInviteRepositoryTest {
 
     @Test
     fun 발급하기_전에는_지금_초대가_없다() = runTest {
-        assertNull(repository.getCurrentInvite())
+        assertTrue(repository.getCurrentInvite().exceptionOrNull() is NoFamilyException)
     }
 
     @Test
     fun 새로_발급하면_지금_초대가_새_초대로_바뀐다() = runTest {
         val first = repository.createInvite().getOrThrow()
-        assertEquals(first, repository.getCurrentInvite())
+        assertEquals(first, repository.getCurrentInvite().getOrThrow())
 
         val second = repository.createInvite().getOrThrow()
-        assertEquals(second, repository.getCurrentInvite())
+        assertEquals(second, repository.getCurrentInvite().getOrThrow())
     }
 }
