@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 import org.junit.Assert.*
 import org.junit.Test
 import retrofit2.Retrofit
@@ -29,8 +30,10 @@ class RemoteHomeRepositoryTest {
         override suspend fun save(tokens: AuthTokens) { value = tokens }
         override suspend fun clear() { value = null }
     }
+    // 실제 앱처럼 AuthInterceptor 가 토큰을 붙인다
     private fun repository(server: MockWebServer, tokens: Tokens = Tokens()) = RemoteHomeRepository(
         Retrofit.Builder().baseUrl(server.url("/"))
+            .client(OkHttpClient.Builder().addInterceptor(AuthInterceptor(tokens)).build())
             .addConverterFactory(kiriJson.asConverterFactory("application/json".toMediaType()))
             .build().create(HomeApi::class.java), tokens, kiriJson, clock)
     private fun MockWebServer.reply(result: String, code: String = "OK", status: Int = 200) {
@@ -50,7 +53,9 @@ class RemoteHomeRepositoryTest {
             assertEquals("답변", home.answers["2"])
             assertNull(home.mission); assertNull(home.inviteCode)
             assertEquals("Bearer access", server.takeRequest().headers["Authorization"])
-            assertEquals("/api/v1/questions/12/answers", server.takeRequest().url.encodedPath)
+            val answers = server.takeRequest()
+            assertEquals("/api/v1/questions/12/answers", answers.url.encodedPath)
+            assertEquals("Bearer access", answers.headers["Authorization"])
         }
     }
     @Test fun nullResultMutationsSucceedAndAnsweredMemberCanBePokedOnce() = runTest {

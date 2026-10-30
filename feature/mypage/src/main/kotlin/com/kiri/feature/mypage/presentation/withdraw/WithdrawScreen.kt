@@ -1,5 +1,7 @@
 package com.kiri.feature.mypage.presentation.withdraw
 
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,7 +16,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -23,18 +29,60 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kiri.feature.mypage.WithdrawViewModel
+import com.kiri.feature.mypage.model.withdraw.WithdrawUiEffect
+import com.kiri.feature.mypage.model.withdraw.WithdrawUiEvent
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.KiriButton
 import com.kiri.uikit.component.KiriButtonTone
 import com.kiri.uikit.component.KiriTopBar
 
+private const val TAG = "WithdrawScreen"
+
+// 탈퇴에 성공하면 로그인 화면으로 가고, 실패하면 알리고 화면에 남는다
+@Composable
+fun WithdrawRoute(
+    onNavigateBack: () -> Unit,
+    onNavigateToLogin: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: WithdrawViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val currentOnNavigateBack by rememberUpdatedState(onNavigateBack)
+    val currentOnNavigateToLogin by rememberUpdatedState(onNavigateToLogin)
+
+    LaunchedEffect(viewModel) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                WithdrawUiEffect.NavigateToLogin -> currentOnNavigateToLogin()
+                WithdrawUiEffect.NavigateBack -> currentOnNavigateBack()
+                is WithdrawUiEffect.ShowWithdrawError -> {
+                    Log.w(TAG, "회원탈퇴 실패", effect.cause)
+                    Toast.makeText(context, "탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    WithdrawScreen(
+        onBackClick = { viewModel.onEvent(WithdrawUiEvent.BackClicked) },
+        onWithdrawClick = { viewModel.onEvent(WithdrawUiEvent.WithdrawClicked) },
+        modifier = modifier,
+        isWithdrawing = state.isWithdrawing,
+    )
+}
+
 // 회원탈퇴. 삭제되는 정보와 남는 기록을 안내하고 탈퇴할게요를 누르면 탈퇴한다
-// TODO: 회원탈퇴 API가 생기면 탈퇴를 처리한 뒤 onWithdrawClick 으로 로그인 화면에 간다
+// isWithdrawing: 탈퇴 요청 중이면 탈퇴할게요 버튼을 막는다
 @Composable
 fun WithdrawScreen(
     onBackClick: () -> Unit,
     onWithdrawClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isWithdrawing: Boolean = false,
 ) {
     Column(
         modifier = modifier
@@ -92,8 +140,10 @@ fun WithdrawScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 18.dp, end = 18.dp, bottom = 12.dp),
+            enabled = !isWithdrawing,
             text = "탈퇴할게요",
             tone = KiriButtonTone.Neutral,
+            testTag = "withdraw_button",
         )
     }
 }

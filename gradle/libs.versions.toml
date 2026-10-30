@@ -26,6 +26,8 @@ retrofit = "3.0.0"
 # 5.5.0 부터는 compileSdk 37 이 필요하다. AGP·compileSdk 를 올리면 함께 올린다
 okhttp = "5.4.0"
 kotlinxSerialization = "1.11.0"
+googleServices = "4.5.0"
+firebaseBom = "34.0.0"
 
 [libraries]
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
@@ -76,8 +78,13 @@ okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver3", version
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 kotlin-serialization-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
 
+# Firebase (버전은 BOM 이 맞춘다)
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

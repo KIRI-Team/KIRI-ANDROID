@@ -1,6 +1,8 @@
 package com.kiri.feature.mypage
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.kiri.domain.repository.AuthRepository
 import com.kiri.feature.mypage.model.account.AccountInfoUiEffect
 import com.kiri.feature.mypage.model.account.AccountInfoUiEvent
 import com.kiri.feature.mypage.model.account.AccountInfoUiState
@@ -13,9 +15,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 @HiltViewModel
-class AccountInfoViewModel @Inject constructor() : ViewModel() {
+class AccountInfoViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+) : ViewModel() {
     private val _uiState = MutableStateFlow(AccountInfoUiState())
     val uiState: StateFlow<AccountInfoUiState> = _uiState.asStateFlow()
 
@@ -27,16 +32,26 @@ class AccountInfoViewModel @Inject constructor() : ViewModel() {
         when (event) {
             AccountInfoUiEvent.TermsClicked -> _effect.trySend(AccountInfoUiEffect.NavigateToTerms)
             AccountInfoUiEvent.OpenLicenseClicked -> _effect.trySend(AccountInfoUiEffect.NavigateToOpenLicense)
-            AccountInfoUiEvent.LogoutClicked -> _uiState.update { it.copy(isLogoutDialogVisible = true) }
+            AccountInfoUiEvent.LogoutClicked -> {
+                if (_uiState.value.isLoggingOut) return
+                _uiState.update { it.copy(isLogoutDialogVisible = true) }
+            }
             AccountInfoUiEvent.LogoutCanceled -> _uiState.update { it.copy(isLogoutDialogVisible = false) }
             AccountInfoUiEvent.LogoutConfirmed -> {
                 if (!_uiState.value.isLogoutDialogVisible) return
-                _uiState.update { it.copy(isLogoutDialogVisible = false) }
-                // TODO: 로그아웃 API·토큰 저장소가 생기면 로그아웃을 처리한 뒤 이동한다
-                _effect.trySend(AccountInfoUiEffect.NavigateToLogin)
+                _uiState.update { it.copy(isLogoutDialogVisible = false, isLoggingOut = true) }
+                logout()
             }
             AccountInfoUiEvent.WithdrawClicked -> _effect.trySend(AccountInfoUiEffect.NavigateToWithdraw)
             AccountInfoUiEvent.BackClicked -> _effect.trySend(AccountInfoUiEffect.NavigateBack)
+        }
+    }
+
+    // 서버 요청이 실패해도 토큰은 지워져 이미 로그아웃된 상태라 로그인 화면으로 간다
+    private fun logout() {
+        viewModelScope.launch {
+            authRepository.logout()
+            _effect.send(AccountInfoUiEffect.NavigateToLogin)
         }
     }
 }
