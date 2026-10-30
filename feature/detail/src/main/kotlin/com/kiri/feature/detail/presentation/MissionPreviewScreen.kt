@@ -21,6 +21,7 @@ fun MissionPreviewRoute(onBack: () -> Unit, viewModel: MissionPreviewViewModel =
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.retry()
             viewModel.effect.collect { currentBack() }
         }
     }
@@ -28,11 +29,12 @@ fun MissionPreviewRoute(onBack: () -> Unit, viewModel: MissionPreviewViewModel =
         { viewModel.onEvent(MissionPreviewUiEvent.BackClicked) },
         { viewModel.onEvent(MissionPreviewUiEvent.RetryClicked) },
         { viewModel.onEvent(MissionPreviewUiEvent.ReviewsSelected(it)) },
+        { viewModel.onEvent(MissionPreviewUiEvent.SaveClicked) },
     )
 }
 
 @Composable
-fun MissionPreviewScreen(state: MissionPreviewUiState, onBack: () -> Unit, onRetry: () -> Unit, onSelectReviews: (Boolean) -> Unit) {
+fun MissionPreviewScreen(state: MissionPreviewUiState, onBack: () -> Unit, onRetry: () -> Unit, onSelectReviews: (Boolean) -> Unit, onSave: () -> Unit = {}) {
     MissionDetailScreen(
         DetailUiState(loading = state.loading, detail = state.preview?.detail, error = state.error),
         onEvent = { event ->
@@ -44,5 +46,8 @@ fun MissionPreviewScreen(state: MissionPreviewUiState, onBack: () -> Unit, onRet
         },
         discovery = true, reviews = state.preview?.reviews.orEmpty(), reviewsSelected = state.reviewsSelected,
         onSelectReviews = onSelectReviews, curated = state.preview?.curated == true,
+        discoverySaveLabel = state.saveLabel,
+        discoverySaveEnabled = !state.saved && !state.saving,
+        onDiscoverySave = onSave,
     )
 }

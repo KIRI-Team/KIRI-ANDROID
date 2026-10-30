@@ -62,7 +62,7 @@ class PlaceViewModel @Inject constructor(private val repository: PlaceRepository
                 if (debounce) delay(300)
                 val page = repository.load(query)
                 if (version == generation) _uiState.update { current -> current.copy(loading = false,
-                    items = page.items.map { mission -> if (current.savedItems.any { it.id == mission.id }) mission.copy(saved = true) else mission },
+                    items = page.items,
                     totalCount = page.totalCount, nextCursor = page.nextCursor) }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { if (version == generation) _uiState.update { it.copy(loading = false, error = "활동을 불러오지 못했어요. 다시 시도해주세요.") } }
@@ -77,7 +77,7 @@ class PlaceViewModel @Inject constructor(private val repository: PlaceRepository
         viewModelScope.launch {
             try {
                 val page = repository.load(current.query.copy(cursor = cursor))
-                if (version == generation) _uiState.update { it.copy(items = (it.items + page.items.map { mission -> if (it.savedItems.any { saved -> saved.id == mission.id }) mission.copy(saved = true) else mission }).distinctBy { mission -> mission.id }, totalCount = page.totalCount, nextCursor = page.nextCursor, loadingMore = false) }
+                if (version == generation) _uiState.update { it.copy(items = (it.items + page.items).distinctBy { mission -> mission.id }, totalCount = page.totalCount, nextCursor = page.nextCursor, loadingMore = false) }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { if (version == generation) _uiState.update { it.copy(loadingMore = false, error = "다음 활동을 불러오지 못했어요.") } }
         }
@@ -93,7 +93,7 @@ class PlaceViewModel @Inject constructor(private val repository: PlaceRepository
                 repository.save(mission.id)
                 _uiState.update { it.copy(saving = false, pending = null, toast = true,
                     items = it.items.map { item -> if (item.id == mission.id) item.copy(saved = true) else item },
-                    savedItems = (it.savedItems + mission.copy(saved = true)).distinctBy { item -> item.id }) }
+                    savedItems = (listOf(mission.copy(saved = true)) + it.savedItems.filterNot { item -> item.id == mission.id })) }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { _uiState.update { it.copy(saving = false, error = "저장하지 못했어요. 다시 시도해주세요.") } }
         }
@@ -108,4 +108,11 @@ class PlaceViewModel @Inject constructor(private val repository: PlaceRepository
         }
     }
     private fun hideSaved() { _uiState.update { it.copy(showingSaved = false, error = null) } }
+
+    /** Re-read repository state after a review or save on another screen. */
+    fun refreshSaves() {
+        if (uiState.value.saving) return
+        reload()
+        if (uiState.value.showingSaved) showSaved()
+    }
 }

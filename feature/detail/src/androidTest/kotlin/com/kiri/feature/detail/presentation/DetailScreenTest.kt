@@ -18,6 +18,30 @@ class DetailScreenTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
+    fun completedDiscoveryCanResaveAndThenShowsSaved() {
+        val state = mutableStateOf(MissionPreviewUiState(loading = false,
+            preview = com.kiri.domain.detail.MissionPreview(figmaDetailSample().copy(completed = true)),
+            previouslyCompleted = true))
+        var saves = 0
+        compose.setContent {
+            KiriTheme {
+                MissionPreviewScreen(state.value, {}, {}, {}, onSave = {
+                    saves++
+                    state.value = state.value.copy(saved = true)
+                })
+            }
+        }
+        compose.onNodeWithTag("preview_save").performScrollTo().assertIsEnabled()
+        compose.onNodeWithText("다시 버킷에 저장").assertIsDisplayed()
+        capture("preview-resave")
+        compose.onNodeWithTag("preview_save").performClick()
+        assertEquals(1, saves)
+        compose.onNodeWithTag("preview_save").assertIsNotEnabled()
+        compose.onNodeWithText("저장됨").assertIsDisplayed()
+        capture("preview-saved")
+    }
+
+    @Test
     fun detailShowsDataScrollsAndOpensCustom() {
         var opened = false
         compose.setContent {

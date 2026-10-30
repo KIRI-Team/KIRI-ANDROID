@@ -13,6 +13,28 @@ import org.junit.Assert.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlaceViewModelTest {
+    @Test fun returningFromCompletionRefreshesBothCardsAndSavedListBeforeResave() = runTest(dispatcher) {
+        var mission = PlaceMission("repeat", "활동", "장소", "서울", PlaceCategory.OUTDOOR, saved = true)
+        val repository = object : PlaceRepository {
+            override suspend fun load(query: PlaceQuery) = PlacePage(listOf(mission), 1)
+            override suspend fun saved() = listOf(mission)
+            override suspend fun save(missionId: String) { mission = mission.copy(saved = true) }
+        }
+        val vm = PlaceViewModel(repository)
+        advanceUntilIdle()
+        vm.onEvent(PlaceUiEvent.SavedClicked)
+        advanceUntilIdle()
+        mission = mission.copy(saved = false, previouslyCompleted = true)
+        vm.refreshSaves()
+        advanceUntilIdle()
+        assertEquals("다시 버킷에 저장", vm.uiState.value.items.single().saveLabel)
+        assertEquals("다시 버킷에 저장", vm.uiState.value.savedItems.single().saveLabel)
+        vm.onEvent(PlaceUiEvent.SaveClicked(vm.uiState.value.savedItems.single()))
+        vm.onEvent(PlaceUiEvent.SaveConfirmed)
+        advanceUntilIdle()
+        assertEquals("저장됨", vm.uiState.value.savedItems.single().saveLabel)
+        assertEquals("저장됨", vm.uiState.value.items.single().saveLabel)
+    }
     @Test fun applyingFiltersReloadsAndRestoresTheAppliedQuery() = runTest(dispatcher) {
         val handle = androidx.lifecycle.SavedStateHandle()
         val repo = TestRepository()

@@ -10,9 +10,19 @@ data class FamilyBucket(
     val savedAt: Instant,
     val completed: Boolean = false,
     val linkedScheduleIds: Set<String> = emptySet(),
-)
+) {
+    val status: BucketStatus
+        get() = when {
+            completed -> BucketStatus.COMPLETED
+            linkedScheduleIds.isNotEmpty() -> BucketStatus.SCHEDULED
+            else -> BucketStatus.SAVED
+        }
+    val canCreateSchedule get() = status == BucketStatus.SAVED
+}
 
-/** Saves are unique per member/mission; different members may save the same mission. */
+enum class BucketStatus { SAVED, SCHEDULED, COMPLETED }
+
+/** Only unfinished saves are unique per member/mission. Completed buckets remain as history. */
 interface BucketRepository {
     val buckets: StateFlow<List<FamilyBucket>>
     suspend fun refresh()

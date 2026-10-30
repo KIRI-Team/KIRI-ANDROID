@@ -209,6 +209,34 @@ class ScheduleRegisterViewModelTest {
     }
 
     @Test
+    fun completedOrLinkedBucketCannotBeRegisteredThroughDirectNavigation() = runTest {
+        val real = repository()
+        real.refresh()
+        for (completed in listOf(true, false)) {
+            var calls = 0
+            val entries = real.records.value.entries.map {
+                if (it.id == "record-bucket") it.copy(completed = completed,
+                    linkedScheduleIds = if (completed) emptySet() else setOf("active")) else it
+            }
+            val records = kotlinx.coroutines.flow.MutableStateFlow(real.records.value.copy(entries = entries))
+            val guarded = object : RecordRepository by real {
+                override val records = records
+                override suspend fun refresh() {}
+                override suspend fun requestSchedule(request: ScheduleRequest): CalendarEntry {
+                    calls++
+                    error("must not submit")
+                }
+            }
+            val vm = ScheduleRegisterViewModel(handle(), guarded, clock)
+            assertFalse(vm.uiState.value.bucketFound)
+            assertEquals(ScheduleRegisterEffect.BucketMissing, vm.effect.first())
+            vm.onDraftChange(filled)
+            vm.send(ScheduleRequestChannel.APP)
+            assertEquals(0, calls)
+        }
+    }
+
+    @Test
     fun bucketRemovedWhileOpenSignalsLeaveOnce() = runTest {
         val repo = repository()
         val vm = ScheduleRegisterViewModel(handle(), repo, clock)

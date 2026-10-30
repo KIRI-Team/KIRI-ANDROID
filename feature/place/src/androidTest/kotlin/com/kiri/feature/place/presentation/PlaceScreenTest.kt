@@ -17,6 +17,24 @@ import org.junit.Assert.*
 
 class PlaceScreenTest {
     @get:Rule val compose = createComposeRule()
+    @Test fun completedCardShowsResaveAndUnfinishedCardDisablesSaving() {
+        val mission = PlaceMission("repeat", "다시 참여할 활동", "장소", "서울", PlaceCategory.OUTDOOR,
+            previouslyCompleted = true)
+        val state = mutableStateOf(PlaceUiState(loading = false, items = listOf(mission), totalCount = 1))
+        var saves = 0
+        compose.setContent { KiriTheme { PlaceScreen(state.value) {
+            if (it is PlaceUiEvent.SaveClicked) {
+                saves++
+                state.value = state.value.copy(items = listOf(mission.copy(saved = true)))
+            }
+        } } }
+        compose.onNodeWithText("다시 버킷에 저장").assertIsDisplayed()
+        capture("place-resave")
+        compose.onNodeWithTag("place_save_repeat").performClick()
+        assertEquals(1, saves)
+        compose.onNodeWithTag("place_save_repeat").assertIsNotEnabled()
+        compose.onNodeWithText("저장됨").assertIsDisplayed()
+    }
     @Test fun searchCategorySaveCancelConfirmAndToastShortcut() {
         val mission = PlaceMission("one", "광장시장에서 시장음식 먹어보기", "광장시장", "종로구", PlaceCategory.FOOD, rating = "4.6", tags = listOf("대중교통 편리", "혼잡도 높음"), pick = true)
         val state = mutableStateOf(PlaceUiState(items = listOf(mission), totalCount = 48, loading = false))

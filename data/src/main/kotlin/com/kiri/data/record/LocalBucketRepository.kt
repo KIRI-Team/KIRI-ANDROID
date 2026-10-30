@@ -62,7 +62,9 @@ class LocalBucketRepository(
         val family = family()
         check(scope != null) { "가족 연결 후 저장할 수 있어요." }
         missions.load(missionId)
-        state.value.find { it.ownerId == family.currentUserId && it.missionId == missionId }
+        state.value.find {
+            it.ownerId == family.currentUserId && it.missionId == missionId && !it.completed
+        }
             ?: FamilyBucket(
                     UUID.randomUUID().toString(),
                     missionId,
@@ -85,7 +87,7 @@ class LocalBucketRepository(
     override suspend fun link(id: String, scheduleId: String) = mutex.withLock {
         family()
         val bucket = requireNotNull(state.value.find { it.id == id })
-        check(!bucket.completed && bucket.linkedScheduleIds.isEmpty()) {
+        check(bucket.canCreateSchedule) {
             "이미 일정이 연결되었거나 완료한 버킷이에요."
         }
         publish(

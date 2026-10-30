@@ -4,6 +4,7 @@ import com.kiri.data.local.*
 import com.kiri.domain.home.*
 import com.kiri.domain.mission.MissionRepository
 import com.kiri.domain.record.BucketRepository
+import com.kiri.domain.record.isValidReview
 import com.kiri.domain.schedule.*
 import java.time.Clock
 import java.util.UUID
@@ -88,7 +89,8 @@ class LocalScheduleRepository(
                 ) {
                     "버킷을 다시 확인해주세요."
                 }
-            check(!bucket.completed && bucket.linkedScheduleIds.isEmpty()) {
+            check(bucket.canCreateSchedule && !hasCompletion(bucket.id) &&
+                state.value.none { it.bucketId == bucket.id && !it.cancelled }) {
                 "이미 진행 중이거나 완료한 활동이에요."
             }
             val id = UUID.randomUUID().toString()
@@ -199,6 +201,9 @@ class LocalScheduleRepository(
         check(!family.browsing)
         val old = current(id, expectedRevision)
         check(old.proposerId == family.currentUserId && !old.completed) { "완료한 약속은 취소할 수 없어요." }
+        buckets.refresh()
+        check(buckets.buckets.value.none { it.id == old.bucketId && it.completed } &&
+            !hasCompletion(old.bucketId, old.id)) { "완료한 버킷의 약속은 취소할 수 없어요." }
         if (!old.cancelled) {
             val updated = old.copy(cancelled = true, revision = old.revision + 1)
             replace(
@@ -223,6 +228,18 @@ class LocalScheduleRepository(
         val schedule = requireNotNull(state.value.find { it.id == id }) { "약속을 찾을 수 없어요." }
         check(schedule.revision == revision) { "약속이 변경되었어요. 새로 확인해주세요." }
         return schedule
+    }
+
+    /** A durable review may exist even if the process stopped before marking completion. */
+    private suspend fun hasCompletion(bucketId: String?, scheduleId: String? = null): Boolean {
+        val related = state.value.filter {
+            it.id == scheduleId || bucketId != null && it.bucketId == bucketId
+        }
+        if (related.any { it.completed }) return true
+        val ids = related.map { it.id }.toSet()
+        if (ids.isEmpty()) return false
+        val records = store.read("records/${requireNotNull(scope)}")?.let(ActivityCodec::records)
+        return records?.memories?.any { it.entryId in ids && it.isValidReview() } == true
     }
 
     private suspend fun family(): FamilyHome {

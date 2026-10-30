@@ -97,7 +97,10 @@ constructor(
 
     private fun apply(records: RecordCollection) {
         val bucket =
-            records.entries.find { it.id == bucketId && it.kind == CalendarEntryKind.BUCKET }
+            records.entries.find {
+                it.id == bucketId && it.kind == CalendarEntryKind.BUCKET &&
+                    !it.completed && it.linkedScheduleIds.isEmpty()
+            }
         state.update {
             it.copy(
                 bucketFound = bucket != null,
@@ -128,7 +131,7 @@ constructor(
         val draft = current.draft
         val date = draft.date ?: return
         val time = draft.time ?: return
-        if (current.sending || sent || !draft.canSubmit) return
+        if (current.sending || sent || !current.bucketFound || !draft.canSubmit) return
         if (LocalDateTime.of(date, time).isBefore(now())) {
             state.update { it.copy(error = "지난 시간으로는 요청할 수 없어요. 일정을 다시 골라주세요.") }
             return

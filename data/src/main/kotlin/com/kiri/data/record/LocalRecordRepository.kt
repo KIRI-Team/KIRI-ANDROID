@@ -573,7 +573,8 @@ open class LocalRecordRepository(
             val bucket =
                 requireNotNull(
                     state.value.entries.find {
-                        it.id == request.bucketId && it.kind == CalendarEntryKind.BUCKET
+                        it.id == request.bucketId && it.kind == CalendarEntryKind.BUCKET &&
+                            !it.completed && it.linkedScheduleIds.isEmpty()
                     }
                 ) {
                     "Bucket not found"
