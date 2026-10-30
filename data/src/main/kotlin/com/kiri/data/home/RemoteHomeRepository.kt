@@ -22,23 +22,23 @@ internal class RemoteHomeRepository(
     private var snapshot: FamilyHome? = null
     private var sessionToken: String? = null
     private fun today() = LocalDate.now(clock.withZone(ZoneId.of("Asia/Seoul")))
-    private suspend fun authorization(): String {
+    // 토큰은 AuthInterceptor 가 붙인다. 여기서는 로그인하지 않았으면 요청하지 않고, 다른 계정으로 바뀌었으면 이전 화면 상태를 버린다
+    private suspend fun ensureSession() {
         val token = tokens.get()?.accessToken ?: throw HomeException(HomeFailure.UNAVAILABLE)
         if (sessionToken != token) { snapshot = null; sessionToken = token }
-        return "Bearer $token"
     }
 
-    override suspend fun load(): FamilyHome = mutex.withLock { mapped { loadHome(authorization()) } }
+    override suspend fun load(): FamilyHome = mutex.withLock { mapped { ensureSession(); loadHome() } }
 
-    private suspend fun loadHome(token: String): FamilyHome {
+    private suspend fun loadHome(): FamilyHome {
         val date = today()
-        val daily = apiResult(json) { api.today(token) }.getOrElse { error ->
+        val daily = apiResult(json) { api.today() }.getOrElse { error ->
             // A family may exist before its first daily question is assigned.
             if ((error as? KiriApiException)?.code == "QUESTION404_1") TodayQuestionResponse(hasFamily = true)
             else throw error
         }
         val family = if (daily.hasFamily && daily.questionId != null) {
-            apiResult(json) { api.answers(token, daily.questionId.toString()) }.getOrThrow()
+            apiResult(json) { api.answers(daily.questionId.toString()) }.getOrThrow()
         } else null
         val me = family?.answers?.singleOrNull { it.isMe }?.memberId?.toString().orEmpty()
         val question = daily.questionId?.let { id -> daily.question?.let { DailyQuestion(id.toString(), date, it) } }
@@ -52,22 +52,22 @@ internal class RemoteHomeRepository(
     }
 
     override suspend fun saveAnswer(question: DailyQuestion, answer: String): FamilyHome = mutex.withLock { mapped {
-        val token = authorization()
+        ensureSession()
         val home = validate(question)
         if (answer.isBlank()) throw HomeException(HomeFailure.EMPTY_ANSWER)
         if (answer.length > 500) throw HomeException(HomeFailure.ANSWER_TOO_LONG)
         if (!home.canRead(home.currentUserId)) throw HomeException(HomeFailure.UNAVAILABLE)
         // Mutation responses intentionally have result:null, unlike query responses.
-        apiCommand(json) { api.save(token, question.id, AnswerRequest(answer)) }.getOrThrow()
+        apiCommand(json) { api.save(question.id, AnswerRequest(answer)) }.getOrThrow()
         home.copy(answers = home.answers + (home.currentUserId to answer)).also { snapshot = it }
     } }
 
     override suspend fun poke(question: DailyQuestion, memberId: String): FamilyHome = mutex.withLock { mapped {
-        val token = authorization()
+        ensureSession()
         val home = validate(question)
         if (memberId in home.pokedMemberIds) throw HomeException(HomeFailure.ALREADY_POKED)
         if (!home.canPoke(memberId)) throw HomeException(HomeFailure.UNAVAILABLE)
-        apiCommand(json) { api.poke(token, memberId) }.getOrThrow()
+        apiCommand(json) { api.poke(memberId) }.getOrThrow()
         home.copy(pokedMemberIds = home.pokedMemberIds + memberId).also { snapshot = it }
     } }
 
