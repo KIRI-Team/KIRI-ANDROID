@@ -5,6 +5,7 @@ import com.kiri.data.network.apiBaseUrl
 import com.kiri.data.network.kiriJson
 import com.kiri.domain.model.family.NoFamilyException
 import com.kiri.domain.model.invite.Invite
+import com.kiri.domain.model.invite.InviteReissueFailedException
 import java.io.IOException
 import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
@@ -91,18 +92,44 @@ class RemoteInviteRepositoryTest {
     }
 
     @Test
-    fun 재발급하면_기억해_둔_가족_ID로_PATCH를_보내고_새_초대를_돌려준다() = runTest {
+    fun 재발급하면_지금_초대를_DELETE로_지운_뒤_PATCH로_새_초대를_받는다() = runTest {
+        enqueue(200, DELETE_BODY)
         enqueue(200, REISSUE_BODY)
 
         val invite = repository().createInvite().getOrThrow()
 
-        val request = server.takeRequest()
-        assertEquals("PATCH", request.method)
-        assertEquals("/api/v1/families/7/invite", request.url.encodedPath)
+        val delete = server.takeRequest()
+        assertEquals("DELETE", delete.method)
+        assertEquals("/api/v1/families/7/invite", delete.url.encodedPath)
+        val reissue = server.takeRequest()
+        assertEquals("PATCH", reissue.method)
+        assertEquals("/api/v1/families/7/invite", reissue.url.encodedPath)
         assertEquals(
             Invite(code = "NEW123", url = "https://kiri.app/invite/NEW123", expiresAt = LocalDate.of(2026, 10, 21)),
             invite,
         )
+    }
+
+    @Test
+    fun 지우지_못하면_재발급을_요청하지_않고_서버의_code를_담아_실패한다() = runTest {
+        enqueue(403, """{"isSuccess":true,"code":"FAMILY403_1","message":"해당 가족에 대한 권한이 없습니다.","result":null}""")
+
+        val error = repository().createInvite().exceptionOrNull()
+
+        assertEquals("FAMILY403_1", (error as KiriApiException).code)
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test
+    fun 지운_뒤_재발급하지_못하면_재발급_실패로_알린다() = runTest {
+        enqueue(200, DELETE_BODY)
+        enqueue(500, """{"isSuccess":false,"code":"COMMON500_1","message":"서버 내부 오류가 발생했습니다.","result":null}""")
+
+        val error = repository().createInvite().exceptionOrNull()
+
+        assertTrue(error is InviteReissueFailedException)
+        assertEquals("COMMON500_1", (error!!.cause as KiriApiException).code)
+        assertEquals(2, server.requestCount)
     }
 
     @Test
@@ -116,15 +143,6 @@ class RemoteInviteRepositoryTest {
     }
 
     @Test
-    fun 가족_구성원이_아니면_재발급이_서버의_code를_담아_실패한다() = runTest {
-        enqueue(403, """{"isSuccess":true,"code":"FAMILY403_1","message":"해당 가족에 대한 권한이 없습니다.","result":null}""")
-
-        val error = repository().createInvite().exceptionOrNull()
-
-        assertEquals("FAMILY403_1", (error as KiriApiException).code)
-    }
-
-    @Test
     fun 재발급_중_연결이_끊기면_네트워크_오류로_실패한다() = runTest {
         server.enqueue(MockResponse.Builder().onRequestStart(SocketEffect.CloseSocket()).build())
 
@@ -134,6 +152,7 @@ class RemoteInviteRepositoryTest {
     }
 
     private companion object {
+        const val DELETE_BODY = """{"isSuccess":true,"code":"FAMILY200_3","message":"가족 초대 정보가 삭제되었습니다.","result":null}"""
         const val REISSUE_BODY = """{"isSuccess":true,"code":"FAMILY200_1","message":"가족 초대 정보가 생성되었습니다.",""" +
             """"result":{"inviteCode":"NEW123","inviteUrl":"https://kiri.app/invite/NEW123","inviteExpiresAt":"2026-10-21T09:00:00"}}"""
         const val SUCCESS_BODY = """{"isSuccess":true,"code":"FAMILY200_2","message":"가족 초대 정보를 조회했습니다.",""" +

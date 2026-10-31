@@ -135,24 +135,17 @@ fun InviteLinkScreen(
                 modifier = Modifier.padding(horizontal = 21.5.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                KiriInviteCodeCard(
-                    label = "링크코드",
-                    value = state.code,
-                    onCopyClick = { onEvent(InviteLinkUiEvent.CodeCopyClicked) },
-                    testTag = "invite_link_code",
-                )
-                Spacer(Modifier.height(16.dp))
-                KiriInviteCodeCard(
-                    label = "초대링크",
-                    value = state.maskedLink,
-                    onCopyClick = { onEvent(InviteLinkUiEvent.LinkCopyClicked) },
-                    valueType = KiriInviteCodeValue.Link,
-                    testTag = "invite_link_url",
-                )
-                Spacer(Modifier.height(16.dp))
-                state.expiresText?.let { expiresText ->
-                    Text(text = expiresText, style = captionStyle)
-                    Spacer(Modifier.height(4.dp))
+                if (state.isReissueFailed) {
+                    // TODO: 재발급 실패 화면 디자인이 나오면 교체 (지금은 코드·링크 자리에 임시 문구를 보여준다)
+                    Text(
+                        text = "코드 재발급에 실패했어요.\n리셋하기를 눌러 다시 발급해주세요.",
+                        textAlign = TextAlign.Center,
+                        style = captionStyle,
+                        modifier = Modifier.testTag("invite_link_reissue_error"),
+                    )
+                    Spacer(Modifier.height(16.dp))
+                } else {
+                    InviteCodeCards(state = state, onEvent = onEvent)
                 }
                 Box(
                     modifier = Modifier
@@ -177,6 +170,33 @@ fun InviteLinkScreen(
             text = "가족에게 초대보내기",
             tone = KiriButtonTone.Neutral,
         )
+    }
+}
+
+// 링크코드·초대링크 카드와 만료일
+@Composable
+private fun InviteCodeCards(
+    state: InviteLinkUiState,
+    onEvent: (InviteLinkUiEvent) -> Unit,
+) {
+    KiriInviteCodeCard(
+        label = "링크코드",
+        value = state.code,
+        onCopyClick = { onEvent(InviteLinkUiEvent.CodeCopyClicked) },
+        testTag = "invite_link_code",
+    )
+    Spacer(Modifier.height(16.dp))
+    KiriInviteCodeCard(
+        label = "초대링크",
+        value = state.maskedLink,
+        onCopyClick = { onEvent(InviteLinkUiEvent.LinkCopyClicked) },
+        valueType = KiriInviteCodeValue.Link,
+        testTag = "invite_link_url",
+    )
+    Spacer(Modifier.height(16.dp))
+    state.expiresText?.let { expiresText ->
+        Text(text = expiresText, style = captionStyle)
+        Spacer(Modifier.height(4.dp))
     }
 }
 

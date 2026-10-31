@@ -5,7 +5,9 @@ import com.kiri.domain.model.family.Family
 import com.kiri.domain.model.invite.Invite
 import java.time.LocalDateTime
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
@@ -19,6 +21,10 @@ internal interface FamilyApi {
     // 로그인 토큰이 필요하다. 그 가족의 구성원이 아니면 FAMILY403_1 로 거절된다
     @GET("api/v1/families/{familyId}/invite")
     suspend fun getInvite(@Path("familyId") familyId: Long): ApiResponse<InviteResponse>
+
+    // 로그인 토큰이 필요하다. 지금 초대 코드·링크를 지운다 (응답 result 는 쓰지 않는다)
+    @DELETE("api/v1/families/{familyId}/invite")
+    suspend fun deleteInvite(@Path("familyId") familyId: Long): ApiResponse<JsonElement>
 
     // 로그인 토큰이 필요하고 본문은 없다. 새 초대를 만들면 이전 초대는 쓸 수 없다
     @PATCH("api/v1/families/{familyId}/invite")

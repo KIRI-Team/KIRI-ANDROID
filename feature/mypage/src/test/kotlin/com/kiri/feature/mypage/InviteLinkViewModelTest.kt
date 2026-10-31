@@ -1,6 +1,7 @@
 package com.kiri.feature.mypage
 
 import com.kiri.domain.model.invite.Invite
+import com.kiri.domain.model.invite.InviteReissueFailedException
 import com.kiri.feature.mypage.model.invite.InviteLinkUiEffect
 import com.kiri.feature.mypage.model.invite.InviteLinkUiEvent
 import com.kiri.feature.mypage.model.invite.InviteLinkUiState
@@ -113,6 +114,44 @@ class InviteLinkViewModelTest {
         assertEquals(issued, viewModel.uiState.value.invite)
         assertFalse(viewModel.uiState.value.isIssuing)
         assertEquals(InviteLinkUiEffect.ShowInviteError, viewModel.effect.first())
+        assertFalse(viewModel.uiState.value.isReissueFailed)
+    }
+
+    @Test
+    fun 이전_초대를_지운_뒤_재발급에_실패하면_초대를_비우고_재발급_실패를_보여준다() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = TestInviteRepository(
+            current = issued,
+            result = Result.failure(InviteReissueFailedException(IOException())),
+        )
+        val viewModel = viewModel(repository)
+        advanceUntilIdle()
+
+        viewModel.onEvent(InviteLinkUiEvent.ResetClicked)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.invite)
+        assertTrue(viewModel.uiState.value.isReissueFailed)
+        assertFalse(viewModel.uiState.value.canShare)
+        assertNull(withTimeoutOrNull(100) { viewModel.effect.first() })
+    }
+
+    @Test
+    fun 재발급에_실패한_뒤_다시_리셋해서_발급하면_재발급_실패를_지운다() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = TestInviteRepository(
+            current = issued,
+            result = Result.failure(InviteReissueFailedException(IOException())),
+        )
+        val viewModel = viewModel(repository)
+        advanceUntilIdle()
+        viewModel.onEvent(InviteLinkUiEvent.ResetClicked)
+        advanceUntilIdle()
+
+        repository.result = Result.success(TestInviteRepository.NEW_INVITE)
+        viewModel.onEvent(InviteLinkUiEvent.ResetClicked)
+        advanceUntilIdle()
+
+        assertEquals(TestInviteRepository.NEW_INVITE, viewModel.uiState.value.invite)
+        assertFalse(viewModel.uiState.value.isReissueFailed)
     }
 
     @Test
