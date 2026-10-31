@@ -298,6 +298,8 @@ class OnboardingScreensTest {
         override suspend fun createFamily(name: String) = Result.success(
             Family(id = 1, name = name, invite = Invite(code = "AB12CD", url = "https://kiri.example.com/invite/AB12CD")),
         )
+
+        override suspend fun renameFamily(name: String) = Result.success(name)
     }
 
     private object StubMemberRepository : MemberRepository {

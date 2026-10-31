@@ -28,6 +28,8 @@ class FakeFamilyRepository : FamilyRepository {
     override suspend fun createFamily(name: String): Result<Family> = Result.success(
         Family(id = 1, name = name, invite = Invite(code = "AB12CD", url = "https://kiri.example.com/invite/AB12CD")),
     )
+
+    override suspend fun renameFamily(name: String): Result<String> = Result.success(name)
 }
 
 @Module

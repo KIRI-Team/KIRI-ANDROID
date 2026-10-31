@@ -23,6 +23,13 @@ internal interface FamilyApi {
     // 로그인 토큰이 필요하고 본문은 없다. 새 초대를 만들면 이전 초대는 쓸 수 없다
     @PATCH("api/v1/families/{familyId}/invite")
     suspend fun reissueInvite(@Path("familyId") familyId: Long): ApiResponse<InviteResponse>
+
+    // 로그인 토큰이 필요하다. 같은 이름의 가족이 있으면 FAMILY409_1, 구성원이 아니면 FAMILY403_1 로 거절된다
+    @PATCH("api/v1/families/{familyId}")
+    suspend fun renameFamily(
+        @Path("familyId") familyId: Long,
+        @Body request: RenameFamilyRequest,
+    ): ApiResponse<RenameFamilyResponse>
 }
 
 @Serializable
@@ -41,6 +48,17 @@ private fun invite(code: String, url: String, expiresAt: String?) = Invite(
     code = code,
     url = url,
     expiresAt = expiresAt?.let { runCatching { LocalDateTime.parse(it).toLocalDate() }.getOrNull() },
+)
+
+@Serializable
+internal data class RenameFamilyRequest(
+    val name: String,
+)
+
+@Serializable
+internal data class RenameFamilyResponse(
+    val familyId: Long,
+    val name: String,
 )
 
 @Serializable

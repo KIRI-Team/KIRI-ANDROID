@@ -1,5 +1,6 @@
 package com.kiri.feature.mypage.presentation.nameedit
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -33,19 +35,23 @@ import com.kiri.uikit.component.KiriTopBar
 internal fun NameEditEffects(
     viewModel: NameEditViewModel,
     onNavigateBack: () -> Unit,
+    saveErrorText: String = "저장하지 못했어요. 잠시 후 다시 시도해주세요.",
 ) {
+    val context = LocalContext.current
     val currentOnNavigateBack by rememberUpdatedState(onNavigateBack)
 
     LaunchedEffect(viewModel) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 NameEditUiEffect.NavigateBack -> currentOnNavigateBack()
+                NameEditUiEffect.ShowSaveError -> Toast.makeText(context, saveErrorText, Toast.LENGTH_SHORT).show()
             }
         }
     }
 }
 
 // 닉네임·가족명 수정 화면이 함께 쓰는 틀. 제목과 안내 문구만 화면마다 다르다
+// duplicatedText 는 서버가 이미 있는 이름이라고 답했을 때 입력창 아래에 보여준다
 @Composable
 internal fun NameEditScreen(
     state: NameEditUiState,
@@ -56,6 +62,7 @@ internal fun NameEditScreen(
     testTag: String,
     modifier: Modifier = Modifier,
     subtitleColor: Color = KiriColor.Text.Primary,
+    duplicatedText: String? = null,
 ) {
     Column(
         modifier = modifier
@@ -82,7 +89,8 @@ internal fun NameEditScreen(
                 value = state.name,
                 onValueChange = { onEvent(NameEditUiEvent.NameChanged(it)) },
                 placeholder = placeholder,
-                errors = nameErrors(state.violations, state.maxLength),
+                errors = nameErrors(state.violations, state.maxLength) +
+                    listOfNotNull(duplicatedText?.takeIf { state.isDuplicated }),
             )
         }
         KiriButton(

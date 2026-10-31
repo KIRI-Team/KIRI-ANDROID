@@ -16,4 +16,6 @@ class TestFamilyRepository(
         sentNames += name
         return result
     }
+
+    override suspend fun renameFamily(name: String): Result<String> = Result.success(name)
 }
