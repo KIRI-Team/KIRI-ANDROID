@@ -16,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -53,7 +55,13 @@ fun OnboardingRoleCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Image(painterResource(character), contentDescription = null, modifier = Modifier.size(48.dp))
+            Image(
+                painterResource(character),
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                // 선택한 역할만 캐릭터 고유 색으로, 나머지는 흑백으로 보여준다
+                colorFilter = if (selected) null else UnselectedCharacterFilter,
+            )
             Text(
                 text = koreanName,
                 textAlign = TextAlign.Center,
@@ -63,6 +71,8 @@ fun OnboardingRoleCard(
         }
     }
 }
+
+private val UnselectedCharacterFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
 
 @Preview(backgroundColor = 0xFF1A1A1A, showBackground = true)
 @Composable

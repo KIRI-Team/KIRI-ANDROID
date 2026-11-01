@@ -83,6 +83,19 @@ class InviteLinkScreenTest {
     }
 
     @Test
+    fun 재발급에_실패하면_코드_대신_실패_문구를_보여주고_리셋할_수_있다() {
+        setContent(InviteLinkUiState(isReissueFailed = true))
+
+        composeTestRule.onNodeWithTag("invite_link_reissue_error").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("invite_link_code").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("invite_link_url").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("kiri_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("invite_link_reset").performClick()
+
+        assertEquals(listOf(InviteLinkUiEvent.ResetClicked), events)
+    }
+
+    @Test
     fun 초대가_없으면_초대보내기를_누를_수_없다() {
         setContent(InviteLinkUiState())
 

@@ -118,11 +118,14 @@ class AuthScreensTest {
         composeTestRule.onNodeWithText("서비스 이용을 위해\n동의가 필요해요").assertIsDisplayed()
         composeTestRule.onNodeWithTag("kiri_button").assertIsNotEnabled()
         composeTestRule.onNodeWithTag("agreement_term_1_checkbox").assertIsOff()
+        // 동의하지 않은 약관은 빈 원으로 보여준다
+        composeTestRule.onNodeWithTag("agreement_term_1_unchecked", useUnmergedTree = true).assertIsDisplayed()
 
         composeTestRule.onNodeWithTag("agreement_all").performClick()
 
         FAKE_TERMS.forEach {
             composeTestRule.onNodeWithTag("agreement_term_${it.id}_checkbox").assertIsOn()
+            composeTestRule.onNodeWithTag("agreement_term_${it.id}_unchecked", useUnmergedTree = true).assertDoesNotExist()
         }
         composeTestRule.onNodeWithTag("kiri_button").assertIsEnabled()
     }

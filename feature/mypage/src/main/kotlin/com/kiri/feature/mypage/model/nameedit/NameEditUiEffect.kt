@@ -4,4 +4,7 @@ package com.kiri.feature.mypage.model.nameedit
 sealed interface NameEditUiEffect {
     // 이전 화면으로 돌아간다
     data object NavigateBack : NameEditUiEffect
+
+    // 저장하지 못했음을 알린다 (이미 있는 이름은 입력창 아래에 따로 안내한다)
+    data object ShowSaveError : NameEditUiEffect
 }

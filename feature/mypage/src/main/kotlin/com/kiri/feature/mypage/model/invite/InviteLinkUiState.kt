@@ -7,6 +7,8 @@ data class InviteLinkUiState(
     val invite: Invite? = null,
     // 새 초대를 발급하는 동안 로딩 화면을 보여준다
     val isIssuing: Boolean = false,
+    // 리셋하면서 이전 초대는 지웠지만 새 초대를 받지 못했다 (다시 리셋해야 초대를 보낼 수 있다)
+    val isReissueFailed: Boolean = false,
 ) {
     val code: String
         get() = invite?.code.orEmpty()

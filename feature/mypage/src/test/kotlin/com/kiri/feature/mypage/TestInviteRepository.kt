@@ -1,5 +1,6 @@
 package com.kiri.feature.mypage
 
+import com.kiri.domain.model.family.NoFamilyException
 import com.kiri.domain.model.invite.Invite
 import com.kiri.domain.repository.InviteRepository
 
@@ -7,6 +8,8 @@ import com.kiri.domain.repository.InviteRepository
 class TestInviteRepository(
     var current: Invite? = null,
     var result: Result<Invite> = Result.success(NEW_INVITE),
+    // 정하면 지금 초대 대신 이 실패를 돌려준다
+    var loadError: Throwable? = null,
 ) : InviteRepository {
     var createCount = 0
         private set
@@ -17,7 +20,10 @@ class TestInviteRepository(
         return result
     }
 
-    override suspend fun getCurrentInvite(): Invite? = current
+    override suspend fun getCurrentInvite(): Result<Invite> {
+        loadError?.let { return Result.failure(it) }
+        return current?.let { Result.success(it) } ?: Result.failure(NoFamilyException())
+    }
 
     companion object {
         val NEW_INVITE = Invite(code = "NEW123", url = "https://kiri.example.com/invite/NEW123")

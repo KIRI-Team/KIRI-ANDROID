@@ -46,6 +46,12 @@ fun OnboardingRoute(
                 is OnboardingUiEffect.ShareInvite -> shareLauncher.launch(context.createInviteShareIntent(effect.invite.url, effect.invite.code))
                 OnboardingUiEffect.ShowInviteError ->
                     Toast.makeText(context, UikitR.string.invite_create_error, Toast.LENGTH_SHORT).show()
+                OnboardingUiEffect.ShowNicknameError ->
+                    Toast.makeText(context, "닉네임을 저장하지 못했어요. 잠시 후 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
+                OnboardingUiEffect.ShowRoleError ->
+                    Toast.makeText(context, "역할을 저장하지 못했어요. 잠시 후 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
+                OnboardingUiEffect.ShowCreateFamilyError ->
+                    Toast.makeText(context, "가족 공간을 만들지 못했어요. 잠시 후 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -78,6 +84,8 @@ fun OnboardingScreen(
                 onNextClick = { onEvent(OnboardingUiEvent.NextClicked) },
                 onBackClick = onBackClick,
                 violations = state.nicknameViolations,
+                isDuplicated = state.isNicknameDuplicated,
+                isSubmitting = state.isSubmitting,
             )
             OnboardingStep.CHOOSE_ROLE -> ChooseRoleScreen(
                 nickname = state.nickname,
@@ -85,6 +93,7 @@ fun OnboardingScreen(
                 onRoleSelect = { onEvent(OnboardingUiEvent.RoleSelected(it)) },
                 onNextClick = { onEvent(OnboardingUiEvent.NextClicked) },
                 onBackClick = onBackClick,
+                isSubmitting = state.isSubmitting,
             )
             OnboardingStep.ONBOARDING_MAIN -> OnboardingMainScreen(
                 onCreateFamilyClick = { onEvent(OnboardingUiEvent.PathSelected(OnboardingPath.CREATE_FAMILY)) },
@@ -98,6 +107,7 @@ fun OnboardingScreen(
                 onNextClick = { onEvent(OnboardingUiEvent.NextClicked) },
                 onBackClick = onBackClick,
                 violations = state.familyNameViolations,
+                isDuplicated = state.isFamilyNameDuplicated,
             )
             OnboardingStep.GENERATE_FAMILY_CODE_LOADING -> GenerateFamilyCodeLoadingScreen()
             OnboardingStep.GENERATE_FAMILY_CODE -> GenerateFamilyCodeScreen(

@@ -15,16 +15,16 @@ class NicknameValidatorTest {
     }
 
     @Test
-    fun 길이가_2자_이상_10자_이하이면_유효하다() {
+    fun 길이가_2자_이상_12자_이하이면_유효하다() {
         assertTrue(NicknameValidator.isValid("ab"))
-        assertTrue(NicknameValidator.isValid("가".repeat(10)))
+        assertTrue(NicknameValidator.isValid("가".repeat(12)))
     }
 
     @Test
-    fun 길이가_2자_미만이거나_10자_초과이면_유효하지_않다() {
+    fun 길이가_2자_미만이거나_12자_초과이면_유효하지_않다() {
         assertFalse(NicknameValidator.isValid(""))
         assertFalse(NicknameValidator.isValid("a"))
-        assertFalse(NicknameValidator.isValid("a".repeat(11)))
+        assertFalse(NicknameValidator.isValid("a".repeat(13)))
     }
 
     @Test
@@ -70,7 +70,20 @@ class NicknameValidatorTest {
         )
         assertEquals(
             NicknameRule.entries.toSet(),
-            NicknameValidator.violations("ㄱ" + "!".repeat(10)),
+            NicknameValidator.violations("ㄱ" + "!".repeat(12)),
         )
+    }
+
+    @Test
+    fun 가족명은_15자까지_허용한다() {
+        assertEquals(emptySet<NicknameRule>(), NicknameValidator.familyNameViolations("가".repeat(15)))
+        assertEquals(setOf(NicknameRule.LENGTH), NicknameValidator.familyNameViolations("가".repeat(16)))
+        assertEquals(setOf(NicknameRule.LENGTH), NicknameValidator.familyNameViolations("가"))
+    }
+
+    @Test
+    fun 가족명도_닉네임과_같은_문자_규칙을_따른다() {
+        assertEquals(setOf(NicknameRule.NO_SPECIAL_CHARACTERS), NicknameValidator.familyNameViolations("끼리네!"))
+        assertEquals(setOf(NicknameRule.ALLOWED_LETTERS), NicknameValidator.familyNameViolations("끼리ㄴ"))
     }
 }

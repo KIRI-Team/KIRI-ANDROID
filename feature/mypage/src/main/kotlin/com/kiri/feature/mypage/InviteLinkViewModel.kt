@@ -3,6 +3,7 @@ package com.kiri.feature.mypage
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kiri.domain.model.invite.Invite
+import com.kiri.domain.model.invite.InviteReissueFailedException
 import com.kiri.domain.repository.InviteRepository
 import com.kiri.feature.mypage.model.invite.InviteLinkUiEffect
 import com.kiri.feature.mypage.model.invite.InviteLinkUiEvent
@@ -20,7 +21,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// 공용 초대 링크. 온보딩과 같은 InviteRepository에서 지금 초대를 불러오고, 리셋하면 새로 발급한다
+// 공용 초대 링크. 서버에서 내 가족 공간의 지금 초대를 불러오고, 리셋하면 새로 발급한다
 @HiltViewModel
 class InviteLinkViewModel @Inject constructor(
     private val inviteRepository: InviteRepository,
@@ -36,10 +37,11 @@ class InviteLinkViewModel @Inject constructor(
     private var isSharing = false
 
     init {
-        // 아직 발급한 초대가 없으면 (예: 코드로 가족에 참여한 경우) 바로 새로 발급한다
+        // 서버에서 지금 초대를 불러온다. 불러오지 못하면 초대 없이 두고 오류를 알린다 (리셋하면 새로 발급할 수 있다)
         viewModelScope.launch {
-            val current = inviteRepository.getCurrentInvite()
-            if (current != null) _uiState.update { it.copy(invite = current) } else issue()
+            inviteRepository.getCurrentInvite()
+                .onSuccess { current -> _uiState.update { it.copy(invite = current) } }
+                .onFailure { _effect.trySend(InviteLinkUiEffect.ShowLoadError) }
         }
     }
 
@@ -73,7 +75,8 @@ class InviteLinkViewModel @Inject constructor(
     }
 
     // 새 초대를 발급하고, 로딩 화면이 깜빡이지 않도록 최소 1초는 보여준다
-    // 발급에 실패하면 기존 초대를 그대로 두고 오류를 알린다
+    // 이전 초대를 지우지 못해 발급하지 못했으면 기존 초대를 그대로 두고 오류를 알린다
+    // 이전 초대를 지운 뒤 발급하지 못했으면 쓸 수 없는 초대를 비우고 재발급 실패 문구를 보여준다
     private fun issue() {
         if (_uiState.value.isIssuing) return
         issueJob?.cancel()
@@ -83,10 +86,16 @@ class InviteLinkViewModel @Inject constructor(
             val result = inviteRepository.createInvite()
             minimumLoading.join()
             result
-                .onSuccess { created -> _uiState.update { it.copy(invite = created, isIssuing = false) } }
-                .onFailure {
-                    _uiState.update { it.copy(isIssuing = false) }
-                    _effect.trySend(InviteLinkUiEffect.ShowInviteError)
+                .onSuccess { created ->
+                    _uiState.update { it.copy(invite = created, isIssuing = false, isReissueFailed = false) }
+                }
+                .onFailure { error ->
+                    if (error is InviteReissueFailedException) {
+                        _uiState.update { it.copy(invite = null, isIssuing = false, isReissueFailed = true) }
+                    } else {
+                        _uiState.update { it.copy(isIssuing = false) }
+                        _effect.trySend(InviteLinkUiEffect.ShowInviteError)
+                    }
                 }
         }
     }

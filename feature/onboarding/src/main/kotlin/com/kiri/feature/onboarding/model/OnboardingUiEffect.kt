@@ -11,4 +11,13 @@ sealed interface OnboardingUiEffect {
 
     // 초대 코드를 발급하지 못했다
     data object ShowInviteError : OnboardingUiEffect
+
+    // 중복 외의 이유로 닉네임을 저장하지 못했다 (네트워크, 서버 오류 등)
+    data object ShowNicknameError : OnboardingUiEffect
+
+    // 가족 역할을 저장하지 못했다
+    data object ShowRoleError : OnboardingUiEffect
+
+    // 이름 중복 외의 이유로 가족 공간을 만들지 못했다 (네트워크, 서버 오류 등)
+    data object ShowCreateFamilyError : OnboardingUiEffect
 }
