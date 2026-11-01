@@ -54,7 +54,7 @@ class MemberRepositoryImplTest {
 
         val request = server.takeRequest()
         assertEquals("PATCH", request.method)
-        assertEquals("/api/v1/members/me/nickname", request.url.encodedPath)
+        assertEquals("/api/v1/members/nickname", request.url.encodedPath)
         val body = kiriJson.parseToJsonElement(request.body!!.utf8()).jsonObject
         assertEquals("재현", body["nickname"]!!.jsonPrimitive.content)
         assertTrue(result.isSuccess)
@@ -95,7 +95,7 @@ class MemberRepositoryImplTest {
 
         val request = server.takeRequest()
         assertEquals("PATCH", request.method)
-        assertEquals("/api/v1/members/me/family-role", request.url.encodedPath)
+        assertEquals("/api/v1/members/family-role", request.url.encodedPath)
         val body = kiriJson.parseToJsonElement(request.body!!.utf8()).jsonObject
         assertEquals("FATHER", body["familyRole"]!!.jsonPrimitive.content)
         assertTrue(result.isSuccess)
