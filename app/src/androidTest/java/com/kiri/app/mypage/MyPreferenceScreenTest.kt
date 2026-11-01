@@ -1,6 +1,7 @@
 package com.kiri.app.mypage
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -13,6 +14,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kiri.feature.mypage.model.preference.MyPreferenceUiEvent
 import com.kiri.feature.mypage.model.preference.MyPreferenceUiState
+import com.kiri.feature.mypage.model.preference.PreferenceActivity
 import com.kiri.feature.mypage.model.preference.PreferenceCategory
 import com.kiri.feature.mypage.model.preference.PreferenceDuration
 import com.kiri.feature.mypage.model.preference.PreferenceSpace
@@ -75,8 +77,21 @@ class MyPreferenceScreenTest {
     }
 
     @Test
+    fun 선호_활동과_활동량을_고르기_전에는_저장할_수_없다() {
+        setContent(MyPreferenceUiState(nickname = "쥬123", categories = setOf(PreferenceCategory.EXHIBITION)))
+
+        composeTestRule.onNodeWithTag("kiri_button").assertIsNotEnabled()
+    }
+
+    @Test
     fun 칩_저장_뒤로가기를_이벤트로_전달한다() {
-        setContent(MyPreferenceUiState(nickname = "쥬123"))
+        setContent(
+            MyPreferenceUiState(
+                nickname = "쥬123",
+                categories = setOf(PreferenceCategory.EXHIBITION),
+                activity = PreferenceActivity.LIGHT,
+            ),
+        )
 
         composeTestRule.onNodeWithTag("preference_category_FOOD_CAFE").performClick()
         composeTestRule.onNodeWithTag("preference_space_OUTDOOR").performClick()

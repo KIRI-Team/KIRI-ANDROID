@@ -1,5 +1,6 @@
 package com.kiri.feature.mypage.presentation.preference
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
@@ -30,6 +32,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kiri.domain.model.taste.Taste
 import com.kiri.feature.mypage.MyPreferenceViewModel
 import com.kiri.feature.mypage.model.preference.MyPreferenceUiEffect
 import com.kiri.feature.mypage.model.preference.MyPreferenceUiEvent
@@ -52,12 +55,21 @@ fun MyPreferenceRoute(
     viewModel: MyPreferenceViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val currentOnNavigateBack by rememberUpdatedState(onNavigateBack)
 
     LaunchedEffect(viewModel) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 MyPreferenceUiEffect.NavigateBack -> currentOnNavigateBack()
+                MyPreferenceUiEffect.Saved -> {
+                    Toast.makeText(context, "취향을 저장했어요.", Toast.LENGTH_SHORT).show()
+                    currentOnNavigateBack()
+                }
+                MyPreferenceUiEffect.ShowLoadError ->
+                    Toast.makeText(context, "저장된 취향을 불러오지 못했어요.", Toast.LENGTH_SHORT).show()
+                MyPreferenceUiEffect.ShowSaveError ->
+                    Toast.makeText(context, "취향을 저장하지 못했어요. 잠시 후 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -66,6 +78,7 @@ fun MyPreferenceRoute(
 }
 
 // 내 취향 설정 (Figma 9376:17846). 항목별 칩을 고르고 아래 버튼으로 저장한다
+// 선호 활동 1개 이상과 활동량을 골라야 저장할 수 있다
 @Composable
 fun MyPreferenceScreen(
     state: MyPreferenceUiState,
@@ -89,7 +102,9 @@ fun MyPreferenceScreen(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "${state.nickname}님, 가족과 어떤 시간을\n함께하고 싶나요?",
+                    // 닉네임을 불러오지 못했으면 이름 없이 묻는다
+                    text = if (state.nickname.isBlank()) "가족과 어떤 시간을\n함께하고 싶나요?"
+                    else "${state.nickname}님, 가족과 어떤 시간을\n함께하고 싶나요?",
                     style = displayLarge,
                     color = KiriColor.Text.Strong,
                 )
@@ -99,7 +114,7 @@ fun MyPreferenceScreen(
                     color = KiriColor.Text.Secondary,
                 )
             }
-            PreferenceSection(title = "선호 활동 · 최대 ${MyPreferenceUiState.MAX_CATEGORIES}개", rowSpacing = 8) {
+            PreferenceSection(title = "선호 활동 · 최대 ${Taste.MAX_CATEGORIES}개", rowSpacing = 8) {
                 CATEGORY_ROWS.forEach { row ->
                     ChipRow {
                         row.forEach { category ->
@@ -164,6 +179,7 @@ fun MyPreferenceScreen(
             KiriButton(
                 onClick = { onEvent(MyPreferenceUiEvent.SaveClicked) },
                 modifier = Modifier.padding(horizontal = 18.dp),
+                enabled = state.canSave,
                 text = "취향 저장하기",
             )
             Text(
