@@ -13,9 +13,7 @@ internal class TermRepositoryImpl @Inject constructor(
 ) : TermRepository {
 
     override suspend fun getTerms(): Result<List<Term>> =
-        apiResult(json) { api.getTerms() }.map { terms ->
-            terms.map { Term(id = it.termId, title = it.title, content = it.description, required = it.isRequired) }
-        }
+        apiResult(json) { api.getTerms() }.map { terms -> terms.map { it.toTerm() } }
 
     override suspend fun agree(agreements: Map<Long, Boolean>): Result<Unit> =
         apiCommand(json) {

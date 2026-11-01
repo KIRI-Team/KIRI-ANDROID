@@ -5,6 +5,7 @@ import com.kiri.data.network.apiBaseUrl
 import com.kiri.data.network.kiriJson
 import com.kiri.domain.model.term.Term
 import java.io.IOException
+import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
@@ -59,11 +60,33 @@ class TermRepositoryImplTest {
         assertEquals("/api/v1/terms", request.url.encodedPath)
         assertEquals(
             listOf(
-                Term(id = 1, title = "서비스 이용약관", content = "제1조(목적) 이 약관은 ...", required = true),
-                Term(id = 3, title = "마케팅 정보 수신 동의", content = "이벤트, 혜택 등 ...", required = false),
+                Term(
+                    id = 1,
+                    title = "서비스 이용약관",
+                    content = "제1조(목적) 이 약관은 ...",
+                    required = true,
+                    updatedAt = LocalDate.of(2026, 10, 4),
+                ),
+                Term(
+                    id = 3,
+                    title = "마케팅 정보 수신 동의",
+                    content = "이벤트, 혜택 등 ...",
+                    required = false,
+                    updatedAt = LocalDate.of(2026, 10, 4),
+                ),
             ),
             terms,
         )
+    }
+
+    @Test
+    fun 업데이트일을_읽지_못하면_업데이트일만_비운다() = runTest {
+        enqueue(200, TERMS_BODY.replace("\"2026-10-04T12:00:00\"", "\"어제\""))
+
+        val terms = repository().getTerms().getOrThrow()
+
+        assertEquals(listOf(null, null), terms.map { it.updatedAt })
+        assertEquals("서비스 이용약관", terms.first().title)
     }
 
     @Test
@@ -126,7 +149,7 @@ class TermRepositoryImplTest {
     }
 
     private companion object {
-        // 화면에서 쓰지 않는 shortDescription, updatedAt 이 와도 읽을 수 있어야 한다
+        // 화면에서 쓰지 않는 shortDescription 이 와도 읽을 수 있어야 한다
         const val TERMS_BODY = """{"isSuccess":true,"code":"TERM200_1","message":"약관 목록 조회 성공","result":[""" +
             """{"termId":1,"title":"서비스 이용약관","shortDescription":"서비스 이용 기준 안내",""" +
             """"description":"제1조(목적) 이 약관은 ...","isRequired":true,"updatedAt":"2026-10-04T12:00:00"},""" +

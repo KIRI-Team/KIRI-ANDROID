@@ -1,9 +1,11 @@
 package com.kiri.feature.mypage.presentation.terms
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -24,6 +26,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kiri.domain.model.term.Term
 import com.kiri.feature.mypage.TermsViewModel
 import com.kiri.feature.mypage.model.terms.TermsUiEffect
 import com.kiri.feature.mypage.model.terms.TermsUiEvent
@@ -31,9 +34,15 @@ import com.kiri.feature.mypage.model.terms.TermsUiState
 import com.kiri.feature.mypage.presentation.common.MypageMenuCard
 import com.kiri.feature.mypage.presentation.common.MypageMenuRow
 import com.kiri.feature.mypage.presentation.common.lastUpdatedStyle
+import com.kiri.uikit.KiriTypography
 import com.kiri.uikit.color.KiriColor
+import com.kiri.uikit.component.KiriButton
+import com.kiri.uikit.component.KiriButtonLayout
+import com.kiri.uikit.component.KiriButtonTone
 import com.kiri.uikit.component.KiriDetailSheet
+import com.kiri.uikit.component.KiriLoadingIndicator
 import com.kiri.uikit.component.KiriTopBar
+import java.time.LocalDate
 
 @Composable
 fun TermsRoute(
@@ -86,29 +95,41 @@ fun TermsScreen(
                 ),
             )
             Spacer(Modifier.height(16.dp))
-            MypageMenuCard {
-                state.terms.forEach { term ->
-                    MypageMenuRow(
-                        title = term.displayName,
-                        testTag = "terms_item_${term.name.lowercase()}",
-                        onClick = { onEvent(TermsUiEvent.TermClicked(term)) },
-                        titleColor = KiriColor.Text.Secondary,
-                    )
+            when {
+                state.isLoading -> KiriLoadingIndicator(
+                    Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(top = 24.dp),
+                )
+                state.loadFailed -> TermsLoadFailed(onRetryClick = { onEvent(TermsUiEvent.RetryClicked) })
+                else -> {
+                    MypageMenuCard {
+                        state.terms.forEach { term ->
+                            MypageMenuRow(
+                                title = term.title,
+                                testTag = "terms_item_${term.id}",
+                                onClick = { onEvent(TermsUiEvent.TermClicked(term)) },
+                                titleColor = KiriColor.Text.Secondary,
+                            )
+                        }
+                    }
+                    state.lastUpdatedText?.let { lastUpdatedText ->
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = lastUpdatedText,
+                            modifier = Modifier.align(Alignment.End),
+                            style = lastUpdatedStyle,
+                        )
+                    }
                 }
             }
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = state.lastUpdatedText,
-                modifier = Modifier.align(Alignment.End),
-                style = lastUpdatedStyle,
-            )
             Spacer(Modifier.height(24.dp))
         }
     }
     state.viewingTerm?.let { term ->
         // 회원가입 약관 창과 같고, 동의하기 대신 확인을 누르면 닫힌다
         KiriDetailSheet(
-            title = term.displayName,
+            title = term.title,
             content = term.content,
             actionText = "확인",
             onActionClick = { onEvent(TermsUiEvent.TermDetailClosed) },
@@ -119,8 +140,42 @@ fun TermsScreen(
     }
 }
 
+// 회원가입 약관 동의 화면과 같은 임시 실패 표시
+// TODO: 약관 목록 로딩 실패 디자인이 정해지면 교체
+@Composable
+private fun TermsLoadFailed(onRetryClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 24.dp)
+            .testTag("terms_load_failed"),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = "약관을 불러오지 못했어요",
+            style = KiriTypography.BodyMedium.copy(color = KiriColor.Text.Tertiary),
+        )
+        KiriButton(
+            onClick = onRetryClick,
+            text = "다시 시도",
+            tone = KiriButtonTone.Neutral,
+            layout = KiriButtonLayout.Inline,
+            testTag = "terms_retry_button",
+        )
+    }
+}
+
 @Preview(showSystemUi = true)
 @Composable
 private fun TermsScreenPreview() {
-    TermsScreen(state = TermsUiState(), onEvent = {})
+    TermsScreen(
+        state = TermsUiState(
+            terms = listOf(
+                Term(id = 1, title = "서비스 이용약관", content = "", required = true, updatedAt = LocalDate.of(2026, 10, 4)),
+                Term(id = 2, title = "개인정보 수집 및 이용 동의", content = "", required = true),
+            ),
+        ),
+        onEvent = {},
+    )
 }
