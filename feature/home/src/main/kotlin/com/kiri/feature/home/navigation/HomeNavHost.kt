@@ -23,6 +23,8 @@ import com.kiri.feature.home.model.HomeUiEvent
 import com.kiri.feature.home.presentation.NotificationRoute
 import com.kiri.domain.notification.NotificationTarget
 import com.kiri.feature.record.presentation.MemoryEditorScreen
+import com.kiri.feature.record.ScheduleRegisterViewModel
+import com.kiri.feature.record.presentation.schedule.ScheduleRegisterRoute
 
 private const val GRAPH_ROUTE = "home_graph"
 private const val START_ROUTE = "home"
@@ -32,10 +34,25 @@ private const val DETAIL_ROUTE = "home_graph/detail"
 fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: () -> Unit, onSchedule: (String) -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
     navigation(startDestination = START_ROUTE, route = GRAPH_ROUTE) {
         scheduleDestinations()
+        composable("home_graph/weekly-schedule/{weeklyMissionId}") { entry ->
+            val viewModel: ScheduleRegisterViewModel = hiltViewModel(entry)
+            val weeklyId = entry.arguments?.getString("weeklyMissionId").orEmpty()
+            ScheduleRegisterRoute(
+                viewModel = viewModel,
+                onBackClick = { navController.popBackStack() },
+                onDetailClick = { navController.navigate("$DETAIL_ROUTE/${Uri.encode(weeklyId)}") },
+                onBucketMissing = { navController.popBackStack() },
+                onSentByApp = { navController.popBackStack() },
+                onSentByKakao = { navController.popBackStack() },
+            )
+        }
         composable(START_ROUTE) {
             HomeRoute(
                 onMissionClick = { id -> navController.navigate("${DETAIL_ROUTE}/${Uri.encode(id)}") { launchSingleTop = true } },
                 onScheduleClick = onSchedule,
+                onWeeklyScheduleClick = { id ->
+                    navController.navigate("home_graph/weekly-schedule/${Uri.encode(id)}") { launchSingleTop = true }
+                },
                 onDestination = { destination ->
                     when (destination) {
                         HomeUiDestination.OpenPlaces -> onOpenPlaces()

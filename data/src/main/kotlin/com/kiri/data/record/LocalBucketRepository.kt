@@ -74,6 +74,34 @@ class LocalBucketRepository(
                 .also { publish(state.value + it) }
     }
 
+    /** Called only on final send. Bucket creation/link and schedule persistence share one edit. */
+    internal suspend fun commitWeeklySchedule(
+        missionId: String,
+        scheduleId: String,
+        expectedScope: String,
+        weeklyMissionId: String,
+        transactionStore: LocalStateStore,
+        snapshots: (FamilyBucket) -> Map<String, String>,
+    ): FamilyBucket = mutex.withLock {
+        val family = family()
+        check(store === transactionStore) { "일정과 버킷은 같은 저장소를 사용해야 해요." }
+        check(scope == expectedScope) { "가족 정보가 변경되었어요. 다시 시도해주세요." }
+        check(family.mission?.let {
+            it.id == weeklyMissionId && it.missionId == missionId && !it.completed && !it.unavailable
+        } == true) { "이번 주 미션이 변경되었어요. 홈에서 다시 확인해주세요." }
+        missions.load(missionId)
+        val bucket = state.value.find {
+            it.ownerId == family.currentUserId && it.missionId == missionId && !it.completed
+        } ?: FamilyBucket(UUID.randomUUID().toString(), missionId, family.currentUserId, clock.instant())
+        check(bucket.canCreateSchedule) { "이미 일정이 연결된 버킷이에요." }
+        val linked = bucket.copy(linkedScheduleIds = setOf(scheduleId))
+        val updated = state.value.filterNot { it.id == bucket.id } + linked
+        val writes = snapshots(linked) + ("buckets/$expectedScope" to ActivityCodec.buckets(updated))
+        store.writeAtomically(writes)
+        state.value = updated
+        linked
+    }
+
     override suspend fun delete(id: String) = mutex.withLock {
         val family = family()
         check(scope != null)

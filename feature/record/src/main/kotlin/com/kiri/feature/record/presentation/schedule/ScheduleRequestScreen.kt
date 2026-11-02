@@ -68,6 +68,7 @@ fun ScheduleRequestScreen(
     onSendClick: () -> Unit,
     sending: Boolean = false,
     error: String? = null,
+    weekly: Boolean = false,
 ) {
     BackHandler(onBack = onBackClick)
     Column(
@@ -88,7 +89,7 @@ fun ScheduleRequestScreen(
         ) {
             Spacer(Modifier.height(8.dp))
             Text(
-                text = savedMissionLabel(savedBy),
+                text = if (weekly) "가족에게 추천된 주간 미션이에요!" else savedMissionLabel(savedBy),
                 modifier = Modifier.fillMaxWidth(),
                 color = KiriColor.Text.Primary,
                 textAlign = TextAlign.Center,

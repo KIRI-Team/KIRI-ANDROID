@@ -28,7 +28,7 @@ class DataStoreLocalStateStoreTest {
                     produceFile = { file.absolutePath.toPath() },
                 )
             )
-        first.write("buckets/account-a", "saved")
+        first.writeAtomically(mapOf("buckets/account-a" to "saved", "schedules/account-a" to "linked"))
         first.write("buckets/account-b", "other")
         firstScope.coroutineContext[Job]!!.cancelAndJoin()
         val secondScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -41,6 +41,7 @@ class DataStoreLocalStateStoreTest {
                     )
                 )
             assertEquals("saved", second.read("buckets/account-a"))
+            assertEquals("linked", second.read("schedules/account-a"))
             assertEquals("other", second.read("buckets/account-b"))
         } finally {
             secondScope.coroutineContext[Job]!!.cancelAndJoin()

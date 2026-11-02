@@ -24,6 +24,11 @@ interface LocalStateStore {
     suspend fun read(key: String): String?
 
     suspend fun write(key: String, value: String)
+
+    /** All snapshots become durable together, or none do. */
+    suspend fun writeAtomically(values: Map<String, String>) {
+        throw UnsupportedOperationException("Atomic snapshot writes are required")
+    }
 }
 
 class MemoryLocalStateStore : LocalStateStore {
@@ -34,6 +39,10 @@ class MemoryLocalStateStore : LocalStateStore {
 
     override suspend fun write(key: String, value: String) {
         mutex.withLock { values[key] = value }
+    }
+
+    override suspend fun writeAtomically(values: Map<String, String>) {
+        mutex.withLock { this.values.putAll(values) }
     }
 }
 
@@ -49,6 +58,12 @@ internal constructor(private val dataStore: DataStore<Preferences>) : LocalState
 
     override suspend fun write(key: String, value: String) {
         dataStore.edit { it[stringPreferencesKey(key)] = value }
+    }
+
+    override suspend fun writeAtomically(values: Map<String, String>) {
+        dataStore.edit { preferences ->
+            values.forEach { (key, value) -> preferences[stringPreferencesKey(key)] = value }
+        }
     }
 }
 

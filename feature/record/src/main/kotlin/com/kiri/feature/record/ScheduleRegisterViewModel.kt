@@ -37,6 +37,7 @@ data class ScheduleRegisterUiState(
     val draft: ScheduleRegisterDraft = ScheduleRegisterDraft(),
     val sending: Boolean = false,
     val error: String? = null,
+    val weekly: Boolean = false,
 )
 
 sealed interface ScheduleRegisterEffect {
@@ -56,8 +57,12 @@ constructor(
     private val savedState: SavedStateHandle,
     private val repository: RecordRepository,
     private val clock: Clock,
+    private val homeRepository: com.kiri.domain.home.HomeRepository? = null,
+    private val schedules: com.kiri.domain.schedule.ScheduleRepository? = null,
 ) : ViewModel() {
     private val bucketId = savedState.get<String>("entryId").orEmpty()
+    private val weeklyMissionId = savedState.get<String>("weeklyMissionId")
+    private var missionId: String? = null
     private val state =
         MutableStateFlow(ScheduleRegisterUiState(earliest = now(), draft = restoreDraft()))
     val uiState: StateFlow<ScheduleRegisterUiState> = state.asStateFlow()
@@ -71,27 +76,49 @@ constructor(
     private var missingReported = false
 
     init {
-        viewModelScope.launch {
-            repository.records.collect { records ->
-                apply(records)
+        if (weeklyMissionId != null) {
+            viewModelScope.launch {
+                try {
+                    val family = requireNotNull(homeRepository).load()
+                    schedules?.refresh()
+                    val weekly = family.mission?.takeIf {
+                        it.id == weeklyMissionId && !it.completed && !it.unavailable && !family.browsing &&
+                            schedules?.schedules?.value.orEmpty().none { s ->
+                                s.weeklyMissionId == it.id && !s.cancelled
+                            }
+                    }
+                    missionId = weekly?.missionId
+                    state.update { it.copy(loading = false, bucketFound = weekly != null,
+                        weekly = true, title = weekly?.title.orEmpty(),
+                        members = family.members.filter { m -> m.accessible && m.id != family.currentUserId }
+                            .map { m -> RecordMember(m.id, m.nickname) }) }
+                } catch (e: CancellationException) { throw e }
+                catch (_: Exception) { state.update { it.copy(loading = false) } }
                 reportMissing()
             }
-        }
-        viewModelScope.launch {
-            // 기록 탭에서 들어오면 이미 불러와 있다. 앱이 다시 떠서 이 화면부터 열릴 때만 새로 불러온다
-            if (!state.value.bucketFound) {
-                try {
-                    repository.refresh()
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (_: Exception) {
-                    /* 불러오지 못하면 버킷이 없는 것으로 보고 빠져나간다 */
+        } else {
+            viewModelScope.launch {
+                repository.records.collect { records ->
+                    apply(records)
+                    reportMissing()
                 }
             }
-            // 위 collect 가 새 값을 받기 전일 수 있으므로 저장소의 지금 값을 직접 반영한 뒤 불러오기를 끝낸다
-            apply(repository.records.value)
-            state.update { it.copy(loading = false) }
-            reportMissing()
+            viewModelScope.launch {
+                // 기록 탭에서 들어오면 이미 불러와 있다. 앱이 다시 떠서 이 화면부터 열릴 때만 새로 불러온다
+                if (!state.value.bucketFound) {
+                    try {
+                        repository.refresh()
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        /* 불러오지 못하면 버킷이 없는 것으로 보고 빠져나간다 */
+                    }
+                }
+                // 위 collect 가 새 값을 받기 전일 수 있으므로 저장소의 지금 값을 직접 반영한 뒤 불러오기를 끝낸다
+                apply(repository.records.value)
+                state.update { it.copy(loading = false) }
+                reportMissing()
+            }
         }
     }
 
@@ -148,6 +175,8 @@ constructor(
                         draft.message,
                         channel,
                         requestId,
+                        weeklyMissionId,
+                        missionId,
                     )
                 )
                 sent = true
@@ -170,8 +199,10 @@ constructor(
                 effects.send(effect)
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) {
-                state.update { it.copy(error = "요청을 보내지 못했어요. 다시 시도해주세요.") }
+            } catch (e: Exception) {
+                state.update { it.copy(error =
+                    if (weeklyMissionId != null && (e is IllegalArgumentException || e is IllegalStateException)) e.message
+                    else "요청을 보내지 못했어요. 다시 시도해주세요.") }
             } finally {
                 state.update { it.copy(sending = false) }
                 // 보내다 실패한 사이에 버킷이 사라졌다면 이제 빠져나간다

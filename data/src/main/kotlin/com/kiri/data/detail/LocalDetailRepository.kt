@@ -86,7 +86,9 @@ open class LocalDetailRepository(
         check(!home.browsing) { "Family access required" }
         val mission = home.mission?.takeIf { it.id == id && !it.unavailable }
         val schedule =
-            home.schedules.firstOrNull { it.id == id && it.status != ScheduleStatus.CANCELLED }
+            home.schedules.firstOrNull {
+                (it.id == id || it.weeklyMissionId == id) && it.status != ScheduleStatus.CANCELLED
+            }
         require(mission != null || schedule != null) { "Mission not found" }
         val isDemo = id == "weekly-demo" || id == "schedule-demo"
         val dateTime =
@@ -108,7 +110,7 @@ open class LocalDetailRepository(
                 schedules
                     ?.schedules
                     ?.value
-                    ?.find { it.id == schedule?.id || it.weeklyMissionId == id }
+                    ?.find { !it.cancelled && (it.id == schedule?.id || it.weeklyMissionId == id) }
                     ?.let { activity ->
                         activity.responses.map { (memberId, response) ->
                             DetailParticipant(
@@ -164,6 +166,7 @@ open class LocalDetailRepository(
                         home.currentUserId in activity.acceptedIds,
                         activity.responseDeadline,
                         activity.missionId,
+                        activity.weeklyMissionId,
                     )
                 },
             mission =
