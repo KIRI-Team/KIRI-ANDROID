@@ -1,6 +1,8 @@
 package com.kiri.data.term
 
 import com.kiri.data.network.ApiResponse
+import com.kiri.domain.model.term.Term
+import java.time.LocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import retrofit2.http.Body
@@ -17,13 +19,24 @@ internal interface TermApi {
     suspend fun agree(@Body request: TermAgreeRequest): ApiResponse<JsonElement>
 }
 
-// shortDescription, updatedAt 도 오지만 동의 화면에서 쓰지 않아 읽지 않는다
+// shortDescription 도 오지만 화면에서 쓰지 않아 읽지 않는다
+// updatedAt 은 "2026-10-04T12:00:00" 처럼 시간대 없는 날짜·시간으로 온다
 @Serializable
 internal data class TermResponse(
     val termId: Long,
     val title: String,
     val description: String,
     val isRequired: Boolean,
+    val updatedAt: String? = null,
+)
+
+// 업데이트일을 읽지 못해도 약관은 보여줄 수 있으니 업데이트일만 비운다
+internal fun TermResponse.toTerm() = Term(
+    id = termId,
+    title = title,
+    content = description,
+    required = isRequired,
+    updatedAt = updatedAt?.let { runCatching { LocalDateTime.parse(it).toLocalDate() }.getOrNull() },
 )
 
 @Serializable
