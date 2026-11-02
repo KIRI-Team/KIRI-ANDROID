@@ -81,6 +81,25 @@ class HomeScreenTest {
     }
 
     @Test
+    fun weeklyScheduleButtonStartsRegistrationWithoutOpeningDetail() {
+        var weeklyId: String? = null
+        var detailClicks = 0
+        val viewModel = HomeViewModel(ScreenRepository())
+        compose.setContent {
+            KiriTheme { HomeRoute(viewModel = viewModel,
+                onMissionClick = { detailClicks++ }, onWeeklyScheduleClick = { weeklyId = it }) }
+        }
+        compose.waitForIdle()
+        compose.onNodeWithContentDescription("미션 카드로 전환").performScrollTo().performClick()
+        compose.onNodeWithText("일정 잡기").performScrollTo().assertIsDisplayed().performClick()
+        compose.runOnIdle {
+            assertEquals("m", weeklyId)
+            assertEquals(0, detailClicks)
+        }
+        capture("home-weekly-schedule-action")
+    }
+
+    @Test
     fun memberSelectionShowsAnswerToast() {
         val viewModel = HomeViewModel(ScreenRepository())
         compose.setContent { HomeRoute(viewModel = viewModel) }

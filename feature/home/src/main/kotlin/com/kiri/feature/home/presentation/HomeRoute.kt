@@ -25,6 +25,7 @@ fun HomeRoute(
     onInviteFamily: (String) -> Unit = {},
     onMissionClick: (String) -> Unit = {},
     onScheduleClick: (String) -> Unit = { onDestination(HomeUiDestination.Schedule) },
+    onWeeklyScheduleClick: (String) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -32,6 +33,7 @@ fun HomeRoute(
     val currentInvite by rememberUpdatedState(onInviteFamily)
     val currentMission by rememberUpdatedState(onMissionClick)
     val currentSchedule by rememberUpdatedState(onScheduleClick)
+    val currentWeeklySchedule by rememberUpdatedState(onWeeklyScheduleClick)
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
@@ -42,6 +44,7 @@ fun HomeRoute(
                     is HomeUiEffect.InviteFamily -> currentInvite(effect.code)
                     is HomeUiEffect.OpenMission -> currentMission(effect.id)
                     is HomeUiEffect.OpenSchedule -> currentSchedule(effect.id)
+                    is HomeUiEffect.CreateWeeklySchedule -> currentWeeklySchedule(effect.weeklyMissionId)
                 }
             }
         }

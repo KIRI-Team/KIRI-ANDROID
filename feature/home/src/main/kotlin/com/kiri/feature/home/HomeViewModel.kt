@@ -37,7 +37,7 @@ class HomeViewModel @Inject constructor(
     init {
         load()
         scheduleRepository?.let { schedules -> viewModelScope.launch { schedules.schedules.collect {
-            _uiState.update { state -> state.copy(home = state.home?.withSchedules()) }
+            if (!loadingInProgress) _uiState.update { state -> state.copy(home = state.home?.withSchedules()) }
         } } }
     }
 
@@ -45,14 +45,14 @@ class HomeViewModel @Inject constructor(
 
     private fun FamilyHome.withSchedules(): FamilyHome {
         val shared = scheduleRepository?.schedules?.value ?: return this
-        if (browsing || serverBacked) return this
-        return copy(schedules = shared.map { schedule ->
+        if (browsing) return this
+        return copy(schedules = (if (serverBacked) schedules.filter { old -> shared.none { it.id == old.id } } else emptyList()) + shared.map { schedule ->
             val status = schedule.status(clock.instant())
             val response = schedule.responses[currentUserId]
             HomeSchedule(schedule.id, schedule.title, schedule.startsAt,
                 if (schedule.canRespond(currentUserId, clock.instant()) && response == com.kiri.domain.schedule.MemberResponse.RECONFIRM_REQUIRED) ScheduleStatus.RECONFIRM_REQUIRED
                 else if (schedule.canRespond(currentUserId, clock.instant()) && response == com.kiri.domain.schedule.MemberResponse.PENDING) ScheduleStatus.PENDING_RESPONSE else status,
-                currentUserId in schedule.acceptedIds, schedule.responseDeadline, schedule.missionId)
+                currentUserId in schedule.acceptedIds, schedule.responseDeadline, schedule.missionId, schedule.weeklyMissionId)
         }, mission = mission?.let { weekly -> weekly.copy(completed = weekly.completed || shared.any { it.weeklyMissionId == weekly.id && it.completed }) })
     }
 
@@ -62,6 +62,16 @@ class HomeViewModel @Inject constructor(
             HomeUiEvent.TutorialDismissed -> setTutorial(null)
             is HomeUiEvent.DestinationClicked -> _effect.trySend(HomeUiEffect.Navigate(event.destination))
             is HomeUiEvent.MissionClicked -> _effect.trySend(HomeUiEffect.OpenMission(event.id))
+            HomeUiEvent.WeeklyScheduleClicked -> {
+                val home = uiState.value.home ?: return
+                val weekly = home.mission ?: return
+                if (home.browsing || weekly.unavailable || weekly.completed) return
+                val existing = home.schedules.firstOrNull {
+                    it.weeklyMissionId == weekly.id && it.status != ScheduleStatus.CANCELLED
+                }
+                _effect.trySend(if (existing == null) HomeUiEffect.CreateWeeklySchedule(weekly.id)
+                    else HomeUiEffect.OpenSchedule(existing.id))
+            }
             is HomeUiEvent.ScheduleClicked -> _effect.trySend(HomeUiEffect.OpenSchedule(event.id))
             HomeUiEvent.InviteFamilyClicked -> uiState.value.home?.inviteCode?.let { _effect.trySend(HomeUiEffect.InviteFamily(it)) }
 
@@ -125,7 +135,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val loaded = repository.load()
-                if (!loaded.serverBacked) scheduleRepository?.refresh()
+                scheduleRepository?.refresh()
                 val home = loaded.withSchedules()
                 if (!home.browsing && savedState.get<Boolean>("homeTutorialChecked") != true) {
                     // Mark the visit before showing it: returning home or restarting cannot replay it.

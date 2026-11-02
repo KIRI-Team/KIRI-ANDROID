@@ -260,6 +260,33 @@ class ScheduleRegisterViewModelTest {
     }
 
     // 이미 보낸 신호 말고 더 쌓인 신호가 없는지 확인한다
+    @Test fun weeklyEntryDoesNotSaveUntilSendAndRestoresTheSameRequestIdentity() = runTest {
+        val home = FakeHomeRepository(clock, latencyMillis = 0)
+        val real = repository()
+        val requests = mutableListOf<ScheduleRequest>()
+        val capture = object : RecordRepository by real {
+            override suspend fun requestSchedule(request: ScheduleRequest): CalendarEntry {
+                requests += request
+                throw java.io.IOException("network")
+            }
+        }
+        val handle = SavedStateHandle(mapOf("weeklyMissionId" to "weekly-demo"))
+        val vm = ScheduleRegisterViewModel(handle, capture, clock, home)
+        assertTrue(vm.uiState.value.bucketFound)
+        assertTrue(vm.uiState.value.weekly)
+        assertTrue(requests.isEmpty())
+        vm.onDraftChange(filled)
+        val restored = ScheduleRegisterViewModel(handle, capture, clock, home)
+        assertEquals(filled, restored.uiState.value.draft)
+        restored.send(ScheduleRequestChannel.APP)
+        restored.send(ScheduleRequestChannel.APP)
+        assertEquals(2, requests.size)
+        assertEquals(requests[0], requests[1])
+        assertEquals("", requests[0].bucketId)
+        assertEquals("weekly-demo", requests[0].weeklyMissionId)
+        assertEquals(home.load().mission!!.missionId, requests[0].missionId)
+    }
+
     private suspend fun kotlinx.coroutines.flow.Flow<ScheduleRegisterEffect>.tryReceiveFirst():
         ScheduleRegisterEffect? = kotlinx.coroutines.withTimeoutOrNull(50) { first() }
 }

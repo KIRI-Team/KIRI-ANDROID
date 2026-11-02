@@ -74,6 +74,7 @@ fun ScheduleRegisterRoute(
         sending = state.sending,
         error = state.error,
         earliest = state.earliest,
+        weekly = state.weekly,
     )
 }
 
@@ -94,6 +95,7 @@ internal fun ScheduleRegisterFlow(
     error: String? = null,
     earliest: LocalDateTime? = null,
     times: List<LocalTime> = DefaultScheduleTimes,
+    weekly: Boolean = false,
 ) {
     var showRequest by rememberSaveable { mutableStateOf(false) }
     var showSendSheet by rememberSaveable { mutableStateOf(false) }
@@ -112,6 +114,7 @@ internal fun ScheduleRegisterFlow(
             onSendClick = { showSendSheet = true },
             sending = sending,
             error = error,
+            weekly = weekly,
         )
         if (showSendSheet) {
             RecordSendMethodSheet(
@@ -138,6 +141,7 @@ internal fun ScheduleRegisterFlow(
             onBackClick = onBackClick,
             onCreateInviteClick = { showRequest = true },
             earliest = earliest,
+            weekly = weekly,
         )
     }
 }

@@ -16,6 +16,7 @@ sealed interface HomeUiEvent {
     data object MemberDismissed : HomeUiEvent
     data class DestinationClicked(val destination: HomeUiDestination) : HomeUiEvent
     data class MissionClicked(val id: String) : HomeUiEvent
+    data object WeeklyScheduleClicked : HomeUiEvent
     data class ScheduleClicked(val id: String) : HomeUiEvent
     data object InviteFamilyClicked : HomeUiEvent
 }

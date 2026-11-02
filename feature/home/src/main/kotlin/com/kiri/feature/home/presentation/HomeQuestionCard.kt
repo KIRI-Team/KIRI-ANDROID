@@ -31,6 +31,7 @@ internal fun QuestionMissionSection(
     onMissionClick: (String) -> Unit,
     cardModifier: Modifier = Modifier,
     flipIconModifier: Modifier = Modifier,
+    onWeeklyScheduleClick: () -> Unit = {},
 ) {
     Column {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
@@ -58,6 +59,7 @@ internal fun QuestionMissionSection(
                 onEdit,
                 onMissionClick,
                 flipIconModifier,
+                onWeeklyScheduleClick,
             )
         }
     }
@@ -72,6 +74,7 @@ private fun QuestionMissionCard(
     onEdit: () -> Unit,
     onMissionClick: (String) -> Unit,
     flipIconModifier: Modifier = Modifier,
+    onWeeklyScheduleClick: () -> Unit = {},
 ) {
     val modifier =
         Modifier.fillMaxWidth()
@@ -102,6 +105,10 @@ private fun QuestionMissionCard(
                     },
                     onFlip = { onFlip() },
                     flipIconModifier = flipIconModifier,
+                    onScheduleClick = if (home.browsing) null else onWeeklyScheduleClick,
+                    scheduleLabel = if (home.schedules.any {
+                        it.weeklyMissionId == mission?.id && it.status != ScheduleStatus.CANCELLED
+                    }) "일정 보기" else "일정 잡기",
                 )
             } else QuestionCardContent(home, onFlip, flipIconModifier)
         }

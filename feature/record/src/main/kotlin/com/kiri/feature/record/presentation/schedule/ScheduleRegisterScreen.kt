@@ -73,6 +73,7 @@ fun ScheduleRegisterScreen(
     onBackClick: () -> Unit,
     onCreateInviteClick: () -> Unit,
     earliest: LocalDateTime? = null,
+    weekly: Boolean = false,
 ) {
     var openSheet by rememberSaveable { mutableStateOf<ScheduleRegisterSheet?>(null) }
 
@@ -86,6 +87,7 @@ fun ScheduleRegisterScreen(
         onMemberClick = { openSheet = ScheduleRegisterSheet.Member },
         onMessageChange = { onDraftChange(draft.withMessage(it)) },
         onCreateInviteClick = onCreateInviteClick,
+        weekly = weekly,
     )
 
     when (openSheet) {
@@ -136,6 +138,7 @@ internal fun ScheduleRegisterContent(
     onMemberClick: () -> Unit,
     onMessageChange: (String) -> Unit,
     onCreateInviteClick: () -> Unit,
+    weekly: Boolean = false,
 ) {
     Column(
         Modifier
@@ -155,7 +158,7 @@ internal fun ScheduleRegisterContent(
                 .padding(horizontal = 18.dp),
         ) {
             Spacer(Modifier.height(24.dp))
-            ScheduleRegisterHeader(savedByLabel(savedBy), title, description)
+            ScheduleRegisterHeader(if (weekly) "가족에게 추천된 주간 미션이에요!" else savedByLabel(savedBy), title, description)
             Spacer(Modifier.height(30.dp))
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 ScheduleFormSelectRow(

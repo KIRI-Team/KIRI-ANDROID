@@ -9,6 +9,8 @@ import com.kiri.domain.schedule.*
 import java.time.Clock
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -56,7 +58,9 @@ class LocalScheduleRepository(
                         cancelled = old.status == ScheduleStatus.CANCELLED,
                         completed = old.status == ScheduleStatus.COMPLETED,
                         weeklyMissionId =
-                            family.mission?.takeIf { it.missionId == old.missionId }?.id,
+                            old.weeklyMissionId ?: family.mission?.takeIf {
+                                old.id == "schedule-demo" && it.id == "weekly-demo"
+                            }?.id,
                     )
                 }
         if (additions.isNotEmpty()) publish(state.value + additions)
@@ -80,6 +84,9 @@ class LocalScheduleRepository(
                 return@withLock state.value.first { it.id == id }
             }
             validate(draft, family)
+            if (draft.weeklyMissionId != null) {
+                return@withLock createWeekly(draft, requestId, family)
+            }
             buckets.refresh()
             val bucket =
                 requireNotNull(
@@ -125,6 +132,58 @@ class LocalScheduleRepository(
             }
             schedule
         }
+
+    private suspend fun createWeekly(
+        draft: ScheduleDraft,
+        requestId: String,
+        family: FamilyHome,
+    ): FamilySchedule {
+        val weekly = requireNotNull(family.mission?.takeIf {
+            it.id == draft.weeklyMissionId && it.missionId == draft.missionId
+        }) { "이번 주 미션이 변경되었어요. 홈에서 다시 확인해주세요." }
+        check(draft.bucketId.isBlank() && !weekly.completed && !weekly.unavailable) {
+            "현재 진행할 수 없는 주간 미션이에요."
+        }
+        check(state.value.none { it.weeklyMissionId == weekly.id && !it.cancelled }) {
+            "이미 주간 미션 일정이 있어요."
+        }
+        val localBuckets = requireNotNull(buckets as? com.kiri.data.record.LocalBucketRepository)
+        buckets.refresh()
+        val existing = buckets.buckets.value.find {
+            it.ownerId == family.currentUserId && it.missionId == draft.missionId && !it.completed
+        }
+        check(existing == null || !hasCompletion(existing.id) &&
+            state.value.none { it.bucketId == existing.id && !it.cancelled }) {
+            "이미 진행 중이거나 완료한 활동이에요."
+        }
+        val id = UUID.randomUUID().toString()
+        var created: FamilySchedule? = null
+        var next: ScheduleState? = null
+        // Once the final send starts committing, cancellation cannot leave stale in-memory state.
+        return withContext(NonCancellable) {
+            localBuckets.commitWeeklySchedule(draft.missionId, id, requireNotNull(scope), weekly.id, store) { bucket ->
+                val schedule = FamilySchedule(
+                    id, bucket.id, draft.missionId, weekly.title, family.currentUserId,
+                    requireNotNull(draft.startsAt), responseDeadline(requireNotNull(draft.startsAt), clock.instant()),
+                    draft.inviteeIds.associateWith { MemberResponse.PENDING } +
+                        (family.currentUserId to MemberResponse.ACCEPTED),
+                    draft.place.trim(), draft.message.trim(), weeklyMissionId = weekly.id,
+                )
+                val snapshot = ScheduleState(state.value + schedule,
+                    events.value + notice(schedule, draft.inviteeIds, "새 약속 초대장이 도착했어요."),
+                    requests + (requestId to (draft to id)))
+                created = schedule
+                next = snapshot
+                mapOf("schedules/${requireNotNull(scope)}" to ActivityCodec.schedules(snapshot))
+            }
+            val committed = requireNotNull(next)
+            state.value = committed.schedules
+            events.value = committed.notices
+            requests.clear()
+            requests.putAll(committed.requests)
+            requireNotNull(created)
+        }
+    }
 
     override suspend fun update(
         id: String,

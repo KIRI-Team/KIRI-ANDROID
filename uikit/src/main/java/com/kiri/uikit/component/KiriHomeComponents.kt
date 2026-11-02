@@ -226,6 +226,8 @@ fun KiriMissionCard(
     modifier: Modifier = Modifier,
     onFlip: () -> Unit = {},
     flipIconModifier: Modifier = Modifier,
+    onScheduleClick: (() -> Unit)? = null,
+    scheduleLabel: String = "일정 잡기",
 ) {
     Box(
         modifier = modifier.fillMaxWidth().heightIn(min = 132.dp)
@@ -267,7 +269,7 @@ fun KiriMissionCard(
                 horizontalArrangement = Arrangement.spacedBy(9.dp),
                 verticalAlignment = Alignment.Top,
             ) {
-                Column(Modifier.weight(1f).height(96.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f).heightIn(min = 96.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(title, color = KiriColor.Text.Strong, style = KiriDetailTypography.Title, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(place.orEmpty(), color = KiriColor.Text.Secondary, style = KiriDetailTypography.Small, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -278,6 +280,9 @@ fun KiriMissionCard(
                                 Text(label, Modifier.padding(horizontal = 8.dp, vertical = 6.dp), color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Small.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 17.sp, letterSpacing = (-0.48).sp), maxLines = 1)
                             }
                         }
+                    }
+                    onScheduleClick?.let { action ->
+                        Button(onClick = action) { Text(scheduleLabel) }
                     }
                 }
                 Spacer(Modifier.width(24.dp))

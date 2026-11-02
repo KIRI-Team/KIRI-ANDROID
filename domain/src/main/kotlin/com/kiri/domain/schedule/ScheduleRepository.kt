@@ -16,6 +16,8 @@ data class ScheduleDraft(
     val inviteeIds: Set<String> = emptySet(),
     val message: String = "",
     val place: String = "",
+    /** Family assignment identity; absent for ordinary bucket schedules. */
+    val weeklyMissionId: String? = null,
 )
 
 data class FamilySchedule(

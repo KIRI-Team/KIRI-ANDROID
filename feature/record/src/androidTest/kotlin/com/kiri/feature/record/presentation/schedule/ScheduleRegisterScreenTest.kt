@@ -32,7 +32,7 @@ class ScheduleRegisterScreenTest {
     private var error by mutableStateOf<String?>(null)
     private val sent = mutableListOf<ScheduleRequestChannel>()
 
-    private fun setFlow() {
+    private fun setFlow(weekly: Boolean = false) {
         compose.setContent {
             KiriTheme {
                 ScheduleRegisterFlow(
@@ -48,6 +48,7 @@ class ScheduleRegisterScreenTest {
                     sending = sending,
                     error = error,
                     times = listOf(LocalTime.of(9, 0), LocalTime.of(16, 30)),
+                    weekly = weekly,
                 )
             }
         }
@@ -141,5 +142,20 @@ class ScheduleRegisterScreenTest {
 
         compose.onNodeWithTag("schedule_request_screen").assertDoesNotExist()
         compose.onNodeWithTag("schedule_register_member_row").assertTextContains("인원 2명")
+    }
+
+    @Test fun weeklyFlowReusesTheFormAndSendsOnlyAfterFinalConfirmation() {
+        setFlow(weekly = true)
+        compose.onNodeWithText("가족에게 추천된 주간 미션이에요!").assertExists()
+        fillScheduleAndMembers("mom")
+        compose.onNodeWithText("초대장 만들기").performClick()
+        compose.onNodeWithText("가족에게 추천된 주간 미션이에요!").assertExists()
+        assertEquals(emptyList<ScheduleRequestChannel>(), sent)
+        compose.onNodeWithTag("schedule_request_cancel").performClick()
+        assertEquals(emptyList<ScheduleRequestChannel>(), sent)
+        compose.onNodeWithText("초대장 만들기").performClick()
+        compose.onNodeWithText("요청 보내기").performClick()
+        compose.onNodeWithTag("record_send_app").performClick()
+        assertEquals(listOf(ScheduleRequestChannel.APP), sent)
     }
 }

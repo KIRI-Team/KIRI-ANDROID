@@ -37,6 +37,8 @@ data class ScheduleRequest(
     val message: String,
     val channel: ScheduleRequestChannel,
     val requestId: String = "",
+    val weeklyMissionId: String? = null,
+    val missionId: String? = null,
 )
 
 data class RecordPhoto(val id: String, val source: String)

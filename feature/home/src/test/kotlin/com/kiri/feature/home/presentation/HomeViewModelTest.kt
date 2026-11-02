@@ -139,6 +139,55 @@ class HomeViewModelTest {
         assertTrue(vm.uiState.value.showingMission)
     }
 
+    @Test fun weeklyActionOpensRegistrationOrExistingScheduleAndBlocksCompleted() = runTest(dispatcher) {
+        val repo = TestRepository()
+        val weekly = WeeklyMission("weekly", "산책", "공원", emptyList(), false, missionId = "mission")
+        repo.home = repo.home.copy(mission = weekly)
+        val vm = HomeViewModel(repo)
+        advanceUntilIdle()
+        vm.onEvent(HomeUiEvent.WeeklyScheduleClicked)
+        assertEquals(HomeUiEffect.CreateWeeklySchedule("weekly"), vm.effect.first())
+        repo.home = repo.home.copy(schedules = listOf(HomeSchedule("active", "산책",
+            java.time.Instant.now(), ScheduleStatus.PENDING_RESPONSE, true, weeklyMissionId = "weekly")))
+        vm.refreshOnResume(); advanceUntilIdle()
+        vm.onEvent(HomeUiEvent.WeeklyScheduleClicked)
+        assertEquals(HomeUiEffect.OpenSchedule("active"), vm.effect.first())
+        repo.home = repo.home.copy(mission = weekly.copy(completed = true))
+        vm.refreshOnResume(); advanceUntilIdle()
+        vm.onEvent(HomeUiEvent.WeeklyScheduleClicked)
+        assertNull(kotlinx.coroutines.withTimeoutOrNull(10) { vm.effect.first() })
+    }
+
+    @Test fun onlyLinkedWeeklyReviewCompletesServerBackedHomeAndPreservesServerSchedules() = runTest(dispatcher) {
+        val repo = TestRepository()
+        repo.home = repo.home.copy(serverBacked = true,
+            mission = WeeklyMission("weekly", "산책", "공원", emptyList(), false, missionId = "mission"),
+            schedules = listOf(HomeSchedule("remote", "서버 일정", java.time.Instant.now(), ScheduleStatus.CONFIRMED, true)))
+        val shared = TestSchedules()
+        val vm = HomeViewModel(repo, scheduleRepository = shared)
+        advanceUntilIdle()
+        val activity = com.kiri.domain.schedule.FamilySchedule("local", "bucket", "mission", "산책", "me",
+            java.time.Instant.now(), java.time.Instant.now(), emptyMap(), "공원", completed = true)
+        shared.schedules.value = listOf(activity)
+        runCurrent()
+        assertFalse(vm.uiState.value.home!!.mission!!.completed)
+        shared.schedules.value = listOf(activity.copy(weeklyMissionId = "weekly"))
+        runCurrent()
+        assertTrue(vm.uiState.value.home!!.mission!!.completed)
+        assertEquals(setOf("remote", "local"), vm.uiState.value.home!!.schedules.map { it.id }.toSet())
+    }
+
+    private class TestSchedules : com.kiri.domain.schedule.ScheduleRepository {
+        override val schedules = kotlinx.coroutines.flow.MutableStateFlow<List<com.kiri.domain.schedule.FamilySchedule>>(emptyList())
+        override val notices = kotlinx.coroutines.flow.MutableStateFlow<List<com.kiri.domain.schedule.ScheduleNotice>>(emptyList())
+        override suspend fun refresh() {}
+        override suspend fun create(draft: com.kiri.domain.schedule.ScheduleDraft, requestId: String): com.kiri.domain.schedule.FamilySchedule = error("unused")
+        override suspend fun update(id: String, draft: com.kiri.domain.schedule.ScheduleDraft, expectedRevision: Int): com.kiri.domain.schedule.FamilySchedule = error("unused")
+        override suspend fun respond(id: String, response: com.kiri.domain.schedule.MemberResponse, expectedRevision: Int): com.kiri.domain.schedule.FamilySchedule = error("unused")
+        override suspend fun cancel(id: String, expectedRevision: Int) = error("unused")
+        override suspend fun complete(id: String) = error("unused")
+    }
+
     private class TestRepository : HomeRepository {
         var saves = 0
         var failSave = false

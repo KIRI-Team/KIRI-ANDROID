@@ -117,7 +117,7 @@ constructor(
                 val schedule =
                     requireNotNull(
                         scheduleRepository.schedules.value.find {
-                            it.id == missionId || it.weeklyMissionId == missionId
+                            !it.cancelled && (it.id == missionId || it.weeklyMissionId == missionId)
                         }
                     ) {
                         "연결된 약속이 없어요."

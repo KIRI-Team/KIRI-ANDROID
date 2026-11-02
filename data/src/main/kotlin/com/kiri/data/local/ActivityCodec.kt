@@ -106,6 +106,7 @@ internal object ActivityCodec {
                             d.inviteeIds,
                             d.message,
                             d.place,
+                            d.weeklyMissionId,
                         )
                     },
             )
@@ -152,6 +153,7 @@ internal object ActivityCodec {
                             r.invitees,
                             r.message,
                             r.place,
+                            r.weeklyMissionId,
                         ) to r.id
                     },
                 )
@@ -337,6 +339,7 @@ private data class StoredRequest(
     val invitees: Set<String>,
     val message: String,
     val place: String,
+    val weeklyMissionId: String? = null,
 )
 
 @Serializable

@@ -185,6 +185,7 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
                                     Modifier.bringIntoViewRequester(cardTarget)
                                         .then(anchor(HomeTutorialTarget.CARD)),
                                     anchor(HomeTutorialTarget.FLIP),
+                                  { onEvent(HomeUiEvent.WeeklyScheduleClicked) },
                                 )
                             }
                             RecommendationSection(

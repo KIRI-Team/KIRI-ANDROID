@@ -538,11 +538,10 @@ open class LocalRecordRepository(
                     val family = family()
                     check(!family.browsing)
                     val bucket =
-                        requireNotNull(
-                            state.value.entries.find {
-                                it.id == request.bucketId && it.kind == CalendarEntryKind.BUCKET
-                            }
-                        )
+                        state.value.entries.find {
+                            it.id == request.bucketId && it.kind == CalendarEntryKind.BUCKET
+                        }
+                    check(bucket != null || request.weeklyMissionId != null)
                     bucket to family
                 }
             require(request.message.length <= 100)
@@ -553,21 +552,23 @@ open class LocalRecordRepository(
             val schedule =
                 familySchedules.create(
                     com.kiri.domain.schedule.ScheduleDraft(
-                        bucket.id,
-                        bucket.missionId,
+                        bucket?.id.orEmpty(),
+                        bucket?.missionId ?: requireNotNull(request.missionId),
                         start,
                         request.participantIds - family.currentUserId,
                         request.message,
-                        missions.load(bucket.missionId).summary.place,
+                        missions.load(bucket?.missionId ?: requireNotNull(request.missionId)).summary.place,
+                        request.weeklyMissionId,
                     ),
                     request.requestId.ifBlank {
-                        "record-${bucket.id}-${request.date}-${request.time}"
+                        "record-${bucket?.id ?: request.weeklyMissionId}-${request.date}-${request.time}"
                     },
                 )
             refresh()
             return requireNotNull(state.value.entries.find { it.id == schedule.id })
         }
         return mutex.withLock {
+            check(request.weeklyMissionId == null) { "주간 미션은 통합 일정 저장소가 필요해요." }
             val family = family()
             check(!family.browsing) { "Family access required" }
             val bucket =

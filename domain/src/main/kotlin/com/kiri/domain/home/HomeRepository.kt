@@ -77,6 +77,7 @@ data class HomeSchedule(
     val finalParticipant: Boolean,
     val responseDeadline: java.time.Instant? = null,
     val missionId: String = id,
+    val weeklyMissionId: String? = null,
 )
 
 data class HomeScheduleCard(val schedule: HomeSchedule, val kind: Kind) {
