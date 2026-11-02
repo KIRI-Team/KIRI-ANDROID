@@ -28,6 +28,7 @@ fun InputFamilyNameScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
     violations: Set<NicknameRule> = emptySet(),
+    isDuplicated: Boolean = false,
 ) {
     Column(
         modifier
@@ -53,8 +54,8 @@ fun InputFamilyNameScreen(
             OnboardingInputBox(
                 value = familyName,
                 onValueChange = onFamilyNameChange,
-                guides = nicknameGuides(violations),
-                isError = violations.isNotEmpty(),
+                guides = familyNameGuides(violations, isDuplicated),
+                isError = violations.isNotEmpty() || isDuplicated,
                 placeholder = "가족명을 입력하세요.",
             )
         }

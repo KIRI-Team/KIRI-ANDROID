@@ -1,6 +1,7 @@
 package com.kiri.feature.mypage
 
 import com.kiri.domain.model.invite.Invite
+import com.kiri.domain.model.invite.InviteReissueFailedException
 import com.kiri.feature.mypage.model.invite.InviteLinkUiEffect
 import com.kiri.feature.mypage.model.invite.InviteLinkUiEvent
 import com.kiri.feature.mypage.model.invite.InviteLinkUiState
@@ -35,7 +36,7 @@ class InviteLinkViewModelTest {
     private fun viewModel(repository: TestInviteRepository) = InviteLinkViewModel(repository)
 
     @Test
-    fun 온보딩에서_발급한_초대가_있으면_새로_발급하지_않고_보여준다() = runTest(mainDispatcherRule.testDispatcher) {
+    fun 서버에서_불러온_지금_초대를_새로_발급하지_않고_보여준다() = runTest(mainDispatcherRule.testDispatcher) {
         val repository = TestInviteRepository(current = issued)
         val viewModel = viewModel(repository)
         advanceUntilIdle()
@@ -46,16 +47,28 @@ class InviteLinkViewModelTest {
     }
 
     @Test
-    fun 발급한_초대가_없으면_로딩_화면을_보여주고_새로_발급한다() = runTest(mainDispatcherRule.testDispatcher) {
-        val repository = TestInviteRepository(current = null)
+    fun 초대를_불러오지_못하면_새로_발급하지_않고_오류를_알린다() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = TestInviteRepository(loadError = IOException())
         val viewModel = viewModel(repository)
-        runCurrent()
-
-        assertTrue(viewModel.uiState.value.isIssuing)
-
         advanceUntilIdle()
-        assertEquals(TestInviteRepository.NEW_INVITE, viewModel.uiState.value.invite)
+
+        assertNull(viewModel.uiState.value.invite)
         assertFalse(viewModel.uiState.value.isIssuing)
+        assertEquals(0, repository.createCount)
+        assertEquals(InviteLinkUiEffect.ShowLoadError, viewModel.effect.first())
+    }
+
+    @Test
+    fun 초대를_불러오지_못해도_리셋으로_새로_발급할_수_있다() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = TestInviteRepository(loadError = IOException())
+        val viewModel = viewModel(repository)
+        advanceUntilIdle()
+        assertEquals(InviteLinkUiEffect.ShowLoadError, viewModel.effect.first())
+
+        viewModel.onEvent(InviteLinkUiEvent.ResetClicked)
+        advanceUntilIdle()
+
+        assertEquals(TestInviteRepository.NEW_INVITE, viewModel.uiState.value.invite)
         assertEquals(1, repository.createCount)
     }
 
@@ -74,8 +87,6 @@ class InviteLinkViewModelTest {
         advanceUntilIdle()
         assertFalse(viewModel.uiState.value.isIssuing)
         assertEquals(TestInviteRepository.NEW_INVITE, viewModel.uiState.value.invite)
-        // 같은 저장소의 지금 초대도 바뀌어 온보딩·마이페이지가 같은 초대를 본다
-        assertEquals(TestInviteRepository.NEW_INVITE, repository.getCurrentInvite())
     }
 
     @Test
@@ -103,6 +114,44 @@ class InviteLinkViewModelTest {
         assertEquals(issued, viewModel.uiState.value.invite)
         assertFalse(viewModel.uiState.value.isIssuing)
         assertEquals(InviteLinkUiEffect.ShowInviteError, viewModel.effect.first())
+        assertFalse(viewModel.uiState.value.isReissueFailed)
+    }
+
+    @Test
+    fun 이전_초대를_지운_뒤_재발급에_실패하면_초대를_비우고_재발급_실패를_보여준다() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = TestInviteRepository(
+            current = issued,
+            result = Result.failure(InviteReissueFailedException(IOException())),
+        )
+        val viewModel = viewModel(repository)
+        advanceUntilIdle()
+
+        viewModel.onEvent(InviteLinkUiEvent.ResetClicked)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.invite)
+        assertTrue(viewModel.uiState.value.isReissueFailed)
+        assertFalse(viewModel.uiState.value.canShare)
+        assertNull(withTimeoutOrNull(100) { viewModel.effect.first() })
+    }
+
+    @Test
+    fun 재발급에_실패한_뒤_다시_리셋해서_발급하면_재발급_실패를_지운다() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = TestInviteRepository(
+            current = issued,
+            result = Result.failure(InviteReissueFailedException(IOException())),
+        )
+        val viewModel = viewModel(repository)
+        advanceUntilIdle()
+        viewModel.onEvent(InviteLinkUiEvent.ResetClicked)
+        advanceUntilIdle()
+
+        repository.result = Result.success(TestInviteRepository.NEW_INVITE)
+        viewModel.onEvent(InviteLinkUiEvent.ResetClicked)
+        advanceUntilIdle()
+
+        assertEquals(TestInviteRepository.NEW_INVITE, viewModel.uiState.value.invite)
+        assertFalse(viewModel.uiState.value.isReissueFailed)
     }
 
     @Test

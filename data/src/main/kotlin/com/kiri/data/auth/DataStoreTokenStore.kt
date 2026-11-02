@@ -14,7 +14,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 // 같은 파일을 여는 DataStore 는 앱에 하나만 있어야 해서 파일 수준에서 만든다
-private val Context.authDataStore: DataStore<Preferences> by preferencesDataStore(name = "auth_tokens")
+// 로그인한 계정에 묶인 값(가족 ID)도 여기에 두어 clear() 로 함께 지운다
+internal val Context.authDataStore: DataStore<Preferences> by preferencesDataStore(name = "auth_tokens")
 
 // 앱 전용 저장소(DataStore)에 토큰을 보관한다
 @Singleton
@@ -41,6 +42,7 @@ internal class DataStoreTokenStore @Inject constructor(
         return AuthTokens(accessToken, refreshToken)
     }
 
+    // 토큰과 함께 이 계정의 가족 ID(DataStoreFamilyIdStore)도 지운다
     override suspend fun clear() {
         dataStore.edit { it.clear() }
     }

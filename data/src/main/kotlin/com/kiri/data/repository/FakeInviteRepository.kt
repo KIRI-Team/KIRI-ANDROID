@@ -1,5 +1,6 @@
 package com.kiri.data.repository
 
+import com.kiri.domain.model.family.NoFamilyException
 import com.kiri.domain.model.invite.Invite
 import com.kiri.domain.model.invite.InviteLink
 import com.kiri.domain.repository.InviteRepository
@@ -10,9 +11,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.random.Random
 
-// TODO(invite-api): 초대 발급 API가 정해지면 서버 호출 구현으로 교체
-// 가정: POST /relationships/invite → { code, url, expiresAt }
-// 온보딩에서 발급한 초대를 마이페이지에서도 보여줄 수 있도록 앱 전체에서 하나만 두고 지금 초대를 기억한다
+// UI 테스트에서 실제 서버 대신 쓰는 초대 저장소 (앱은 family/RemoteInviteRepository 를 쓴다)
+// 발급한 초대를 지금 초대로 기억한다
 @Singleton
 class FakeInviteRepository(
     private val clock: Clock,
@@ -33,7 +33,8 @@ class FakeInviteRepository(
         return Result.success(invite)
     }
 
-    override suspend fun getCurrentInvite(): Invite? = current
+    override suspend fun getCurrentInvite(): Result<Invite> =
+        current?.let { Result.success(it) } ?: Result.failure(NoFamilyException())
 
     private fun generateCode(): String =
         (1..CODE_LENGTH).map { CODE_CHARACTERS[Random.nextInt(CODE_CHARACTERS.length)] }.joinToString("")

@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -24,13 +26,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
-import androidx.compose.ui.unit.sp
 import com.kiri.feature.auth.R
+import com.kiri.uikit.KiriTypography
 import com.kiri.uikit.color.KiriComponentColor
 
 // KIRI/Agreement Row: Type=All(전체동의) / Type=Required(개별 약관)
@@ -51,9 +50,13 @@ fun AuthAgreementRow(
     testTag: String = "auth_agreement_row",
 ) {
     val shape = RoundedCornerShape(8.dp)
-    val containerModifier = when (type) {
-        AuthAgreementRowType.All -> Modifier.background(KiriComponentColor.Input.BgFilled, shape)
-        AuthAgreementRowType.Required -> Modifier.border(1.dp, KiriComponentColor.Input.BorderFilled, shape)
+    val containerModifier = when {
+        type == AuthAgreementRowType.All -> Modifier.background(KiriComponentColor.Input.BgFilled, shape)
+        checked -> Modifier.border(1.dp, KiriComponentColor.Input.BorderFilled, shape)
+        // 동의하지 않은 개별 약관 (Figma 8441:7328)
+        else -> Modifier
+            .background(KiriComponentColor.Input.BgDefault, shape)
+            .border(1.dp, KiriComponentColor.Input.BorderDisabled, shape)
     }
 
     Row(
@@ -74,12 +77,19 @@ fun AuthAgreementRow(
                 .testTag("${testTag}_checkbox"),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Image(
-                painter = painterResource(
-                    if (checked) R.drawable.ic_auth_check_circle_active else R.drawable.ic_auth_check_circle_disabled,
-                ),
-                contentDescription = null,
-            )
+            // 체크 여부와 상관없이 같은 22dp 칸에 두어 체크해도 글자가 움직이지 않게 한다
+            // 두 아이콘 모두 칸 가운데에 지름 22dp 원을 그린다 (빈 원은 테두리가, 체크 아이콘은 1dp 여백이 칸을 살짝 넘친다)
+            Box(modifier = Modifier.size(22.dp), contentAlignment = Alignment.Center) {
+                Image(
+                    painter = painterResource(
+                        if (checked) R.drawable.ic_auth_check_circle_active else R.drawable.ic_auth_check_circle_empty,
+                    ),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .wrapContentSize(unbounded = true)
+                        .then(if (checked) Modifier else Modifier.testTag("${testTag}_unchecked")),
+                )
+            }
             Spacer(
                 Modifier.width(
                     when (type) {
@@ -91,13 +101,9 @@ fun AuthAgreementRow(
             Text(
                 text = title,
                 modifier = Modifier.weight(1f),
-                style = TextStyle(
-                    color = KiriComponentColor.Input.ContentFilled,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    lineHeight = 24.sp,
-                    letterSpacing = (-0.04).em,
-                ),
+                // Figma KIRI/Title/Medium. 24sp 줄 가운데에 글자를 두어 아이콘과 중심이 맞는다
+                style = KiriTypography.TitleMedium,
+                color = KiriComponentColor.Input.ContentFilled,
             )
             if (onDetailClick == null) {
                 Image(painter = painterResource(R.drawable.ic_auth_chevron_right), contentDescription = null)

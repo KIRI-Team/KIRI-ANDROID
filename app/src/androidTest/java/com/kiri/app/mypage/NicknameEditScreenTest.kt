@@ -62,7 +62,7 @@ class NicknameEditScreenTest {
     fun 지키지_못한_규칙만_오류_문구로_보여준다() {
         setContent(NameEditUiState(name = "쥬", violations = setOf(NicknameRule.LENGTH)))
 
-        composeTestRule.onNodeWithText("최소 2자 ~ 최대 10자 이내로 입력해주세요").assertIsDisplayed()
+        composeTestRule.onNodeWithText("최소 2자 ~ 최대 12자 이내로 입력해주세요").assertIsDisplayed()
         composeTestRule.onNodeWithText("특수 문자는 입력할 수 없어요").assertDoesNotExist()
     }
 }

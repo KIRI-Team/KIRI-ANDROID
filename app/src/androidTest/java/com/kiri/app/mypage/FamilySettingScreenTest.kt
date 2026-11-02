@@ -90,4 +90,18 @@ class FamilySettingScreenTest {
 
         assertEquals(listOf(NameEditUiEvent.NextClicked), events)
     }
+
+    @Test
+    fun 이미_있는_가족명이면_가족명_수정_화면에_중복_안내가_보인다() {
+        composeTestRule.setContent {
+            KiriTheme {
+                FamilyNameEditScreen(
+                    state = NameEditUiState(currentName = "끼리네가족", name = "끼리네가족2", isDuplicated = true),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("이미 존재하는 가족 이름입니다.").assertIsDisplayed()
+    }
 }

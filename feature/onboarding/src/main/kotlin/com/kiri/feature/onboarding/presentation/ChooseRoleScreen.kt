@@ -32,6 +32,8 @@ fun ChooseRoleScreen(
     onNextClick: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    // 서버에 저장하는 동안 다음 버튼을 막는다
+    isSubmitting: Boolean = false,
 ) {
     Column(
         modifier
@@ -72,6 +74,7 @@ fun ChooseRoleScreen(
         if (selectedRole != null) {
             KiriButton(
                 onClick = onNextClick,
+                enabled = !isSubmitting,
                 modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 12.dp),
             )
         }

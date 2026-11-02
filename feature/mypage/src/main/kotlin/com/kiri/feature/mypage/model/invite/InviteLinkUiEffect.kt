@@ -11,6 +11,9 @@ sealed interface InviteLinkUiEffect {
     // 초대 코드를 발급하지 못했다
     data object ShowInviteError : InviteLinkUiEffect
 
+    // 지금 초대를 불러오지 못했다 (네트워크, 가족 공간 정보 없음 등)
+    data object ShowLoadError : InviteLinkUiEffect
+
     // 마이페이지로 돌아간다
     data object NavigateBack : InviteLinkUiEffect
 }

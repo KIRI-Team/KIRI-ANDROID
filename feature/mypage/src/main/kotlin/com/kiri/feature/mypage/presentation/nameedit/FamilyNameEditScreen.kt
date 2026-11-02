@@ -18,7 +18,11 @@ fun FamilyNameEditRoute(
     viewModel: FamilyNameEditViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    NameEditEffects(viewModel = viewModel, onNavigateBack = onNavigateBack)
+    NameEditEffects(
+        viewModel = viewModel,
+        onNavigateBack = onNavigateBack,
+        saveErrorText = "가족명을 저장하지 못했어요. 잠시 후 다시 시도해주세요.",
+    )
 
     FamilyNameEditScreen(modifier = modifier, state = state, onEvent = viewModel::onEvent)
 }
@@ -38,6 +42,7 @@ fun FamilyNameEditScreen(
         subtitleColor = KiriColor.Text.Tertiary,
         placeholder = "지금 가족명: ${state.currentName}",
         testTag = "family_name_edit_screen",
+        duplicatedText = "이미 존재하는 가족 이름입니다.",
         modifier = modifier,
     )
 }

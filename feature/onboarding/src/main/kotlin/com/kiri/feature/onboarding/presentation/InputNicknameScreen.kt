@@ -28,6 +28,9 @@ fun InputNicknameScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
     violations: Set<NicknameRule> = emptySet(),
+    isDuplicated: Boolean = false,
+    // 서버에 저장하는 동안 입력과 다음 버튼을 막는다
+    isSubmitting: Boolean = false,
 ) {
     Column(
         modifier
@@ -52,15 +55,16 @@ fun InputNicknameScreen(
             OnboardingInputBox(
                 value = nickname,
                 onValueChange = onNicknameChange,
-                guides = nicknameGuides(violations),
-                isError = violations.isNotEmpty(),
+                guides = nicknameGuides(violations, isDuplicated),
+                isError = violations.isNotEmpty() || isDuplicated,
                 placeholder = "이름을 입력하세요.",
+                enabled = !isSubmitting,
             )
         }
         KiriButton(
             onClick = onNextClick,
             // 한 글자라도 입력하면 활성화하고, 규칙 확인은 누른 시점에 한다
-            enabled = nickname.isNotEmpty(),
+            enabled = nickname.isNotEmpty() && !isSubmitting,
             modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 12.dp),
         )
     }
