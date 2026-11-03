@@ -6,6 +6,8 @@ import retrofit2.http.*
 
 // 모두 로그인 토큰이 필요하다. Authorization 헤더는 AuthInterceptor 가 붙인다
 internal interface HomeApi {
+    @GET("api/v1/schedules/upcoming")
+    suspend fun upcoming(): ApiResponse<UpcomingSchedules>
     @GET("api/v1/questions/today")
     suspend fun today(): ApiResponse<TodayQuestionResponse>
     @GET("api/v1/questions/{questionId}/answers")
@@ -20,3 +22,7 @@ internal interface HomeApi {
 @Serializable internal data class FamilyAnswersResponse(val question: String, val answers: List<MemberAnswer>)
 @Serializable internal data class MemberAnswer(val isMe: Boolean, val memberId: Long, val nickname: String, val isAnswered: Boolean, val answer: String? = null)
 @Serializable internal data class AnswerRequest(val answer: String)
+
+@Serializable internal data class UpcomingSchedules(val responseRequired: UpcomingSchedule? = null, val upcoming: UpcomingSchedule? = null)
+@Serializable internal data class UpcomingSchedule(val scheduleId: Long, val date: String, val time: String,
+    val status: String, val myStatus: String, val type: String, val title: String)
