@@ -37,7 +37,7 @@ fun RecordRoute(
     onBucketClick: (String) -> Unit = {},
     onEntryClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
-    onServerScheduleClick: (Long) -> Unit = {},
+    onServerScheduleClick: (scheduleId: Long, date: java.time.LocalDate) -> Unit = { _, _ -> },
     viewModel: RecordViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -54,7 +54,7 @@ fun RecordRoute(
                     is RecordUiEffect.OpenSchedule -> currentScheduleClick(effect.id)
                     is RecordUiEffect.OpenBucket -> currentBucketClick(effect.id)
                     is RecordUiEffect.OpenEntry -> currentEntryClick(effect.id)
-                    is RecordUiEffect.OpenServerSchedule -> currentServerScheduleClick(effect.scheduleId)
+                    is RecordUiEffect.OpenServerSchedule -> currentServerScheduleClick(effect.scheduleId, effect.date)
                 }
             }
         }

@@ -7,6 +7,9 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
+import androidx.compose.ui.geometry.Offset
 import com.kiri.domain.detail.Condition
 import com.kiri.feature.detail.presentation.ConditionCustomScreen
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -99,6 +102,52 @@ class ServerScheduleDetailScreenTest {
         compose.runOnIdle {
             assertEquals(listOf<DetailUiEvent>(DetailUiEvent.ConditionToggled(Condition.MORE_REST)), events)
         }
+    }
+
+    @Test
+    fun scheduledShowsParticipantCheckTooltipInsteadOfParticipantRow() {
+        val scheduled = detail.copy(status = ScheduleDisplayStatus.SCHEDULED, date = LocalDate.of(2026, 6, 13))
+        compose.setContent {
+            KiriTheme {
+                ServerScheduleDetailScreen(
+                    ServerScheduleDetailUiState(
+                        detail = DetailUiState(loading = false, detail = scheduled.toMissionDetail(7)),
+                        schedule = scheduled,
+                    ),
+                    {},
+                )
+            }
+        }
+        compose.onNodeWithText("약속 예정").assertIsDisplayed()
+        compose.onNodeWithText("  I  2026.06.13").assertIsDisplayed()
+        // 참여 상태 줄은 숨기고, 인원확인을 눌러야 참여자가 보인다
+        compose.onNodeWithText("참여상태  I").assertDoesNotExist()
+        compose.onNodeWithText("엄마").assertDoesNotExist()
+
+        compose.onNodeWithTag("participant_check").performClick()
+        compose.onNodeWithTag("participant_check_tooltip").assertIsDisplayed()
+        compose.onNodeWithText("엄마", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText("첫째", useUnmergedTree = true).assertIsDisplayed()
+        // 말풍선에는 이름 아래 상태 문구를 그리지 않는다
+        compose.onNodeWithText("미수락", useUnmergedTree = true).assertDoesNotExist()
+
+        compose.onNodeWithTag("participant_check_dim").performTouchInput { click(Offset(10f, 10f)) }
+        compose.onNodeWithTag("participant_check_tooltip").assertDoesNotExist()
+    }
+
+    @Test
+    fun loadingAndFinalFailureUseDateTitleAndHideRetry() {
+        var state by mutableStateOf(
+            ServerScheduleDetailUiState(DetailUiState(loading = true), requestedDate = LocalDate.of(2026, 11, 17)),
+        )
+        compose.setContent { KiriTheme { ServerScheduleDetailScreen(state, {}) } }
+        compose.onNodeWithText("11월 17일").assertIsDisplayed()
+        compose.onNodeWithText("미션 상세").assertDoesNotExist()
+
+        state = state.copy(detail = DetailUiState(loading = false, error = "취소된 약속이에요."), retryable = false)
+        compose.onNodeWithText("11월 17일").assertIsDisplayed()
+        compose.onNodeWithText("취소된 약속이에요.").assertIsDisplayed()
+        compose.onNodeWithText("다시 시도").assertDoesNotExist()
     }
 
     @Test

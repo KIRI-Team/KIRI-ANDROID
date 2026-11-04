@@ -27,7 +27,7 @@ class RecordScreenTest {
     @Test
     fun selectedDayListsServerSchedulesAndOnlyOpenableOnesCanBeTapped() {
         val date = LocalDate.of(2026, 10, 13)
-        fun schedule(id: Long, status: com.kiri.domain.home.ScheduleStatus) =
+        fun schedule(id: Long, status: com.kiri.domain.model.schedule.CalendarScheduleStatus) =
             com.kiri.domain.model.schedule.CalendarSchedule(id, date, java.time.LocalTime.of(14, 50), status, null)
         val events = mutableListOf<RecordUiEvent>()
         compose.setContent {
@@ -37,8 +37,8 @@ class RecordScreenTest {
                         today = date,
                         monthSchedules =
                             listOf(
-                                schedule(1, com.kiri.domain.home.ScheduleStatus.CONFIRMED),
-                                schedule(2, com.kiri.domain.home.ScheduleStatus.CANCELLED),
+                                schedule(1, com.kiri.domain.model.schedule.CalendarScheduleStatus.CONFIRMED),
+                                schedule(2, com.kiri.domain.model.schedule.CalendarScheduleStatus.CANCELLED),
                             ),
                     ),
                     { events += it },

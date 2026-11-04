@@ -11,7 +11,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
-import com.kiri.domain.home.ScheduleStatus
+import com.kiri.domain.model.schedule.CalendarScheduleStatus
 import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.model.schedule.ScheduleDisplayStatus
 import com.kiri.feature.record.model.*
@@ -139,14 +139,14 @@ private fun ServerScheduleRow(schedule: CalendarSchedule, onEvent: (RecordUiEven
 
 // 캘린더에서는 예정·확정·완료·취소로만 나눈다. 당일(TODAY) 문구는 홈 화면에서 쓰므로 여기서는 확정으로 보여준다
 // 상세 상태를 모르면 월간 조회 상태로 정한다. 두 번째 값은 확정 배지 색을 쓸지 여부다
-internal fun scheduleLabel(status: ScheduleStatus, detailStatus: ScheduleDisplayStatus?): Pair<String, Boolean> =
+internal fun scheduleLabel(status: CalendarScheduleStatus, detailStatus: ScheduleDisplayStatus?): Pair<String, Boolean> =
     when {
-        status == ScheduleStatus.CANCELLED -> "약속 취소" to false
+        status == CalendarScheduleStatus.CANCELLED -> "약속 취소" to false
         detailStatus == ScheduleDisplayStatus.COMPLETED -> "약속 완료" to false
         detailStatus == ScheduleDisplayStatus.CONFIRMED || detailStatus == ScheduleDisplayStatus.TODAY ->
             "약속 확정" to true
         detailStatus == ScheduleDisplayStatus.SCHEDULED -> "약속 예정" to false
-        status == ScheduleStatus.COMPLETED -> "약속 완료" to false
-        status == ScheduleStatus.CONFIRMED -> "약속 확정" to true
+        status == CalendarScheduleStatus.COMPLETED -> "약속 완료" to false
+        status == CalendarScheduleStatus.CONFIRMED -> "약속 확정" to true
         else -> "약속 예정" to false
     }

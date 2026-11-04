@@ -23,5 +23,6 @@ sealed interface RecordUiEffect {
     data class OpenEntry(val id: String) : RecordUiEffect
 
     // 서버 일정 상세 화면을 연다
-    data class OpenServerSchedule(val scheduleId: Long) : RecordUiEffect
+    // 날짜는 상세를 받기 전에도 앱바 제목을 보여주려고 함께 넘긴다
+    data class OpenServerSchedule(val scheduleId: Long, val date: java.time.LocalDate) : RecordUiEffect
 }

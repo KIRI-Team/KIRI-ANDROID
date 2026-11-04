@@ -1,10 +1,15 @@
 package com.kiri.data.schedule
 
 import com.kiri.data.network.KiriApiException
+import com.kiri.data.network.apiCommand
 import com.kiri.data.network.apiResult
 import com.kiri.domain.model.family.NoFamilyException
 import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.model.schedule.CancelledScheduleException
+import com.kiri.domain.model.schedule.InvalidScheduleUpdateException
+import com.kiri.domain.model.schedule.NotScheduleProposerException
+import com.kiri.domain.model.schedule.ScheduleNotEditableException
+import com.kiri.domain.model.schedule.ScheduleUpdate
 import com.kiri.domain.model.schedule.ScheduleDetail
 import com.kiri.domain.model.schedule.ScheduleNotFoundException
 import com.kiri.domain.repository.CalendarScheduleRepository
@@ -37,9 +42,25 @@ internal class CalendarScheduleRepositoryImpl @Inject constructor(
                 }
             }
 
+    override suspend fun updateSchedule(scheduleId: Long, update: ScheduleUpdate): Result<Unit> =
+        apiCommand(json) { api.updateSchedule(scheduleId, update.toRequest()) }
+            .recoverCatching { error ->
+                val api = error as? KiriApiException
+                throw when (api?.code) {
+                    NOT_PROPOSER -> NotScheduleProposerException()
+                    NOT_FOUND -> ScheduleNotFoundException()
+                    NOT_EDITABLE -> ScheduleNotEditableException()
+                    INVALID_INPUT -> InvalidScheduleUpdateException(api.message)
+                    else -> error
+                }
+            }
+
     private companion object {
         const val NO_FAMILY = "SCHEDULE403_1"
+        const val NOT_PROPOSER = "SCHEDULE403_4"
         const val NOT_FOUND = "SCHEDULE404_2"
+        const val NOT_EDITABLE = "SCHEDULE409_4"
         const val CANCELLED = "SCHEDULE409_7"
+        const val INVALID_INPUT = "COMMON400_1"
     }
 }

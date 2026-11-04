@@ -1,6 +1,5 @@
 package com.kiri.domain.model.schedule
 
-import com.kiri.domain.home.ScheduleStatus
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -11,10 +10,13 @@ data class CalendarSchedule(
     val date: LocalDate,
     // 읽지 못하면 null
     val time: LocalTime?,
-    val status: ScheduleStatus,
+    val status: CalendarScheduleStatus,
     // 앱이 모르는 값이면 null
     val myStatus: MyScheduleStatus?,
 )
+
+// 월간 조회의 일정 상태 (명세 기준 5가지). 재확인 필요는 일정 상태가 아니라 회원별 응답 상태(myStatus)다
+enum class CalendarScheduleStatus { PENDING_RESPONSE, CONFIRMED, NOT_CONFIRMED, CANCELLED, COMPLETED }
 
 // 현재 회원의 응답 상태
 enum class MyScheduleStatus { NOT_INVITED, PENDING, ACCEPTED, DECLINED, RECONFIRM_REQUIRED }

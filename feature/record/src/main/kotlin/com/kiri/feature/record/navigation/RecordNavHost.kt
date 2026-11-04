@@ -27,6 +27,8 @@ import com.kiri.feature.record.RecordDetailViewModel
 import com.kiri.feature.record.RecordViewModel
 import com.kiri.feature.record.ScheduleRegisterViewModel
 import com.kiri.feature.record.ServerScheduleDetailViewModel
+import com.kiri.feature.record.ScheduleEditViewModel
+import com.kiri.feature.record.presentation.schedule.ScheduleEditRoute
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.kiri.feature.record.presentation.schedule.ScheduleRegisterRoute
@@ -41,6 +43,9 @@ private const val START_ROUTE = "record"
 private const val DETAIL_ROUTE = "record_graph/detail"
 private const val SCHEDULE_ROUTE = "record_graph/schedule"
 private const val SERVER_SCHEDULE_ROUTE = "record_graph/server-schedule"
+private const val SCHEDULE_EDIT_ROUTE = "record_graph/schedule-edit"
+private const val SERVER_SCHEDULE_DETAIL_PATTERN =
+    "$SERVER_SCHEDULE_ROUTE/{${ServerScheduleDetailViewModel.SCHEDULE_ID_ARG}}?${ServerScheduleDetailViewModel.DATE_ARG}={${ServerScheduleDetailViewModel.DATE_ARG}}"
 private const val SENT_TOAST_KEY = "scheduleSentToast"
 
 /** Registers this feature in the main tab back stack. */
@@ -59,7 +64,9 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
                     onBucketClick = { optionBucketId = it },
                     onEntryClick = { navController.navigate("$DETAIL_ROUTE/${Uri.encode(it)}") { launchSingleTop = true } },
                     viewModel = viewModel,
-                    onServerScheduleClick = { navController.navigate("$SERVER_SCHEDULE_ROUTE/$it") { launchSingleTop = true } },
+                    onServerScheduleClick = { id, date ->
+                        navController.navigate("$SERVER_SCHEDULE_ROUTE/$id?${ServerScheduleDetailViewModel.DATE_ARG}=$date") { launchSingleTop = true }
+                    },
                 )
                 if (showSentToast) {
                     ScheduleSentToast(onDismiss = { entry.savedStateHandle[SENT_TOAST_KEY] = false }, modifier = Modifier.align(Alignment.TopCenter))
@@ -107,20 +114,41 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
         }
         // 캘린더에서 고른 서버 일정의 상세. 내용은 일정 상세 API 로 채운다
         composable(
-            "$SERVER_SCHEDULE_ROUTE/{${ServerScheduleDetailViewModel.SCHEDULE_ID_ARG}}",
-            arguments = listOf(navArgument(ServerScheduleDetailViewModel.SCHEDULE_ID_ARG) { type = NavType.LongType }),
+            SERVER_SCHEDULE_DETAIL_PATTERN,
+            arguments = listOf(
+                navArgument(ServerScheduleDetailViewModel.SCHEDULE_ID_ARG) { type = NavType.LongType },
+                navArgument(ServerScheduleDetailViewModel.DATE_ARG) { type = NavType.StringType; nullable = true; defaultValue = null },
+            ),
         ) { entry ->
             val id = entry.arguments?.getLong(ServerScheduleDetailViewModel.SCHEDULE_ID_ARG)
             ServerScheduleDetailRoute(
                 hiltViewModel(entry),
                 onBack = { navController.popBackStack() },
                 onCustom = { navController.navigate("$SERVER_SCHEDULE_ROUTE/$id/custom") { launchSingleTop = true } },
+                // 상세를 걷어내고 변경 화면을 띄워, 뒤로가기나 저장 후에는 캘린더로 돌아가게 한다
+                onEdit = { scheduleId ->
+                    navController.navigate("$SCHEDULE_EDIT_ROUTE/$scheduleId") {
+                        popUpTo(SERVER_SCHEDULE_DETAIL_PATTERN) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
+        // 제안자의 일정 변경하기 (일정 등록 화면의 변경 모드). 내용은 일정 상세 API 로 채우고 일정 수정 API 로 저장한다
+        composable(
+            "$SCHEDULE_EDIT_ROUTE/{${ScheduleEditViewModel.SCHEDULE_ID_ARG}}",
+            arguments = listOf(navArgument(ScheduleEditViewModel.SCHEDULE_ID_ARG) { type = NavType.LongType }),
+        ) { entry ->
+            ScheduleEditRoute(
+                hiltViewModel(entry),
+                onBackClick = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
             )
         }
         // 약속 당일의 컨디션 커스텀. 상세 화면의 ViewModel 을 함께 쓴다. 적용 API 가 없어 적용하기는 꺼 둔다
         composable("$SERVER_SCHEDULE_ROUTE/{${ServerScheduleDetailViewModel.SCHEDULE_ID_ARG}}/custom") { entry ->
             val parent = remember(entry) {
-                navController.getBackStackEntry("$SERVER_SCHEDULE_ROUTE/{${ServerScheduleDetailViewModel.SCHEDULE_ID_ARG}}")
+                navController.getBackStackEntry(SERVER_SCHEDULE_DETAIL_PATTERN)
             }
             val viewModel: ServerScheduleDetailViewModel = hiltViewModel(parent)
             val state by viewModel.uiState.collectAsStateWithLifecycle()

@@ -3,7 +3,7 @@ package com.kiri.feature.record.model
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
-import com.kiri.domain.home.ScheduleStatus
+import com.kiri.domain.model.schedule.CalendarScheduleStatus
 import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.record.CalendarEntry
 import com.kiri.domain.record.RecordPhoto
@@ -47,15 +47,15 @@ data class RecordUiState(
 }
 
 // 취소된 일정은 서버가 상세를 돌려주지 않아 상세 화면을 열 수 없다
-val CalendarSchedule.canOpen get() = status != ScheduleStatus.CANCELLED
+val CalendarSchedule.canOpen get() = status != CalendarScheduleStatus.CANCELLED
 
 // 서버 일정을 날짜별 표시로 바꾼다. 확정(완료 포함) > 예정 > 취소 순으로 하나만 고른다
 internal fun List<CalendarSchedule>.toCalendarMarks(): Map<LocalDate, RecordCalendarMark> =
     groupBy { it.date }.mapValues { (_, schedules) ->
         val statuses = schedules.map { it.status }
         when {
-            statuses.any { it == ScheduleStatus.CONFIRMED || it == ScheduleStatus.COMPLETED } -> RecordCalendarMark.CONFIRMED
-            statuses.any { it != ScheduleStatus.CANCELLED } -> RecordCalendarMark.PLANNED
+            statuses.any { it == CalendarScheduleStatus.CONFIRMED || it == CalendarScheduleStatus.COMPLETED } -> RecordCalendarMark.CONFIRMED
+            statuses.any { it != CalendarScheduleStatus.CANCELLED } -> RecordCalendarMark.PLANNED
             else -> RecordCalendarMark.CANCELLED
         }
     }

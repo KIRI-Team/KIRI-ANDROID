@@ -3,7 +3,7 @@ package com.kiri.data.schedule
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiBaseUrl
 import com.kiri.data.network.kiriJson
-import com.kiri.domain.home.ScheduleStatus
+import com.kiri.domain.model.schedule.CalendarScheduleStatus
 import com.kiri.domain.model.family.NoFamilyException
 import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.model.schedule.CancelledScheduleException
@@ -12,6 +12,14 @@ import com.kiri.domain.model.schedule.ScheduleDetail
 import com.kiri.domain.model.schedule.ScheduleDisplayStatus
 import com.kiri.domain.model.schedule.ScheduleNotFoundException
 import com.kiri.domain.model.schedule.ScheduleParticipant
+import com.kiri.domain.model.schedule.ScheduleUpdate
+import com.kiri.domain.model.schedule.NotScheduleProposerException
+import com.kiri.domain.model.schedule.ScheduleNotEditableException
+import com.kiri.domain.model.schedule.InvalidScheduleUpdateException
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import java.io.IOException
 import java.time.LocalDate
 import java.time.LocalTime
@@ -56,6 +64,53 @@ class CalendarScheduleRepositoryImplTest {
     }
 
     @Test
+    fun 일정_수정은_날짜_시간_초대_대상_한_줄을_PATCH_로_보낸다() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"SCHEDULE200_4","message":"일정 수정 성공","result":{"scheduleId":100,"scheduleDate":"2026-11-16","scheduleTime":"15:00","status":"PENDING_RESPONSE","responseDeadline":"2026-11-15T15:00:00","proposerId":1,"participantMemberIds":[2,3]}}""")
+
+        val result = repository().updateSchedule(
+            100,
+            ScheduleUpdate(LocalDate.of(2026, 11, 16), LocalTime.of(15, 0), setOf(3L, 2L), "같이 가요"),
+        )
+
+        assertTrue(result.isSuccess)
+        val request = server.takeRequest()
+        assertEquals("PATCH", request.method)
+        assertEquals("/api/v1/schedules/100", request.url.encodedPath)
+        val body = kiriJson.parseToJsonElement(request.body!!.utf8()).jsonObject
+        assertEquals("2026-11-16", body["scheduleDate"]!!.jsonPrimitive.content)
+        assertEquals("15:00", body["scheduleTime"]!!.jsonPrimitive.content)
+        assertEquals(listOf(2L, 3L), body["participantMemberIds"]!!.jsonArray.map { it.jsonPrimitive.long })
+        assertEquals("같이 가요", body["requestMessage"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun 일정_수정에서_한_줄이_비어_있으면_보내지_않는다() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"SCHEDULE200_4","message":"일정 수정 성공","result":{}}""")
+
+        repository().updateSchedule(100, ScheduleUpdate(LocalDate.of(2026, 11, 16), LocalTime.of(9, 5), setOf(2L), " "))
+
+        val body = kiriJson.parseToJsonElement(server.takeRequest().body!!.utf8()).jsonObject
+        assertEquals("09:05", body["scheduleTime"]!!.jsonPrimitive.content)
+        assertNull(body["requestMessage"])
+    }
+
+    @Test
+    fun 일정_수정_실패_코드를_도메인_오류로_바꾼다() = runTest {
+        val update = ScheduleUpdate(LocalDate.of(2026, 11, 16), LocalTime.of(15, 0), setOf(2L))
+        fun failure(status: Int, code: String) =
+            enqueue(status, """{"isSuccess":false,"code":"$code","message":"실패","result":null}""")
+
+        failure(403, "SCHEDULE403_4")
+        assertTrue(repository().updateSchedule(100, update).exceptionOrNull() is NotScheduleProposerException)
+        failure(404, "SCHEDULE404_2")
+        assertTrue(repository().updateSchedule(100, update).exceptionOrNull() is ScheduleNotFoundException)
+        failure(409, "SCHEDULE409_4")
+        assertTrue(repository().updateSchedule(100, update).exceptionOrNull() is ScheduleNotEditableException)
+        failure(400, "COMMON400_1")
+        assertTrue(repository().updateSchedule(100, update).exceptionOrNull() is InvalidScheduleUpdateException)
+    }
+
+    @Test
     fun 월간_일정을_year와_month_쿼리로_GET_요청한다() = runTest {
         enqueue(200, body(""))
 
@@ -76,9 +131,9 @@ class CalendarScheduleRepositoryImplTest {
 
         assertEquals(
             listOf(
-                CalendarSchedule(100, LocalDate.of(2026, 10, 3), LocalTime.of(14, 50), ScheduleStatus.CONFIRMED, MyScheduleStatus.ACCEPTED),
-                CalendarSchedule(101, LocalDate.of(2026, 10, 24), LocalTime.of(10, 0), ScheduleStatus.PENDING_RESPONSE, MyScheduleStatus.NOT_INVITED),
-                CalendarSchedule(102, LocalDate.of(2026, 10, 25), LocalTime.of(9, 0), ScheduleStatus.CANCELLED, MyScheduleStatus.DECLINED),
+                CalendarSchedule(100, LocalDate.of(2026, 10, 3), LocalTime.of(14, 50), CalendarScheduleStatus.CONFIRMED, MyScheduleStatus.ACCEPTED),
+                CalendarSchedule(101, LocalDate.of(2026, 10, 24), LocalTime.of(10, 0), CalendarScheduleStatus.PENDING_RESPONSE, MyScheduleStatus.NOT_INVITED),
+                CalendarSchedule(102, LocalDate.of(2026, 10, 25), LocalTime.of(9, 0), CalendarScheduleStatus.CANCELLED, MyScheduleStatus.DECLINED),
             ),
             schedules,
         )
@@ -90,6 +145,7 @@ class CalendarScheduleRepositoryImplTest {
             200,
             body(
                 """{"scheduleId":1,"date":"2026-10-03","time":"14:50","status":"POSTPONED","myStatus":"ACCEPTED"},""" +
+                    """{"scheduleId":4,"date":"2026-10-06","time":"14:50","status":"RECONFIRM_REQUIRED","myStatus":"RECONFIRM_REQUIRED"},""" +
                     """{"scheduleId":2,"date":"10월 4일","time":"14:50","status":"CONFIRMED","myStatus":"ACCEPTED"},""" +
                     """{"scheduleId":3,"date":"2026-10-05","time":"오후","status":"CONFIRMED","myStatus":"MAYBE"}""",
             ),

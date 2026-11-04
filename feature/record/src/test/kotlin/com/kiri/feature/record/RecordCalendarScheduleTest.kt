@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.kiri.data.home.FakeHomeRepository
 import com.kiri.data.mission.FakeMissionRepository
 import com.kiri.data.record.FakeRecordRepository
-import com.kiri.domain.home.ScheduleStatus
+import com.kiri.domain.model.schedule.CalendarScheduleStatus
 import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.model.schedule.MyScheduleStatus
 import com.kiri.domain.model.schedule.ScheduleDetail
@@ -69,6 +69,9 @@ class RecordCalendarScheduleTest {
             requestedDetails += scheduleId
             return details[scheduleId] ?: Result.failure(ScheduleNotFoundException())
         }
+
+        override suspend fun updateSchedule(scheduleId: Long, update: com.kiri.domain.model.schedule.ScheduleUpdate): Result<Unit> =
+            Result.failure(ScheduleNotFoundException())
     }
 
     private fun records() = FakeRecordRepository(
@@ -87,7 +90,7 @@ class RecordCalendarScheduleTest {
         return (1..month.lengthOfMonth()).map(month::atDay).filter { it !in vm.uiState.value.calendarMarks }
     }
 
-    private fun schedule(id: Long, date: LocalDate, status: ScheduleStatus, my: MyScheduleStatus = MyScheduleStatus.ACCEPTED) =
+    private fun schedule(id: Long, date: LocalDate, status: CalendarScheduleStatus, my: MyScheduleStatus = MyScheduleStatus.ACCEPTED) =
         CalendarSchedule(id, date, LocalTime.of(10, 0), status, my)
 
     @Test
@@ -96,9 +99,9 @@ class RecordCalendarScheduleTest {
         val repo = RecordingCalendarSchedules()
         repo.results[october] = Result.success(
             listOf(
-                schedule(1, confirmed, ScheduleStatus.CONFIRMED),
-                schedule(2, planned, ScheduleStatus.PENDING_RESPONSE, MyScheduleStatus.NOT_INVITED),
-                schedule(3, cancelled, ScheduleStatus.CANCELLED),
+                schedule(1, confirmed, CalendarScheduleStatus.CONFIRMED),
+                schedule(2, planned, CalendarScheduleStatus.PENDING_RESPONSE, MyScheduleStatus.NOT_INVITED),
+                schedule(3, cancelled, CalendarScheduleStatus.CANCELLED),
             ),
         )
 
@@ -115,7 +118,7 @@ class RecordCalendarScheduleTest {
     fun 달을_넘기면_그_달을_불러오고_이미_받은_달은_다시_요청하지_않는다() {
         val day = emptyDays(november).first()
         val repo = RecordingCalendarSchedules()
-        repo.results[november] = Result.success(listOf(schedule(9, day, ScheduleStatus.CONFIRMED)))
+        repo.results[november] = Result.success(listOf(schedule(9, day, CalendarScheduleStatus.CONFIRMED)))
         val vm = viewModel(repo)
 
         vm.onEvent(RecordUiEvent.NextMonth)
@@ -138,7 +141,7 @@ class RecordCalendarScheduleTest {
         val vm = viewModel(repo)
         assertEquals("일정을 불러오지 못했어요.", vm.uiState.value.error)
 
-        repo.results[october] = Result.success(listOf(schedule(1, day, ScheduleStatus.CONFIRMED)))
+        repo.results[october] = Result.success(listOf(schedule(1, day, CalendarScheduleStatus.CONFIRMED)))
         vm.onEvent(RecordUiEvent.RetryClicked)
 
         assertNull(vm.uiState.value.error)
@@ -149,14 +152,14 @@ class RecordCalendarScheduleTest {
     @Test
     fun 같은_날에는_확정_예정_취소_순으로_하나만_표시한다() {
         val day = LocalDate.of(2026, 10, 3)
-        val marks = { statuses: List<ScheduleStatus> ->
+        val marks = { statuses: List<CalendarScheduleStatus> ->
             statuses.mapIndexed { i, status -> schedule(i.toLong(), day, status) }.toCalendarMarks()[day]
         }
 
-        assertEquals(RecordCalendarMark.CONFIRMED, marks(listOf(ScheduleStatus.CANCELLED, ScheduleStatus.COMPLETED)))
-        assertEquals(RecordCalendarMark.CONFIRMED, marks(listOf(ScheduleStatus.PENDING_RESPONSE, ScheduleStatus.CONFIRMED)))
-        assertEquals(RecordCalendarMark.PLANNED, marks(listOf(ScheduleStatus.CANCELLED, ScheduleStatus.NOT_CONFIRMED)))
-        assertEquals(RecordCalendarMark.CANCELLED, marks(listOf(ScheduleStatus.CANCELLED, ScheduleStatus.CANCELLED)))
+        assertEquals(RecordCalendarMark.CONFIRMED, marks(listOf(CalendarScheduleStatus.CANCELLED, CalendarScheduleStatus.COMPLETED)))
+        assertEquals(RecordCalendarMark.CONFIRMED, marks(listOf(CalendarScheduleStatus.PENDING_RESPONSE, CalendarScheduleStatus.CONFIRMED)))
+        assertEquals(RecordCalendarMark.PLANNED, marks(listOf(CalendarScheduleStatus.CANCELLED, CalendarScheduleStatus.NOT_CONFIRMED)))
+        assertEquals(RecordCalendarMark.CANCELLED, marks(listOf(CalendarScheduleStatus.CANCELLED, CalendarScheduleStatus.CANCELLED)))
     }
 
     @Test
@@ -198,13 +201,13 @@ class RecordCalendarScheduleTest {
         val day = emptyDays(october).first()
         val repo = RecordingCalendarSchedules()
         repo.results[october] = Result.success(
-            listOf(schedule(1, day, ScheduleStatus.CONFIRMED), schedule(2, day, ScheduleStatus.CANCELLED)),
+            listOf(schedule(1, day, CalendarScheduleStatus.CONFIRMED), schedule(2, day, CalendarScheduleStatus.CANCELLED)),
         )
         val vm = viewModel(repo)
 
         vm.onEvent(RecordUiEvent.DateSelected(day))
 
-        assertEquals(RecordUiEffect.OpenServerSchedule(1), vm.nextEffect())
+        assertEquals(RecordUiEffect.OpenServerSchedule(1, day), vm.nextEffect())
         assertEquals(day, vm.uiState.value.selectedDate)
         // 상세는 상세 화면에서 불러오므로 캘린더에서는 요청하지 않는다
         assertEquals(emptyList<Long>(), repo.requestedDetails)
@@ -216,9 +219,9 @@ class RecordCalendarScheduleTest {
         val repo = RecordingCalendarSchedules()
         repo.results[october] = Result.success(
             listOf(
-                schedule(1, multiple, ScheduleStatus.CONFIRMED),
-                schedule(2, multiple, ScheduleStatus.PENDING_RESPONSE),
-                schedule(3, cancelledOnly, ScheduleStatus.CANCELLED),
+                schedule(1, multiple, CalendarScheduleStatus.CONFIRMED),
+                schedule(2, multiple, CalendarScheduleStatus.PENDING_RESPONSE),
+                schedule(3, cancelledOnly, CalendarScheduleStatus.CANCELLED),
             ),
         )
         val vm = viewModel(repo)
@@ -231,7 +234,7 @@ class RecordCalendarScheduleTest {
         vm.onEvent(RecordUiEvent.DateSelected(multiple))
         assertNull(vm.nextEffect())
         vm.onEvent(RecordUiEvent.ServerScheduleClicked(2))
-        assertEquals(RecordUiEffect.OpenServerSchedule(2), vm.nextEffect())
+        assertEquals(RecordUiEffect.OpenServerSchedule(2, multiple), vm.nextEffect())
     }
 
     @Test
@@ -239,7 +242,7 @@ class RecordCalendarScheduleTest {
         val vm0 = viewModel(RecordingCalendarSchedules())
         val busy = vm0.uiState.value.entries.first { YearMonth.from(it.date) == october }.date
         val repo = RecordingCalendarSchedules()
-        repo.results[october] = Result.success(listOf(schedule(1, busy, ScheduleStatus.CONFIRMED)))
+        repo.results[october] = Result.success(listOf(schedule(1, busy, CalendarScheduleStatus.CONFIRMED)))
         val vm = viewModel(repo)
 
         vm.onEvent(RecordUiEvent.DateSelected(busy))
@@ -251,7 +254,7 @@ class RecordCalendarScheduleTest {
     fun 고른_날에_없는_일정은_눌러도_이동하지_않는다() = runTest {
         val (day, other) = emptyDays(october)
         val repo = RecordingCalendarSchedules()
-        repo.results[october] = Result.success(listOf(schedule(1, day, ScheduleStatus.CONFIRMED)))
+        repo.results[october] = Result.success(listOf(schedule(1, day, CalendarScheduleStatus.CONFIRMED)))
         val vm = viewModel(repo)
 
         vm.onEvent(RecordUiEvent.DateSelected(other))
@@ -262,10 +265,10 @@ class RecordCalendarScheduleTest {
 
     @Test
     fun 캘린더_배지는_상세_상태를_먼저_쓰고_당일은_확정으로_보여준다() {
-        assertEquals("약속 확정" to true, scheduleLabel(ScheduleStatus.CONFIRMED, ScheduleDisplayStatus.TODAY))
-        assertEquals("약속 완료" to false, scheduleLabel(ScheduleStatus.CONFIRMED, ScheduleDisplayStatus.COMPLETED))
-        assertEquals("약속 예정" to false, scheduleLabel(ScheduleStatus.NOT_CONFIRMED, null))
-        assertEquals("약속 확정" to true, scheduleLabel(ScheduleStatus.CONFIRMED, null))
-        assertEquals("약속 취소" to false, scheduleLabel(ScheduleStatus.CANCELLED, null))
+        assertEquals("약속 확정" to true, scheduleLabel(CalendarScheduleStatus.CONFIRMED, ScheduleDisplayStatus.TODAY))
+        assertEquals("약속 완료" to false, scheduleLabel(CalendarScheduleStatus.CONFIRMED, ScheduleDisplayStatus.COMPLETED))
+        assertEquals("약속 예정" to false, scheduleLabel(CalendarScheduleStatus.NOT_CONFIRMED, null))
+        assertEquals("약속 확정" to true, scheduleLabel(CalendarScheduleStatus.CONFIRMED, null))
+        assertEquals("약속 취소" to false, scheduleLabel(CalendarScheduleStatus.CANCELLED, null))
     }
 }

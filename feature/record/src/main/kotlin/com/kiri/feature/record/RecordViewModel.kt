@@ -163,8 +163,9 @@ constructor(
                     _effect.trySend(RecordUiEffect.OpenEntry(event.id))
             RecordUiEvent.RetryClicked -> refresh()
             is RecordUiEvent.ServerScheduleClicked ->
-                if (uiState.value.selectedSchedules.any { it.id == event.scheduleId && it.canOpen })
-                    _effect.trySend(RecordUiEffect.OpenServerSchedule(event.scheduleId))
+                uiState.value.selectedSchedules
+                    .firstOrNull { it.id == event.scheduleId && it.canOpen }
+                    ?.let { _effect.trySend(RecordUiEffect.OpenServerSchedule(it.id, it.date)) }
         }
     }
 
@@ -209,7 +210,7 @@ constructor(
         val state = uiState.value
         val openable = state.selectedSchedules.filter { it.canOpen }
         if (openable.size == 1 && state.selectedEntries.isEmpty())
-            _effect.trySend(RecordUiEffect.OpenServerSchedule(openable.single().id))
+            _effect.trySend(RecordUiEffect.OpenServerSchedule(openable.single().id, openable.single().date))
     }
 
     private fun RecordUiState.withServerSchedules(): RecordUiState {
@@ -271,5 +272,8 @@ private object NoCalendarSchedules : CalendarScheduleRepository {
         Result.success(emptyList())
 
     override suspend fun getScheduleDetail(scheduleId: Long): Result<ScheduleDetail> =
+        Result.failure(ScheduleNotFoundException())
+
+    override suspend fun updateSchedule(scheduleId: Long, update: com.kiri.domain.model.schedule.ScheduleUpdate): Result<Unit> =
         Result.failure(ScheduleNotFoundException())
 }

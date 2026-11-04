@@ -60,9 +60,10 @@ fun KiriFamilySelectionCard(name: String, selected: Boolean, onClick: () -> Unit
 
 data class KiriParticipantStatus(val id: String, val name: String, val accepted: Boolean, val status: String)
 
-/** Horizontal scrolling keeps long nicknames and large families readable. */
+/** Horizontal scrolling keeps long nicknames and large families readable.
+ * showStatus 가 false 면 이름 아래 상태 문구를 숨기고 (Figma 8450:21841), 상태는 접근성 설명으로만 읽어준다. */
 @Composable
-fun KiriParticipantTooltip(participants: List<KiriParticipantStatus>, modifier: Modifier = Modifier) {
+fun KiriParticipantTooltip(participants: List<KiriParticipantStatus>, modifier: Modifier = Modifier, showStatus: Boolean = true) {
     Box(modifier) {
     Image(painterResource(R.drawable.kiri_participant_pointer), null, Modifier.offset(x = 11.95.dp).size(38.105.dp, 28.476.dp))
     Row(Modifier.padding(top = 16.dp).background(KiriColor.Bg.Secondary, RoundedCornerShape(16.dp)).horizontalScroll(rememberScrollState()).padding(horizontal = 21.dp, vertical = 14.dp),
@@ -72,7 +73,7 @@ fun KiriParticipantTooltip(participants: List<KiriParticipantStatus>, modifier: 
                 modifier = Modifier.semantics(mergeDescendants = true) { stateDescription = participant.status }) {
                 Image(painterResource(if (participant.accepted) R.drawable.kiri_participant_accepted else R.drawable.kiri_participant_pending), null, Modifier.size(24.dp))
                 Text(participant.name, style = KiriTypography.TitleMedium, color = if (participant.accepted) KiriColor.Text.Primary else KiriColor.Text.Disabled)
-                Text(participant.status, style = KiriTypography.BodySmall, color = KiriColor.Text.Secondary)
+                if (showStatus) Text(participant.status, style = KiriTypography.BodySmall, color = KiriColor.Text.Secondary)
             }
         }
     }

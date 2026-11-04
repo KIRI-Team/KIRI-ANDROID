@@ -59,6 +59,28 @@ import java.time.LocalTime
 
 private enum class ScheduleRegisterSheet { Schedule, Member }
 
+// 같은 화면을 새 일정 등록과 기존 일정 변경에 함께 쓴다
+data class ScheduleFormMode(
+    val appBarTitle: String,
+    val submitText: String,
+    // null 이면 저장한 사람·주간 미션 문구를 쓴다
+    val subtitle: String? = null,
+    val submitting: Boolean = false,
+    val error: String? = null,
+) {
+    companion object {
+        val Register = ScheduleFormMode(appBarTitle = "일정 등록하기", submitText = "초대장 만들기")
+
+        fun edit(subtitle: String, submitting: Boolean, error: String?) = ScheduleFormMode(
+            appBarTitle = "일정 변경하기",
+            submitText = if (submitting) "변경 중…" else "변경하기",
+            subtitle = subtitle,
+            submitting = submitting,
+            error = error,
+        )
+    }
+}
+
 // 저장한 기록으로 일정을 등록하는 화면 (Figma 8264:21250).
 // 일정 선택 → 날짜선택 시트, 가족 구성원 선택 → 구성원선택 시트를 연다. 시트에서 고른 값은 다음/확인을 눌러야 반영된다
 @Composable
@@ -74,6 +96,7 @@ fun ScheduleRegisterScreen(
     onCreateInviteClick: () -> Unit,
     earliest: LocalDateTime? = null,
     weekly: Boolean = false,
+    mode: ScheduleFormMode = ScheduleFormMode.Register,
 ) {
     var openSheet by rememberSaveable { mutableStateOf<ScheduleRegisterSheet?>(null) }
 
@@ -88,6 +111,7 @@ fun ScheduleRegisterScreen(
         onMessageChange = { onDraftChange(draft.withMessage(it)) },
         onCreateInviteClick = onCreateInviteClick,
         weekly = weekly,
+        mode = mode,
     )
 
     when (openSheet) {
@@ -139,6 +163,7 @@ internal fun ScheduleRegisterContent(
     onMessageChange: (String) -> Unit,
     onCreateInviteClick: () -> Unit,
     weekly: Boolean = false,
+    mode: ScheduleFormMode = ScheduleFormMode.Register,
 ) {
     Column(
         Modifier
@@ -149,7 +174,7 @@ internal fun ScheduleRegisterContent(
             .imePadding()
             .testTag("schedule_register_screen"),
     ) {
-        KiriTopBar(onBackClick = onBackClick, title = "일정 등록하기")
+        KiriTopBar(onBackClick = onBackClick, title = mode.appBarTitle)
         Column(
             Modifier
                 .fillMaxWidth()
@@ -158,7 +183,11 @@ internal fun ScheduleRegisterContent(
                 .padding(horizontal = 18.dp),
         ) {
             Spacer(Modifier.height(24.dp))
-            ScheduleRegisterHeader(if (weekly) "가족에게 추천된 주간 미션이에요!" else savedByLabel(savedBy), title, description)
+            ScheduleRegisterHeader(
+                mode.subtitle ?: if (weekly) "가족에게 추천된 주간 미션이에요!" else savedByLabel(savedBy),
+                title,
+                description,
+            )
             Spacer(Modifier.height(30.dp))
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 ScheduleFormSelectRow(
@@ -177,13 +206,21 @@ internal fun ScheduleRegisterContent(
                 )
                 ScheduleMessageField(draft.message, onMessageChange)
             }
+            mode.error?.let {
+                Text(
+                    it,
+                    Modifier.padding(top = 12.dp).testTag("schedule_form_error"),
+                    color = KiriColor.Status.Error,
+                    style = KiriDetailTypography.Small,
+                )
+            }
             Spacer(Modifier.height(24.dp))
         }
         KiriButton(
             onClick = onCreateInviteClick,
             modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 10.dp),
-            enabled = draft.canSubmit,
-            text = "초대장 만들기",
+            enabled = draft.canSubmit && !mode.submitting,
+            text = mode.submitText,
             tone = KiriButtonTone.Accent,
         )
     }

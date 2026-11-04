@@ -22,5 +22,8 @@ object FakeCalendarScheduleModule {
 
         override suspend fun getScheduleDetail(scheduleId: Long): Result<ScheduleDetail> =
             Result.failure(ScheduleNotFoundException())
+
+        override suspend fun updateSchedule(scheduleId: Long, update: com.kiri.domain.model.schedule.ScheduleUpdate): Result<Unit> =
+            Result.failure(ScheduleNotFoundException())
     }
 }
