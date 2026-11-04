@@ -25,6 +25,52 @@ class RecordScreenTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
+    fun selectedDayListsServerSchedulesAndOnlyOpenableOnesCanBeTapped() {
+        val date = LocalDate.of(2026, 10, 13)
+        fun schedule(id: Long, status: com.kiri.domain.home.ScheduleStatus) =
+            com.kiri.domain.model.schedule.CalendarSchedule(id, date, java.time.LocalTime.of(14, 50), status, null)
+        val events = mutableListOf<RecordUiEvent>()
+        compose.setContent {
+            KiriTheme {
+                RecordScreen(
+                    RecordUiState(
+                        today = date,
+                        monthSchedules =
+                            listOf(
+                                schedule(1, com.kiri.domain.home.ScheduleStatus.CONFIRMED),
+                                schedule(2, com.kiri.domain.home.ScheduleStatus.CANCELLED),
+                            ),
+                    ),
+                    { events += it },
+                )
+            }
+        }
+        compose.onNodeWithTag("record_calendar").performScrollToKey("server-schedule-2")
+        compose.onNodeWithText("약속 취소").assertExists()
+        compose.onNodeWithTag("record_server_schedule_2").assertIsNotEnabled()
+        compose.onNodeWithTag("record_calendar").performScrollToKey("server-schedule-1")
+        compose.onNodeWithTag("record_server_schedule_1").performClick()
+        compose.runOnIdle {
+            org.junit.Assert.assertEquals(listOf(RecordUiEvent.ServerScheduleClicked(1)), events)
+        }
+    }
+
+    @Test
+    fun cancelledScheduleDayIsShownDimmedWithItsOwnDescription() {
+        val date = LocalDate.of(2026, 10, 13)
+        compose.setContent {
+            KiriTheme {
+                RecordScreen(
+                    RecordUiState(today = date, calendarMarks = mapOf(date to RecordCalendarMark.CANCELLED)),
+                    {},
+                )
+            }
+        }
+        compose.onNodeWithTag("record_cancelled_$date", useUnmergedTree = true).assertExists()
+        compose.onNodeWithContentDescription("2026년 10월 13일, 취소된 약속").assertExists()
+    }
+
+    @Test
     fun multipleActivitiesOnOneDateRequireAnExplicitActivityChoice() {
         val date = LocalDate.of(2026, 10, 13)
         val entries =

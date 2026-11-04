@@ -3,11 +3,14 @@ package com.kiri.feature.record.model
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
+import com.kiri.domain.home.ScheduleStatus
+import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.record.CalendarEntry
 import com.kiri.domain.record.RecordPhoto
 
 enum class RecordTab(val label: String) { CALENDAR("캘린더"), BUCKET("버킷리스트") }
-enum class RecordCalendarMark { QUESTION, PLANNED, CONFIRMED, BUCKET, PHOTO_FIRST, PHOTO_SECOND }
+// CANCELLED 는 취소된 약속만 있는 날로, 흐리게 그린다
+enum class RecordCalendarMark { QUESTION, PLANNED, CONFIRMED, CANCELLED, BUCKET, PHOTO_FIRST, PHOTO_SECOND }
 enum class RecordScheduleStatus(val label: String) { PLANNED("약속 예정"), CONFIRMED("약속 확정") }
 data class RecordSaver(val id: String, val nickname: String)
 data class RecordBucketItem(val id: String, val title: String, val saverId: String, val completed: Boolean = false)
@@ -29,12 +32,52 @@ data class RecordUiState(
     val loading: Boolean = false,
     val error: String? = null,
     val questions: Map<LocalDate, com.kiri.domain.record.RecordedQuestion> = emptyMap(),
+    // 서버에서 받은 보고 있는 달의 가족 일정. 상세는 일정 상세 화면에서 id 로 따로 조회한다
+    val monthSchedules: List<CalendarSchedule> = emptyList(),
 ) {
+    // 고른 날의 서버 일정. 시간 순이고 시간을 모르는 일정은 뒤에 둔다
+    val selectedSchedules
+        get() = monthSchedules.filter { it.date == selectedDate }
+            .sortedWith(compareBy({ it.time ?: java.time.LocalTime.MAX }, { it.id }))
+
     val selectedEntries get() = entries.filter { it.date == selectedDate }.sortedWith(compareBy({ it.startTime ?: java.time.LocalTime.MAX }, { it.id }))
     val visibleBuckets get() = buckets.filter { selectedSaverId == null || it.saverId == selectedSaverId }
     val upcomingSchedules get() = schedules.filter { !it.date.isBefore(today) }.sortedBy { it.date }
     fun saverName(id: String) = savers.firstOrNull { it.id == id }?.nickname ?: "탈퇴한 멤버"
 }
+
+// 취소된 일정은 서버가 상세를 돌려주지 않아 상세 화면을 열 수 없다
+val CalendarSchedule.canOpen get() = status != ScheduleStatus.CANCELLED
+
+// 서버 일정을 날짜별 표시로 바꾼다. 확정(완료 포함) > 예정 > 취소 순으로 하나만 고른다
+internal fun List<CalendarSchedule>.toCalendarMarks(): Map<LocalDate, RecordCalendarMark> =
+    groupBy { it.date }.mapValues { (_, schedules) ->
+        val statuses = schedules.map { it.status }
+        when {
+            statuses.any { it == ScheduleStatus.CONFIRMED || it == ScheduleStatus.COMPLETED } -> RecordCalendarMark.CONFIRMED
+            statuses.any { it != ScheduleStatus.CANCELLED } -> RecordCalendarMark.PLANNED
+            else -> RecordCalendarMark.CANCELLED
+        }
+    }
+
+// 기기에 저장된 활동 표시와 서버 일정 표시를 합친다. 사진 기록이 있는 날은 사진을 그대로 보여주고,
+// 나머지는 확정 > 예정 > 버킷 > 가족 질문 > 취소 순으로 하나만 고른다
+internal fun mergeCalendarMarks(
+    local: Map<LocalDate, RecordCalendarMark>,
+    server: Map<LocalDate, RecordCalendarMark>,
+): Map<LocalDate, RecordCalendarMark> = (local.keys + server.keys).associateWith { date ->
+    listOfNotNull(local[date], server[date]).maxBy { it.mergeRank }
+}
+
+private val RecordCalendarMark.mergeRank
+    get() = when (this) {
+        RecordCalendarMark.CANCELLED -> 0
+        RecordCalendarMark.QUESTION -> 1
+        RecordCalendarMark.BUCKET -> 2
+        RecordCalendarMark.PLANNED -> 3
+        RecordCalendarMark.CONFIRMED -> 4
+        RecordCalendarMark.PHOTO_FIRST, RecordCalendarMark.PHOTO_SECOND -> 5
+    }
 
 /** UI-only fixtures until the record API is connected; never represent actual family records. */
 object RecordPreviewData {
