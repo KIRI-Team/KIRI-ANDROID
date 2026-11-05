@@ -84,6 +84,42 @@ class CalendarScheduleRepositoryImplTest {
     }
 
     @Test
+    fun 일정_생성은_버킷_id_경로로_POST_하고_만든_일정_id_를_돌려준다() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"SCHEDULE201_1","message":"일정 생성 성공","result":{"scheduleId":100,"bucketItemId":42,"scheduleDate":"2026-11-15","scheduleTime":"14:00","status":"PENDING_RESPONSE","responseDeadline":"2026-11-14T14:00:00","proposerId":1,"participantMemberIds":[2,3]}}""")
+
+        val result = repository().createSchedule(
+            42,
+            ScheduleUpdate(LocalDate.of(2026, 11, 15), LocalTime.of(14, 0), setOf(3L, 2L), "이번 주말에 같이 가요!"),
+        )
+
+        assertEquals(100L, result.getOrThrow())
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/v1/bucket-items/42/schedules", request.url.encodedPath)
+        val body = kiriJson.parseToJsonElement(request.body!!.utf8()).jsonObject
+        assertEquals("2026-11-15", body["scheduleDate"]!!.jsonPrimitive.content)
+        assertEquals("14:00", body["scheduleTime"]!!.jsonPrimitive.content)
+        assertEquals(listOf(2L, 3L), body["participantMemberIds"]!!.jsonArray.map { it.jsonPrimitive.long })
+        assertEquals("이번 주말에 같이 가요!", body["requestMessage"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun 일정_생성_실패_코드를_도메인_오류로_바꾼다() = runTest {
+        val form = ScheduleUpdate(LocalDate.of(2026, 11, 15), LocalTime.of(14, 0), setOf(2L))
+        fun failure(status: Int, code: String) =
+            enqueue(status, """{"isSuccess":false,"code":"$code","message":"실패","result":null}""")
+
+        failure(403, "SCHEDULE403_1")
+        assertTrue(repository().createSchedule(42, form).exceptionOrNull() is NoFamilyException)
+        failure(404, "SCHEDULE404_1")
+        assertTrue(repository().createSchedule(42, form).exceptionOrNull() is com.kiri.domain.model.bucket.BucketItemNotFoundException)
+        failure(409, "SCHEDULE409_1")
+        assertTrue(repository().createSchedule(42, form).exceptionOrNull() is com.kiri.domain.model.schedule.BucketNotSchedulableException)
+        failure(400, "COMMON400_1")
+        assertTrue(repository().createSchedule(42, form).exceptionOrNull() is InvalidScheduleUpdateException)
+    }
+
+    @Test
     fun 일정_수정에서_한_줄이_비어_있으면_보내지_않는다() = runTest {
         enqueue(200, """{"isSuccess":true,"code":"SCHEDULE200_4","message":"일정 수정 성공","result":{}}""")
 
@@ -206,9 +242,17 @@ class CalendarScheduleRepositoryImplTest {
                     ScheduleParticipant("탈퇴한 사용자", accepted = true),
                     ScheduleParticipant("첫째", accepted = false),
                 ),
+                missionId = 42,
             ),
             detail,
         )
+    }
+
+    @Test
+    fun 상세에_missionId_가_없으면_null_로_돌려준다() = runTest {
+        enqueue(200, detailBody("CONFIRMED", missionId = null))
+
+        assertNull(repository().getScheduleDetail(1).getOrThrow().missionId)
     }
 
     @Test
@@ -243,9 +287,9 @@ class CalendarScheduleRepositoryImplTest {
     private fun errorBody(code: String, message: String) =
         """{"isSuccess":false,"code":"$code","message":"$message","result":null}"""
 
-    private fun detailBody(status: String) =
+    private fun detailBody(status: String, missionId: Long? = 42) =
         """{"isSuccess":true,"code":"SCHEDULE200_9","message":"일정 상세 조회 성공",""" +
-            """"result":{"date":"2026-11-17","time":"14:50","status":"$status","participants":[""" +
+            """"result":{""" + (missionId?.let { """"missionId":$it,""" } ?: "") + """"date":"2026-11-17","time":"14:50","status":"$status","participants":[""" +
             """{"nickname":"엄마","accepted":true},{"nickname":"탈퇴한 사용자","accepted":true},""" +
             """{"nickname":"첫째","accepted":false}]}}"""
 

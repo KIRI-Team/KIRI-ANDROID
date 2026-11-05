@@ -25,5 +25,9 @@ object FakeCalendarScheduleModule {
 
         override suspend fun updateSchedule(scheduleId: Long, update: com.kiri.domain.model.schedule.ScheduleUpdate): Result<Unit> =
             Result.failure(ScheduleNotFoundException())
+
+        // 버킷의 일정 잡기는 성공한 것으로 본다
+        override suspend fun createSchedule(bucketItemId: Long, form: com.kiri.domain.model.schedule.ScheduleUpdate): Result<Long> =
+            Result.success(1)
     }
 }

@@ -56,6 +56,8 @@ class ScheduleEditViewModelTest {
 
         override suspend fun getScheduleDetail(scheduleId: Long): Result<ScheduleDetail> = detail
 
+        override suspend fun createSchedule(bucketItemId: Long, form: ScheduleUpdate): Result<Long> = Result.success(1)
+
         override suspend fun updateSchedule(scheduleId: Long, update: ScheduleUpdate): Result<Unit> {
             updates += scheduleId to update
             return this.update
@@ -68,6 +70,7 @@ class ScheduleEditViewModelTest {
         time = LocalTime.of(14, 50),
         status = ScheduleDisplayStatus.CONFIRMED,
         participants = listOf(ScheduleParticipant("엄마", true), ScheduleParticipant("첫째", false)),
+        missionId = 42,
     )
 
     private val family = FakeFamily("엄마", listOf("2" to "첫째", "3" to "아빠"))

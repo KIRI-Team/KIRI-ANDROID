@@ -18,4 +18,10 @@ interface CalendarScheduleRepository {
     // 제안자가 아니면 NotScheduleProposerException, 없는 일정이면 ScheduleNotFoundException,
     // 바꿀 수 없는 상태면 ScheduleNotEditableException, 입력값이 잘못되면 InvalidScheduleUpdateException 으로 실패한다
     suspend fun updateSchedule(scheduleId: Long, update: ScheduleUpdate): Result<Unit>
+
+    // 버킷 항목으로 일정을 만들고 고른 가족에게 초대를 보낸다. 만든 일정의 id 를 돌려준다
+    // 제안자(나)는 자동으로 수락되고, 버킷은 SCHEDULED 가 되며, 일정은 PENDING_RESPONSE 로 시작한다
+    // 가족 공간이 없으면 NoFamilyException, 없는 버킷이면 BucketItemNotFoundException,
+    // 일정을 만들 수 없는 버킷이면 BucketNotSchedulableException, 입력값이 잘못되면 InvalidScheduleUpdateException 으로 실패한다
+    suspend fun createSchedule(bucketItemId: Long, form: ScheduleUpdate): Result<Long>
 }

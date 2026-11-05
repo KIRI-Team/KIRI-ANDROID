@@ -5,6 +5,8 @@ import com.kiri.data.network.apiCommand
 import com.kiri.data.network.apiResult
 import com.kiri.domain.model.family.NoFamilyException
 import com.kiri.domain.model.schedule.CalendarSchedule
+import com.kiri.domain.model.bucket.BucketItemNotFoundException
+import com.kiri.domain.model.schedule.BucketNotSchedulableException
 import com.kiri.domain.model.schedule.CancelledScheduleException
 import com.kiri.domain.model.schedule.InvalidScheduleUpdateException
 import com.kiri.domain.model.schedule.NotScheduleProposerException
@@ -55,7 +57,23 @@ internal class CalendarScheduleRepositoryImpl @Inject constructor(
                 }
             }
 
+    override suspend fun createSchedule(bucketItemId: Long, form: ScheduleUpdate): Result<Long> =
+        apiResult(json) { api.createSchedule(bucketItemId, form.toRequest()) }
+            .map { it.scheduleId }
+            .recoverCatching { error ->
+                val api = error as? KiriApiException
+                throw when (api?.code) {
+                    NO_FAMILY -> NoFamilyException()
+                    BUCKET_NOT_FOUND -> BucketItemNotFoundException()
+                    NOT_SCHEDULABLE -> BucketNotSchedulableException()
+                    INVALID_INPUT -> InvalidScheduleUpdateException(api.message)
+                    else -> error
+                }
+            }
+
     private companion object {
+        const val BUCKET_NOT_FOUND = "SCHEDULE404_1"
+        const val NOT_SCHEDULABLE = "SCHEDULE409_1"
         const val NO_FAMILY = "SCHEDULE403_1"
         const val NOT_PROPOSER = "SCHEDULE403_4"
         const val NOT_FOUND = "SCHEDULE404_2"

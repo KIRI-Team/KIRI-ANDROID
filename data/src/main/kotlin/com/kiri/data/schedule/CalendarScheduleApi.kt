@@ -14,6 +14,7 @@ import kotlinx.serialization.Serializable
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.PATCH
+import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -39,7 +40,20 @@ internal interface CalendarScheduleApi {
         @Path("scheduleId") scheduleId: Long,
         @Body request: UpdateScheduleRequest,
     ): ApiResponse<kotlinx.serialization.json.JsonElement>
+
+    // 버킷의 일정 잡기. SAVED 이고 활성 일정이 없는 버킷에서만 만들 수 있다
+    // 가족 공간이 없으면 SCHEDULE403_1, 없는 버킷이면 SCHEDULE404_1, 만들 수 없는 버킷이면 SCHEDULE409_1,
+    // 입력값이 잘못되면 COMMON400_1 로 거절된다
+    // 요청 본문은 일정 수정과 같다 (scheduleDate, scheduleTime, participantMemberIds, requestMessage)
+    @POST("api/v1/bucket-items/{bucketItemId}/schedules")
+    suspend fun createSchedule(
+        @Path("bucketItemId") bucketItemId: Long,
+        @Body request: UpdateScheduleRequest,
+    ): ApiResponse<CreateScheduleResponse>
 }
+
+@Serializable
+internal data class CreateScheduleResponse(val scheduleId: Long)
 
 // scheduleDate 는 "2026-11-16", scheduleTime 은 "15:00" 처럼 보낸다. 한 줄이 비어 있으면 보내지 않는다
 @Serializable
@@ -92,6 +106,7 @@ internal fun CalendarScheduleResponse.toCalendarSchedule(): CalendarSchedule? {
 // date 는 "2026-11-17", time 은 "14:50" 처럼 온다
 @Serializable
 internal data class ScheduleDetailResponse(
+    val missionId: Long? = null,
     val date: String,
     val time: String? = null,
     val status: String? = null,
@@ -110,4 +125,5 @@ internal fun ScheduleDetailResponse.toScheduleDetail() = ScheduleDetail(
     time = time?.let { runCatching { LocalTime.parse(it) }.getOrNull() },
     status = ScheduleDisplayStatus.entries.firstOrNull { it.name == status },
     participants = participants.map { ScheduleParticipant(it.nickname, it.accepted) },
+    missionId = missionId,
 )

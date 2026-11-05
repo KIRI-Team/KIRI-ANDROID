@@ -35,6 +35,9 @@ data class HomeRecommendation(
     val description: String = "",
 )
 
+// 일정에 초대할 수 있는 가족. 나와 탈퇴한 구성원은 뺀다
+fun FamilyHome.invitableMembers(): List<FamilyMember> = members.filter { it.accessible && it.id != currentUserId }
+
 data class FamilyHome(
     val date: LocalDate,
     val currentUserId: String,

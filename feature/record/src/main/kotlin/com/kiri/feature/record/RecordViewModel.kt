@@ -8,6 +8,13 @@ import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.model.schedule.ScheduleDetail
 import com.kiri.domain.model.schedule.ScheduleNotFoundException
 import com.kiri.domain.repository.CalendarScheduleRepository
+import com.kiri.domain.repository.BucketItemRepository
+import com.kiri.domain.model.bucket.BucketItemPage
+import com.kiri.domain.model.bucket.BucketItemNotFoundException
+import com.kiri.domain.model.bucket.CompletedBucketItemException
+import com.kiri.domain.model.bucket.NotBucketItemOwnerException
+import com.kiri.domain.model.bucket.ScheduledBucketItemException
+import kotlinx.coroutines.Job
 import com.kiri.domain.record.*
 import com.kiri.domain.time.kiriToday
 import com.kiri.feature.record.model.*
@@ -28,6 +35,7 @@ constructor(
     private val repository: RecordRepository,
     private val clock: java.time.Clock = java.time.Clock.systemUTC(),
     private val calendarSchedules: CalendarScheduleRepository = NoCalendarSchedules,
+    private val bucketItems: BucketItemRepository = NoBucketItems,
 ) : ViewModel() {
     private val today
         get() = clock.kiriToday()
@@ -43,7 +51,8 @@ constructor(
                 month =
                     savedState.get<String>("recordMonth")?.let(YearMonth::parse) ?: initial.month,
                 selectedDate = savedState.get<String>("recordDate")?.let(LocalDate::parse) ?: today,
-                selectedSaverId = savedState.get<String>("recordSaver"),
+                // 예전 버전이 남긴 기기 저장 구성원 id(숫자가 아님)는 버린다
+                selectedSaverId = savedState.get<String>("recordSaver")?.takeIf { it.toLongOrNull() != null },
             )
         )
     val uiState: StateFlow<RecordUiState> = _uiState.asStateFlow()
@@ -57,6 +66,10 @@ constructor(
     // 서버에서 받은 달별 가족 일정. 달을 오가도 다시 받지 않는다 (다시 시도하면 새로 받는다)
     private val monthSchedules = mutableMapOf<YearMonth, List<CalendarSchedule>>()
     private val loadingMonths = mutableSetOf<YearMonth>()
+
+    // 버킷리스트 다음 페이지를 부를 때 넣는 값과, 지금 불러오는 요청
+    private var bucketCursor: Long? = null
+    private var bucketJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -127,6 +140,7 @@ constructor(
             ).withServerSchedules()
         }
         loadMonth(uiState.value.month, force = true)
+        loadBuckets()
         try {
             repository.refresh()
             _uiState.update { it.copy(loading = false) }
@@ -149,15 +163,23 @@ constructor(
                     update { it.copy(selectedDate = event.date) }
                     openOnlyServerSchedule()
                 }
-            is RecordUiEvent.SaverSelected ->
-                if (event.saverId == null || uiState.value.savers.any { it.id == event.saverId })
+            is RecordUiEvent.SaverSelected -> {
+                val state = uiState.value
+                val known = event.saverId == null || state.bucketSavers.any { it.memberId.toString() == event.saverId }
+                if (known && event.saverId != state.selectedSaverId) {
                     update { it.copy(selectedSaverId = event.saverId) }
+                    loadBuckets()
+                }
+            }
             is RecordUiEvent.ScheduleClicked ->
                 if (uiState.value.schedules.any { it.id == event.id })
                     _effect.trySend(RecordUiEffect.OpenSchedule(event.id))
             is RecordUiEvent.BucketClicked ->
-                if (uiState.value.buckets.any { it.id == event.id })
+                if (uiState.value.bucketItems.any { it.id.toString() == event.id })
                     _effect.trySend(RecordUiEffect.OpenBucket(event.id))
+            RecordUiEvent.BucketListEndReached -> loadBuckets(more = true)
+            RecordUiEvent.BucketListRetryClicked -> loadBuckets(more = uiState.value.bucketItems.isNotEmpty())
+            is RecordUiEvent.BucketDeleteConfirmed -> deleteBucket(event.id)
             is RecordUiEvent.CalendarEntryClicked ->
                 if (uiState.value.entries.any { it.id == event.id })
                     _effect.trySend(RecordUiEffect.OpenEntry(event.id))
@@ -256,6 +278,84 @@ constructor(
         return activityMarks + questionMarks
     }
 
+    // 가족 버킷리스트를 불러온다. more 가 false 면 고른 구성원 기준으로 첫 페이지부터 다시 받고(진행 중인 요청은 버린다),
+    // true 면 다음 페이지를 이어 붙인다. 이미 받는 중이거나 마지막 페이지면 다음 페이지는 요청하지 않는다
+    private fun loadBuckets(more: Boolean = false) {
+        val state = uiState.value
+        if (more && (!state.bucketHasNext || bucketJob?.isActive == true)) return
+        bucketJob?.cancel()
+        val memberId = state.selectedSaverId?.toLongOrNull()
+        val cursor = if (more) bucketCursor else null
+        _uiState.update {
+            if (more) it.copy(bucketLoadingMore = true, bucketError = null)
+            else it.copy(bucketLoading = true, bucketLoadingMore = false, bucketError = null)
+        }
+        bucketJob = viewModelScope.launch {
+            bucketItems.getBucketItems(memberId, cursor, BUCKET_PAGE_SIZE)
+                .onSuccess { page ->
+                    bucketCursor = page.nextCursor
+                    _uiState.update {
+                        it.copy(
+                            bucketSavers = page.savers,
+                            bucketItems = if (more) (it.bucketItems + page.items).distinctBy { item -> item.id } else page.items,
+                            bucketHasNext = page.hasNext && page.nextCursor != null,
+                            bucketLoading = false,
+                            bucketLoadingMore = false,
+                        )
+                    }
+                    // 고른 구성원이 가족에서 빠졌으면(탈퇴 등) 전체로 돌린다
+                    val selected = uiState.value.selectedSaverId
+                    if (selected != null && page.savers.none { it.memberId.toString() == selected }) {
+                        update { it.copy(selectedSaverId = null) }
+                        loadBuckets()
+                    }
+                }
+                .onFailure {
+                    _uiState.update {
+                        it.copy(bucketLoading = false, bucketLoadingMore = false, bucketError = "버킷리스트를 불러오지 못했어요.")
+                    }
+                }
+        }
+    }
+
+    // 내가 저장한 버킷을 지운다. 성공하면 목록에서 빼고 저장한 사람의 칩 개수를 하나 줄인다 (페이지는 그대로 둔다)
+    // 이미 없거나 상태가 바뀐 버킷이라 실패하면 목록이 오래된 것이므로 첫 페이지부터 다시 불러온다
+    private fun deleteBucket(id: String) {
+        val item = uiState.value.bucketItems.find { it.id.toString() == id } ?: return
+        if (!item.deletable || uiState.value.bucketDeletingId != null) return
+        _uiState.update { it.copy(bucketDeletingId = item.id) }
+        viewModelScope.launch {
+            bucketItems.deleteBucketItem(item.id)
+                .onSuccess {
+                    _uiState.update { state ->
+                        state.copy(
+                            bucketDeletingId = null,
+                            bucketItems = state.bucketItems.filterNot { it.id == item.id },
+                            bucketSavers = state.bucketSavers.map {
+                                if (it.memberId == item.saverId) it.copy(bucketCount = (it.bucketCount - 1).coerceAtLeast(0)) else it
+                            },
+                        )
+                    }
+                    _effect.send(RecordUiEffect.ShowNotice("버킷리스트에서 삭제했어요."))
+                }
+                .onFailure { error ->
+                    _uiState.update { it.copy(bucketDeletingId = null) }
+                    _effect.send(RecordUiEffect.ShowNotice(error.bucketDeleteMessage()))
+                    if (error is BucketItemNotFoundException || error is ScheduledBucketItemException ||
+                        error is CompletedBucketItemException || error is NotBucketItemOwnerException
+                    ) loadBuckets()
+                }
+        }
+    }
+
+    private fun Throwable.bucketDeleteMessage() = when (this) {
+        is BucketItemNotFoundException -> "이미 삭제됐거나 찾을 수 없는 버킷이에요."
+        is NotBucketItemOwnerException -> "내가 저장한 버킷만 삭제할 수 있어요."
+        is ScheduledBucketItemException -> "일정이 잡힌 버킷은 일정을 취소한 뒤 삭제할 수 있어요."
+        is CompletedBucketItemException -> "완료한 버킷은 삭제할 수 없어요."
+        else -> "버킷을 삭제하지 못했어요. 다시 시도해주세요."
+    }
+
     private fun update(transform: (RecordUiState) -> RecordUiState) {
         _uiState.update(transform)
         val state = uiState.value
@@ -264,6 +364,17 @@ constructor(
         savedState["recordDate"] = state.selectedDate.toString()
         savedState["recordSaver"] = state.selectedSaverId
     }
+}
+
+private const val BUCKET_PAGE_SIZE = 20
+
+// 서버 버킷리스트를 쓰지 않는 테스트·미리보기에서 쓴다
+private object NoBucketItems : BucketItemRepository {
+    override suspend fun getBucketItems(memberId: Long?, cursor: Long?, size: Int?): Result<BucketItemPage> =
+        Result.success(BucketItemPage.Empty)
+
+    override suspend fun deleteBucketItem(bucketItemId: Long): Result<Unit> =
+        Result.failure(BucketItemNotFoundException())
 }
 
 // 서버 일정을 쓰지 않는 테스트·미리보기에서 쓴다. 상세는 없는 일정으로 본다
@@ -275,5 +386,8 @@ private object NoCalendarSchedules : CalendarScheduleRepository {
         Result.failure(ScheduleNotFoundException())
 
     override suspend fun updateSchedule(scheduleId: Long, update: com.kiri.domain.model.schedule.ScheduleUpdate): Result<Unit> =
+        Result.failure(ScheduleNotFoundException())
+
+    override suspend fun createSchedule(bucketItemId: Long, form: com.kiri.domain.model.schedule.ScheduleUpdate): Result<Long> =
         Result.failure(ScheduleNotFoundException())
 }

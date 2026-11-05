@@ -4,7 +4,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kiri.domain.detail.DetailParticipant
+import com.kiri.domain.detail.DetailSuggestion
 import com.kiri.domain.detail.MissionDetail
+import com.kiri.domain.model.mission.MissionGuide
+import com.kiri.domain.model.mission.MissionInfo
+import com.kiri.domain.repository.MissionInfoRepository
 import com.kiri.domain.model.family.NoFamilyException
 import com.kiri.domain.model.schedule.CancelledScheduleException
 import com.kiri.domain.usecase.schedule.GetScheduleEditAccessUseCase
@@ -18,6 +22,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,15 +58,18 @@ sealed interface ServerScheduleDetailEffect {
     data class OpenEdit(val scheduleId: Long) : ServerScheduleDetailEffect
 }
 
-// 일정 상세 API 로 받은 날짜·시간·상태·참여자를 기존 상세 화면 형식에 채운다
-// API 가 주지 않는 제목·장소·걸음수·추천 활동은 비워 두고 화면의 "미정·정보 없음" 문구로 보여준다
+// 일정 상세 API 로 받은 날짜·시간·상태·참여자로 머리말을 먼저 채우고,
+// 일정의 missionId 로 미션 상세 API 를 불러와 제목·장소·걷기량·활동시간·필수 활동·준비물을 채운다.
+// 미션을 불러오지 못하면 머리말만 보여주고 나머지는 화면의 "미정·정보 없음" 문구로 둔다
 @HiltViewModel
 class ServerScheduleDetailViewModel
 @Inject
 constructor(
     savedState: SavedStateHandle,
     private val editAccess: GetScheduleEditAccessUseCase,
+    private val missions: MissionInfoRepository,
 ) : ViewModel() {
+    private var loadJob: Job? = null
     private val scheduleId = savedState.get<Long>(SCHEDULE_ID_ARG)
     private val state = MutableStateFlow(
         ServerScheduleDetailUiState(
@@ -114,7 +122,8 @@ constructor(
             return
         }
         state.update { it.copy(detail = it.detail.copy(loading = true, error = null)) }
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             editAccess(id)
                 .onSuccess { access ->
                     // 당일이 아닌 내 일정이면 상세를 그리지 않고 로딩 상태 그대로 변경 화면으로 넘어간다.
@@ -129,6 +138,12 @@ constructor(
                             schedule = schedule,
                             detail = it.detail.copy(loading = false, detail = schedule.toMissionDetail(id)),
                         )
+                    }
+                    val missionId = schedule.missionId ?: return@onSuccess
+                    missions.getMission(missionId).onSuccess { mission ->
+                        state.update {
+                            it.copy(detail = it.detail.copy(detail = schedule.toMissionDetail(id, mission)))
+                        }
                     }
                 }
                 .onFailure { error ->
@@ -159,22 +174,30 @@ constructor(
     }
 }
 
-// 일정 상세 API 에는 제목이 없어 날짜로 제목을 만든다
-internal fun ScheduleDetail.toMissionDetail(scheduleId: Long) = MissionDetail(
+// 일정 상세 API 에는 제목이 없어 "11월 17일 약속" 처럼 날짜로 만든다. 일정 상세·수정 화면의 본문 제목에 쓴다
+internal fun ScheduleDetail.displayTitle() = "${date.monthValue}월 ${date.dayOfMonth}일 약속"
+
+// 날짜·시간·참여자·상태는 일정에서, 제목·장소·걷기량·활동시간·필수 활동(단계)·준비물은 미션에서 가져온다.
+// 미션이 없으면 제목은 날짜로 만들고 나머지는 비워 둔다. 주변 장소는 아직 API 가 없다
+internal fun ScheduleDetail.toMissionDetail(scheduleId: Long, mission: MissionInfo? = null) = MissionDetail(
     id = scheduleId.toString(),
-    title = "${date.monthValue}월 ${date.dayOfMonth}일 약속",
+    title = mission?.title ?: displayTitle(),
     familyName = "",
     date = date,
     startTime = time?.format(DateTimeFormatter.ofPattern("a h시 m분", Locale.KOREAN)),
-    place = null,
+    place = mission?.place?.name,
     expectedSteps = null,
-    durationMinutes = null,
+    durationMinutes = mission?.durationMinMinutes,
     participants = participants.map { DetailParticipant(it.nickname, it.accepted) },
     completed = status == ScheduleDisplayStatus.COMPLETED,
-    activities = emptyList(),
-    essentials = emptyList(),
+    activities = mission?.steps.orEmpty().map { it.toSuggestion() },
+    essentials = mission?.prepareItems.orEmpty().map { it.toSuggestion() },
     nearby = emptyList(),
+    walkingLevel = mission?.walkingLevel?.label,
+    durationMaxMinutes = mission?.durationMaxMinutes,
 )
+
+private fun MissionGuide.toSuggestion() = DetailSuggestion(title, description.orEmpty())
 
 // 캘린더와 같이 당일(TODAY)은 확정으로 보여준다. 당일 문구는 홈 화면에서 쓴다
 internal fun ScheduleDisplayStatus?.badgeLabel() = when (this) {

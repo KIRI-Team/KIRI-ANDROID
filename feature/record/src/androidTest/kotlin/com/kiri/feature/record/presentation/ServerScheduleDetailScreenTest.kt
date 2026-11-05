@@ -15,6 +15,11 @@ import com.kiri.feature.detail.presentation.ConditionCustomScreen
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.kiri.domain.model.mission.MissionBucketState
+import com.kiri.domain.model.mission.MissionGuide
+import com.kiri.domain.model.mission.MissionInfo
+import com.kiri.domain.model.mission.MissionPlace
+import com.kiri.domain.model.mission.WalkingLevel
 import com.kiri.domain.model.schedule.ScheduleDetail
 import com.kiri.domain.model.schedule.ScheduleDisplayStatus
 import com.kiri.domain.model.schedule.ScheduleParticipant
@@ -38,6 +43,7 @@ class ServerScheduleDetailScreenTest {
         time = LocalTime.of(14, 50),
         status = ScheduleDisplayStatus.TODAY,
         participants = listOf(ScheduleParticipant("엄마", true), ScheduleParticipant("첫째", false)),
+        missionId = 42,
     )
 
     @Test
@@ -61,6 +67,38 @@ class ServerScheduleDetailScreenTest {
         compose.onNodeWithText("미참여").assertIsDisplayed()
         compose.onNodeWithText("시작 시간   I   오후 2시 50분").assertIsDisplayed()
         compose.onNodeWithText("장소   I   미정").assertIsDisplayed()
+    }
+
+    @Test
+    fun missionFillsTitlePlaceWalkingDurationActivitiesAndEssentials() {
+        val mission = MissionInfo(
+            id = 42, title = "국립현대미술관 서울 관람하기", description = null, category = null, missionType = null,
+            status = null, indoorOutdoor = null, imageUrl = null, imageSource = null, startDate = null, endDate = null,
+            openingTime = null, closingTime = null, price = 0, durationMinMinutes = 60, durationMaxMinutes = 120,
+            walkingLevel = WalkingLevel.MEDIUM, sourceUrl = null,
+            place = MissionPlace(52, "국립현대미술관 서울", null, null, null),
+            prepareItems = listOf(MissionGuide("사전 예약", "일부 전시 예약 필요")),
+            steps = listOf(MissionGuide("상설 전시 관람하기", "마음에 드는 작품 고르기")),
+            bucketState = MissionBucketState.NONE, averageRating = null, reviewCount = 0,
+        )
+        compose.setContent {
+            KiriTheme {
+                ServerScheduleDetailScreen(
+                    ServerScheduleDetailUiState(
+                        detail = DetailUiState(loading = false, detail = detail.toMissionDetail(7, mission)),
+                        schedule = detail,
+                    ),
+                    {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("국립현대미술관 서울 관람하기").assertIsDisplayed()
+        compose.onNodeWithText("장소   I   국립현대미술관 서울").assertIsDisplayed()
+        compose.onNodeWithText("예상 걸음수 I 보통").assertIsDisplayed()
+        compose.onNodeWithText("활동시간 I 1시간 ~ 2시간").assertIsDisplayed()
+        compose.onNodeWithText("상설 전시 관람하기").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("사전 예약").performScrollTo().assertIsDisplayed()
     }
 
     @Test

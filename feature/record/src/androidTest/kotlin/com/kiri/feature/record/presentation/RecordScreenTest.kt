@@ -141,6 +141,7 @@ class RecordScreenTest {
                 SavedStateHandle(),
                 repo,
                 Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC),
+                bucketItems = com.kiri.data.bucket.FakeBucketItemRepository(),
             )
         compose.setContent { KiriTheme { RecordRoute(viewModel = vm) } }
     }
@@ -162,18 +163,38 @@ class RecordScreenTest {
         compose.onNodeWithTag("record_date_2026-10-22").assertIsSelected()
         compose.onNodeWithTag("record_tab_BUCKET").performClick()
         compose.onNodeWithTag("record_bucket_list").assertIsDisplayed()
-        compose.onNodeWithText("마마 0").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("빠빠 1").performScrollTo().assertIsDisplayed()
+        // 칩 개수는 서버가 준 가족 전체 기준 저장 개수다
+        compose.onNodeWithText("엄마 1").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("아빠 2").performScrollTo().assertIsDisplayed()
         capture("record-bucket")
-        compose.onNodeWithTag("record_saver_father").performClick().assertIsSelected()
-        compose.onNodeWithTag("record_bucket_record-bucket").assertIsDisplayed()
-        compose.onNodeWithTag("record_saver_mother").performClick()
-        compose.onNodeWithText("저장한 활동이 없어요").assertIsDisplayed()
-        compose.onNodeWithTag("record_bucket_record-bucket").assertDoesNotExist()
+        compose.onNodeWithTag("record_saver_2").performClick().assertIsSelected()
+        compose.onNodeWithTag("record_bucket_12").assertIsDisplayed()
+        compose.onNodeWithTag("record_bucket_11").assertDoesNotExist()
+        compose.onNodeWithTag("record_saver_1").performClick()
+        compose.onNodeWithTag("record_bucket_11").assertIsDisplayed()
+        compose.onNodeWithText("완료").assertIsDisplayed()
+        compose.onNodeWithTag("record_bucket_12").assertDoesNotExist()
         compose.onNodeWithTag("record_tab_CALENDAR").performClick()
         compose.onNodeWithTag("record_date_2026-10-22").performScrollTo().assertIsSelected()
         compose.onNodeWithTag("record_tab_BUCKET").performClick()
-        compose.onNodeWithTag("record_saver_mother").assertIsSelected()
+        compose.onNodeWithTag("record_saver_1").assertIsSelected()
+    }
+
+    @Test
+    fun bucketListShowsLoadingAndRetryOnFailure() {
+        val state = mutableStateOf(
+            RecordUiState(today = LocalDate.of(2026, 10, 13), tab = RecordTab.BUCKET, bucketLoading = true),
+        )
+        val events = mutableListOf<RecordUiEvent>()
+        compose.setContent { KiriTheme { RecordScreen(state.value, { events += it }) } }
+        compose.onNodeWithTag("record_bucket_loading").assertExists()
+
+        state.value = state.value.copy(bucketLoading = false, bucketError = "버킷리스트를 불러오지 못했어요.")
+        compose.onNodeWithText("버킷리스트를 불러오지 못했어요.").assertIsDisplayed()
+        compose.onNodeWithTag("record_bucket_retry").performClick()
+        compose.runOnIdle {
+            org.junit.Assert.assertEquals(listOf<RecordUiEvent>(RecordUiEvent.BucketListRetryClicked), events)
+        }
     }
 
     @Test

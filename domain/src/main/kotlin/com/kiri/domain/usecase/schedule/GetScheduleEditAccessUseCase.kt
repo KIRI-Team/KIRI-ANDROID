@@ -3,6 +3,7 @@ package com.kiri.domain.usecase.schedule
 import com.kiri.domain.home.FamilyHome
 import com.kiri.domain.home.FamilyMember
 import com.kiri.domain.home.HomeRepository
+import com.kiri.domain.home.invitableMembers
 import com.kiri.domain.model.schedule.ScheduleDetail
 import com.kiri.domain.model.schedule.canBeEditedBeforeTheDay
 import com.kiri.domain.model.schedule.isProposedBy
@@ -49,7 +50,7 @@ data class ScheduleEditAccess(
 
     // 초대할 수 있는 가족. 나와 탈퇴한 구성원은 뺀다
     val invitableMembers: List<FamilyMember>
-        get() = family?.members.orEmpty().filter { it.accessible && it.id != family?.currentUserId }
+        get() = family?.invitableMembers().orEmpty()
 
     // 지금 초대된 가족의 회원 id. 상세의 참여자는 닉네임뿐이라 닉네임이 같은 가족을 찾는다 (맨 앞의 제안자는 뺀다)
     val invitedMemberIds: Set<String>

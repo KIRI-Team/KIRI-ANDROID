@@ -106,33 +106,35 @@ class RecordViewModelTest {
     @Test
     fun yearBoundaryAndShortMonthClampSelectedDayWithoutLosingTabOrSaver() {
         val handle = SavedStateHandle(mapOf("recordSeedDate" to "2026-12-31"))
-        val vm = RecordViewModel(handle, repository(), testClock(handle))
+        val vm = RecordViewModel(handle, repository(), testClock(handle), bucketItems = com.kiri.data.bucket.FakeBucketItemRepository())
         vm.onEvent(RecordUiEvent.TabSelected(RecordTab.BUCKET))
-        vm.onEvent(RecordUiEvent.SaverSelected("father"))
+        vm.onEvent(RecordUiEvent.SaverSelected("2"))
         vm.onEvent(RecordUiEvent.NextMonth)
         assertEquals(YearMonth.of(2027, 1), vm.uiState.value.month)
         assertEquals(LocalDate.of(2027, 1, 31), vm.uiState.value.selectedDate)
         vm.onEvent(RecordUiEvent.NextMonth)
         assertEquals(LocalDate.of(2027, 2, 28), vm.uiState.value.selectedDate)
         assertEquals(RecordTab.BUCKET, vm.uiState.value.tab)
-        assertEquals("father", vm.uiState.value.selectedSaverId)
+        assertEquals("2", vm.uiState.value.selectedSaverId)
     }
 
     @Test
     fun savedUiChoicesRestoreAndUnknownSaversOrOutOfMonthDatesAreIgnored() {
         val handle = handle()
-        val vm = RecordViewModel(handle, repository(), testClock(handle))
+        val buckets = com.kiri.data.bucket.FakeBucketItemRepository()
+        val vm = RecordViewModel(handle, repository(), testClock(handle), bucketItems = buckets)
         vm.onEvent(RecordUiEvent.DateSelected(LocalDate.of(2026, 10, 22)))
-        vm.onEvent(RecordUiEvent.SaverSelected("father"))
+        vm.onEvent(RecordUiEvent.SaverSelected("2"))
         vm.onEvent(RecordUiEvent.TabSelected(RecordTab.BUCKET))
-        val restored = RecordViewModel(handle, repository(), testClock(handle))
+        val restored = RecordViewModel(handle, repository(), testClock(handle), bucketItems = buckets)
         assertEquals(vm.uiState.value, restored.uiState.value)
         restored.onEvent(RecordUiEvent.SaverSelected("unknown"))
         restored.onEvent(RecordUiEvent.DateSelected(LocalDate.of(2026, 11, 1)))
         assertEquals(vm.uiState.value, restored.uiState.value)
-        assertEquals(1, restored.uiState.value.visibleBuckets.size)
+        // 서버가 아빠(2) 것만 걸러 준다
+        assertEquals(listOf(12L, 10L), restored.uiState.value.bucketItems.map { it.id })
         restored.onEvent(RecordUiEvent.SaverSelected(null))
-        assertEquals(1, restored.uiState.value.visibleBuckets.size)
+        assertEquals(3, restored.uiState.value.bucketItems.size)
     }
 
     @Test
@@ -166,12 +168,12 @@ class RecordViewModelTest {
 
     @Test
     fun cardEffectsCarryTheirItemIdsAndDoNotMutateTheFixtures() = runTest {
-        val vm = RecordViewModel(handle(), repository(), testClock(handle()))
+        val vm = RecordViewModel(handle(), repository(), testClock(handle()), bucketItems = com.kiri.data.bucket.FakeBucketItemRepository())
         val original = vm.uiState.value
         vm.onEvent(RecordUiEvent.ScheduleClicked("schedule-demo"))
         assertEquals(RecordUiEffect.OpenSchedule("schedule-demo"), vm.effect.first())
-        vm.onEvent(RecordUiEvent.BucketClicked("record-bucket"))
-        assertEquals(RecordUiEffect.OpenBucket("record-bucket"), vm.effect.first())
+        vm.onEvent(RecordUiEvent.BucketClicked("12"))
+        assertEquals(RecordUiEffect.OpenBucket("12"), vm.effect.first())
         vm.onEvent(RecordUiEvent.CalendarEntryClicked("record-memory-1"))
         assertEquals(RecordUiEffect.OpenEntry("record-memory-1"), vm.effect.first())
         assertEquals(original, vm.uiState.value)

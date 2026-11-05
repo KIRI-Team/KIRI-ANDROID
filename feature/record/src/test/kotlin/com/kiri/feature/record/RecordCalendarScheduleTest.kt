@@ -72,6 +72,9 @@ class RecordCalendarScheduleTest {
 
         override suspend fun updateSchedule(scheduleId: Long, update: com.kiri.domain.model.schedule.ScheduleUpdate): Result<Unit> =
             Result.failure(ScheduleNotFoundException())
+
+        override suspend fun createSchedule(bucketItemId: Long, form: com.kiri.domain.model.schedule.ScheduleUpdate): Result<Long> =
+            Result.failure(ScheduleNotFoundException())
     }
 
     private fun records() = FakeRecordRepository(

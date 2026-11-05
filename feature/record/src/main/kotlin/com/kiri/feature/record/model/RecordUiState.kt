@@ -4,6 +4,8 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 import com.kiri.domain.model.schedule.CalendarScheduleStatus
+import com.kiri.domain.model.bucket.BucketItem
+import com.kiri.domain.model.bucket.BucketSaver
 import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.record.CalendarEntry
 import com.kiri.domain.record.RecordPhoto
@@ -21,6 +23,7 @@ data class RecordUiState(
     val month: YearMonth = YearMonth.from(today),
     val selectedDate: LocalDate = today,
     val tab: RecordTab = RecordTab.CALENDAR,
+    // 버킷리스트에서 고른 구성원의 서버 회원 id. null 이면 전체
     val selectedSaverId: String? = null,
     val currentUserId: String = "",
     val savers: List<RecordSaver> = emptyList(),
@@ -34,6 +37,16 @@ data class RecordUiState(
     val questions: Map<LocalDate, com.kiri.domain.record.RecordedQuestion> = emptyMap(),
     // 서버에서 받은 보고 있는 달의 가족 일정. 상세는 일정 상세 화면에서 id 로 따로 조회한다
     val monthSchedules: List<CalendarSchedule> = emptyList(),
+    // 서버에서 받은 가족 버킷리스트. 칩에 쓰는 구성원(저장 개수 포함)과 지금까지 불러온 페이지의 항목이다
+    // 항목은 고른 구성원으로 이미 걸러져 있다
+    val bucketSavers: List<BucketSaver> = emptyList(),
+    val bucketItems: List<BucketItem> = emptyList(),
+    val bucketHasNext: Boolean = false,
+    val bucketLoading: Boolean = false,
+    val bucketLoadingMore: Boolean = false,
+    val bucketError: String? = null,
+    // 삭제 중인 버킷. 그동안 같은 버킷을 다시 지우지 않는다
+    val bucketDeletingId: Long? = null,
 ) {
     // 고른 날의 서버 일정. 시간 순이고 시간을 모르는 일정은 뒤에 둔다
     val selectedSchedules
@@ -41,7 +54,6 @@ data class RecordUiState(
             .sortedWith(compareBy({ it.time ?: java.time.LocalTime.MAX }, { it.id }))
 
     val selectedEntries get() = entries.filter { it.date == selectedDate }.sortedWith(compareBy({ it.startTime ?: java.time.LocalTime.MAX }, { it.id }))
-    val visibleBuckets get() = buckets.filter { selectedSaverId == null || it.saverId == selectedSaverId }
     val upcomingSchedules get() = schedules.filter { !it.date.isBefore(today) }.sortedBy { it.date }
     fun saverName(id: String) = savers.firstOrNull { it.id == id }?.nickname ?: "탈퇴한 멤버"
 }

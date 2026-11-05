@@ -12,6 +12,8 @@ data class ScheduleDetail(
     val status: ScheduleDisplayStatus?,
     // 제안자가 맨 앞이고 이후 초대 순서다. 탈퇴한 회원의 닉네임은 "탈퇴한 사용자"로 온다
     val participants: List<ScheduleParticipant>,
+    // 이 일정의 미션. 미션 상세(제목·장소·활동)를 불러올 때 쓴다. 오지 않으면 null
+    val missionId: Long? = null,
 )
 
 data class ScheduleParticipant(

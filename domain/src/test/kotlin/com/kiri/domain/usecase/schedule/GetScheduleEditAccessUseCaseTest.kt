@@ -29,6 +29,7 @@ class GetScheduleEditAccessUseCaseTest {
         override suspend fun getMonthlySchedules(month: YearMonth): Result<List<CalendarSchedule>> = Result.success(emptyList())
         override suspend fun getScheduleDetail(scheduleId: Long): Result<ScheduleDetail> = detail
         override suspend fun updateSchedule(scheduleId: Long, update: ScheduleUpdate): Result<Unit> = Result.success(Unit)
+        override suspend fun createSchedule(bucketItemId: Long, form: ScheduleUpdate): Result<Long> = Result.success(1)
     }
 
     // 나는 1(엄마). 2(첫째), 3(아빠), 탈퇴한 4 가 가족이다. fail 이면 불러오기에 실패한다

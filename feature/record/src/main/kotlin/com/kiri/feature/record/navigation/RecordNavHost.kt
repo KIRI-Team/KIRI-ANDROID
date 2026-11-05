@@ -27,6 +27,17 @@ import com.kiri.feature.record.RecordDetailViewModel
 import com.kiri.feature.record.RecordViewModel
 import com.kiri.feature.record.ScheduleRegisterViewModel
 import com.kiri.feature.record.ServerScheduleDetailViewModel
+import com.kiri.feature.record.BucketScheduleCreateViewModel
+import com.kiri.feature.record.presentation.schedule.BucketScheduleCreateRoute
+import com.kiri.feature.record.presentation.bucket.options
+import com.kiri.uikit.component.KiriToast
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.testTag
+import kotlinx.coroutines.delay
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import com.kiri.feature.record.model.RecordUiEvent
 import com.kiri.feature.record.ScheduleEditViewModel
 import com.kiri.feature.record.presentation.schedule.ScheduleEditRoute
 import androidx.navigation.NavType
@@ -44,6 +55,7 @@ private const val DETAIL_ROUTE = "record_graph/detail"
 private const val SCHEDULE_ROUTE = "record_graph/schedule"
 private const val SERVER_SCHEDULE_ROUTE = "record_graph/server-schedule"
 private const val SCHEDULE_EDIT_ROUTE = "record_graph/schedule-edit"
+private const val BUCKET_SCHEDULE_ROUTE = "record_graph/bucket-schedule"
 private const val SERVER_SCHEDULE_DETAIL_PATTERN =
     "$SERVER_SCHEDULE_ROUTE/{${ServerScheduleDetailViewModel.SCHEDULE_ID_ARG}}?${ServerScheduleDetailViewModel.DATE_ARG}={${ServerScheduleDetailViewModel.DATE_ARG}}"
 private const val SENT_TOAST_KEY = "scheduleSentToast"
@@ -57,6 +69,10 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
             val state by viewModel.uiState.collectAsStateWithLifecycle()
             // 버킷 카드를 누르면 일정 잡기·삭제하기 시트를 먼저 띄운다
             var optionBucketId by rememberSaveable { mutableStateOf<String?>(null) }
+            // 아직 연결되지 않은 버킷 동작을 눌렀을 때 잠깐 띄우는 안내
+            var notice by rememberSaveable { mutableStateOf<String?>(null) }
+            // 삭제하기를 누른 버킷. 확인 창에서 한 번 더 확인한 뒤 지운다
+            var confirmDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
             val showSentToast by entry.savedStateHandle.getStateFlow(SENT_TOAST_KEY, false).collectAsStateWithLifecycle()
             Box(Modifier.fillMaxSize()) {
                 RecordRoute(
@@ -67,31 +83,59 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
                     onServerScheduleClick = { id, date ->
                         navController.navigate("$SERVER_SCHEDULE_ROUTE/$id?${ServerScheduleDetailViewModel.DATE_ARG}=$date") { launchSingleTop = true }
                     },
+                    onNotice = { notice = it },
                 )
                 if (showSentToast) {
                     ScheduleSentToast(onDismiss = { entry.savedStateHandle[SENT_TOAST_KEY] = false }, modifier = Modifier.align(Alignment.TopCenter))
                 }
+                notice?.let { message ->
+                    LaunchedEffect(message) {
+                        delay(2_000)
+                        notice = null
+                    }
+                    KiriToast(message, Modifier.align(Alignment.TopCenter).padding(top = 56.dp, start = 18.dp, end = 18.dp).testTag("record_notice_toast"))
+                }
             }
-            state.buckets.find { it.id == optionBucketId }?.let { bucket ->
-                val activity = state.entries.find { it.id == bucket.id }
-                val linkedSchedules = activity?.linkedScheduleIds.orEmpty()
-                val completed = activity?.completed == true
+            // 서버 버킷: 저장 상태면 일정 등록 화면으로, 일정이 잡힌 버킷은 연결된 일정 상세로 간다. 삭제는 확인 창을 거친다
+            state.bucketItems.find { it.id.toString() == optionBucketId }?.let { bucket ->
+                val options = bucket.options()
                 RecordItemOptionSheet(
                     title = bucket.title,
-                    subtitle = savedByLabel(state.saverName(bucket.saverId)),
-                    scheduleLabel = if (completed) "완료한 활동" else if (linkedSchedules.isEmpty()) "일정 잡기" else "연결된 약속 보기",
-                    scheduleEnabled = !completed,
-                    deleteEnabled = activity?.saverId == state.currentUserId && !completed && linkedSchedules.isEmpty(),
+                    subtitle = savedByLabel(bucket.saverNickname),
+                    scheduleLabel = options.scheduleLabel,
+                    scheduleEnabled = options.scheduleEnabled,
+                    deleteEnabled = options.deleteEnabled,
                     onScheduleClick = {
                         optionBucketId = null
-                        if (linkedSchedules.isNotEmpty()) onManageSchedule(linkedSchedules.first())
-                        else if (!completed) navController.navigate("$SCHEDULE_ROUTE/${Uri.encode(bucket.id)}") { launchSingleTop = true }
+                        val scheduleId = options.linkedScheduleId
+                        if (scheduleId != null) {
+                            val date = bucket.scheduledDate?.let { "?${ServerScheduleDetailViewModel.DATE_ARG}=$it" }.orEmpty()
+                            navController.navigate("$SERVER_SCHEDULE_ROUTE/$scheduleId$date") { launchSingleTop = true }
+                        } else {
+                            val args = BucketScheduleCreateViewModel
+                            navController.navigate(
+                                "$BUCKET_SCHEDULE_ROUTE/${bucket.id}?${args.TITLE_ARG}=${Uri.encode(bucket.title)}&${args.SAVER_ARG}=${Uri.encode(bucket.saverNickname)}",
+                            ) { launchSingleTop = true }
+                        }
                     },
                     onDeleteClick = {
                         optionBucketId = null
-                        navController.navigate("$DETAIL_ROUTE/${Uri.encode(bucket.id)}") { launchSingleTop = true }
+                        confirmDeleteId = bucket.id.toString()
                     },
                     onDismiss = { optionBucketId = null },
+                )
+            }
+            confirmDeleteId?.let { id ->
+                AlertDialog(
+                    onDismissRequest = { confirmDeleteId = null },
+                    title = { Text("버킷을 삭제할까요?") },
+                    confirmButton = {
+                        TextButton({
+                            confirmDeleteId = null
+                            viewModel.onEvent(RecordUiEvent.BucketDeleteConfirmed(id))
+                        }, Modifier.testTag("record_bucket_delete_confirm")) { Text("삭제하기") }
+                    },
+                    dismissButton = { TextButton({ confirmDeleteId = null }) { Text("취소") } },
                 )
             }
         }
@@ -154,6 +198,28 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
             val state by viewModel.uiState.collectAsStateWithLifecycle()
             ServerScheduleDetailEffects(viewModel, onBack = { navController.popBackStack() })
             ConditionCustomScreen(state.detail, viewModel::onEvent, Modifier.padding(bottom = 110.dp), applyEnabled = false)
+        }
+        // 서버 버킷의 일정 잡기. 일정 생성 API 로 만들고, 다 보내면 버킷이 일정 잡힘으로 바뀐 기록 탭으로 돌아간다
+        composable(
+            "$BUCKET_SCHEDULE_ROUTE/{${BucketScheduleCreateViewModel.BUCKET_ITEM_ID_ARG}}" +
+                "?${BucketScheduleCreateViewModel.TITLE_ARG}={${BucketScheduleCreateViewModel.TITLE_ARG}}" +
+                "&${BucketScheduleCreateViewModel.SAVER_ARG}={${BucketScheduleCreateViewModel.SAVER_ARG}}",
+            arguments = listOf(
+                navArgument(BucketScheduleCreateViewModel.BUCKET_ITEM_ID_ARG) { type = NavType.LongType },
+                navArgument(BucketScheduleCreateViewModel.TITLE_ARG) { type = NavType.StringType; defaultValue = "" },
+                navArgument(BucketScheduleCreateViewModel.SAVER_ARG) { type = NavType.StringType; defaultValue = "" },
+            ),
+        ) { entry ->
+            BucketScheduleCreateRoute(
+                hiltViewModel(entry),
+                onBackClick = { navController.popBackStack() },
+                // 앱으로 보냈을 때만 발송 완료 알림을 띄운다
+                onSentByApp = {
+                    navController.getBackStackEntry(START_ROUTE).savedStateHandle[SENT_TOAST_KEY] = true
+                    navController.popBackStack(START_ROUTE, inclusive = false)
+                },
+                onSentByKakao = { navController.popBackStack(START_ROUTE, inclusive = false) },
+            )
         }
         composable(DETAIL_ROUTE) {
             DetailScreen(title = "기록 상세", onBackClick = navController::popBackStack)

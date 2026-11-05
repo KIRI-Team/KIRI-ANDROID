@@ -6,6 +6,14 @@ import com.kiri.domain.home.HomeRepository
 import com.kiri.domain.usecase.schedule.GetScheduleEditAccessUseCase
 import com.kiri.domain.model.schedule.ScheduleUpdate
 import com.kiri.domain.detail.DetailParticipant
+import com.kiri.domain.detail.DetailSuggestion
+import com.kiri.domain.model.mission.MissionBucketState
+import com.kiri.domain.model.mission.MissionGuide
+import com.kiri.domain.model.mission.MissionInfo
+import com.kiri.domain.model.mission.MissionNotFoundException
+import com.kiri.domain.model.mission.MissionPlace
+import com.kiri.domain.model.mission.WalkingLevel
+import com.kiri.domain.repository.MissionInfoRepository
 import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.model.family.NoFamilyException
 import com.kiri.domain.model.schedule.CancelledScheduleException
@@ -35,6 +43,34 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+// 일정(missionId 42)의 미션. 명세 예시를 줄였다
+private val mission = MissionInfo(
+    id = 42,
+    title = "국립현대미술관 서울 관람하기",
+    description = null,
+    category = "EXHIBITION",
+    missionType = "PERMANENT",
+    status = null,
+    indoorOutdoor = "INDOOR",
+    imageUrl = null,
+    imageSource = null,
+    startDate = null,
+    endDate = null,
+    openingTime = null,
+    closingTime = null,
+    price = 0,
+    durationMinMinutes = 60,
+    durationMaxMinutes = 120,
+    walkingLevel = WalkingLevel.MEDIUM,
+    sourceUrl = null,
+    place = MissionPlace(52, "국립현대미술관 서울", "서울특별시 종로구 삼청로 30", null, null),
+    prepareItems = listOf(MissionGuide("사전 예약", null)),
+    steps = listOf(MissionGuide("상설 전시 관람하기", "마음에 드는 작품 고르기")),
+    bucketState = MissionBucketState.NONE,
+    averageRating = null,
+    reviewCount = 0,
+)
+
 // 캘린더에서 연 서버 일정 상세 화면이 일정 상세 API 결과로 채워지는지 확인한다
 @OptIn(ExperimentalCoroutinesApi::class)
 class ServerScheduleDetailViewModelTest {
@@ -57,6 +93,8 @@ class ServerScheduleDetailViewModelTest {
         }
 
         override suspend fun updateSchedule(scheduleId: Long, update: ScheduleUpdate): Result<Unit> = Result.success(Unit)
+
+        override suspend fun createSchedule(bucketItemId: Long, form: ScheduleUpdate): Result<Long> = Result.success(1)
     }
 
     private val detail = ScheduleDetail(
@@ -64,13 +102,24 @@ class ServerScheduleDetailViewModelTest {
         time = LocalTime.of(14, 50),
         status = ScheduleDisplayStatus.TODAY,
         participants = listOf(ScheduleParticipant("엄마", true), ScheduleParticipant("첫째", false)),
+        missionId = 42,
     )
+
+    private class FakeMissions(var result: Result<MissionInfo> = Result.success(mission)) : MissionInfoRepository {
+        val requested = mutableListOf<Long>()
+
+        override suspend fun getMission(missionId: Long): Result<MissionInfo> {
+            requested += missionId
+            return result
+        }
+    }
 
     private fun viewModel(
         repo: CalendarScheduleRepository,
         id: Long? = 7,
         date: String? = null,
         home: HomeRepository = FakeFamily("나"),
+        missions: MissionInfoRepository = FakeMissions(),
     ) =
         ServerScheduleDetailViewModel(
             SavedStateHandle(
@@ -80,6 +129,7 @@ class ServerScheduleDetailViewModelTest {
                 ).toMap(),
             ),
             GetScheduleEditAccessUseCase(repo, home),
+            missions,
         )
 
     @Test
@@ -113,7 +163,8 @@ class ServerScheduleDetailViewModelTest {
     fun 열면_해당_일정의_상세를_불러와_날짜_시간_참여자를_채운다() {
         val repo = FakeSchedules(Result.success(detail))
 
-        val state = viewModel(repo).uiState.value
+        // 미션은 불러오지 못한 경우로 일정 값만 본다
+        val state = viewModel(repo, missions = FakeMissions(Result.failure(IOException()))).uiState.value
         val filled = state.detail.detail!!
 
         assertEquals(listOf(7L), repo.requested)
@@ -123,10 +174,59 @@ class ServerScheduleDetailViewModelTest {
         assertEquals(LocalDate.of(2026, 11, 17), filled.date)
         assertEquals("오후 2시 50분", filled.startTime)
         assertEquals(listOf(DetailParticipant("엄마", true), DetailParticipant("첫째", false)), filled.participants)
-        // API 가 주지 않는 정보는 지어내지 않는다
+        // 일정 API 가 주지 않는 정보는 지어내지 않는다
         assertNull(filled.place)
         assertTrue(filled.activities.isEmpty())
         assertTrue(filled.nearby.isEmpty())
+    }
+
+    @Test
+    fun 일정의_미션을_불러와_제목_장소_걷기량_활동시간_활동_준비물을_채운다() {
+        val missions = FakeMissions()
+
+        val filled = viewModel(FakeSchedules(Result.success(detail)), missions = missions).uiState.value.detail.detail!!
+
+        assertEquals(listOf(42L), missions.requested)
+        assertEquals("국립현대미술관 서울 관람하기", filled.title)
+        assertEquals("국립현대미술관 서울", filled.place)
+        assertEquals("보통", filled.stepsLabel)
+        assertEquals("1시간 ~ 2시간", filled.durationLabel)
+        assertEquals(listOf(DetailSuggestion("상설 전시 관람하기", "마음에 드는 작품 고르기")), filled.activities)
+        assertEquals(listOf(DetailSuggestion("사전 예약", "")), filled.essentials)
+        // 날짜·시간·참여자는 일정 값 그대로다
+        assertEquals("오후 2시 50분", filled.startTime)
+        assertEquals(listOf(DetailParticipant("엄마", true), DetailParticipant("첫째", false)), filled.participants)
+    }
+
+    @Test
+    fun 미션을_불러오지_못하거나_missionId_가_없으면_일정_정보만_보여준다() {
+        val failed = FakeMissions(Result.failure(MissionNotFoundException()))
+        val withoutMission = FakeMissions()
+
+        val onFailure = viewModel(FakeSchedules(Result.success(detail)), missions = failed).uiState.value
+        val noId = viewModel(FakeSchedules(Result.success(detail.copy(missionId = null))), missions = withoutMission).uiState.value
+
+        listOf(onFailure, noId).forEach { state ->
+            assertNull(state.detail.error)
+            assertEquals("11월 17일 약속", state.detail.detail!!.title)
+            assertNull(state.detail.detail!!.place)
+            assertTrue(state.detail.detail!!.activities.isEmpty())
+        }
+        assertTrue(withoutMission.requested.isEmpty())
+    }
+
+    @Test
+    fun 변경_화면으로_보내는_일정은_미션을_불러오지_않는다() = runTest {
+        val missions = FakeMissions()
+
+        val vm = viewModel(
+            FakeSchedules(Result.success(detail.copy(status = ScheduleDisplayStatus.CONFIRMED))),
+            home = FakeFamily("엄마"),
+            missions = missions,
+        )
+
+        assertEquals(ServerScheduleDetailEffect.OpenEdit(7), vm.effect.first())
+        assertTrue(missions.requested.isEmpty())
     }
 
     @Test

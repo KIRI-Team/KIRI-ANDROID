@@ -57,23 +57,7 @@ fun ScheduleEditScreen(
     onRetryClick: () -> Unit,
 ) {
     if (state.loading || state.loadError != null) {
-        Column(
-            Modifier.fillMaxSize()
-                .background(KiriColor.Bg.Base)
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .testTag("schedule_edit_status"),
-        ) {
-            KiriTopBar(onBackClick = onBackClick, title = "일정 변경하기")
-            Box(Modifier.fillMaxSize().padding(18.dp), contentAlignment = Alignment.Center) {
-                if (state.loading) CircularProgressIndicator()
-                else
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(state.loadError.orEmpty(), color = KiriColor.Text.Primary, style = KiriDetailTypography.Body)
-                        KiriDetailButton("다시 시도", onRetryClick)
-                    }
-            }
-        }
+        ScheduleFormStatus("일정 변경하기", state.loadError, onBackClick, onRetryClick, "schedule_edit_status")
         return
     }
     ScheduleRegisterScreen(
@@ -89,4 +73,32 @@ fun ScheduleEditScreen(
         earliest = state.earliest,
         mode = ScheduleFormMode.edit(state.subtitle, state.saving, state.error),
     )
+}
+
+// 일정 등록·변경 화면이 필요한 정보를 불러오는 중이거나 불러오지 못했을 때 보여준다. error 가 null 이면 불러오는 중이다
+@Composable
+internal fun ScheduleFormStatus(
+    appBarTitle: String,
+    error: String?,
+    onBackClick: () -> Unit,
+    onRetryClick: () -> Unit,
+    testTag: String,
+) {
+    Column(
+        Modifier.fillMaxSize()
+            .background(KiriColor.Bg.Base)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .testTag(testTag),
+    ) {
+        KiriTopBar(onBackClick = onBackClick, title = appBarTitle)
+        Box(Modifier.fillMaxSize().padding(18.dp), contentAlignment = Alignment.Center) {
+            if (error == null) CircularProgressIndicator()
+            else
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(error, color = KiriColor.Text.Primary, style = KiriDetailTypography.Body)
+                    KiriDetailButton("다시 시도", onRetryClick)
+                }
+        }
+    }
 }

@@ -132,7 +132,7 @@ constructor(
             state.update {
                 it.copy(
                     loading = false,
-                    title = "${detail.date.monthValue}월 ${detail.date.dayOfMonth}일 약속",
+                    title = detail.displayTitle(),
                     subtitle = detail.status.badgeLabel(),
                     members = members,
                     // 기존 한 줄은 상세 응답에 없어 비워 둔다
