@@ -33,11 +33,23 @@ data class MissionDetail(
     val essentials: List<DetailSuggestion>,
     val nearby: List<NearbyPlace>,
     val conditions: Set<Condition> = emptySet(),
+    // 걸음수 대신 서버가 주는 예상 걷기량("적음·보통·많음"). 걸음수가 있으면 걸음수를 먼저 보여준다
+    val walkingLevel: String? = null,
+    // 활동시간이 범위로 오면 durationMinutes 가 최소, 이 값이 최대다
+    val durationMaxMinutes: Int? = null,
 ) {
-    val stepsLabel: String get() = expectedSteps?.let { "${it}보" } ?: "정보 없음"
-    val durationLabel: String get() = durationMinutes?.let {
-        if (it % 60 == 0) "${it / 60}시간" else "${it / 60}시간 ${it % 60}분"
-    } ?: "정보 없음"
+    val stepsLabel: String get() = expectedSteps?.let { "${it}보" } ?: walkingLevel ?: "정보 없음"
+    val durationLabel: String get() {
+        val min = durationMinutes ?: return durationMaxMinutes?.let { "최대 ${formatMinutes(it)}" } ?: "정보 없음"
+        val max = durationMaxMinutes
+        return if (max == null || max == min) formatMinutes(min) else "${formatMinutes(min)} ~ ${formatMinutes(max)}"
+    }
+
+    private fun formatMinutes(minutes: Int) = when {
+        minutes < 60 -> "${minutes}분"
+        minutes % 60 == 0 -> "${minutes / 60}시간"
+        else -> "${minutes / 60}시간 ${minutes % 60}분"
+    }
 }
 
 /** Each known criterion contributes a normalized rank. Missing data is not invented.

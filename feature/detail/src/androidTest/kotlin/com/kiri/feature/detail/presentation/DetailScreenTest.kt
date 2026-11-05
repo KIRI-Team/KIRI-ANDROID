@@ -159,7 +159,7 @@ class DetailScreenTest {
             .performClick()
             .assertIsSelected()
         compose.onNodeWithTag("family_memories_empty").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("아직 기록이 없어요").assertIsDisplayed()
+        compose.onNodeWithText("아직 기록이 없어요!").assertIsDisplayed()
         compose.onNodeWithTag("open_memory_editor").performScrollTo().assertIsNotEnabled()
         compose
             .onNodeWithTag("mission_activity_tab")

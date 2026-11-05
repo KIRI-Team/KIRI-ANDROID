@@ -109,12 +109,15 @@ class KiriAppNavigationTest {
         captureRecordScreen("record-calendar-main")
         compose.onNodeWithTag("record_tab_BUCKET").performClick()
         captureRecordScreen("record-bucket-main")
-        compose.onNodeWithTag("record_saver_father").performClick()
+        // 버킷리스트는 서버 데이터(UI 테스트에서는 FakeBucketItemModule)다. 아빠(2)를 고르면 엄마가 저장한 11 은 빠진다
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("record_saver_2").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("record_saver_2").performClick()
         compose.onNodeWithTag("bottom_nav_home").performClick()
         compose.onNodeWithTag("bottom_nav_record").performClick()
         compose.onNodeWithTag("record_tab_BUCKET").assertIsSelected()
-        compose.onNodeWithTag("record_saver_father").assertIsSelected()
-        compose.onNodeWithTag("record_bucket_bucket-3").assertDoesNotExist()
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("record_bucket_12").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("record_saver_2").assertIsSelected()
+        compose.onNodeWithTag("record_bucket_11").assertDoesNotExist()
     }
 
     private fun captureRecordScreen(name: String) {

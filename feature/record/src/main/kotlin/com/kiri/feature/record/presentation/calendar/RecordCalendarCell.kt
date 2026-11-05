@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -42,6 +43,7 @@ internal fun CalendarCell(
                 mark == RecordCalendarMark.PHOTO_FIRST ||
                 mark == RecordCalendarMark.PHOTO_SECOND -> KiriColor.Bg.Base
             mark == RecordCalendarMark.CONFIRMED -> KiriColor.Bg.GreenSoft
+            mark == RecordCalendarMark.CANCELLED -> KiriColor.Bg.Secondary.copy(alpha = .4f)
             mark == RecordCalendarMark.PLANNED || mark == RecordCalendarMark.BUCKET ->
                 KiriColor.Bg.Secondary
             else -> KiriColor.Bg.Primary
@@ -63,6 +65,7 @@ internal fun CalendarCell(
                         when (mark) {
                             RecordCalendarMark.PLANNED -> ", 약속 예정"
                             RecordCalendarMark.CONFIRMED -> ", 약속 확정"
+                            RecordCalendarMark.CANCELLED -> ", 취소된 약속"
                             RecordCalendarMark.BUCKET -> ", 버킷 활동"
                             RecordCalendarMark.QUESTION -> ", 가족 질문"
                             RecordCalendarMark.PHOTO_FIRST,
@@ -93,6 +96,13 @@ internal fun CalendarCell(
                         painterResource(R.drawable.record_clock_confirmed),
                         null,
                         Modifier.size(33.6.dp),
+                    )
+                // 취소된 약속은 흐리게 보여준다
+                RecordCalendarMark.CANCELLED ->
+                    Image(
+                        painterResource(R.drawable.record_clock_planned),
+                        null,
+                        Modifier.size(33.6.dp).alpha(.4f).testTag("record_cancelled_$date"),
                     )
                 RecordCalendarMark.BUCKET ->
                     Image(painterResource(R.drawable.record_bucket), null, Modifier.size(33.dp))

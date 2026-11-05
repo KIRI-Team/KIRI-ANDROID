@@ -25,6 +25,52 @@ class RecordScreenTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
+    fun selectedDayListsServerSchedulesAndOnlyOpenableOnesCanBeTapped() {
+        val date = LocalDate.of(2026, 10, 13)
+        fun schedule(id: Long, status: com.kiri.domain.model.schedule.CalendarScheduleStatus) =
+            com.kiri.domain.model.schedule.CalendarSchedule(id, date, java.time.LocalTime.of(14, 50), status, null)
+        val events = mutableListOf<RecordUiEvent>()
+        compose.setContent {
+            KiriTheme {
+                RecordScreen(
+                    RecordUiState(
+                        today = date,
+                        monthSchedules =
+                            listOf(
+                                schedule(1, com.kiri.domain.model.schedule.CalendarScheduleStatus.CONFIRMED),
+                                schedule(2, com.kiri.domain.model.schedule.CalendarScheduleStatus.CANCELLED),
+                            ),
+                    ),
+                    { events += it },
+                )
+            }
+        }
+        compose.onNodeWithTag("record_calendar").performScrollToKey("server-schedule-2")
+        compose.onNodeWithText("약속 취소").assertExists()
+        compose.onNodeWithTag("record_server_schedule_2").assertIsNotEnabled()
+        compose.onNodeWithTag("record_calendar").performScrollToKey("server-schedule-1")
+        compose.onNodeWithTag("record_server_schedule_1").performClick()
+        compose.runOnIdle {
+            org.junit.Assert.assertEquals(listOf(RecordUiEvent.ServerScheduleClicked(1)), events)
+        }
+    }
+
+    @Test
+    fun cancelledScheduleDayIsShownDimmedWithItsOwnDescription() {
+        val date = LocalDate.of(2026, 10, 13)
+        compose.setContent {
+            KiriTheme {
+                RecordScreen(
+                    RecordUiState(today = date, calendarMarks = mapOf(date to RecordCalendarMark.CANCELLED)),
+                    {},
+                )
+            }
+        }
+        compose.onNodeWithTag("record_cancelled_$date", useUnmergedTree = true).assertExists()
+        compose.onNodeWithContentDescription("2026년 10월 13일, 취소된 약속").assertExists()
+    }
+
+    @Test
     fun multipleActivitiesOnOneDateRequireAnExplicitActivityChoice() {
         val date = LocalDate.of(2026, 10, 13)
         val entries =
@@ -95,6 +141,7 @@ class RecordScreenTest {
                 SavedStateHandle(),
                 repo,
                 Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC),
+                bucketItems = com.kiri.data.bucket.FakeBucketItemRepository(),
             )
         compose.setContent { KiriTheme { RecordRoute(viewModel = vm) } }
     }
@@ -116,18 +163,38 @@ class RecordScreenTest {
         compose.onNodeWithTag("record_date_2026-10-22").assertIsSelected()
         compose.onNodeWithTag("record_tab_BUCKET").performClick()
         compose.onNodeWithTag("record_bucket_list").assertIsDisplayed()
-        compose.onNodeWithText("마마 0").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("빠빠 1").performScrollTo().assertIsDisplayed()
+        // 칩 개수는 서버가 준 가족 전체 기준 저장 개수다
+        compose.onNodeWithText("엄마 1").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("아빠 2").performScrollTo().assertIsDisplayed()
         capture("record-bucket")
-        compose.onNodeWithTag("record_saver_father").performClick().assertIsSelected()
-        compose.onNodeWithTag("record_bucket_record-bucket").assertIsDisplayed()
-        compose.onNodeWithTag("record_saver_mother").performClick()
-        compose.onNodeWithText("저장한 활동이 없어요").assertIsDisplayed()
-        compose.onNodeWithTag("record_bucket_record-bucket").assertDoesNotExist()
+        compose.onNodeWithTag("record_saver_2").performClick().assertIsSelected()
+        compose.onNodeWithTag("record_bucket_12").assertIsDisplayed()
+        compose.onNodeWithTag("record_bucket_11").assertDoesNotExist()
+        compose.onNodeWithTag("record_saver_1").performClick()
+        compose.onNodeWithTag("record_bucket_11").assertIsDisplayed()
+        compose.onNodeWithText("완료").assertIsDisplayed()
+        compose.onNodeWithTag("record_bucket_12").assertDoesNotExist()
         compose.onNodeWithTag("record_tab_CALENDAR").performClick()
         compose.onNodeWithTag("record_date_2026-10-22").performScrollTo().assertIsSelected()
         compose.onNodeWithTag("record_tab_BUCKET").performClick()
-        compose.onNodeWithTag("record_saver_mother").assertIsSelected()
+        compose.onNodeWithTag("record_saver_1").assertIsSelected()
+    }
+
+    @Test
+    fun bucketListShowsLoadingAndRetryOnFailure() {
+        val state = mutableStateOf(
+            RecordUiState(today = LocalDate.of(2026, 10, 13), tab = RecordTab.BUCKET, bucketLoading = true),
+        )
+        val events = mutableListOf<RecordUiEvent>()
+        compose.setContent { KiriTheme { RecordScreen(state.value, { events += it }) } }
+        compose.onNodeWithTag("record_bucket_loading").assertExists()
+
+        state.value = state.value.copy(bucketLoading = false, bucketError = "버킷리스트를 불러오지 못했어요.")
+        compose.onNodeWithText("버킷리스트를 불러오지 못했어요.").assertIsDisplayed()
+        compose.onNodeWithTag("record_bucket_retry").performClick()
+        compose.runOnIdle {
+            org.junit.Assert.assertEquals(listOf<RecordUiEvent>(RecordUiEvent.BucketListRetryClicked), events)
+        }
     }
 
     @Test

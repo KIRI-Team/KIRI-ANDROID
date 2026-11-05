@@ -1,6 +1,20 @@
 package com.kiri.feature.detail.presentation
 
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
+import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -29,8 +43,16 @@ import com.kiri.uikit.R as UiR
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.*
 
-/** Calendar occurrences share mission content but own their header and available actions. */
-data class CalendarDetailHeader(val title: String, val badge: String, val showCustom: Boolean)
+/** Calendar occurrences share mission content but own their header and available actions.
+ * neutralBadge: 배지를 회색으로 그린다 (약속 예정).
+ * collapseParticipants: 참여 상태 줄 대신 "인원확인 I 날짜"를 보여주고, 누르면 참여자 말풍선을 띄운다 (Figma 9898:20930). */
+data class CalendarDetailHeader(
+    val title: String,
+    val badge: String,
+    val showCustom: Boolean,
+    val neutralBadge: Boolean = false,
+    val collapseParticipants: Boolean = false,
+)
 
 @Composable
 fun MissionDetailRoute(
@@ -76,6 +98,10 @@ fun MissionDetailScreen(
     discoverySaveLabel: String? = null,
     discoverySaveEnabled: Boolean = true,
     onDiscoverySave: () -> Unit = {},
+    // 상세를 아직 받지 못했거나 받지 못했을 때의 앱바 제목
+    placeholderTitle: String = "미션 상세",
+    // 다시 불러와도 결과가 같은 오류면 false 로 다시 시도 버튼을 숨긴다
+    showRetry: Boolean = true,
 ) {
     val onBack = { onEvent(DetailUiEvent.BackClicked) }
     val onCustom = { onEvent(DetailUiEvent.CustomClicked) }
@@ -90,7 +116,7 @@ fun MissionDetailScreen(
             .verticalScroll(rememberScrollState())
     ) {
         if (detail == null) {
-            if (showAppBar) KiriDetailAppBar("미션 상세", onBack)
+            if (showAppBar) KiriDetailAppBar(placeholderTitle, onBack)
             if (state.loading)
                 CircularProgressIndicator(
                     Modifier.align(Alignment.CenterHorizontally).padding(32.dp)
@@ -98,7 +124,7 @@ fun MissionDetailScreen(
             else
                 Column(Modifier.padding(18.dp)) {
                     Text(state.error ?: "미션을 찾을 수 없어요.", style = KiriDetailTypography.Body)
-                    KiriDetailButton("다시 시도", onRetry)
+                    if (showRetry) KiriDetailButton("다시 시도", onRetry)
                 }
         } else {
             DetailHeader(
@@ -164,18 +190,11 @@ fun MissionDetailScreen(
             Column(Modifier.padding(horizontal = 18.dp)) {
                 if (!discovery && state.memoriesSelected) {
                     if (state.submittedMemory == null) {
-                        Box(
-                            Modifier.fillMaxWidth()
-                                .heightIn(min = 160.dp)
-                                .testTag("family_memories_empty"),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                "아직 기록이 없어요",
-                                color = KiriColor.Text.Tertiary,
-                                style = KiriDetailTypography.Body,
-                            )
-                        }
+                        // Figma 9898:17487 (KIRI/Empty State)
+                        com.kiri.uikit.component.KiriEmptyState(
+                            "아직 기록이 없어요!",
+                            Modifier.testTag("family_memories_empty"),
+                        )
                     } else {
                         Text(
                             "${detail.familyName.ifBlank { "우리 가족" }} 님의 한 줄",
@@ -330,22 +349,28 @@ private fun DetailHeader(
                     }
             val neutralBadge =
                 calendarHeader == null && (detail.completed || memoriesSelected || memorySubmitted)
+            val calendarNeutral = calendarHeader?.neutralBadge == true
             Text(
                 badge,
                 Modifier.background(
-                        if (neutralBadge) KiriColor.Bg.Elevated
-                        else if (calendarHeader != null) KiriColor.Primary.Default.copy(alpha = .2f)
+                        if (neutralBadge || calendarNeutral) KiriColor.Bg.Elevated
+                        // 캘린더 일정의 확정 배지 (Figma 9898:21887, kiri-bg-green-soft)
                         else KiriColor.Bg.GreenSoft,
                         RoundedCornerShape(5.dp),
                     )
                     .padding(horizontal = 8.dp, vertical = 6.dp),
                 style = KiriDetailTypography.Small,
-                color = if (neutralBadge) KiriColor.Text.Primary else KiriColor.Text.Accent,
+                color =
+                    if (calendarNeutral) KiriColor.Text.Secondary
+                    else if (neutralBadge) KiriColor.Text.Primary
+                    else KiriColor.Text.Accent,
             )
             Spacer(Modifier.height(11.dp))
             Text(detail.title, color = KiriColor.Text.Strong, style = KiriDetailTypography.Display)
             Spacer(Modifier.height(4.dp))
-            if (memorySubmitted) {
+            if (calendarHeader?.collapseParticipants == true) {
+                ParticipantCheckLine(detail)
+            } else if (memorySubmitted) {
                 Text(
                     buildAnnotatedString {
                         withStyle(
@@ -449,6 +474,78 @@ private fun DetailHeader(
             }
         }
     }
+}
+
+// "인원확인 I 날짜". 인원확인을 누르면 화면을 어둡게 덮고 그 아래에 참여자 말풍선을 띄운다. 바깥을 누르면 닫힌다
+@Composable
+private fun ParticipantCheckLine(detail: MissionDetail) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var anchor by remember { mutableStateOf(IntOffset.Zero) }
+    val density = LocalDensity.current
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            "인원확인",
+            Modifier.onGloballyPositioned {
+                    val bounds = it.boundsInWindow()
+                    anchor = IntOffset(bounds.left.roundToInt(), bounds.bottom.roundToInt())
+                }
+                .clickable(onClickLabel = "참여 인원 보기") { expanded = true }
+                .testTag("participant_check"),
+            color = KiriColor.Text.Primary,
+            style = KiriDetailTypography.Body.copy(textDecoration = TextDecoration.Underline),
+        )
+        Text(
+            "  I  ${detail.date?.format(java.time.format.DateTimeFormatter.ofPattern("yyyy.MM.dd")) ?: "날짜 정보 없음"}",
+            color = KiriColor.Text.Primary,
+            style = KiriDetailTypography.Body,
+        )
+    }
+    if (expanded)
+        Popup(
+            popupPositionProvider = WindowOriginPositionProvider,
+            onDismissRequest = { expanded = false },
+            properties = PopupProperties(focusable = true),
+        ) {
+            Box(
+                Modifier.fillMaxSize()
+                    .background(KiriColor.Bg.Base.copy(alpha = .7f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClickLabel = "닫기",
+                    ) {
+                        expanded = false
+                    }
+                    .testTag("participant_check_dim")
+            ) {
+                // Figma 에서 말풍선은 인원확인 글자보다 2dp 오른쪽, 꼬리가 글자 아래에 9dp 겹치도록 놓인다
+                val offset = with(density) { IntOffset(2.dp.roundToPx(), -9.dp.roundToPx()) }
+                KiriParticipantTooltip(
+                    detail.participants.mapIndexed { index, participant ->
+                        KiriParticipantStatus(
+                            index.toString(),
+                            participant.name,
+                            participant.participating,
+                            if (participant.participating) "수락" else "미수락",
+                        )
+                    },
+                    Modifier.offset { anchor + offset }
+                        .widthIn(max = 340.dp)
+                        .testTag("participant_check_tooltip"),
+                    showStatus = false,
+                )
+            }
+        }
+}
+
+// 말풍선 팝업을 창 왼쪽 위에 붙여 화면 전체를 덮게 한다
+private object WindowOriginPositionProvider : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
+    ) = IntOffset.Zero
 }
 
 @Composable

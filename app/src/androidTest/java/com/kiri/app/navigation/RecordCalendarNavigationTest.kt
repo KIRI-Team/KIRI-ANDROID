@@ -89,7 +89,7 @@ class RecordCalendarNavigationTest {
         compose.onNodeWithTag("menu_delete_record").performClick()
         compose.onNodeWithTag("confirm_delete_record").performClick()
         compose.waitUntil(10_000) { repository.records.value.memories.none { it.id == memoryId } }
-        compose.onNodeWithText("아직 기록이 없어요").assertIsDisplayed()
+        compose.onNodeWithText("아직 기록이 없어요!").assertIsDisplayed()
     }
 
     private fun capture(name: String) {

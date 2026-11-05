@@ -42,8 +42,9 @@ fun ConditionCustomRoute(viewModel: DetailViewModel, onBack: () -> Unit) {
     ConditionCustomScreen(state, viewModel::onEvent)
 }
 
+// applyEnabled 가 false 면 조건은 고를 수 있지만 적용하기는 누를 수 없다 (적용 API 가 아직 없는 화면용)
 @Composable
-fun ConditionCustomScreen(state: DetailUiState, onEvent: (DetailUiEvent) -> Unit, modifier: Modifier = Modifier) {
+fun ConditionCustomScreen(state: DetailUiState, onEvent: (DetailUiEvent) -> Unit, modifier: Modifier = Modifier, applyEnabled: Boolean = true) {
     val onBack = { onEvent(DetailUiEvent.CustomCancelled) }
     val onToggle: (Condition) -> Unit = { onEvent(DetailUiEvent.ConditionToggled(it)) }
     val onApply = { onEvent(DetailUiEvent.ApplyClicked) }
@@ -68,7 +69,7 @@ fun ConditionCustomScreen(state: DetailUiState, onEvent: (DetailUiEvent) -> Unit
             }
             state.error?.let { Text(it, Modifier.padding(18.dp).testTag("custom_error"), color = KiriColor.Status.Error, style = KiriDetailTypography.Small) }
         }
-        KiriDetailButton(if (state.saving) "적용 중…" else "커스텀 적용하기", onApply, Modifier.padding(horizontal = 18.dp, vertical = 15.dp).testTag("apply_custom"), custom = true, enabled = !state.saving && state.detail?.completed == false)
+        KiriDetailButton(if (state.saving) "적용 중…" else "커스텀 적용하기", onApply, Modifier.padding(horizontal = 18.dp, vertical = 15.dp).testTag("apply_custom"), custom = true, enabled = applyEnabled && !state.saving && state.detail?.completed == false)
     }
 }
 
