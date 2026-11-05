@@ -190,18 +190,11 @@ fun MissionDetailScreen(
             Column(Modifier.padding(horizontal = 18.dp)) {
                 if (!discovery && state.memoriesSelected) {
                     if (state.submittedMemory == null) {
-                        Box(
-                            Modifier.fillMaxWidth()
-                                .heightIn(min = 160.dp)
-                                .testTag("family_memories_empty"),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                "아직 기록이 없어요",
-                                color = KiriColor.Text.Tertiary,
-                                style = KiriDetailTypography.Body,
-                            )
-                        }
+                        // Figma 9898:17487 (KIRI/Empty State)
+                        com.kiri.uikit.component.KiriEmptyState(
+                            "아직 기록이 없어요!",
+                            Modifier.testTag("family_memories_empty"),
+                        )
                     } else {
                         Text(
                             "${detail.familyName.ifBlank { "우리 가족" }} 님의 한 줄",

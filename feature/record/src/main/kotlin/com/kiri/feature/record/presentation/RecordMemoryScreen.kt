@@ -96,7 +96,11 @@ fun RecordMemoryScreen(
                 Spacer(Modifier.height(30.dp))
                 Text("${state.collection.familyName.ifBlank { "우리 가족" }}님의 기록 모아보기", style = KiriDetailTypography.Title, color = KiriColor.Text.Strong)
                 Spacer(Modifier.height(24.dp))
-                if (state.memories.isEmpty()) Text("아직 기록이 없어요", Modifier.fillMaxWidth().padding(vertical = 48.dp), style = KiriDetailTypography.Body, color = KiriColor.Text.Tertiary, textAlign = TextAlign.Center)
+                // Figma 9898:17487 (KIRI/Empty State)
+                if (state.memories.isEmpty()) {
+                    com.kiri.uikit.component.KiriEmptyState("아직 기록이 없어요!", Modifier.testTag("record_memory_empty"))
+                    Spacer(Modifier.height(16.dp))
+                }
                 state.memories.forEach { memory ->
                     FamilyMemoryCard(memory, memory.authorId == state.collection.currentUserId, state.detail.saving,
                         { onEdit(memory.id) }, { deleteId = memory.id })
