@@ -14,6 +14,18 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
 class UpcomingHomeRepositoryTest {
+    @Test fun scheduleFailureDoesNotHideDailyQuestionOrPreventAnswering() = runTest {
+        MockWebServer().use { server ->
+            server.start()
+            server.enqueue(MockResponse.Builder().code(503).build())
+            val repo = UpcomingHomeRepository(FakeHomeRepository(latencyMillis = 0), api(server), kiriJson)
+            val home = repo.load()
+            val question = requireNotNull(home.question)
+            assertEquals("답변", repo.saveAnswer(question, "답변").answers[home.currentUserId])
+            assertEquals(1, server.requestCount)
+        }
+    }
+
     private fun api(server: MockWebServer) = Retrofit.Builder().baseUrl(server.url("/"))
         .addConverterFactory(kiriJson.asConverterFactory("application/json".toMediaType())).build().create(HomeApi::class.java)
 

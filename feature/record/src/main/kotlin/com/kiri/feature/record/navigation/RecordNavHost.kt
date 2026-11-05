@@ -60,6 +60,8 @@ private const val SERVER_SCHEDULE_DETAIL_PATTERN =
     "$SERVER_SCHEDULE_ROUTE/{${ServerScheduleDetailViewModel.SCHEDULE_ID_ARG}}?${ServerScheduleDetailViewModel.DATE_ARG}={${ServerScheduleDetailViewModel.DATE_ARG}}"
 private const val SENT_TOAST_KEY = "scheduleSentToast"
 
+fun serverScheduleDetailRoute(scheduleId: Long): String = "$SERVER_SCHEDULE_ROUTE/$scheduleId"
+
 /** Registers this feature in the main tab back stack. */
 fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSchedule: (String) -> Unit = {}, onManageSchedule: (String) -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
     navigation(startDestination = START_ROUTE, route = GRAPH_ROUTE) {

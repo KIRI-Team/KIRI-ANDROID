@@ -24,7 +24,7 @@ internal class UpcomingHomeRepository(private val questions: HomeRepository, pri
     private suspend fun enrich(home: FamilyHome): FamilyHome {
         schedules = emptyList()
         if (home.browsing) return home
-        val result = apiResult(json) { api.upcoming() }.getOrThrow()
+        val result = apiResult(json) { api.upcoming() }.getOrElse { return home }
         schedules = listOfNotNull(result.responseRequired, result.upcoming).distinctBy { it.scheduleId }.map {
             HomeSchedule(it.scheduleId.toString(), it.title,
                 LocalDateTime.parse("${it.date}T${it.time}").atZone(ZoneId.of("Asia/Seoul")).toInstant(),
