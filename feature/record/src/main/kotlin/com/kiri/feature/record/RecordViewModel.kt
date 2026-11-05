@@ -64,7 +64,7 @@ constructor(
     private var localMarks: Map<LocalDate, RecordCalendarMark> = emptyMap()
 
     // 서버에서 받은 달별 가족 일정. 달을 오가도 다시 받지 않는다 (다시 시도하면 새로 받는다)
-    private val monthSchedules = mutableMapOf<YearMonth, List<CalendarSchedule>>()
+    private val schedulesByMonth = mutableMapOf<YearMonth, List<CalendarSchedule>>()
     private val loadingMonths = mutableSetOf<YearMonth>()
 
     // 버킷리스트 다음 페이지를 부를 때 넣는 값과, 지금 불러오는 요청
@@ -209,12 +209,12 @@ constructor(
     // 그 달의 서버 일정을 불러온다. 이미 받았거나 받는 중이면 다시 요청하지 않는다
     // 응답이 오기 전에 다른 달로 넘어가도 받은 일정은 그 달 몫으로 기억하고, 보고 있는 달일 때만 화면에 반영한다
     private fun loadMonth(month: YearMonth, force: Boolean = false) {
-        if (month in loadingMonths || (!force && month in monthSchedules)) return
+        if (month in loadingMonths || (!force && month in schedulesByMonth)) return
         loadingMonths += month
         viewModelScope.launch {
             calendarSchedules.getMonthlySchedules(month)
                 .onSuccess { schedules ->
-                    monthSchedules[month] = schedules
+                    schedulesByMonth[month] = schedules
                     _uiState.update { it.withServerSchedules() }
                 }
                 .onFailure {
@@ -236,7 +236,7 @@ constructor(
     }
 
     private fun RecordUiState.withServerSchedules(): RecordUiState {
-        val schedules = monthSchedules[month].orEmpty()
+        val schedules = schedulesByMonth[month].orEmpty()
         return copy(
             monthSchedules = schedules,
             calendarMarks = mergeCalendarMarks(localMarks, schedules.toCalendarMarks()),
