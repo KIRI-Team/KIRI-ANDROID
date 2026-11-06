@@ -10,6 +10,10 @@ import com.kiri.domain.model.schedule.MyScheduleStatus
 import com.kiri.domain.model.schedule.ScheduleDetail
 import com.kiri.domain.model.schedule.ScheduleDisplayStatus
 import com.kiri.domain.model.schedule.ScheduleNotFoundException
+import com.kiri.domain.model.schedule.UpcomingSchedule
+import com.kiri.domain.model.schedule.UpcomingScheduleType
+import com.kiri.domain.model.schedule.UpcomingSchedules
+import com.kiri.domain.repository.UpcomingScheduleRepository
 import com.kiri.feature.record.model.RecordUiEffect
 import com.kiri.feature.record.presentation.calendar.scheduleLabel
 import com.kiri.domain.repository.CalendarScheduleRepository
@@ -217,13 +221,14 @@ class RecordCalendarScheduleTest {
     }
 
     @Test
-    fun 서버_일정이_여러_개거나_취소만_있는_날은_바로_이동하지_않고_목록에서_고르게_한다() = runTest {
+    fun 서버_일정이_여러_개면_가장_이른_일정으로_가고_취소만_있는_날은_이동하지_않는다() = runTest {
         val (multiple, cancelledOnly) = emptyDays(october)
         val repo = RecordingCalendarSchedules()
         repo.results[october] = Result.success(
             listOf(
-                schedule(1, multiple, CalendarScheduleStatus.CONFIRMED),
-                schedule(2, multiple, CalendarScheduleStatus.PENDING_RESPONSE),
+                schedule(1, multiple, CalendarScheduleStatus.CONFIRMED).copy(time = LocalTime.of(15, 0)),
+                schedule(2, multiple, CalendarScheduleStatus.PENDING_RESPONSE).copy(time = LocalTime.of(9, 0)),
+                schedule(4, multiple, CalendarScheduleStatus.CONFIRMED).copy(time = null),
                 schedule(3, cancelledOnly, CalendarScheduleStatus.CANCELLED),
             ),
         )
@@ -231,39 +236,85 @@ class RecordCalendarScheduleTest {
 
         vm.onEvent(RecordUiEvent.DateSelected(cancelledOnly))
         assertNull(vm.nextEffect())
-        vm.onEvent(RecordUiEvent.ServerScheduleClicked(3))
-        assertNull(vm.nextEffect())
 
         vm.onEvent(RecordUiEvent.DateSelected(multiple))
-        assertNull(vm.nextEffect())
-        vm.onEvent(RecordUiEvent.ServerScheduleClicked(2))
         assertEquals(RecordUiEffect.OpenServerSchedule(2, multiple), vm.nextEffect())
     }
 
     @Test
-    fun 기기에_저장된_활동이_있는_날은_서버_일정이_하나여도_목록에서_고르게_한다() = runTest {
+    fun 기기에_저장된_활동이_있는_날은_시간이_더_이른_활동을_연다() = runTest {
         val vm0 = viewModel(RecordingCalendarSchedules())
         val busy = vm0.uiState.value.entries.first { YearMonth.from(it.date) == october }.date
         val repo = RecordingCalendarSchedules()
-        repo.results[october] = Result.success(listOf(schedule(1, busy, CalendarScheduleStatus.CONFIRMED)))
+        // 시간을 모르는 서버 일정은 기기에 저장된 활동보다 뒤로 미룬다
+        repo.results[october] = Result.success(listOf(schedule(1, busy, CalendarScheduleStatus.CONFIRMED).copy(time = null)))
         val vm = viewModel(repo)
 
         vm.onEvent(RecordUiEvent.DateSelected(busy))
 
-        assertNull(vm.nextEffect())
+        assertEquals(RecordUiEffect.OpenEntry(vm.uiState.value.selectedEntries.first().id), vm.nextEffect())
     }
 
     @Test
-    fun 고른_날에_없는_일정은_눌러도_이동하지_않는다() = runTest {
-        val (day, other) = emptyDays(october)
+    fun 다른_달의_날짜는_골라도_이동하지_않는다() = runTest {
+        val day = emptyDays(october).first()
         val repo = RecordingCalendarSchedules()
         repo.results[october] = Result.success(listOf(schedule(1, day, CalendarScheduleStatus.CONFIRMED)))
         val vm = viewModel(repo)
 
-        vm.onEvent(RecordUiEvent.DateSelected(other))
-        vm.onEvent(RecordUiEvent.ServerScheduleClicked(1))
+        vm.onEvent(RecordUiEvent.DateSelected(november.atDay(1)))
 
         assertNull(vm.nextEffect())
+        assertEquals(today, vm.uiState.value.selectedDate)
+    }
+
+    // 다가오는 일정 조회 결과를 정해 두고, 몇 번 불렸는지 센다
+    private class FakeUpcoming(var result: Result<UpcomingSchedules>) : UpcomingScheduleRepository {
+        var calls = 0
+
+        override suspend fun getUpcomingSchedules(): Result<UpcomingSchedules> {
+            calls++
+            return result
+        }
+    }
+
+    private fun upcomingCard(id: Long, type: UpcomingScheduleType, date: LocalDate) =
+        UpcomingSchedule(id, date, LocalTime.of(18, 0), type, 3, "약속 $id", MyScheduleStatus.PENDING)
+
+    @Test
+    fun 다가오는_약속은_응답_필요_카드를_먼저_보여주고_누르면_상세로_간다() = runTest {
+        val required = upcomingCard(120, UpcomingScheduleType.RESPONSE_REQUIRED, today.plusDays(5))
+        val upcoming = upcomingCard(118, UpcomingScheduleType.UPCOMING, today.plusDays(2))
+        val vm = RecordViewModel(
+            SavedStateHandle(), records(), clock, RecordingCalendarSchedules(),
+            upcoming = FakeUpcoming(Result.success(UpcomingSchedules(required, upcoming))),
+        )
+
+        assertEquals(listOf(required, upcoming), vm.uiState.value.upcomingSchedules)
+        assertEquals(false, vm.uiState.value.upcomingFailed)
+
+        vm.onEvent(RecordUiEvent.ServerScheduleClicked(118))
+        assertEquals(RecordUiEffect.OpenServerSchedule(118, today.plusDays(2)), vm.nextEffect())
+        // 카드에 없는 일정은 열지 않는다
+        vm.onEvent(RecordUiEvent.ServerScheduleClicked(999))
+        assertNull(vm.nextEffect())
+    }
+
+    @Test
+    fun 다가오는_약속을_불러오지_못하면_실패로_두고_다시_시도하면_새로_불러온다() = runTest {
+        val repo = FakeUpcoming(Result.failure(IOException()))
+        val vm = RecordViewModel(SavedStateHandle(), records(), clock, RecordingCalendarSchedules(), upcoming = repo)
+
+        assertEquals(true, vm.uiState.value.upcomingFailed)
+        assertEquals(emptyList<UpcomingSchedule>(), vm.uiState.value.upcomingSchedules)
+
+        val card = upcomingCard(1, UpcomingScheduleType.TODAY, today)
+        repo.result = Result.success(UpcomingSchedules(upcoming = card))
+        vm.onEvent(RecordUiEvent.RetryClicked)
+
+        assertEquals(2, repo.calls)
+        assertEquals(false, vm.uiState.value.upcomingFailed)
+        assertEquals(listOf(card), vm.uiState.value.upcomingSchedules)
     }
 
     @Test

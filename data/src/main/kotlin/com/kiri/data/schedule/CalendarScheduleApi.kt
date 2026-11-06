@@ -8,6 +8,9 @@ import com.kiri.domain.model.schedule.ScheduleDetail
 import com.kiri.domain.model.schedule.ScheduleDisplayStatus
 import com.kiri.domain.model.schedule.ScheduleParticipant
 import com.kiri.domain.model.schedule.ScheduleUpdate
+import com.kiri.domain.model.schedule.UpcomingSchedule
+import com.kiri.domain.model.schedule.UpcomingScheduleType
+import com.kiri.domain.model.schedule.UpcomingSchedules
 import java.time.LocalDate
 import java.time.LocalTime
 import kotlinx.serialization.Serializable
@@ -30,6 +33,12 @@ internal interface CalendarScheduleApi {
     // 로그인 토큰이 필요하다. 가족 공간이 없으면 SCHEDULE403_1, 없거나 다른 가족의 일정이면 SCHEDULE404_2,
     // 취소된 일정이면 SCHEDULE409_7 로 거절된다
     // TODO: 명세에 경로가 없어 추정한 경로다. 서버 명세와 대조할 것
+    // 로그인 토큰이 필요하다. 파라미터 없이 현재 회원·가족 기준으로 응답 필요 1건, 다가오는 1건을 돌려준다
+    // 가족 공간이 없으면 SCHEDULE403_1 로 거절된다
+    // TODO: 명세에 경로가 없어 추정한 경로다. 서버 명세와 대조할 것
+    @GET("api/v1/schedules/upcoming")
+    suspend fun getUpcomingSchedules(): ApiResponse<UpcomingSchedulesResponse>
+
     @GET("api/v1/schedules/{scheduleId}")
     suspend fun getScheduleDetail(@Path("scheduleId") scheduleId: Long): ApiResponse<ScheduleDetailResponse>
 
@@ -127,3 +136,42 @@ internal fun ScheduleDetailResponse.toScheduleDetail() = ScheduleDetail(
     participants = participants.map { ScheduleParticipant(it.nickname, it.accepted) },
     missionId = missionId,
 )
+
+@Serializable
+internal data class UpcomingSchedulesResponse(
+    val responseRequired: UpcomingScheduleResponse? = null,
+    val upcoming: UpcomingScheduleResponse? = null,
+)
+
+// date 는 "2026-11-20", time 은 "18:00" 처럼 온다. 상태 값은 앱이 모르는 값이 와도 읽을 수 있도록 문자열로 받는다
+@Serializable
+internal data class UpcomingScheduleResponse(
+    val scheduleId: Long,
+    val date: String,
+    val time: String? = null,
+    val status: String? = null,
+    val myStatus: String? = null,
+    val dDay: Int? = null,
+    val type: String? = null,
+    val title: String? = null,
+)
+
+internal fun UpcomingSchedulesResponse.toUpcomingSchedules() = UpcomingSchedules(
+    responseRequired = responseRequired?.toUpcomingSchedule(UpcomingScheduleType.RESPONSE_REQUIRED),
+    upcoming = upcoming?.toUpcomingSchedule(UpcomingScheduleType.UPCOMING),
+)
+
+// 날짜를 읽지 못하면 카드를 보여줄 수 없으니 그 카드만 뺀다
+// type 을 모르면 받은 칸(응답 필요·다가오는)으로 정하고, dDay 가 없으면 날짜로 셀 수 없으니 0 으로 둔다
+internal fun UpcomingScheduleResponse.toUpcomingSchedule(slot: UpcomingScheduleType): UpcomingSchedule? {
+    val date = runCatching { LocalDate.parse(date) }.getOrNull() ?: return null
+    return UpcomingSchedule(
+        id = scheduleId,
+        date = date,
+        time = time?.let { runCatching { LocalTime.parse(it) }.getOrNull() },
+        type = UpcomingScheduleType.entries.firstOrNull { it.name == type } ?: slot,
+        dDay = dDay ?: 0,
+        title = title?.takeIf { it.isNotBlank() } ?: "${date.monthValue}월 ${date.dayOfMonth}일 약속",
+        myStatus = MyScheduleStatus.entries.firstOrNull { it.name == myStatus },
+    )
+}

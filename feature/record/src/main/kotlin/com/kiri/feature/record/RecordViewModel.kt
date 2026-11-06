@@ -9,6 +9,8 @@ import com.kiri.domain.model.schedule.ScheduleDetail
 import com.kiri.domain.model.schedule.ScheduleNotFoundException
 import com.kiri.domain.repository.CalendarScheduleRepository
 import com.kiri.domain.repository.BucketItemRepository
+import com.kiri.domain.repository.UpcomingScheduleRepository
+import com.kiri.domain.model.schedule.UpcomingSchedules
 import com.kiri.domain.model.bucket.BucketItemPage
 import com.kiri.domain.model.bucket.BucketItemNotFoundException
 import com.kiri.domain.model.bucket.CompletedBucketItemException
@@ -36,6 +38,7 @@ constructor(
     private val clock: java.time.Clock = java.time.Clock.systemUTC(),
     private val calendarSchedules: CalendarScheduleRepository = NoCalendarSchedules,
     private val bucketItems: BucketItemRepository = NoBucketItems,
+    private val upcoming: UpcomingScheduleRepository = NoUpcomingSchedules,
 ) : ViewModel() {
     private val today
         get() = clock.kiriToday()
@@ -51,7 +54,6 @@ constructor(
                 month =
                     savedState.get<String>("recordMonth")?.let(YearMonth::parse) ?: initial.month,
                 selectedDate = savedState.get<String>("recordDate")?.let(LocalDate::parse) ?: today,
-                // 예전 버전이 남긴 기기 저장 구성원 id(숫자가 아님)는 버린다
                 selectedSaverId = savedState.get<String>("recordSaver")?.takeIf { it.toLongOrNull() != null },
             )
         )
@@ -70,6 +72,9 @@ constructor(
     // 버킷리스트 다음 페이지를 부를 때 넣는 값과, 지금 불러오는 요청
     private var bucketCursor: Long? = null
     private var bucketJob: Job? = null
+
+    // 지금 불러오는 다가오는 일정 요청. 새로 고치면 이전 요청은 버린다
+    private var upcomingJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -140,6 +145,7 @@ constructor(
             ).withServerSchedules()
         }
         loadMonth(uiState.value.month, force = true)
+        loadUpcoming()
         loadBuckets()
         try {
             repository.refresh()
@@ -161,7 +167,7 @@ constructor(
             is RecordUiEvent.DateSelected ->
                 if (YearMonth.from(event.date) == uiState.value.month) {
                     update { it.copy(selectedDate = event.date) }
-                    openOnlyServerSchedule()
+                    openSelectedDay()
                 }
             is RecordUiEvent.SaverSelected -> {
                 val state = uiState.value
@@ -185,8 +191,8 @@ constructor(
                     _effect.trySend(RecordUiEffect.OpenEntry(event.id))
             RecordUiEvent.RetryClicked -> refresh()
             is RecordUiEvent.ServerScheduleClicked ->
-                uiState.value.selectedSchedules
-                    .firstOrNull { it.id == event.scheduleId && it.canOpen }
+                uiState.value.upcomingSchedules
+                    .firstOrNull { it.id == event.scheduleId }
                     ?.let { _effect.trySend(RecordUiEffect.OpenServerSchedule(it.id, it.date)) }
         }
     }
@@ -226,13 +232,32 @@ constructor(
         }
     }
 
-    // 고른 날에 열 수 있는 서버 일정이 하나뿐이고 기기에 저장된 활동도 없으면 바로 상세 화면으로 간다
-    // 여러 활동이 겹치면 아래 목록에서 직접 고르게 한다
-    private fun openOnlyServerSchedule() {
+    // 고른 날의 활동(기기에 저장된 활동과 열 수 있는 서버 일정) 중 가장 이른 것 하나의 상세 화면으로 간다
+    // 날짜 아래에 그날 활동 목록을 따로 보여주지 않으므로, 여러 개가 겹치면 시간이 가장 이른 것을 연다
+    // 시간을 모르는 활동은 뒤로 미루고, 시간이 같으면 기기에 저장된 활동을 먼저 연다. 취소된 일정만 있으면 이동하지 않는다
+    private fun openSelectedDay() {
         val state = uiState.value
-        val openable = state.selectedSchedules.filter { it.canOpen }
-        if (openable.size == 1 && state.selectedEntries.isEmpty())
-            _effect.trySend(RecordUiEffect.OpenServerSchedule(openable.single().id, openable.single().date))
+        val candidates: List<Pair<java.time.LocalTime?, RecordUiEffect>> =
+            state.selectedEntries.map { it.startTime to RecordUiEffect.OpenEntry(it.id) } +
+                state.selectedSchedules
+                    .filter { it.canOpen }
+                    .map { it.time to RecordUiEffect.OpenServerSchedule(it.id, it.date) }
+        candidates.minByOrNull { it.first ?: java.time.LocalTime.MAX }?.let { _effect.trySend(it.second) }
+    }
+
+    // 다가오는 일정 카드(응답 필요 1건, 다가오는 1건)를 불러온다. 실패하면 이전 카드를 지우고 실패 문구를 보여준다
+    private fun loadUpcoming() {
+        upcomingJob?.cancel()
+        upcomingJob = viewModelScope.launch {
+            upcoming.getUpcomingSchedules()
+                .onSuccess { result ->
+                    _uiState.update { it.copy(upcomingSchedules = result.cards, upcomingFailed = false) }
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    _uiState.update { it.copy(upcomingSchedules = emptyList(), upcomingFailed = true) }
+                }
+        }
     }
 
     private fun RecordUiState.withServerSchedules(): RecordUiState {
@@ -375,6 +400,11 @@ private object NoBucketItems : BucketItemRepository {
 
     override suspend fun deleteBucketItem(bucketItemId: Long): Result<Unit> =
         Result.failure(BucketItemNotFoundException())
+}
+
+// 다가오는 일정을 쓰지 않는 테스트·미리보기에서 쓴다
+private object NoUpcomingSchedules : UpcomingScheduleRepository {
+    override suspend fun getUpcomingSchedules(): Result<UpcomingSchedules> = Result.success(UpcomingSchedules())
 }
 
 // 서버 일정을 쓰지 않는 테스트·미리보기에서 쓴다. 상세는 없는 일정으로 본다
