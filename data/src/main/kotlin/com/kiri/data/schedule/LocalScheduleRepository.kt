@@ -84,6 +84,7 @@ class LocalScheduleRepository(
                 return@withLock state.value.first { it.id == id }
             }
             validate(draft, family)
+            checkDayIsFree(draft)
             if (draft.weeklyMissionId != null) {
                 return@withLock createWeekly(draft, requestId, family)
             }
@@ -201,6 +202,7 @@ class LocalScheduleRepository(
                 old.place != draft.place.trim() ||
                 (old.responses.keys - old.proposerId) != draft.inviteeIds
         validate(draft, family, requireFuture = changed)
+        if (old.startsAt != draft.startsAt) checkDayIsFree(draft, exceptId = old.id)
         if (changed)
             check(clock.instant().isBefore(old.startsAt)) { "이미 시작한 약속의 핵심 정보는 수정할 수 없어요." }
         val updated =
@@ -342,6 +344,12 @@ class LocalScheduleRepository(
         events.value = notices
         requests.clear()
         requests.putAll(pending)
+    }
+
+    // 하루에는 일정을 하나만 정할 수 있다. 그날 다른 일정(대기·확정·완료)이 있으면 만들거나 옮길 수 없다
+    private fun checkDayIsFree(draft: ScheduleDraft, exceptId: String? = null) {
+        val date = requireNotNull(draft.startsAt).atZone(java.time.ZoneId.of("Asia/Seoul")).toLocalDate()
+        check(date !in state.value.occupiedDates(clock.instant(), exceptId)) { ONE_SCHEDULE_PER_DAY_MESSAGE }
     }
 
     private suspend fun validate(

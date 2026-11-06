@@ -97,6 +97,9 @@ fun ScheduleRegisterScreen(
     earliest: LocalDateTime? = null,
     weekly: Boolean = false,
     mode: ScheduleFormMode = ScheduleFormMode.Register,
+    // 이미 일정이 있어 고를 수 없는 날과, 날짜 시트가 달을 보여줄 때 부르는 함수 (하루에 일정은 하나만 정할 수 있다)
+    blockedDates: Set<java.time.LocalDate> = emptySet(),
+    onMonthShown: (java.time.YearMonth) -> Unit = {},
 ) {
     var openSheet by rememberSaveable { mutableStateOf<ScheduleRegisterSheet?>(null) }
 
@@ -130,6 +133,8 @@ fun ScheduleRegisterScreen(
                 },
                 onDismiss = { openSheet = null },
                 earliest = earliest,
+                blockedDates = blockedDates,
+                onMonthShown = onMonthShown,
             )
         }
         ScheduleRegisterSheet.Member -> {

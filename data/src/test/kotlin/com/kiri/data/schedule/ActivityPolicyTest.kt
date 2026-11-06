@@ -163,4 +163,24 @@ class ActivityPolicyTest {
         assertTrue(f.records.records.value.photos[schedule.id].isNullOrEmpty())
         assertTrue(f.buckets.buckets.value.first { it.id == draft.bucketId }.completed)
     }
+    @Test fun onlyOneScheduleCanTakeADayAndCancelledOnesFreeIt() = runTest {
+        val f = Fixture(); val draft = f.draft()
+        val first = f.schedules.create(draft, "first")
+        val market = f.buckets.save("place-market")
+        val sameDay = ScheduleDraft(market.id, market.missionId, draft.startsAt!!.plusSeconds(3600), setOf("mother"), "", "시장")
+        // 같은 날 다른 시간이어도 새 일정을 만들 수 없다
+        val error = runCatching { f.schedules.create(sameDay, "same-day") }.exceptionOrNull()
+        assertTrue(error is IllegalStateException)
+        assertEquals(ONE_SCHEDULE_PER_DAY_MESSAGE, error?.message)
+        // 다른 날은 만들 수 있다
+        val nextDay = f.schedules.create(sameDay.copy(startsAt = draft.startsAt!!.plusSeconds(86400)), "next-day")
+        // 다른 일정이 있는 날로 옮길 수 없고, 자기 날짜 안에서 시간만 바꾸는 것은 된다
+        assertTrue(runCatching { f.schedules.update(nextDay.id, sameDay, nextDay.revision) }.isFailure)
+        val moved = f.schedules.update(nextDay.id, sameDay.copy(startsAt = nextDay.startsAt.plusSeconds(3600)), nextDay.revision)
+        assertEquals(nextDay.startsAt.plusSeconds(3600), moved.startsAt)
+        // 취소한 일정은 그날을 차지하지 않는다
+        f.schedules.cancel(first.id, first.revision)
+        val freed = f.schedules.update(moved.id, sameDay, moved.revision)
+        assertEquals(sameDay.startsAt, freed.startsAt)
+    }
 }

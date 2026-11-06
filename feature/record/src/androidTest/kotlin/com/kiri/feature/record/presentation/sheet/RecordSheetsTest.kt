@@ -144,6 +144,37 @@ class RecordSheetsTest {
         compose.onNodeWithText("다음").assertIsEnabled()
     }
 
+    @Test fun scheduleSheetBlocksDatesThatAlreadyHaveASchedule() {
+        var date by mutableStateOf<LocalDate?>(LocalDate.of(2026, 12, 23))
+        var time by mutableStateOf<LocalTime?>(LocalTime.of(9, 0))
+        var blocked by mutableStateOf(emptySet<LocalDate>())
+        compose.setContent {
+            KiriTheme {
+                RecordScheduleSheetContent(
+                    month = YearMonth.of(2026, 12),
+                    selectedDate = date,
+                    selectedTime = time,
+                    times = listOf(LocalTime.of(9, 0)),
+                    onMonthChange = {},
+                    onDateSelect = { date = it },
+                    onTimeSelect = { time = it },
+                    onNextClick = {},
+                    blockedDates = blocked,
+                )
+            }
+        }
+        compose.onNodeWithText("다음").assertIsEnabled()
+        // 고른 날에 다른 일정이 있는 것으로 뒤늦게 확인되면 다음으로 넘어갈 수 없다
+        blocked = setOf(LocalDate.of(2026, 12, 23), LocalDate.of(2026, 12, 24))
+        compose.onNodeWithText("다음").assertIsNotEnabled()
+        // 하루에 일정은 하나만 정할 수 있어 일정이 있는 날은 눌러도 고를 수 없다
+        compose.onNodeWithTag("record_calendar_day_2026-12-24").performClick()
+        assertEquals(LocalDate.of(2026, 12, 23), date)
+        compose.onNodeWithTag("record_calendar_day_2026-12-25").performClick()
+        assertEquals(LocalDate.of(2026, 12, 25), date)
+        compose.onNodeWithText("다음").assertIsEnabled()
+    }
+
     @Test fun memberSheetTogglesSelectionAndConfirms() {
         var selected by mutableStateOf(emptySet<String>())
         var confirmed = false

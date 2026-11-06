@@ -45,7 +45,7 @@ fun ScheduleEditRoute(viewModel: ScheduleEditViewModel, onBackClick: () -> Unit,
             }
         }
     }
-    ScheduleEditScreen(state, viewModel::onDraftChange, onBackClick, viewModel::save, viewModel::retry)
+    ScheduleEditScreen(state, viewModel::onDraftChange, onBackClick, viewModel::save, viewModel::retry, viewModel::onMonthShown)
 }
 
 @Composable
@@ -55,6 +55,7 @@ fun ScheduleEditScreen(
     onBackClick: () -> Unit,
     onSaveClick: () -> Unit,
     onRetryClick: () -> Unit,
+    onMonthShown: (java.time.YearMonth) -> Unit = {},
 ) {
     if (state.loading || state.loadError != null) {
         ScheduleFormStatus("일정 변경하기", state.loadError, onBackClick, onRetryClick, "schedule_edit_status")
@@ -72,6 +73,8 @@ fun ScheduleEditScreen(
         onCreateInviteClick = onSaveClick,
         earliest = state.earliest,
         mode = ScheduleFormMode.edit(state.subtitle, state.saving, state.error),
+        blockedDates = state.occupiedDates,
+        onMonthShown = onMonthShown,
     )
 }
 

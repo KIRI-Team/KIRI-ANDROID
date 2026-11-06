@@ -18,6 +18,8 @@ import com.kiri.feature.record.presentation.schedule.scheduleRequestShareText
 import com.kiri.feature.record.presentation.sheet.RecordMember
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
+import java.time.LocalDate
+import java.time.YearMonth
 import java.time.LocalDateTime
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -41,6 +43,8 @@ data class BucketScheduleCreateUiState(
     val draft: ScheduleRegisterDraft = ScheduleRegisterDraft(),
     val sending: Boolean = false,
     val error: String? = null,
+    // 이미 일정이 있어 고를 수 없는 날 (하루에 일정은 하나만 정할 수 있다). 날짜 시트가 보여준 달만 채워진다
+    val occupiedDates: Set<LocalDate> = emptySet(),
 )
 
 sealed interface BucketScheduleCreateEffect {
@@ -71,9 +75,18 @@ constructor(
     val uiState = state.asStateFlow()
     private val effects = Channel<BucketScheduleCreateEffect>(Channel.BUFFERED)
     val effect = effects.receiveAsFlow()
+    private val dayLimit = ScheduleDayLimit(schedules)
 
     init {
         load()
+    }
+
+    // 날짜 시트가 보여주는 달의 가족 일정을 불러와 일정이 있는 날을 고를 수 없게 한다
+    // 불러오지 못하면 막지 않고 보내기 직전에 다시 확인한다
+    fun onMonthShown(month: YearMonth) {
+        viewModelScope.launch {
+            if (dayLimit.load(month)) state.update { it.copy(occupiedDates = dayLimit.occupiedDates) }
+        }
     }
 
     fun retry() {
@@ -103,6 +116,14 @@ constructor(
         }
         state.update { it.copy(sending = true, error = null) }
         viewModelScope.launch {
+            // 하루에 일정은 하나만 정할 수 있다. 그 달을 아직 받지 못했으면 지금 받아 확인한다
+            dayLimit.load(YearMonth.from(date))
+            if (date in dayLimit.occupiedDates) {
+                state.update {
+                    it.copy(sending = false, occupiedDates = dayLimit.occupiedDates, error = ScheduleDayLimit.OCCUPIED_MESSAGE)
+                }
+                return@launch
+            }
             schedules.createSchedule(id, ScheduleUpdate(date, time, inviteeIds, draft.message.takeIf { it.isNotBlank() }))
                 .onSuccess {
                     state.update { it.copy(sending = false) }
