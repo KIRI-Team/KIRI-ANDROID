@@ -1,6 +1,9 @@
 package com.kiri.feature.record.presentation
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,7 +39,7 @@ fun ServerScheduleDetailRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     ServerScheduleDetailEffects(viewModel, onBack, onCustom, onEdit)
-    ServerScheduleDetailScreen(state, viewModel::onEvent, viewModel::retryReviews)
+    ServerScheduleDetailScreen(state, viewModel::onEvent, viewModel::retryReviews, viewModel::editClicked)
 }
 
 // 상세 화면과 컨디션 커스텀 화면이 같은 ViewModel 을 쓰므로, 앞에 보이는(RESUMED) 화면만 효과를 받는다
@@ -70,6 +73,7 @@ fun ServerScheduleDetailScreen(
     state: ServerScheduleDetailUiState,
     onEvent: (DetailUiEvent) -> Unit,
     onRetryReviews: () -> Unit = {},
+    onEditClick: () -> Unit = {},
 ) {
     val schedule = state.schedule
     if (schedule != null && state.showsRecord) {
@@ -96,6 +100,7 @@ fun ServerScheduleDetailScreen(
         )
         return
     }
+    Column(Modifier.fillMaxSize()) {
     MissionDetailScreen(
         state.detail,
         onEvent,
@@ -117,7 +122,19 @@ fun ServerScheduleDetailScreen(
         nearbyImageRes = R.drawable.record_calendar_nearby,
         placeholderTitle = state.appBarTitle,
         showRetry = state.retryable,
+        modifier = Modifier.weight(1f),
     )
+    // 당일이 아닌(예정·확정) 내 일정이면 상세를 보여준 뒤 수정하기로 일정 변경 화면에 들어간다
+    if (state.canEdit) {
+        com.kiri.uikit.component.KiriButton(
+            onEditClick,
+            Modifier.padding(18.dp),
+            text = "수정하기",
+            layout = com.kiri.uikit.component.KiriButtonLayout.Record,
+            testTag = "server_schedule_edit",
+        )
+    }
+    }
 }
 
 // TODO: 서버 일정의 대표 사진 API 가 생기면 바꾼다. 그때까지는 예시 단체 사진을 보여준다

@@ -209,6 +209,28 @@ class ServerScheduleDetailScreenTest {
     }
 
     @Test
+    fun editButtonShowsOnlyWhenTheProposerCanEditAndSendsTheClick() {
+        val confirmed = detail.copy(status = ScheduleDisplayStatus.CONFIRMED)
+        var state by mutableStateOf(
+            ServerScheduleDetailUiState(
+                detail = DetailUiState(loading = false, detail = confirmed.toMissionDetail(7)),
+                schedule = confirmed,
+                canEdit = true,
+            ),
+        )
+        var clicks = 0
+        compose.setContent { KiriTheme { ServerScheduleDetailScreen(state, {}, onEditClick = { clicks++ }) } }
+
+        // 상세를 먼저 보여준다
+        compose.onNodeWithText("약속 확정").assertIsDisplayed()
+        compose.onNodeWithTag("server_schedule_edit").assertIsDisplayed().performClick()
+        assertEquals(1, clicks)
+
+        state = state.copy(canEdit = false)
+        compose.onNodeWithTag("server_schedule_edit").assertDoesNotExist()
+    }
+
+    @Test
     fun completedScheduleShowsRecordScreenWithFamilyReviews() {
         val completed = detail.copy(status = ScheduleDisplayStatus.COMPLETED)
         var state by mutableStateOf(

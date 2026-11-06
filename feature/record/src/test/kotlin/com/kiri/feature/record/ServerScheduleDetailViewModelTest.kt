@@ -217,30 +217,50 @@ class ServerScheduleDetailViewModelTest {
     }
 
     @Test
-    fun 당일이_아닌_일정을_제안자가_열면_상세를_그리지_않고_변경_화면으로_보낸다() = runTest {
+    fun 당일이_아닌_일정을_제안자가_열면_상세를_먼저_보여주고_수정하기를_눌러야_변경_화면으로_간다() = runTest {
         listOf(ScheduleDisplayStatus.SCHEDULED, ScheduleDisplayStatus.CONFIRMED).forEach { status ->
             val vm = viewModel(FakeSchedules(Result.success(detail.copy(status = status))), home = FakeFamily("엄마"))
 
+            // 열자마자 변경 화면으로 보내지 않는다
+            assertNull(withTimeoutOrNull(100) { vm.effect.first() })
+            assertFalse(vm.uiState.value.detail.loading)
+            assertEquals(detail.copy(status = status), vm.uiState.value.schedule)
+            assertTrue(vm.uiState.value.canEdit)
+
+            vm.editClicked()
             assertEquals(ServerScheduleDetailEffect.OpenEdit(7), vm.effect.first())
-            assertNull(vm.uiState.value.detail.detail)
-            assertTrue(vm.uiState.value.detail.loading)
         }
     }
 
     @Test
-    fun 당일이거나_완료됐거나_제안자가_아니면_상세를_보여준다() = runTest {
+    fun 당일이거나_완료됐거나_제안자가_아니면_수정하기를_보여주지_않고_눌러도_가지_않는다() = runTest {
         listOf(
             detail to FakeFamily("엄마"),
             detail.copy(status = ScheduleDisplayStatus.COMPLETED) to FakeFamily("엄마"),
             detail.copy(status = ScheduleDisplayStatus.CONFIRMED) to FakeFamily("첫째"),
-            // 가족 정보를 불러오지 못하면 제안자인지 알 수 없어 상세를 보여준다
+            // 가족 정보를 불러오지 못하면 제안자인지 알 수 없어 수정하기를 숨긴다
             detail.copy(status = ScheduleDisplayStatus.CONFIRMED) to FakeFamily(null),
         ).forEach { (schedule, family) ->
             val vm = viewModel(FakeSchedules(Result.success(schedule)), home = family)
 
             assertEquals(schedule, vm.uiState.value.schedule)
+            assertFalse(vm.uiState.value.canEdit)
+            vm.editClicked()
             assertNull(withTimeoutOrNull(100) { vm.effect.first() })
         }
+    }
+
+    @Test
+    fun 변경하고_돌아오면_바뀐_일정을_다시_불러온다() = runTest {
+        val repo = FakeSchedules(Result.success(detail.copy(status = ScheduleDisplayStatus.CONFIRMED)))
+        val vm = viewModel(repo, home = FakeFamily("엄마"))
+
+        repo.result = Result.success(detail.copy(status = ScheduleDisplayStatus.SCHEDULED, time = LocalTime.of(16, 0)))
+        vm.reload()
+
+        assertEquals(listOf(7L, 7L), repo.requested)
+        assertEquals(ScheduleDisplayStatus.SCHEDULED, vm.uiState.value.schedule?.status)
+        assertEquals(LocalTime.of(16, 0), vm.uiState.value.schedule?.time)
     }
 
     @Test
@@ -300,7 +320,7 @@ class ServerScheduleDetailViewModelTest {
     }
 
     @Test
-    fun 변경_화면으로_보내는_일정은_미션을_불러오지_않는다() = runTest {
+    fun 제안자의_일정도_상세에_미션을_채운다() = runTest {
         val missions = FakeMissions()
 
         val vm = viewModel(
@@ -309,8 +329,8 @@ class ServerScheduleDetailViewModelTest {
             missions = missions,
         )
 
-        assertEquals(ServerScheduleDetailEffect.OpenEdit(7), vm.effect.first())
-        assertTrue(missions.requested.isEmpty())
+        assertEquals(listOf(42L), missions.requested)
+        assertEquals(mission.title, vm.uiState.value.detail.detail?.title)
     }
 
     @Test

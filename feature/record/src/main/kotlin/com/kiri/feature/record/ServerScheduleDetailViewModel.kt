@@ -53,6 +53,8 @@ data class ServerScheduleDetailUiState(
     val reviewsFailed: Boolean = false,
     // 기록 화면의 "OO 기록", "OO님의 기록 모아보기" 에 쓴다. 불러오지 못하면 null
     val familyName: String? = null,
+    // 당일이 아닌(예정·확정) 내 일정이면 상세 아래에 수정하기 버튼을 보여준다
+    val canEdit: Boolean = false,
 ) {
     // 완료된 일정은 미션 상세 대신 기록 화면(Figma 7903:1926)으로 보여준다
     val showsRecord get() = schedule?.status == ScheduleDisplayStatus.COMPLETED
@@ -71,7 +73,7 @@ sealed interface ServerScheduleDetailEffect {
     // 약속 당일에만 컨디션 커스텀 화면을 연다
     data object OpenCustom : ServerScheduleDetailEffect
 
-    // 당일이 아닌 일정을 제안자 본인이 열면 상세 대신 일정 변경 화면으로 보낸다
+    // 제안자가 상세의 수정하기를 눌러 일정 변경 화면으로 간다
     data class OpenEdit(val scheduleId: Long) : ServerScheduleDetailEffect
 }
 
@@ -146,16 +148,13 @@ constructor(
         loadJob = viewModelScope.launch {
             editAccess(id)
                 .onSuccess { access ->
-                    // 당일이 아닌 내 일정이면 상세를 그리지 않고 로딩 상태 그대로 변경 화면으로 넘어간다.
-                    // 가족 정보를 불러오지 못하면 제안자인지 알 수 없으므로 상세를 보여준다
-                    if (access.canEdit) {
-                        effects.send(ServerScheduleDetailEffect.OpenEdit(id))
-                        return@onSuccess
-                    }
+                    // 당일이 아닌 내 일정이면 상세 아래에 수정하기를 보여준다.
+                    // 가족 정보를 불러오지 못하면 제안자인지 알 수 없으므로 수정하기를 숨긴다
                     val schedule = access.detail
                     state.update {
                         it.copy(
                             schedule = schedule,
+                            canEdit = access.canEdit,
                             detail = it.detail.copy(loading = false, detail = schedule.toMissionDetail(id)),
                         )
                     }
@@ -179,6 +178,17 @@ constructor(
                     }
                 }
         }
+    }
+
+    // 상세의 수정하기를 눌렀다. 바꿀 수 있는 내 일정일 때만 변경 화면으로 간다
+    fun editClicked() {
+        val id = scheduleId ?: return
+        if (uiState.value.canEdit) effects.trySend(ServerScheduleDetailEffect.OpenEdit(id))
+    }
+
+    // 일정 변경 화면에서 저장하고 돌아왔다. 바뀐 날짜·시간·참여자를 다시 불러온다
+    fun reload() {
+        if (!uiState.value.detail.loading) load()
     }
 
     // 기록 모아보기에서 다시 시도를 눌렀다
