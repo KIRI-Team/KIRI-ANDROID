@@ -221,13 +221,16 @@ class ServerScheduleDetailScreenTest {
         var clicks = 0
         compose.setContent { KiriTheme { ServerScheduleDetailScreen(state, {}, onEditClick = { clicks++ }) } }
 
-        // 상세를 먼저 보여준다
+        // 상세를 먼저 보여주고, 제안자 화면은 참여자를 "인원확인" 으로 접는다 (Figma 9898:21783)
         compose.onNodeWithText("약속 확정").assertIsDisplayed()
-        compose.onNodeWithTag("server_schedule_edit").assertIsDisplayed().performClick()
+        compose.onNodeWithText("인원확인", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("일정 변경하기").assertIsDisplayed()
+        compose.onNodeWithTag("server_schedule_edit").performClick()
         assertEquals(1, clicks)
 
         state = state.copy(canEdit = false)
         compose.onNodeWithTag("server_schedule_edit").assertDoesNotExist()
+        compose.onNodeWithText("일정 변경하기").assertDoesNotExist()
     }
 
     @Test

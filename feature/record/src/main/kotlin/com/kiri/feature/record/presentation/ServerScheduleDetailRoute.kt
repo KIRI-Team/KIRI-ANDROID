@@ -1,9 +1,6 @@
 package com.kiri.feature.record.presentation
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -100,20 +97,21 @@ fun ServerScheduleDetailScreen(
         )
         return
     }
-    Column(Modifier.fillMaxSize()) {
     MissionDetailScreen(
         state.detail,
         onEvent,
         calendarHeader =
             schedule?.let {
-                // 약속 예정이면 "인원확인" 말풍선으로 참여자를 보여준다
+                // 약속 예정이거나 제안자 화면이면 "인원확인" 말풍선으로 참여자를 보여준다 (Figma 9898:20930, 9898:21783)
                 val scheduled = it.status == ScheduleDisplayStatus.SCHEDULED
                 CalendarDetailHeader(
                     title = state.appBarTitle,
                     badge = it.status.badgeLabel(),
                     showCustom = state.canCustomize,
                     neutralBadge = it.status.usesNeutralBadge(),
-                    collapseParticipants = scheduled,
+                    collapseParticipants = scheduled || state.canEdit,
+                    // 당일이 아닌(예정·확정) 내 일정이면 활동 정보 아래에 일정 변경하기를 보여준다
+                    onEditSchedule = onEditClick.takeIf { state.canEdit },
                 )
             },
         suggestionIcon = {
@@ -122,19 +120,7 @@ fun ServerScheduleDetailScreen(
         nearbyImageRes = R.drawable.record_calendar_nearby,
         placeholderTitle = state.appBarTitle,
         showRetry = state.retryable,
-        modifier = Modifier.weight(1f),
     )
-    // 당일이 아닌(예정·확정) 내 일정이면 상세를 보여준 뒤 수정하기로 일정 변경 화면에 들어간다
-    if (state.canEdit) {
-        com.kiri.uikit.component.KiriButton(
-            onEditClick,
-            Modifier.padding(18.dp),
-            text = "수정하기",
-            layout = com.kiri.uikit.component.KiriButtonLayout.Record,
-            testTag = "server_schedule_edit",
-        )
-    }
-    }
 }
 
 // TODO: 서버 일정의 대표 사진 API 가 생기면 바꾼다. 그때까지는 예시 단체 사진을 보여준다
