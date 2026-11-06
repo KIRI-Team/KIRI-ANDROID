@@ -51,6 +51,24 @@ data class FamilySchedule(
         !now.isBefore(startsAt) && status(now) in setOf(ScheduleStatus.CONFIRMED, ScheduleStatus.COMPLETED)
 }
 
+// 하루에는 일정을 하나만 정할 수 있다. 응답 대기·재확인·확정·완료 일정이 그날을 차지하고, 취소·미확정 일정은 비운다
+fun FamilySchedule.occupiesDay(now: Instant): Boolean = status(now) in DayOccupyingStatuses
+
+// 일정이 있는 날(한국 시간 기준). 일정을 바꿀 때는 바꾸는 일정 자신(exceptId)을 뺀다
+fun List<FamilySchedule>.occupiedDates(now: Instant, exceptId: String? = null): Set<java.time.LocalDate> =
+    filter { it.id != exceptId && it.occupiesDay(now) }
+        .map { it.startsAt.atZone(java.time.ZoneId.of("Asia/Seoul")).toLocalDate() }
+        .toSet()
+
+val DayOccupyingStatuses = setOf(
+    ScheduleStatus.PENDING_RESPONSE,
+    ScheduleStatus.RECONFIRM_REQUIRED,
+    ScheduleStatus.CONFIRMED,
+    ScheduleStatus.COMPLETED,
+)
+
+const val ONE_SCHEDULE_PER_DAY_MESSAGE = "이미 약속이 있는 날이에요. 다른 날짜를 골라주세요."
+
 fun responseDeadline(startsAt: Instant, createdAt: Instant): Instant {
     require(startsAt.isAfter(createdAt)) { "지난 시각에는 약속을 만들 수 없어요." }
     val dayBefore = startsAt.minus(Duration.ofHours(24))

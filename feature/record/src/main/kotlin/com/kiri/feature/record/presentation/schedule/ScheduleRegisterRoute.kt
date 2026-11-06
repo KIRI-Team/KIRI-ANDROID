@@ -74,6 +74,7 @@ fun ScheduleRegisterRoute(
         sending = state.sending,
         error = state.error,
         earliest = state.earliest,
+        blockedDates = state.occupiedDates,
         weekly = state.weekly,
     )
 }
@@ -96,6 +97,9 @@ internal fun ScheduleRegisterFlow(
     earliest: LocalDateTime? = null,
     times: List<LocalTime> = DefaultScheduleTimes,
     weekly: Boolean = false,
+    // 이미 일정이 있어 고를 수 없는 날 (하루에 일정은 하나만 정할 수 있다)
+    blockedDates: Set<java.time.LocalDate> = emptySet(),
+    onMonthShown: (java.time.YearMonth) -> Unit = {},
 ) {
     var showRequest by rememberSaveable { mutableStateOf(false) }
     var showSendSheet by rememberSaveable { mutableStateOf(false) }
@@ -142,6 +146,8 @@ internal fun ScheduleRegisterFlow(
             onCreateInviteClick = { showRequest = true },
             earliest = earliest,
             weekly = weekly,
+            blockedDates = blockedDates,
+            onMonthShown = onMonthShown,
         )
     }
 }

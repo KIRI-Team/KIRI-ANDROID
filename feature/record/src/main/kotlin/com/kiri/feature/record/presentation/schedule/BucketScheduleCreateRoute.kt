@@ -46,7 +46,7 @@ fun BucketScheduleCreateRoute(
             }
         }
     }
-    BucketScheduleCreateScreen(state, viewModel::onDraftChange, onBackClick, viewModel::send, viewModel::retry)
+    BucketScheduleCreateScreen(state, viewModel::onDraftChange, onBackClick, viewModel::send, viewModel::retry, viewModel::onMonthShown)
 }
 
 @Composable
@@ -56,6 +56,7 @@ fun BucketScheduleCreateScreen(
     onBackClick: () -> Unit,
     onSend: (ScheduleRequestChannel) -> Unit,
     onRetryClick: () -> Unit,
+    onMonthShown: (java.time.YearMonth) -> Unit = {},
 ) {
     if (state.loading || state.loadError != null) {
         ScheduleFormStatus("일정 등록하기", state.loadError, onBackClick, onRetryClick, "bucket_schedule_status")
@@ -75,5 +76,7 @@ fun BucketScheduleCreateScreen(
         sending = state.sending,
         error = state.error,
         earliest = state.earliest,
+        blockedDates = state.occupiedDates,
+        onMonthShown = onMonthShown,
     )
 }

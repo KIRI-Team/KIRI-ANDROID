@@ -134,18 +134,8 @@ internal fun RecordCalendar(
                                     date,
                                     state.calendarMarks[date],
                                     date == state.selectedDate,
-                                    {
-                                        onEvent(RecordUiEvent.DateSelected(date))
-                                        if (state.questions[date] == null)
-                                            state.entries
-                                                .filter { it.date == date }
-                                                .singleOrNull()
-                                                ?.let {
-                                                    onEvent(
-                                                        RecordUiEvent.CalendarEntryClicked(it.id)
-                                                    )
-                                                }
-                                    },
+                                    // 그날 활동 중 하나로 이동할지는 ViewModel 이 정한다
+                                    { onEvent(RecordUiEvent.DateSelected(date)) },
                                     Modifier.weight(1f),
                                     state.calendarPhotos[date],
                                     state.entries.count { it.date == date },
@@ -154,7 +144,8 @@ internal fun RecordCalendar(
                     }
                 }
             }
-        selectedDayActivities(state, onEvent)
+        // 날짜를 눌러도 그날 활동 목록은 보여주지 않는다. 가족 모두 답한 질문만 읽기 전용으로 보여준다
+        selectedDayQuestion(state)
         item(key = "upcoming-title") {
             Text(
                 "다가오는 약속",
@@ -164,16 +155,16 @@ internal fun RecordCalendar(
             )
         }
         if (state.upcomingSchedules.isEmpty())
-            item {
+            item(key = "upcoming-empty") {
                 Text(
-                    "다가오는 약속이 없어요",
+                    if (state.upcomingFailed) "다가오는 약속을 불러오지 못했어요" else "다가오는 약속이 없어요",
                     style = KiriDetailTypography.Small,
                     color = KiriColor.Text.Secondary,
                     modifier = Modifier.padding(vertical = 24.dp),
                 )
             }
         items(state.upcomingSchedules, key = { "schedule-${it.id}" }) { schedule ->
-            ScheduleCard(schedule, onOpen = { onEvent(RecordUiEvent.ScheduleClicked(schedule.id)) })
+            ScheduleCard(schedule, onOpen = { onEvent(RecordUiEvent.ServerScheduleClicked(schedule.id)) })
             Spacer(Modifier.height(18.dp))
         }
     }

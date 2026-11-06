@@ -96,6 +96,24 @@ class ScheduleRegisterViewModelTest {
     }
 
     @Test
+    fun daysThatAlreadyHaveAScheduleAreBlockedAndCannotBeSent() = runTest {
+        val repo = repository()
+        val vm = ScheduleRegisterViewModel(handle(), repo, clock)
+        // 예시 기록의 확정 약속(record-upcoming)이 있는 10월 16일은 고를 수 없다
+        val taken = LocalDate.of(2026, 10, 16)
+        assertTrue(taken in vm.uiState.value.occupiedDates)
+        assertFalse(LocalDate.of(2026, 10, 20) in vm.uiState.value.occupiedDates)
+
+        vm.onDraftChange(filled.copy(date = taken))
+        vm.send(ScheduleRequestChannel.APP)
+
+        assertEquals(com.kiri.domain.schedule.ONE_SCHEDULE_PER_DAY_MESSAGE, vm.uiState.value.error)
+        assertFalse(vm.uiState.value.sending)
+        assertTrue(repo.records.value.entries.any { it.id == "record-bucket" })
+        assertTrue(repo.records.value.entries.none { it.status == ScheduleStatus.PENDING_RESPONSE })
+    }
+
+    @Test
     fun appSendCreatesPendingScheduleAndSignalsOnce() = runTest {
         val repo = repository()
         val vm = ScheduleRegisterViewModel(handle(), repo, clock)

@@ -2,6 +2,7 @@ package com.kiri.feature.record
 
 import androidx.lifecycle.SavedStateHandle
 import com.kiri.domain.model.schedule.CalendarSchedule
+import com.kiri.domain.model.schedule.CalendarScheduleStatus
 import com.kiri.domain.model.schedule.InvalidScheduleUpdateException
 import com.kiri.domain.model.schedule.NotScheduleProposerException
 import com.kiri.domain.model.schedule.ScheduleDetail
@@ -50,9 +51,10 @@ class ScheduleEditViewModelTest {
         var update: Result<Unit> = Result.success(Unit),
     ) : CalendarScheduleRepository {
         val updates = mutableListOf<Pair<Long, ScheduleUpdate>>()
+        var monthly: List<CalendarSchedule> = emptyList()
 
         override suspend fun getMonthlySchedules(month: YearMonth): Result<List<CalendarSchedule>> =
-            Result.success(emptyList())
+            Result.success(monthly.filter { YearMonth.from(it.date) == month })
 
         override suspend fun getScheduleDetail(scheduleId: Long): Result<ScheduleDetail> = detail
 
@@ -188,5 +190,31 @@ class ScheduleEditViewModelTest {
 
             assertEquals(message, vm.uiState.value.loadError)
         }
+    }
+
+    @Test
+    fun 다른_일정이_있는_날로는_바꿀_수_없고_바꾸는_일정_자신의_날은_고를_수_있다() = runTest {
+        val repo = FakeSchedules(Result.success(detail))
+        repo.monthly = listOf(
+            // 바꾸는 일정 자신(100)
+            CalendarSchedule(100, LocalDate.of(2026, 11, 17), LocalTime.of(14, 50), CalendarScheduleStatus.CONFIRMED, null),
+            CalendarSchedule(7, LocalDate.of(2026, 11, 18), LocalTime.of(10, 0), CalendarScheduleStatus.PENDING_RESPONSE, null),
+        )
+        val vm = viewModel(repo)
+
+        vm.onMonthShown(YearMonth.of(2026, 11))
+        assertEquals(setOf(LocalDate.of(2026, 11, 18)), vm.uiState.value.occupiedDates)
+
+        vm.onDraftChange(vm.uiState.value.draft.copy(date = LocalDate.of(2026, 11, 18)))
+        vm.save()
+        assertTrue(repo.updates.isEmpty())
+        assertEquals("이미 약속이 있는 날이에요. 다른 날짜를 골라주세요.", vm.uiState.value.error)
+        assertFalse(vm.uiState.value.saving)
+
+        // 시간만 바꾸면 원래 날짜 그대로 저장한다
+        vm.onDraftChange(vm.uiState.value.draft.copy(date = LocalDate.of(2026, 11, 17), time = LocalTime.of(16, 0)))
+        vm.save()
+        assertEquals(ScheduleEditEffect.Saved, vm.effect.first())
+        assertEquals(LocalDate.of(2026, 11, 17), repo.updates.single().second.date)
     }
 }

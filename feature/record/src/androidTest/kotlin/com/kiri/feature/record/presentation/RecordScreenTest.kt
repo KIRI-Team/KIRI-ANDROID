@@ -25,34 +25,35 @@ class RecordScreenTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
-    fun selectedDayListsServerSchedulesAndOnlyOpenableOnesCanBeTapped() {
-        val date = LocalDate.of(2026, 10, 13)
-        fun schedule(id: Long, status: com.kiri.domain.model.schedule.CalendarScheduleStatus) =
-            com.kiri.domain.model.schedule.CalendarSchedule(id, date, java.time.LocalTime.of(14, 50), status, null)
+    fun upcomingCardsShowServerSchedulesInOrderAndOpenTheirDetail() {
+        val today = LocalDate.of(2026, 11, 15)
+        fun card(id: Long, type: com.kiri.domain.model.schedule.UpcomingScheduleType, days: Long, title: String) =
+            com.kiri.domain.model.schedule.UpcomingSchedule(
+                id, today.plusDays(days), java.time.LocalTime.of(18, 0), type, days.toInt(), title, null,
+            )
+        val state = mutableStateOf(
+            RecordUiState(
+                today = today,
+                upcomingSchedules = listOf(
+                    card(120, com.kiri.domain.model.schedule.UpcomingScheduleType.RESPONSE_REQUIRED, 5, "광장시장 가기"),
+                    card(118, com.kiri.domain.model.schedule.UpcomingScheduleType.UPCOMING, 2, "한강 축제 가기"),
+                ),
+            ),
+        )
         val events = mutableListOf<RecordUiEvent>()
-        compose.setContent {
-            KiriTheme {
-                RecordScreen(
-                    RecordUiState(
-                        today = date,
-                        monthSchedules =
-                            listOf(
-                                schedule(1, com.kiri.domain.model.schedule.CalendarScheduleStatus.CONFIRMED),
-                                schedule(2, com.kiri.domain.model.schedule.CalendarScheduleStatus.CANCELLED),
-                            ),
-                    ),
-                    { events += it },
-                )
-            }
-        }
-        compose.onNodeWithTag("record_calendar").performScrollToKey("server-schedule-2")
-        compose.onNodeWithText("약속 취소").assertExists()
-        compose.onNodeWithTag("record_server_schedule_2").assertIsNotEnabled()
-        compose.onNodeWithTag("record_calendar").performScrollToKey("server-schedule-1")
-        compose.onNodeWithTag("record_server_schedule_1").performClick()
+        compose.setContent { KiriTheme { RecordScreen(state.value, { events += it }) } }
+
+        compose.onNodeWithTag("record_calendar").performScrollToKey("schedule-118")
+        compose.onNodeWithText("응답 필요").assertExists()
+        compose.onNodeWithText("약속 확정").assertExists()
+        compose.onNodeWithText("일시 I 26.11.17 18:00 · D-2").assertExists()
+        compose.onNodeWithTag("record_schedule_118").performClick()
         compose.runOnIdle {
-            org.junit.Assert.assertEquals(listOf(RecordUiEvent.ServerScheduleClicked(1)), events)
+            org.junit.Assert.assertEquals(listOf(RecordUiEvent.ServerScheduleClicked(118)), events)
         }
+
+        state.value = state.value.copy(upcomingSchedules = emptyList(), upcomingFailed = true)
+        compose.onNodeWithText("다가오는 약속을 불러오지 못했어요").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -71,7 +72,7 @@ class RecordScreenTest {
     }
 
     @Test
-    fun multipleActivitiesOnOneDateRequireAnExplicitActivityChoice() {
+    fun tappingADateOnlySelectsItAndDoesNotListThatDaysActivities() {
         val date = LocalDate.of(2026, 10, 13)
         val entries =
             listOf(
@@ -92,38 +93,28 @@ class RecordScreenTest {
                     java.time.LocalTime.of(15, 0),
                 ),
             )
-        val state =
-            mutableStateOf(
-                RecordUiState(
-                    today = date,
-                    entries = entries,
-                    calendarMarks = mapOf(date to RecordCalendarMark.PHOTO_FIRST),
-                )
-            )
-        var opened: String? = null
+        val events = mutableListOf<RecordUiEvent>()
         compose.setContent {
             KiriTheme {
                 RecordScreen(
-                    state.value,
-                    { event ->
-                        when (event) {
-                            is RecordUiEvent.DateSelected ->
-                                state.value = state.value.copy(selectedDate = event.date)
-                            is RecordUiEvent.CalendarEntryClicked -> opened = event.id
-                            else -> Unit
-                        }
-                    },
+                    RecordUiState(
+                        today = date,
+                        entries = entries,
+                        calendarMarks = mapOf(date to RecordCalendarMark.PHOTO_FIRST),
+                    ),
+                    { events += it },
                 )
             }
         }
-        compose.onNodeWithTag("record_date_$date").performScrollTo().performClick()
-        compose.runOnIdle { org.junit.Assert.assertNull(opened) }
         compose
             .onNodeWithTag("record_day_count_$date", useUnmergedTree = true)
             .assertIsDisplayed()
             .assertTextEquals("+1")
-        compose.onNodeWithTag("record_day_schedule").performScrollTo().performClick()
-        compose.runOnIdle { org.junit.Assert.assertEquals("schedule", opened) }
+        compose.onNodeWithTag("record_date_$date").performScrollTo().performClick()
+        // 어느 활동을 열지는 ViewModel 이 정하므로 화면은 날짜 선택만 알린다
+        compose.runOnIdle { org.junit.Assert.assertEquals(listOf(RecordUiEvent.DateSelected(date)), events) }
+        compose.onNodeWithText("10월 13일의 활동").assertDoesNotExist()
+        compose.onNodeWithText("오후 약속").assertDoesNotExist()
     }
 
     private fun start() {

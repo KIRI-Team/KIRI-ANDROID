@@ -2,6 +2,7 @@ package com.kiri.data.schedule
 
 import com.kiri.domain.home.HomeRepository
 import com.kiri.domain.repository.CalendarScheduleRepository
+import com.kiri.domain.repository.UpcomingScheduleRepository
 import com.kiri.domain.usecase.schedule.GetScheduleEditAccessUseCase
 import dagger.Binds
 import dagger.Module
@@ -35,4 +36,14 @@ abstract class CalendarScheduleRepositoryModule {
     internal abstract fun bindCalendarScheduleRepository(
         impl: CalendarScheduleRepositoryImpl,
     ): CalendarScheduleRepository
+}
+
+// 다가오는 일정도 UI 테스트에서 따로 가짜로 바꿀 수 있도록 모듈을 나눈다
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class UpcomingScheduleRepositoryModule {
+    @Binds
+    internal abstract fun bindUpcomingScheduleRepository(
+        impl: UpcomingScheduleRepositoryImpl,
+    ): UpcomingScheduleRepository
 }

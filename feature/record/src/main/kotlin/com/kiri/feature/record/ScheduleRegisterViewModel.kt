@@ -8,6 +8,9 @@ import com.kiri.domain.record.RecordCollection
 import com.kiri.domain.record.RecordRepository
 import com.kiri.domain.record.ScheduleRequest
 import com.kiri.domain.record.ScheduleRequestChannel
+import com.kiri.domain.schedule.DayOccupyingStatuses
+import com.kiri.domain.schedule.ONE_SCHEDULE_PER_DAY_MESSAGE
+import com.kiri.domain.schedule.occupiedDates
 import com.kiri.domain.time.kiriNow
 import com.kiri.feature.record.presentation.schedule.ScheduleRegisterDraft
 import com.kiri.feature.record.presentation.schedule.scheduleRequestShareText
@@ -38,6 +41,8 @@ data class ScheduleRegisterUiState(
     val sending: Boolean = false,
     val error: String? = null,
     val weekly: Boolean = false,
+    // 이미 일정이 있어 고를 수 없는 날 (하루에 일정은 하나만 정할 수 있다). 기기에 저장된 가족 일정으로 정한다
+    val occupiedDates: Set<LocalDate> = emptySet(),
 )
 
 sealed interface ScheduleRegisterEffect {
@@ -88,7 +93,7 @@ constructor(
                             }
                     }
                     missionId = weekly?.missionId
-                    state.update { it.copy(loading = false, bucketFound = weekly != null,
+                    state.update { it.copy(loading = false, bucketFound = weekly != null, occupiedDates = occupiedDates(),
                         weekly = true, title = weekly?.title.orEmpty(),
                         members = family.members.filter { m -> m.accessible && m.id != family.currentUserId }
                             .map { m -> RecordMember(m.id, m.nickname) }) }
@@ -135,6 +140,7 @@ constructor(
                     bucket?.let { b -> b.saverId?.let(records.savers::get) ?: "탈퇴한 멤버" }
                         ?: it.savedBy,
                 title = bucket?.title ?: it.title,
+                occupiedDates = occupiedDates(records),
                 members =
                     records.savers
                         .filterKeys { id -> id != records.currentUserId }
@@ -161,6 +167,12 @@ constructor(
         if (current.sending || sent || !current.bucketFound || !draft.canSubmit) return
         if (LocalDateTime.of(date, time).isBefore(now())) {
             state.update { it.copy(error = "지난 시간으로는 요청할 수 없어요. 일정을 다시 골라주세요.") }
+            return
+        }
+        // 하루에는 일정을 하나만 정할 수 있다. 화면을 연 뒤에 생긴 일정도 있을 수 있어 보내기 직전에 다시 확인한다
+        val occupied = occupiedDates()
+        if (date in occupied) {
+            state.update { it.copy(error = ONE_SCHEDULE_PER_DAY_MESSAGE, occupiedDates = occupied) }
             return
         }
         state.update { it.copy(sending = true, error = null) }
@@ -201,7 +213,8 @@ constructor(
                 throw e
             } catch (e: Exception) {
                 state.update { it.copy(error =
-                    if (weeklyMissionId != null && (e is IllegalArgumentException || e is IllegalStateException)) e.message
+                    if (e.message == ONE_SCHEDULE_PER_DAY_MESSAGE) e.message
+                    else if (weeklyMissionId != null && (e is IllegalArgumentException || e is IllegalStateException)) e.message
                     else "요청을 보내지 못했어요. 다시 시도해주세요.") }
             } finally {
                 state.update { it.copy(sending = false) }
@@ -221,6 +234,13 @@ constructor(
     }
 
     private fun now(): LocalDateTime = clock.kiriNow()
+
+    // 기기에 저장된 가족 일정(대기·재확인·확정·완료) 중 그날을 차지하는 일정의 날짜
+    private fun occupiedDates(records: RecordCollection = repository.records.value): Set<LocalDate> =
+        schedules?.schedules?.value.orEmpty().occupiedDates(clock.instant()) +
+            records.entries
+                .filter { it.kind == CalendarEntryKind.SCHEDULE && it.status in DayOccupyingStatuses }
+                .map { it.date }
 
     private fun restoreDraft() =
         ScheduleRegisterDraft(

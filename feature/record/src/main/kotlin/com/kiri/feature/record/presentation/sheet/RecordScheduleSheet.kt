@@ -20,6 +20,8 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,6 +53,8 @@ import java.time.format.DateTimeFormatter
 
 // 일정 잡기에서 날짜와 시간을 고르는 시트 (Figma 8286:68225). 날짜와 시간을 모두 골라야 다음으로 넘어간다.
 // earliest 를 주면 그보다 이른 날짜·시간은 흐리게 보이고 고를 수 없다
+// 하루에 일정은 하나만 정할 수 있어 blockedDates(이미 일정이 있는 날)도 흐리게 보이고 고를 수 없다
+// 보여주는 달이 바뀔 때마다 onMonthShown 으로 알려 그 달의 일정을 불러오게 한다
 @Composable
 fun RecordScheduleSheet(
     selectedDate: LocalDate?,
@@ -62,8 +66,12 @@ fun RecordScheduleSheet(
     onDismiss: () -> Unit,
     earliest: LocalDateTime? = null,
     initialMonth: YearMonth = selectedDate?.let(YearMonth::from) ?: earliest?.let(YearMonth::from) ?: YearMonth.now(),
+    blockedDates: Set<LocalDate> = emptySet(),
+    onMonthShown: (YearMonth) -> Unit = {},
 ) {
     var month by rememberSaveable { mutableStateOf(initialMonth) }
+    val currentMonthShown by rememberUpdatedState(onMonthShown)
+    LaunchedEffect(month) { currentMonthShown(month) }
     RecordModalSheet(onDismiss = onDismiss, testTag = "record_schedule_sheet") {
         RecordScheduleSheetContent(
             month = month,
@@ -75,6 +83,7 @@ fun RecordScheduleSheet(
             onTimeSelect = onTimeSelect,
             onNextClick = onNextClick,
             earliest = earliest,
+            blockedDates = blockedDates,
         )
     }
 }
@@ -90,6 +99,7 @@ internal fun RecordScheduleSheetContent(
     onTimeSelect: (LocalTime) -> Unit,
     onNextClick: () -> Unit,
     earliest: LocalDateTime? = null,
+    blockedDates: Set<LocalDate> = emptySet(),
 ) {
     // 날짜를 바꿔 이미 고른 시간이 지난 시간이 되면 고르지 않은 것으로 본다
     val timeAllowed = selectedTime != null && isSelectableTime(selectedDate, selectedTime, earliest)
@@ -103,7 +113,7 @@ internal fun RecordScheduleSheetContent(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             RecordMonthHeader(month, onMonthChange)
-            RecordCalendar(month, selectedDate, earliest, onDateSelect)
+            RecordCalendar(month, selectedDate, earliest, blockedDates, onDateSelect)
         }
         Spacer(Modifier.height(29.dp))
         RecordSheetTitle("시간 선택")
@@ -122,7 +132,8 @@ internal fun RecordScheduleSheetContent(
             }
         }
         Spacer(Modifier.height(46.dp))
-        RecordSheetBottomAction("다음", onNextClick, enabled = selectedDate != null && timeAllowed)
+        // 고른 날에 뒤늦게 다른 일정이 있는 것으로 확인되면 다음으로 넘어가지 않는다
+        RecordSheetBottomAction("다음", onNextClick, enabled = selectedDate != null && selectedDate !in blockedDates && timeAllowed)
     }
 }
 
@@ -154,7 +165,13 @@ private fun RecordMonthArrow(description: String, mirrored: Boolean, testTag: St
 }
 
 @Composable
-private fun RecordCalendar(month: YearMonth, selectedDate: LocalDate?, earliest: LocalDateTime?, onDateSelect: (LocalDate) -> Unit) {
+private fun RecordCalendar(
+    month: YearMonth,
+    selectedDate: LocalDate?,
+    earliest: LocalDateTime?,
+    blockedDates: Set<LocalDate>,
+    onDateSelect: (LocalDate) -> Unit,
+) {
     val weeks = remember(month) { recordCalendarWeeks(month) }
     Column(Modifier.width(312.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(CellGap)) {
@@ -178,7 +195,7 @@ private fun RecordCalendar(month: YearMonth, selectedDate: LocalDate?, earliest:
                             RecordCalendarCell(
                                 day = day,
                                 selected = day.isInMonth && day.date == selectedDate,
-                                enabled = day.isInMonth && isSelectableDate(day.date, earliest),
+                                enabled = day.isInMonth && isSelectableDate(day.date, earliest) && day.date !in blockedDates,
                                 onClick = { onDateSelect(day.date) },
                             )
                         }
