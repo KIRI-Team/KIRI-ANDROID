@@ -14,6 +14,12 @@ import com.kiri.domain.model.mission.MissionNotFoundException
 import com.kiri.domain.model.mission.MissionPlace
 import com.kiri.domain.model.mission.WalkingLevel
 import com.kiri.domain.repository.MissionInfoRepository
+import com.kiri.domain.model.member.FamilyRole
+import com.kiri.domain.model.review.ReviewWriter
+import com.kiri.domain.model.review.ScheduleReview
+import com.kiri.domain.model.review.ScheduleReviewForm
+import com.kiri.domain.model.review.ScheduleReviewResult
+import com.kiri.domain.repository.ScheduleReviewRepository
 import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.model.family.NoFamilyException
 import com.kiri.domain.model.schedule.CancelledScheduleException
@@ -120,6 +126,7 @@ class ServerScheduleDetailViewModelTest {
         date: String? = null,
         home: HomeRepository = FakeFamily("나"),
         missions: MissionInfoRepository = FakeMissions(),
+        reviews: ScheduleReviewRepository = FakeReviews(),
     ) =
         ServerScheduleDetailViewModel(
             SavedStateHandle(
@@ -130,7 +137,84 @@ class ServerScheduleDetailViewModelTest {
             ),
             GetScheduleEditAccessUseCase(repo, home),
             missions,
+            reviews,
+            home,
         )
+
+    // 정해 둔 리뷰 목록을 돌려주고, 요청한 일정 id 를 기록한다
+    private class FakeReviews(var result: Result<List<ScheduleReview>> = Result.success(emptyList())) : ScheduleReviewRepository {
+        val requested = mutableListOf<Long>()
+
+        override suspend fun writeReview(scheduleId: Long, form: ScheduleReviewForm): Result<ScheduleReviewResult> =
+            Result.failure(UnsupportedOperationException())
+
+        override suspend fun getReviews(scheduleId: Long): Result<List<ScheduleReview>> {
+            requested += scheduleId
+            return result
+        }
+    }
+
+    private val review = ScheduleReview(
+        1, ReviewWriter(5, "김주연", FamilyRole.DAUGHTER), "처음 가봤다.", 5, true,
+        listOf("https://cdn.example.com/1.jpg"), null, isMine = true,
+    )
+
+    @Test
+    fun 완료된_일정은_기록_화면으로_보여주고_리뷰와_가족_이름을_불러온다() = runTest {
+        val reviews = FakeReviews(Result.success(listOf(review)))
+        val vm = viewModel(FakeSchedules(Result.success(detail.copy(status = ScheduleDisplayStatus.COMPLETED))), reviews = reviews)
+
+        val state = vm.uiState.value
+        assertTrue(state.showsRecord)
+        assertEquals(listOf(7L), reviews.requested)
+        assertEquals(listOf(review), state.reviews)
+        assertFalse(state.reviewsLoading)
+        assertFalse(state.reviewsFailed)
+        assertEquals("우리 가족", state.familyName)
+        // 완료된 일정은 컨디션 조정도, 변경 화면 이동도 하지 않는다
+        assertFalse(state.canCustomize)
+        assertNull(withTimeoutOrNull(100) { vm.effect.first() })
+    }
+
+    @Test
+    fun 완료되지_않은_일정은_리뷰를_불러오지_않는다() = runTest {
+        val reviews = FakeReviews()
+        listOf(ScheduleDisplayStatus.TODAY, ScheduleDisplayStatus.CONFIRMED, ScheduleDisplayStatus.SCHEDULED).forEach { status ->
+            val vm = viewModel(FakeSchedules(Result.success(detail.copy(status = status))), reviews = reviews)
+            assertFalse(vm.uiState.value.showsRecord)
+        }
+        assertTrue(reviews.requested.isEmpty())
+    }
+
+    @Test
+    fun 리뷰를_불러오지_못하면_실패로_두고_다시_시도하면_새로_불러온다() = runTest {
+        val reviews = FakeReviews(Result.failure(IOException()))
+        val vm = viewModel(
+            FakeSchedules(Result.success(detail.copy(status = ScheduleDisplayStatus.COMPLETED))),
+            home = FakeFamily(null),
+            reviews = reviews,
+        )
+
+        assertTrue(vm.uiState.value.reviewsFailed)
+        // 가족 정보를 불러오지 못하면 이름은 비워 두고 화면에서 "우리 가족" 으로 쓴다
+        assertNull(vm.uiState.value.familyName)
+
+        reviews.result = Result.success(listOf(review))
+        vm.retryReviews()
+
+        assertEquals(listOf(7L, 7L), reviews.requested)
+        assertFalse(vm.uiState.value.reviewsFailed)
+        assertEquals(listOf(review), vm.uiState.value.reviews)
+    }
+
+    @Test
+    fun 리뷰_작성자의_가족_역할을_기록_카드_문구로_바꾼다() {
+        assertEquals("엄마", FamilyRole.MOTHER.label)
+        assertEquals("아빠", FamilyRole.FATHER.label)
+        assertEquals("딸", FamilyRole.DAUGHTER.label)
+        assertEquals("아들", FamilyRole.SON.label)
+        assertEquals("", (null as FamilyRole?).label)
+    }
 
     @Test
     fun 당일이_아닌_일정을_제안자가_열면_상세를_그리지_않고_변경_화면으로_보낸다() = runTest {

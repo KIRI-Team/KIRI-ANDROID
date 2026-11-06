@@ -58,17 +58,20 @@ class RecordScreenTest {
 
     @Test
     fun cancelledScheduleDayIsShownDimmedWithItsOwnDescription() {
-        val date = LocalDate.of(2026, 10, 13)
+        val today = LocalDate.of(2026, 10, 13)
+        val date = LocalDate.of(2026, 10, 14)
         compose.setContent {
             KiriTheme {
                 RecordScreen(
-                    RecordUiState(today = date, calendarMarks = mapOf(date to RecordCalendarMark.CANCELLED)),
+                    RecordUiState(today = today, calendarMarks = mapOf(date to RecordCalendarMark.CANCELLED)),
                     {},
                 )
             }
         }
         compose.onNodeWithTag("record_cancelled_$date", useUnmergedTree = true).assertExists()
-        compose.onNodeWithContentDescription("2026년 10월 13일, 취소된 약속").assertExists()
+        compose.onNodeWithContentDescription("2026년 10월 14일, 취소된 약속").assertExists()
+        // 오늘 날짜만 오늘로 읽어준다 (초록 배경도 오늘에만 쓴다)
+        compose.onNodeWithContentDescription("2026년 10월 13일, 오늘").assertExists()
     }
 
     @Test

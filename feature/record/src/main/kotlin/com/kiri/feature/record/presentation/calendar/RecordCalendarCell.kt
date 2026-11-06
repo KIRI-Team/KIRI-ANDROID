@@ -34,18 +34,20 @@ internal fun CalendarCell(
     modifier: Modifier,
     photo: RecordPhoto? = null,
     count: Int = 0,
+    today: Boolean = false,
 ) {
     val shape = RoundedCornerShape(12.dp)
+    // 초록 배경은 오늘 날짜만 뜻한다. 다른 날은 약속 상태와 관계없이 초록 배경을 쓰지 않는다
     val background =
         when {
-            selected -> KiriColor.Primary.Default.copy(alpha = .2f)
+            today -> KiriColor.Bg.GreenSoft
             mark == RecordCalendarMark.QUESTION ||
                 mark == RecordCalendarMark.PHOTO_FIRST ||
                 mark == RecordCalendarMark.PHOTO_SECOND -> KiriColor.Bg.Base
-            mark == RecordCalendarMark.CONFIRMED -> KiriColor.Bg.GreenSoft
             mark == RecordCalendarMark.CANCELLED -> KiriColor.Bg.Secondary.copy(alpha = .4f)
-            mark == RecordCalendarMark.PLANNED || mark == RecordCalendarMark.BUCKET ->
-                KiriColor.Bg.Secondary
+            mark == RecordCalendarMark.PLANNED ||
+                mark == RecordCalendarMark.CONFIRMED ||
+                mark == RecordCalendarMark.BUCKET -> KiriColor.Bg.Secondary
             else -> KiriColor.Bg.Primary
         }
     Box(
@@ -62,6 +64,7 @@ internal fun CalendarCell(
                 this.selected = selected
                 contentDescription =
                     "${date.year}년 ${date.monthValue}월 ${date.dayOfMonth}일" +
+                        (if (today) ", 오늘" else "") +
                         when (mark) {
                             RecordCalendarMark.PLANNED -> ", 약속 예정"
                             RecordCalendarMark.CONFIRMED -> ", 약속 확정"

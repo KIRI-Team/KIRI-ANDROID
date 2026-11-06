@@ -34,20 +34,42 @@ fun MemoryPhoto(uri: String, modifier: Modifier = Modifier) {
     val bitmap by produceState<ImageBitmap?>(null, uri) {
         value = withContext(Dispatchers.IO) {
             runCatching {
-                val parsed = Uri.parse(uri)
+                // 서버 사진(https 주소)은 한 번 내려받아 그 바이트로, 기기 사진(content 주소)은 기기에서 바로 읽는다
+                val open: () -> java.io.InputStream? =
+                    if (uri.startsWith("https://") || uri.startsWith("http://")) {
+                        val bytes = downloadPhoto(uri)
+                        ({ bytes.inputStream() })
+                    } else {
+                        val parsed = Uri.parse(uri)
+                        ({ resolver.openInputStream(parsed) })
+                    }
                 val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                resolver.openInputStream(parsed)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+                open()?.use { BitmapFactory.decodeStream(it, null, bounds) }
                 val options = BitmapFactory.Options().apply {
                     inSampleSize = 1
                     while (bounds.outWidth / inSampleSize > 1200 || bounds.outHeight / inSampleSize > 1200) inSampleSize *= 2
                 }
-                resolver.openInputStream(parsed)?.use { BitmapFactory.decodeStream(it, null, options) }?.asImageBitmap()
+                open()?.use { BitmapFactory.decodeStream(it, null, options) }?.asImageBitmap()
             }.getOrNull()
         }
     }
     Box(modifier.background(KiriColor.Bg.Tertiary, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
         if (bitmap != null) Image(bitmap!!, "오늘의 사진", Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop)
         else Image(painterResource(R.drawable.memory_photo_placeholder), "사진을 표시할 수 없어요", Modifier.size(width = 68.9569.dp, height = 63.2122.dp))
+    }
+}
+
+// 서버가 준 사진 주소에서 사진을 내려받는다. 이미지 라이브러리를 들이기 전까지 쓰며, 따로 저장해 두지 않는다
+// TODO: 목록을 다시 그릴 때마다 다시 내려받으므로 이미지 로딩 라이브러리(캐시 포함)로 바꿀 것
+private fun downloadPhoto(url: String): ByteArray {
+    val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+    connection.connectTimeout = 10_000
+    connection.readTimeout = 15_000
+    try {
+        check(connection.responseCode in 200..299) { "사진을 내려받지 못했어요: ${connection.responseCode}" }
+        return connection.inputStream.use { it.readBytes() }
+    } finally {
+        connection.disconnect()
     }
 }
 
