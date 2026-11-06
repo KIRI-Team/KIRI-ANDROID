@@ -5,10 +5,15 @@ import com.kiri.data.network.apiBaseUrl
 import com.kiri.data.network.kiriJson
 import com.kiri.domain.model.review.AlreadyReviewedException
 import com.kiri.domain.model.review.InvalidReviewException
+import com.kiri.domain.model.member.FamilyRole
 import com.kiri.domain.model.review.NotScheduleParticipantException
+import com.kiri.domain.model.review.ReviewAccessDeniedException
+import com.kiri.domain.model.review.ReviewWriter
+import com.kiri.domain.model.review.ScheduleReview
 import com.kiri.domain.model.review.ScheduleReviewForm
 import com.kiri.domain.model.review.ScheduleReviewResult
 import com.kiri.domain.model.schedule.ScheduleNotFoundException
+import java.time.LocalDateTime
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
@@ -99,5 +104,79 @@ class ScheduleReviewRepositoryImplTest {
         assertTrue(invalid is InvalidReviewException)
         assertEquals("별점을 입력해주세요.", invalid?.message)
         assertEquals("COMMON500_1", (repo.writeReview(1, form).exceptionOrNull() as KiriApiException).code)
+    }
+
+    @Test
+    fun 같은_경로로_GET_하고_리뷰를_작성순_그대로_돌려준다() = runTest {
+        enqueue(200, LIST)
+
+        val reviews = repository().getReviews(10).getOrThrow()
+
+        val request = server.takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("/api/v1/schedules/10/reviews", request.url.encodedPath)
+        assertEquals(
+            listOf(
+                ScheduleReview(
+                    1, ReviewWriter(5, "김주연", FamilyRole.DAUGHTER), "아빠가 자주 가는 식당에 처음 가봤다.", 5, true,
+                    listOf("https://cdn.example.com/review/1/image-1.jpg", "https://cdn.example.com/review/1/image-2.jpg"),
+                    LocalDateTime.of(2026, 6, 13, 14, 50), isMine = true,
+                ),
+                // 모르는 역할·읽지 못한 날짜는 null, 빈 사진 주소는 뺀다
+                ScheduleReview(2, ReviewWriter(6, "아빠", null), "또 가요", 4, false, emptyList(), null, isMine = false),
+            ),
+            reviews,
+        )
+    }
+
+    @Test
+    fun 리뷰가_없으면_빈_목록이고_권한이_없거나_없는_일정이면_도메인_오류로_바꾼다() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"REVIEW200_2","message":"리뷰 목록 조회가 완료되었습니다.","result":{"scheduleId":3,"reviews":[]}}""")
+        enqueue(403, failure("REVIEW403_2", "해당 일정의 리뷰를 조회할 권한이 없습니다."))
+        enqueue(404, failure("SCHEDULE404_2", "존재하지 않는 일정입니다."))
+        enqueue(404, failure("MEMBER404_1", "존재하지 않는 회원입니다."))
+
+        val repo = repository()
+        assertEquals(emptyList<ScheduleReview>(), repo.getReviews(3).getOrThrow())
+        assertTrue(repo.getReviews(3).exceptionOrNull() is ReviewAccessDeniedException)
+        assertTrue(repo.getReviews(3).exceptionOrNull() is ScheduleNotFoundException)
+        assertEquals("MEMBER404_1", (repo.getReviews(3).exceptionOrNull() as KiriApiException).code)
+    }
+
+    private companion object {
+        // 명세의 성공 응답 예시에 앱이 모르는 값을 담은 리뷰를 하나 더했다
+        const val LIST = """{
+  "isSuccess": true,
+  "code": "REVIEW200_2",
+  "message": "리뷰 목록 조회가 완료되었습니다.",
+  "result": {
+    "scheduleId": 10,
+    "reviews": [
+      {
+        "reviewId": 1,
+        "writer": { "memberId": 5, "nickname": "김주연", "familyRole": "DAUGHTER" },
+        "content": "아빠가 자주 가는 식당에 처음 가봤다.",
+        "starRating": 5,
+        "isRejoinIntended": true,
+        "imageUrls": [
+          "https://cdn.example.com/review/1/image-1.jpg",
+          "https://cdn.example.com/review/1/image-2.jpg"
+        ],
+        "createdAt": "2026-06-13T14:50:00",
+        "isMine": true
+      },
+      {
+        "reviewId": 2,
+        "writer": { "memberId": 6, "nickname": "아빠", "familyRole": "GRANDPA" },
+        "content": "또 가요",
+        "starRating": 4,
+        "isRejoinIntended": false,
+        "imageUrls": [""],
+        "createdAt": "later",
+        "isMine": false
+      }
+    ]
+  }
+}"""
     }
 }

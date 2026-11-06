@@ -5,6 +5,8 @@ import com.kiri.data.network.apiResult
 import com.kiri.domain.model.review.AlreadyReviewedException
 import com.kiri.domain.model.review.InvalidReviewException
 import com.kiri.domain.model.review.NotScheduleParticipantException
+import com.kiri.domain.model.review.ReviewAccessDeniedException
+import com.kiri.domain.model.review.ScheduleReview
 import com.kiri.domain.model.review.ScheduleReviewForm
 import com.kiri.domain.model.review.ScheduleReviewResult
 import com.kiri.domain.model.schedule.ScheduleNotFoundException
@@ -31,7 +33,19 @@ internal class ScheduleReviewRepositoryImpl @Inject constructor(
                 }
             }
 
+    override suspend fun getReviews(scheduleId: Long): Result<List<ScheduleReview>> =
+        apiResult(json) { api.getReviews(scheduleId) }
+            .map { response -> response.reviews.map { it.toScheduleReview() } }
+            .recoverCatching { error ->
+                throw when ((error as? KiriApiException)?.code) {
+                    ACCESS_DENIED -> ReviewAccessDeniedException()
+                    SCHEDULE_NOT_FOUND -> ScheduleNotFoundException()
+                    else -> error
+                }
+            }
+
     private companion object {
+        const val ACCESS_DENIED = "REVIEW403_2"
         const val NOT_PARTICIPANT = "REVIEW403_1"
         const val ALREADY_REVIEWED = "REVIEW409_1"
         // 명세에는 회원 없음(MEMBER404_1) 예시만 있다. 일정 없음은 다른 일정 API 와 같은 코드로 본다
