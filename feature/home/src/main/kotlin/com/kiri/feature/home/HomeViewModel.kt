@@ -65,7 +65,7 @@ class HomeViewModel @Inject constructor(
             HomeUiEvent.WeeklyScheduleClicked -> {
                 val home = uiState.value.home ?: return
                 val weekly = home.mission ?: return
-                if (home.browsing || weekly.unavailable || weekly.completed) return
+                if (home.browsing || weekly.unavailable || weekly.completed || weekly.recommendationOnly) return
                 val existing = home.schedules.firstOrNull {
                     it.weeklyMissionId == weekly.id && it.status != ScheduleStatus.CANCELLED
                 }

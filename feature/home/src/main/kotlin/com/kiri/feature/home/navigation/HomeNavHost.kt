@@ -14,6 +14,7 @@ import android.content.Intent
 import androidx.compose.ui.platform.LocalContext
 import com.kiri.feature.detail.DetailViewModel
 import com.kiri.feature.detail.presentation.MissionDetailRoute
+import com.kiri.feature.detail.presentation.MissionPreviewRoute
 import com.kiri.feature.detail.presentation.ConditionCustomRoute
 import com.kiri.feature.home.presentation.HomeRoute
 import com.kiri.feature.home.presentation.InviteFamilyScreen
@@ -34,6 +35,9 @@ private const val DETAIL_ROUTE = "home_graph/detail"
 fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: () -> Unit, onSchedule: (String) -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
     navigation(startDestination = START_ROUTE, route = GRAPH_ROUTE) {
         scheduleDestinations()
+        composable("home_graph/recommendation/{missionId}") {
+            MissionPreviewRoute(onBack = { navController.popBackStack() })
+        }
         composable("home_graph/weekly-schedule/{weeklyMissionId}") { entry ->
             val viewModel: ScheduleRegisterViewModel = hiltViewModel(entry)
             val weeklyId = entry.arguments?.getString("weeklyMissionId").orEmpty()
@@ -48,7 +52,11 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
         }
         composable(START_ROUTE) {
             HomeRoute(
-                onMissionClick = { id -> navController.navigate("${DETAIL_ROUTE}/${Uri.encode(id)}") { launchSingleTop = true } },
+                onMissionClick = { id ->
+                    val route = if (id.toLongOrNull() != null) "home_graph/recommendation/$id"
+                    else "$DETAIL_ROUTE/${Uri.encode(id)}"
+                    navController.navigate(route) { launchSingleTop = true }
+                },
                 onScheduleClick = onSchedule,
                 onWeeklyScheduleClick = { id ->
                     navController.navigate("home_graph/weekly-schedule/${Uri.encode(id)}") { launchSingleTop = true }

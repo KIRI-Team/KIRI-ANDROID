@@ -1,6 +1,7 @@
 package com.kiri.data.home
 
 import com.kiri.data.auth.TokenStore
+import com.kiri.data.mission.MissionApi
 import com.kiri.data.network.*
 import com.kiri.domain.home.*
 import java.time.Clock
@@ -17,6 +18,7 @@ internal class RemoteHomeRepository(
     private val tokens: TokenStore,
     private val json: Json,
     private val clock: Clock,
+    private val missions: MissionApi? = null,
 ) : HomeRepository {
     private val mutex = Mutex()
     private var snapshot: FamilyHome? = null
@@ -46,9 +48,19 @@ internal class RemoteHomeRepository(
             .associate { it.memberId.toString() to requireNotNull(it.answer) }.toMutableMap()
         if (daily.isAnswered && daily.answer != null && me.isNotEmpty()) answers[me] = daily.answer
         val poked = snapshot?.takeIf { it.date == date && it.question?.id == question?.id && it.currentUserId == me }?.pokedMemberIds.orEmpty()
+        val weekly = if (daily.hasFamily) missions?.let { missionApi ->
+            apiResult(json) { missionApi.getWeeklyRecommendation() }.getOrNull()?.let {
+                WeeklyMission(
+                    id = it.missionId.toString(), title = it.title,
+                    description = it.description ?: it.recommendationReason.orEmpty(),
+                    tags = listOfNotNull(it.recommendationReason),
+                    completed = false, imageUrl = it.imageUrl, recommendationOnly = true,
+                )
+            }
+        } else null
         return FamilyHome(date, me, if (daily.hasFamily) "우리 가족" else null,
             family?.answers.orEmpty().map { FamilyMember(it.memberId.toString(), it.nickname, "") },
-            question, answers, poked, mission = null, serverBacked = true).also { snapshot = it }
+            question, answers, poked, mission = weekly, serverBacked = true).also { snapshot = it }
     }
 
     override suspend fun saveAnswer(question: DailyQuestion, answer: String): FamilyHome = mutex.withLock { mapped {
