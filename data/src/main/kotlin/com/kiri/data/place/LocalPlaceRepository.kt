@@ -95,8 +95,10 @@ open class LocalPlaceRepository(
 object PlaceRepositoryModule {
     @Provides
     @Singleton
-    fun providePlaceRepository(
-        missions: MissionRepository,
-        buckets: com.kiri.domain.record.BucketRepository,
-    ): PlaceRepository = LocalPlaceRepository(missionRepository = missions, familyBuckets = buckets)
+    internal fun providePlaceRepository(
+        api: com.kiri.data.mission.MissionApi,
+        missions: com.kiri.domain.repository.MissionInfoRepository,
+        buckets: com.kiri.domain.repository.BucketItemRepository,
+        json: kotlinx.serialization.json.Json,
+    ): PlaceRepository = ServerPlaceRepository(api, missions, buckets, json)
 }

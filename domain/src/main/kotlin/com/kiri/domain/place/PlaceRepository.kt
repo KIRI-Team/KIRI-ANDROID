@@ -7,7 +7,7 @@ data class PlaceMission(val id: String, val title: String, val place: String, va
     val category: PlaceCategory, val rating: String? = null, val tags: List<String> = emptyList(),
     val pick: Boolean = false, val saved: Boolean = false,
     val searchMetadata: PlaceSearchMetadata? = null,
-    val previouslyCompleted: Boolean = false) {
+    val previouslyCompleted: Boolean = false, val canSave: Boolean = true) {
     val saveLabel get() = when {
         saved -> "저장됨"
         previouslyCompleted -> "다시 버킷에 저장"
@@ -17,7 +17,7 @@ data class PlaceMission(val id: String, val title: String, val place: String, va
 data class PlaceQuery(val keyword: String = "", val category: PlaceCategory? = null, val cursor: String? = null,
     val filters: PlaceFilters = PlaceFilters())
 /** totalCount is supplied by the repository/server, not the loaded page size. */
-data class PlacePage(val items: List<PlaceMission>, val totalCount: Int, val nextCursor: String? = null)
+data class PlacePage(val items: List<PlaceMission>, val totalCount: Int?, val nextCursor: String? = null)
 interface PlaceRepository {
     suspend fun load(query: PlaceQuery): PlacePage
     /** The authenticated user is resolved by the repository. Only unfinished saves are deduplicated. */
