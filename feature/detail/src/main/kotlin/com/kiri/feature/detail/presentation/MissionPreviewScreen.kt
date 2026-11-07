@@ -47,7 +47,7 @@ fun MissionPreviewScreen(state: MissionPreviewUiState, onBack: () -> Unit, onRet
         discovery = true, reviews = state.preview?.reviews.orEmpty(), reviewsSelected = state.reviewsSelected,
         onSelectReviews = onSelectReviews, curated = state.preview?.curated == true,
         discoverySaveLabel = state.saveLabel,
-        discoverySaveEnabled = !state.saved && !state.saving,
+        discoverySaveEnabled = state.canSave && !state.saved && !state.saving,
         onDiscoverySave = onSave,
     )
 }

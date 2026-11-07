@@ -55,7 +55,7 @@ internal fun PlaceFilterSheet(applied: PlaceFilters, onDismiss: () -> Unit, onAp
                 }
             }
             Row(Modifier.padding(horizontal = 18.dp)) {
-                listOf("날짜·인원", "지역", "거리", "가격").forEachIndexed { index, label ->
+                listOf("날짜·시간", "지역", "거리", "가격").forEachIndexed { index, label ->
                     Column(Modifier.weight(if (index == 0) 1.5f else 1f)) {
                         TextButton(onClick = { selectedSection = index; scope.launch { scroll.animateScrollToItem(index) } },
                             modifier = Modifier.fillMaxWidth().testTag("filter_section_$index")) {
@@ -77,8 +77,8 @@ internal fun PlaceFilterSheet(applied: PlaceFilters, onDismiss: () -> Unit, onAp
                             Spacer(Modifier.width(8.dp))
                             Text(draft.dateEpochDay?.let { day ->
                                 LocalDate.ofEpochDay(day).format(DateTimeFormatter.ofPattern("M. d (E)", Locale.KOREAN)) +
-                                    " · ${formatFilterTime(draft.minutesOfDay)} · ${draft.people}명"
-                            } ?: "날짜·인원·시간", Modifier.weight(1f), style = KiriDetailTypography.Small, color = KiriColor.Text.Primary)
+                                    " · ${formatFilterTime(draft.minutesOfDay)}"
+                            } ?: "날짜·시간", Modifier.weight(1f), style = KiriDetailTypography.Small, color = KiriColor.Text.Primary)
                             if (draft.dateEpochDay != null) IconButton(onClick = { draft = draft.copy(dateEpochDay = null) }, modifier = Modifier.testTag("filter_date_clear")) {
                                 Image(painterResource(R.drawable.kiri_filter_clear), "날짜 선택 해제", Modifier.size(18.dp))
                             } else Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {

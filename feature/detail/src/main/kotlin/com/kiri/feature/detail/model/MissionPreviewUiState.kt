@@ -10,6 +10,7 @@ data class MissionPreviewUiState(
     val saved: Boolean = false,
     val previouslyCompleted: Boolean = false,
     val saving: Boolean = false,
+    val canSave: Boolean = true,
 ) {
     val saveLabel get() = when {
         saving -> "저장 중"

@@ -4,6 +4,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kiri.domain.detail.DetailRepository
+import com.kiri.domain.detail.DetailSuggestion
+import com.kiri.domain.detail.MissionDetail
+import com.kiri.domain.detail.MissionPreview
+import com.kiri.domain.model.mission.MissionBucketState
+import com.kiri.domain.model.mission.MissionInfo
+import com.kiri.domain.repository.MissionInfoRepository
 import com.kiri.feature.detail.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -20,6 +26,7 @@ class MissionPreviewViewModel @Inject constructor(
     private val repository: DetailRepository,
     private val savedState: SavedStateHandle,
     private val buckets: com.kiri.domain.record.BucketRepository? = null,
+    private val serverMissions: MissionInfoRepository? = null,
 ) : ViewModel() {
     private val missionId: String = savedState["missionId"] ?: ""
     private val _uiState = MutableStateFlow(MissionPreviewUiState(reviewsSelected = savedState["reviewsSelected"] ?: false))
@@ -49,6 +56,16 @@ class MissionPreviewViewModel @Inject constructor(
         _uiState.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             try {
+                val serverId = missionId.toLongOrNull()
+                if (serverId != null && serverMissions != null) {
+                    val mission = serverMissions.getMission(serverId).getOrThrow()
+                    _uiState.update { it.copy(
+                        loading = false, preview = mission.toPreview(), canSave = false,
+                        saved = mission.bucketState == MissionBucketState.SAVED,
+                        previouslyCompleted = mission.bucketState == MissionBucketState.COMPLETED_ONLY,
+                    ) }
+                    return@launch
+                }
                 val preview = repository.preview(missionId)
                 val owned = buckets?.mine().orEmpty().filter { it.missionId == missionId }
                 _uiState.update { it.copy(loading = false, preview = preview,
@@ -62,12 +79,12 @@ class MissionPreviewViewModel @Inject constructor(
 
     private fun save() {
         val current = uiState.value
-        if (loading || current.saving || current.saved || current.preview == null) return
-        val repository = buckets ?: return
+        if (loading || current.saving || current.saved || !current.canSave || current.preview == null) return
+        val bucketRepository = buckets ?: return
         _uiState.update { it.copy(saving = true, error = null) }
         viewModelScope.launch {
             try {
-                repository.save(missionId)
+                bucketRepository.save(missionId)
                 _uiState.update { it.copy(saving = false, saved = true) }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) {
@@ -76,3 +93,14 @@ class MissionPreviewViewModel @Inject constructor(
         }
     }
 }
+
+private fun MissionInfo.toPreview() = MissionPreview(
+    MissionDetail(
+        id = id.toString(), title = title, familyName = "",
+        date = null, startTime = null, place = place?.name, expectedSteps = null,
+        durationMinutes = durationMinMinutes, participants = emptyList(), completed = false,
+        activities = steps.map { DetailSuggestion(it.title, it.description.orEmpty()) },
+        essentials = prepareItems.map { DetailSuggestion(it.title, it.description.orEmpty()) },
+        nearby = emptyList(), walkingLevel = walkingLevel?.label, durationMaxMinutes = durationMaxMinutes,
+    ),
+)
