@@ -105,7 +105,7 @@ private fun QuestionMissionCard(
                     },
                     onFlip = { onFlip() },
                     flipIconModifier = flipIconModifier,
-                    onScheduleClick = if (home.browsing) null else onWeeklyScheduleClick,
+                    onScheduleClick = if (home.browsing || mission?.recommendationOnly == true) null else onWeeklyScheduleClick,
                     scheduleLabel = if (home.schedules.any {
                         it.weeklyMissionId == mission?.id && it.status != ScheduleStatus.CANCELLED
                     }) "일정 보기" else "일정 잡기",
