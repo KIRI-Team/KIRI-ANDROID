@@ -91,7 +91,7 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
                 }
             }
             Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(if (state.showingSaved) "저장한 활동 ${state.savedItems.size}개" else if (state.loading) "활동 불러오는 중" else "활동 ${state.totalCount}개", style = KiriDetailTypography.Small,
+                Text(if (state.showingSaved) "저장한 활동 ${state.savedItems.size}개" else if (state.loading) "활동 불러오는 중" else state.totalCount?.let { "활동 ${it}개" } ?: "불러온 활동 ${state.items.size}개", style = KiriDetailTypography.Small,
                     color = if (!state.showingSaved && state.query.filters.activeCount > 0) KiriColor.Text.Accent else KiriColor.Text.Secondary,
                     modifier = Modifier.weight(1f).testTag("place_count"))
                 if (!state.showingSaved) {
@@ -190,7 +190,7 @@ private fun PlaceMissionCard(mission: PlaceMission, onSave: () -> Unit, onOpen: 
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(21.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(mission.title, color = KiriColor.Text.Strong, style = KiriDetailTypography.Title)
-                    Text("${mission.place} · ${mission.region}", color = KiriColor.Text.Secondary, style = KiriDetailTypography.Small)
+                    Text(listOf(mission.place, mission.region).filter { it.isNotBlank() }.joinToString(" · "), color = KiriColor.Text.Secondary, style = KiriDetailTypography.Small)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -200,11 +200,11 @@ private fun PlaceMissionCard(mission: PlaceMission, onSave: () -> Unit, onOpen: 
                             }
                         }
                     }
-                    Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) { IconButton(onClick = onSave, enabled = !mission.saved, modifier = Modifier.requiredSize(48.dp).testTag("place_save_${mission.id}")) {
+                    Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) { IconButton(onClick = onSave, enabled = mission.canSave && !mission.saved, modifier = Modifier.requiredSize(48.dp).testTag("place_save_${mission.id}")) {
                         Image(painterResource(if (mission.saved) R.drawable.place_bookmark_filled else R.drawable.place_bookmark_outline), mission.saveLabel, Modifier.size(24.dp))
                     } }
                 }
-                TextButton(onClick = onSave, enabled = !mission.saved,
+                TextButton(onClick = onSave, enabled = mission.canSave && !mission.saved,
                     modifier = Modifier.align(Alignment.End)) {
                     Text(mission.saveLabel, style = KiriDetailTypography.Small)
                 }

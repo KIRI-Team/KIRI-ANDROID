@@ -157,21 +157,6 @@ internal fun PlaceDatePicker(
                     }
                 }
                 Spacer(Modifier.height(48.dp))
-                FilterHeading("인원 선택")
-                Row(
-                    Modifier.padding(top = 16.dp).horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    (1..10).forEach { count ->
-                        FilterChip(
-                            "${count}명",
-                            draft.people == count,
-                            { draft = draft.copy(people = count) },
-                            "filter_people_$count",
-                        )
-                    }
-                }
-                Spacer(Modifier.height(24.dp))
             }
             FilterActions(
                 { draft = draft.copy(dateEpochDay = null, minutesOfDay = 570, people = 2) },
