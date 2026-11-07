@@ -1,6 +1,7 @@
 package com.kiri.data.home
 
 import com.kiri.data.auth.*
+import com.kiri.data.mission.MissionApi
 import com.kiri.data.network.kiriJson
 import com.kiri.domain.home.*
 import java.time.Clock
@@ -31,11 +32,39 @@ class RemoteHomeRepositoryTest {
         override suspend fun clear() { value = null }
     }
     // 실제 앱처럼 AuthInterceptor 가 토큰을 붙인다
-    private fun repository(server: MockWebServer, tokens: Tokens = Tokens()) = RemoteHomeRepository(
-        Retrofit.Builder().baseUrl(server.url("/"))
+    private fun repository(server: MockWebServer, tokens: Tokens = Tokens(), weekly: Boolean = false): RemoteHomeRepository {
+        val retrofit = Retrofit.Builder().baseUrl(server.url("/"))
             .client(OkHttpClient.Builder().addInterceptor(AuthInterceptor(tokens)).build())
             .addConverterFactory(kiriJson.asConverterFactory("application/json".toMediaType()))
-            .build().create(HomeApi::class.java), tokens, kiriJson, clock)
+            .build()
+        return RemoteHomeRepository(retrofit.create(HomeApi::class.java), tokens, kiriJson, clock,
+            retrofit.create(MissionApi::class.java).takeIf { weekly })
+    }
+
+    @Test fun weeklyRecommendationKeepsMissionIdAndDoesNotEnableAssignmentScheduling() = runTest {
+        MockWebServer().use { server ->
+            server.start(); server.family()
+            server.reply("""{"missionId":130,"title":"미술관 관람","description":"전시 둘러보기","recommendationReason":"가족 취향 반영"}""")
+            server.reply("null")
+            val repo = repository(server, weekly = true)
+            val home = repo.load()
+            val weekly = requireNotNull(home.mission)
+            assertEquals("130", weekly.missionId)
+            assertTrue(weekly.recommendationOnly)
+            assertEquals(weekly, repo.saveAnswer(requireNotNull(home.question), "답변").mission)
+            server.takeRequest(); server.takeRequest()
+            assertEquals("/api/v1/missions/recommendations", server.takeRequest().url.encodedPath)
+        }
+    }
+
+    @Test fun weeklyRecommendationFailureKeepsQuestionVisible() = runTest {
+        MockWebServer().use { server ->
+            server.start(); server.family(); server.reply("null", status = 503)
+            val home = repository(server, weekly = true).load()
+            assertEquals("12", home.question?.id)
+            assertNull(home.mission)
+        }
+    }
     private fun MockWebServer.reply(result: String, code: String = "OK", status: Int = 200) {
         enqueue(MockResponse.Builder().code(status).body("""{"isSuccess":${status == 200},"code":"$code","message":"message","result":$result}""").build())
     }

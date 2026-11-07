@@ -18,6 +18,9 @@ internal interface MissionApi {
     @GET("api/v1/missions")
     suspend fun getFeed(@QueryMap filters: Map<String, String>): ApiResponse<MissionFeedResponse>
 
+    @GET("api/v1/missions/recommendations")
+    suspend fun getWeeklyRecommendation(): ApiResponse<WeeklyRecommendationResponse>
+
     // 로그인 토큰이 필요하다. 없거나 노출할 수 없는 미션이면 MISSION404_1, id 형식이 틀리면 COMMON400_1 로 거절된다
     // TODO: 받은 경로는 mission/{missionId} 였다. 다른 API 와 같이 api/v1 과 복수형을 붙였으니 서버 명세와 대조할 것
     @GET("api/v1/missions/{missionId}")
@@ -41,6 +44,15 @@ internal data class MissionFeedItem(
     val distance: Double? = null,
 )
 
+@Serializable
+internal data class WeeklyRecommendationResponse(
+    val missionId: Long,
+    val title: String,
+    val description: String? = null,
+    val category: String? = null,
+    val imageUrl: String? = null,
+    val recommendationReason: String? = null,
+)
 
 // 날짜는 "2026-11-17", 시간은 "10:00" 처럼 온다. 앱이 모르는 값이 와도 상세는 보여줄 수 있도록 상태 값은 문자열로 받는다
 @Serializable

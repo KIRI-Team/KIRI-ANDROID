@@ -23,6 +23,7 @@ data class WeeklyMission(
     val imageUrl: String? = null,
     val unavailable: Boolean = false,
     val missionId: String = id,
+    val recommendationOnly: Boolean = false,
 )
 
 data class HomeRecommendation(
