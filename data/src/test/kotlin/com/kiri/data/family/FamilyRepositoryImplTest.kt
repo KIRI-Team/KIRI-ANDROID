@@ -158,11 +158,37 @@ class FamilyRepositoryImplTest {
     }
 
     @Test
-    fun 가족_ID가_없으면_가족명_변경을_요청하지_않고_가족_정보_없음으로_실패한다() = runTest {
+    fun 기억한_가족_ID가_없으면_가족_ID_조회로_받아_가족명을_바꾼다() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"FAMILY200_6","message":"가족 ID 조회에 성공했습니다.","result":{"familyId":9}}""")
+        enqueue(200, RENAME_BODY)
+
+        repository().renameFamily("끼리네가족2").getOrThrow()
+
+        val lookup = server.takeRequest()
+        assertEquals("GET", lookup.method)
+        assertEquals("/api/v1/families/me/id", lookup.url.encodedPath)
+        assertEquals("/api/v1/families/9", server.takeRequest().url.encodedPath)
+        assertEquals(9L, familyIdStore.saved)
+    }
+
+    @Test
+    fun 소속된_가족이_없으면_가족명_변경을_요청하지_않고_가족_정보_없음으로_실패한다() = runTest {
+        enqueue(404, """{"isSuccess":false,"code":"FAMILY404_1","message":"가족이 존재하지 않습니다.","result":null}""")
+
         val error = repository().renameFamily("끼리네가족2").exceptionOrNull()
 
         assertTrue(error is NoFamilyException)
-        assertEquals(0, server.requestCount)
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test
+    fun 가족_ID를_조회하지_못하면_서버의_code를_담아_실패한다() = runTest {
+        enqueue(404, """{"isSuccess":false,"code":"MEMBER404_1","message":"존재하지 않는 회원입니다.","result":null}""")
+
+        val error = repository().renameFamily("끼리네가족2").exceptionOrNull()
+
+        assertEquals("MEMBER404_1", (error as com.kiri.data.network.KiriApiException).code)
+        assertEquals(1, server.requestCount)
     }
 
     @Test

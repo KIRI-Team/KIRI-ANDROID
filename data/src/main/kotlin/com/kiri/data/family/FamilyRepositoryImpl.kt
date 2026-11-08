@@ -4,7 +4,6 @@ import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiResult
 import com.kiri.domain.model.family.DuplicateFamilyNameException
 import com.kiri.domain.model.family.Family
-import com.kiri.domain.model.family.NoFamilyException
 import com.kiri.domain.repository.FamilyRepository
 import javax.inject.Inject
 import kotlinx.serialization.json.Json
@@ -24,9 +23,9 @@ internal class FamilyRepositoryImpl @Inject constructor(
             }
             .recoverDuplicateName()
 
-    // 가족 ID가 없으면 요청하지 않고 실패한다
+    // 가족 ID 는 기억해 둔 값을, 없으면 서버에서 받아 쓴다. 소속된 가족이 없으면 바꾸지 않고 실패한다
     override suspend fun renameFamily(name: String): Result<String> {
-        val familyId = familyIdStore.get() ?: return Result.failure(NoFamilyException())
+        val familyId = familyIdStore.resolve(api, json).getOrElse { return Result.failure(it) }
         return apiResult(json) { api.renameFamily(familyId, RenameFamilyRequest(name)) }
             .map { it.name }
             .recoverDuplicateName()

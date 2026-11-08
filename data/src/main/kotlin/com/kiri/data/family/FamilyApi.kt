@@ -14,6 +14,12 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 internal interface FamilyApi {
+    // 로그인 토큰이 필요하다. 내가 속한 가족 공간의 ID 를 돌려준다. 회원이 없으면 MEMBER404_1,
+    // 소속된 가족이 없으면 404 로 거절된다 (가족 없음 코드는 명세에 예시가 없다)
+    // 전달받은 경로는 familes/me/id 이다. 다른 가족 API 처럼 api/v1/families 아래에 둔다
+    @GET("api/v1/families/me/id")
+    suspend fun getMyFamilyId(): ApiResponse<FamilyIdResponse>
+
     // 로그인 토큰이 필요하다. 성공하면 201 과 함께 초대 코드·링크가 온다
     @POST("api/v1/families")
     suspend fun createFamily(@Body request: CreateFamilyRequest): ApiResponse<CreateFamilyResponse>
@@ -55,6 +61,9 @@ private fun invite(code: String, url: String, expiresAt: String?) = Invite(
     url = url,
     expiresAt = expiresAt?.let { runCatching { LocalDateTime.parse(it).toLocalDate() }.getOrNull() },
 )
+
+@Serializable
+internal data class FamilyIdResponse(val familyId: Long)
 
 @Serializable
 internal data class RenameFamilyRequest(
