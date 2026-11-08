@@ -295,6 +295,9 @@ fun MissionDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(24.dp),
                     ) {
                         state.nearby.forEach { place ->
+                            // 서버가 준 장소 사진이 있으면 그 사진을, 없으면 기본 이미지를 쓴다
+                            val photo: (@Composable (Modifier) -> Unit)? =
+                                place.imageUrl?.let { url -> @Composable { imageModifier: Modifier -> MemoryPhoto(url, imageModifier) } }
                             KiriPlaceCard(
                                 place.title,
                                 place.address,
@@ -302,6 +305,7 @@ fun MissionDetailScreen(
                                 rating = null,
                                 detailStyle = true,
                                 imageRes = nearbyImageRes,
+                                image = photo,
                             )
                         }
                     }

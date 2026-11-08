@@ -202,7 +202,8 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
                 },
             )
         }
-        // 약속 당일의 컨디션 커스텀. 상세 화면의 ViewModel 을 함께 쓴다. 적용 API 가 없어 적용하기는 꺼 둔다
+        // 약속 당일의 컨디션 커스텀. 상세 화면의 ViewModel 을 함께 쓴다. 들어갈 때 지금 적용된 조건을 불러오고,
+        // 적용하기로 고른 조건을 저장한 뒤 상세로 돌아간다
         composable("$SERVER_SCHEDULE_ROUTE/{${ServerScheduleDetailViewModel.SCHEDULE_ID_ARG}}/custom") { entry ->
             val parent = remember(entry) {
                 navController.getBackStackEntry(SERVER_SCHEDULE_DETAIL_PATTERN)
@@ -210,7 +211,13 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
             val viewModel: ServerScheduleDetailViewModel = hiltViewModel(parent)
             val state by viewModel.uiState.collectAsStateWithLifecycle()
             ServerScheduleDetailEffects(viewModel, onBack = { navController.popBackStack() })
-            ConditionCustomScreen(state.detail, viewModel::onEvent, Modifier.padding(bottom = 110.dp), applyEnabled = false)
+            ConditionCustomScreen(
+                state.detail.copy(error = state.customError),
+                viewModel::onEvent,
+                Modifier.padding(bottom = 110.dp),
+                // 지금 조건을 불러오는 동안에는 적용하지 않는다
+                applyEnabled = !state.customLoading,
+            )
         }
         // 서버 버킷의 일정 잡기. 일정 생성 API 로 만들고, 다 보내면 버킷이 일정 잡힘으로 바뀐 기록 탭으로 돌아간다
         composable(

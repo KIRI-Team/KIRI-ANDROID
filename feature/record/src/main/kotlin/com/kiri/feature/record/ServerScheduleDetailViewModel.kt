@@ -14,6 +14,12 @@ import com.kiri.domain.model.review.ScheduleReview
 import com.kiri.domain.model.review.ScheduleReviewForm
 import com.kiri.domain.model.review.ScheduleReviewResult
 import com.kiri.domain.repository.ScheduleReviewRepository
+import com.kiri.domain.model.condition.ConditionCustom
+import com.kiri.domain.model.condition.ConditionCustomUnavailableException
+import com.kiri.domain.model.condition.NotFinalParticipantException
+import com.kiri.domain.repository.ScheduleConditionRepository
+import com.kiri.domain.detail.NearbyPlace
+import com.kiri.domain.repository.ScheduleNearbyRepository
 import com.kiri.domain.repository.MissionInfoRepository
 import com.kiri.domain.model.family.NoFamilyException
 import com.kiri.domain.model.schedule.CancelledScheduleException
@@ -55,7 +61,20 @@ data class ServerScheduleDetailUiState(
     val familyName: String? = null,
     // 당일이 아닌(예정·확정) 내 일정이면 상세 아래에 수정하기 버튼을 보여준다
     val canEdit: Boolean = false,
+    // 컨디션 커스텀 화면 정보를 불러오는 중이다
+    val customLoading: Boolean = false,
+    // 컨디션 커스텀 화면 정보를 불러오지 못했을 때 그 화면에 보여줄 문구
+    val customError: String? = null,
+    // 근처 놀거리 추천 API 결과. 서버가 정렬한 순서 그대로다 (불러오지 못하면 비어 있다)
+    val nearby: List<NearbyPlace> = emptyList(),
 ) {
+    // 상세 화면에 그릴 상태. 미션 정보와 따로 불러온 근처 놀거리를 합치고, 서버 순서를 유지한다
+    val screenDetail: DetailUiState
+        get() = detail.copy(
+            detail = detail.detail?.copy(nearby = nearby),
+            nearbyRankedByServer = true,
+        )
+
     // 완료된 일정은 미션 상세 대신 기록 화면(Figma 7903:1926)으로 보여준다
     val showsRecord get() = schedule?.status == ScheduleDisplayStatus.COMPLETED
 
@@ -89,7 +108,11 @@ constructor(
     private val missions: MissionInfoRepository,
     private val reviews: ScheduleReviewRepository = NoReviews,
     private val home: HomeRepository? = null,
+    private val conditions: ScheduleConditionRepository = NoConditions,
+    private val nearbyPlaces: ScheduleNearbyRepository = NoNearby,
 ) : ViewModel() {
+    private var customJob: Job? = null
+    private var nearbyJob: Job? = null
     private var loadJob: Job? = null
     private var reviewsJob: Job? = null
     private val scheduleId = savedState.get<Long>(SCHEDULE_ID_ARG)
@@ -114,9 +137,10 @@ constructor(
                 state.update { it.copy(detail = it.detail.copy(memoriesSelected = event.selected)) }
             DetailUiEvent.CustomClicked ->
                 if (uiState.value.canCustomize) {
-                    // 들어갈 때마다 고른 조건을 비우고 시작한다
-                    state.update { it.copy(detail = it.detail.copy(draft = emptySet())) }
+                    // 들어갈 때마다 고른 조건을 비우고, 지금 일정에 적용된 조건을 불러와 채운다
+                    state.update { it.copy(customError = null, detail = it.detail.copy(draft = emptySet())) }
                     effects.trySend(ServerScheduleDetailEffect.OpenCustom)
+                    loadConditionCustom()
                 }
             is DetailUiEvent.ConditionToggled ->
                 state.update {
@@ -128,8 +152,7 @@ constructor(
                     )
                 }
             DetailUiEvent.CustomCancelled -> effects.trySend(ServerScheduleDetailEffect.Back)
-            // TODO: 서버 일정에 컨디션을 적용하는 API 가 아직 없어 적용하기는 막아 둔다 (화면에서도 버튼을 끈다)
-            DetailUiEvent.ApplyClicked -> Unit
+            DetailUiEvent.ApplyClicked -> applyConditions()
             // 서버 일정 상세에는 기록 남기기가 아직 없다
             DetailUiEvent.RecordClicked -> Unit
         }
@@ -161,6 +184,8 @@ constructor(
                     if (schedule.status == ScheduleDisplayStatus.COMPLETED) {
                         loadReviews(id)
                         loadFamilyName()
+                    } else {
+                        loadNearby(id)
                     }
                     val missionId = schedule.missionId ?: return@onSuccess
                     missions.getMission(missionId).onSuccess { mission ->
@@ -178,6 +203,92 @@ constructor(
                     }
                 }
         }
+    }
+
+    // 근처 놀거리를 불러온다. 실패하면 비워 두고 화면의 "주변 추천 정보가 아직 없어요" 로 둔다
+    private fun loadNearby(scheduleId: Long) {
+        nearbyJob?.cancel()
+        nearbyJob = viewModelScope.launch {
+            nearbyPlaces.getNearby(scheduleId)
+                .onSuccess { places -> state.update { it.copy(nearby = places) } }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    state.update { it.copy(nearby = emptyList()) }
+                }
+        }
+    }
+
+    // 컨디션 커스텀 화면의 미션 정보(제목·걷기량·활동시간)와 지금 적용된 조건을 불러온다
+    // 불러오는 동안 사용자가 조건을 고르지 않았을 때만 적용된 조건으로 채운다
+    private fun loadConditionCustom() {
+        val id = scheduleId ?: return
+        customJob?.cancel()
+        state.update { it.copy(customLoading = true) }
+        customJob = viewModelScope.launch {
+            conditions.getConditionCustom(id)
+                .onSuccess { custom ->
+                    state.update {
+                        val current = it.detail
+                        it.copy(
+                            customLoading = false,
+                            detail = current.copy(
+                                detail = current.detail?.withConditionCustom(custom),
+                                draft = if (current.draft.isEmpty()) custom.conditions else current.draft,
+                            ),
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    state.update { it.copy(customLoading = false, customError = error.customMessage()) }
+                }
+        }
+    }
+
+    // 고른 조건을 일정에 저장한다. 성공하면 상세에 반영하고("컨디션에 맞게 추천 순서를 조정했어요") 상세로 돌아간다
+    // 실패하면 고른 조건은 그대로 두고 컨디션 화면에 이유를 보여준다
+    private fun applyConditions() {
+        val id = scheduleId ?: return
+        val current = uiState.value
+        if (!current.canCustomize || current.detail.saving || current.customLoading) return
+        val draft = current.detail.draft
+        state.update { it.copy(customError = null, detail = it.detail.copy(saving = true)) }
+        viewModelScope.launch {
+            conditions.applyConditions(id, draft)
+                .onSuccess {
+                    state.update {
+                        it.copy(
+                            detail = it.detail.copy(
+                                saving = false,
+                                detail = it.detail.detail?.copy(conditions = draft),
+                            ),
+                        )
+                    }
+                    // 저장한 조건으로 서버가 근처 놀거리를 다시 정렬하므로 새로 불러온다
+                    loadNearby(id)
+                    effects.send(ServerScheduleDetailEffect.Back)
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    state.update {
+                        it.copy(customError = error.applyMessage(), detail = it.detail.copy(saving = false))
+                    }
+                }
+        }
+    }
+
+    private fun Throwable.applyMessage() = when (this) {
+        is NotFinalParticipantException, is ConditionCustomUnavailableException,
+        is ScheduleNotFoundException, is NoFamilyException -> customMessage()
+        else -> "적용하지 못했어요. 선택은 유지됐으니 다시 시도해주세요."
+    }
+
+    private fun Throwable.customMessage() = when (this) {
+        is NotFinalParticipantException -> "약속에 참여하기로 한 가족만 컨디션을 조정할 수 있어요."
+        is ConditionCustomUnavailableException -> "확정된 약속의 당일에만 컨디션을 조정할 수 있어요."
+        is ScheduleNotFoundException -> "찾을 수 없는 약속이에요."
+        is NoFamilyException -> "가족 공간이 없어요."
+        else -> "컨디션 정보를 불러오지 못했어요."
     }
 
     // 상세의 수정하기를 눌렀다. 바꿀 수 있는 내 일정일 때만 변경 화면으로 간다
@@ -296,4 +407,27 @@ private object NoReviews : ScheduleReviewRepository {
         Result.failure(UnsupportedOperationException())
 
     override suspend fun getReviews(scheduleId: Long): Result<List<ScheduleReview>> = Result.success(emptyList())
+}
+
+// 컨디션 커스텀 조회로 받은 미션 제목·걷기량·활동시간을 상세에 덮어쓴다
+internal fun MissionDetail.withConditionCustom(custom: ConditionCustom) = copy(
+    title = custom.missionTitle.ifBlank { title },
+    walkingLevel = custom.walkingLevel?.label ?: walkingLevel,
+    durationMinutes = custom.durationMinMinutes ?: durationMinutes,
+    durationMaxMinutes = custom.durationMaxMinutes ?: durationMaxMinutes,
+    conditions = custom.conditions,
+)
+
+// 컨디션 커스텀을 쓰지 않는 테스트·미리보기에서 쓴다. 정보를 불러오지 못한 것으로 본다
+private object NoConditions : ScheduleConditionRepository {
+    override suspend fun getConditionCustom(scheduleId: Long): Result<ConditionCustom> =
+        Result.failure(UnsupportedOperationException())
+
+    override suspend fun applyConditions(scheduleId: Long, conditions: Set<com.kiri.domain.detail.Condition>): Result<Unit> =
+        Result.failure(UnsupportedOperationException())
+}
+
+// 근처 놀거리를 쓰지 않는 테스트·미리보기에서 쓴다. 추천할 장소가 없는 것으로 본다
+private object NoNearby : ScheduleNearbyRepository {
+    override suspend fun getNearby(scheduleId: Long): Result<List<NearbyPlace>> = Result.success(emptyList())
 }

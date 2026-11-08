@@ -98,7 +98,7 @@ fun ServerScheduleDetailScreen(
         return
     }
     MissionDetailScreen(
-        state.detail,
+        state.screenDetail,
         onEvent,
         calendarHeader =
             schedule?.let {

@@ -16,6 +16,10 @@ data class NearbyPlace(
     val costWon: Int? = null,
     /** Only populated from a reliable source, never inferred from the place name. */
     val crowdLevel: Int? = null,
+    // 장소(없으면 미션) 사진 주소. 없으면 카드의 기본 이미지를 쓴다
+    val imageUrl: String? = null,
+    // 1인 기준 요금(원). 무료면 0, 확인할 수 없으면 null. 표시용이며 앱의 정렬(rankNearby)에는 쓰지 않는다
+    val priceWon: Int? = null,
 )
 
 data class MissionDetail(
