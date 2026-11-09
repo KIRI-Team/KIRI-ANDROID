@@ -38,16 +38,17 @@ fun ServerScheduleDetailRoute(
     onBack: () -> Unit,
     onCustom: () -> Unit,
     onEdit: (scheduleId: Long) -> Unit = {},
+    onRecord: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    ServerScheduleDetailEffects(viewModel, onBack, onCustom, onEdit)
+    ServerScheduleDetailEffects(viewModel, onBack, onCustom, onEdit, onRecord)
     var confirmCancel by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f)) { ServerScheduleDetailScreen(state, viewModel::onEvent, viewModel::retryReviews, viewModel::editClicked) }
         state.myResponse?.let { Text("내 응답: $it", Modifier.padding(horizontal = 12.dp), color = KiriColor.Text.Secondary) }
         state.detail.error?.let { Text(it, Modifier.padding(12.dp), color = KiriColor.Status.Error) }
         state.notice?.let { Text(it, Modifier.padding(horizontal = 12.dp), color = KiriColor.Text.Accent) }
-        ServerScheduleActions(state, viewModel::respond, { confirmCancel = true })
+        ServerScheduleActions(state, viewModel::respond, { confirmCancel = true }, viewModel::openRecord)
     }
     if (confirmCancel) AlertDialog(onDismissRequest = { confirmCancel = false }, title = { Text("일정을 취소할까요?") },
         confirmButton = { TextButton({ confirmCancel = false; viewModel.cancel() }) { Text("취소하기") } },
@@ -55,12 +56,13 @@ fun ServerScheduleDetailRoute(
 }
 
 @Composable
-fun ServerScheduleActions(state: ServerScheduleDetailUiState, onRespond: (Boolean) -> Unit, onCancel: () -> Unit) {
+fun ServerScheduleActions(state: ServerScheduleDetailUiState, onRespond: (Boolean) -> Unit, onCancel: () -> Unit, onRecord: () -> Unit = {}) {
     Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (state.canRespond) {
             Button({ onRespond(false) }, enabled = !state.detail.saving, modifier = Modifier.testTag("server_schedule_decline")) { Text("거절") }
             Button({ onRespond(true) }, enabled = !state.detail.saving, modifier = Modifier.testTag("server_schedule_accept")) { Text("수락") }
         }
+        if (state.canReview && !state.showsRecord && !state.reviewSaved && state.reviews.none { it.isMine }) Button(onRecord, enabled = !state.detail.saving, modifier = Modifier.testTag("server_schedule_review")) { Text("기록 남기기") }
         if (state.canCancel) TextButton(onCancel, enabled = !state.detail.saving, modifier = Modifier.testTag("server_schedule_cancel")) { Text("일정 취소", color = KiriColor.Status.Error) }
     }
 }
@@ -72,10 +74,12 @@ fun ServerScheduleDetailEffects(
     onBack: () -> Unit,
     onCustom: () -> Unit = {},
     onEdit: (scheduleId: Long) -> Unit = {},
+    onRecord: () -> Unit = {},
 ) {
     val back by rememberUpdatedState(onBack)
     val custom by rememberUpdatedState(onCustom)
     val edit by rememberUpdatedState(onEdit)
+    val record by rememberUpdatedState(onRecord)
     val lifecycle = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycle) {
         lifecycle.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
@@ -83,6 +87,7 @@ fun ServerScheduleDetailEffects(
                 when (it) {
                     ServerScheduleDetailEffect.Back -> back()
                     ServerScheduleDetailEffect.OpenCustom -> custom()
+                    ServerScheduleDetailEffect.OpenRecord -> record()
                     is ServerScheduleDetailEffect.OpenEdit -> edit(it.scheduleId)
                 }
             }
@@ -117,7 +122,7 @@ fun ServerScheduleDetailScreen(
                 )
             },
             onBack = { onEvent(DetailUiEvent.BackClicked) },
-            // TODO: 대표 사진 변경, 리뷰 수정·삭제, 나의 추억 기록하기는 서버 API 를 연결할 때 넘긴다
+            onReview = ({ onEvent(DetailUiEvent.RecordClicked) }).takeIf { state.canReview && !state.reviewSaved && state.reviews.none { it.isMine } },
             memoriesLoading = state.reviewsLoading,
             onRetryMemories = onRetryReviews.takeIf { state.reviewsFailed },
         )

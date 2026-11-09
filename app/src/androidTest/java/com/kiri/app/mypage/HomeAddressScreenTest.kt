@@ -104,22 +104,18 @@ class HomeAddressScreenTest {
     }
 
     @Test
-    fun 검색_화면에서_입력과_검색을_이벤트로_전달하고_입력예시가_보인다() {
-        setContent(HomeAddressUiState(currentStep = HomeAddressStep.SEARCH))
-
-        composeTestRule.onNodeWithText("입력예시").assertIsDisplayed()
-        composeTestRule.onNodeWithText("남대문로 9길 40").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("address_search_input").performTextInput("강남대로")
-        composeTestRule.onNodeWithTag("address_search_button").performClick()
+    fun 검색한_주소와_법정동코드를_선택하고_뒤로가기_이벤트를_전달한다() {
+        val selected = HomeAddressUiEvent.AddressSelected("06134", "서울 서초구 강남대로 143", "1165010800")
+        composeTestRule.setContent {
+            KiriTheme {
+                HomeAddressScreen(HomeAddressUiState(currentStep = HomeAddressStep.SEARCH), { events += it },
+                    addressSearch = { choose ->
+                        androidx.compose.material3.Button({ choose(selected) }) { androidx.compose.material3.Text("주소 선택") }
+                    })
+            }
+        }
+        composeTestRule.onNodeWithText("주소 선택").performClick()
         composeTestRule.onNodeWithTag("kiri_back_button").performClick()
-
-        assertEquals(
-            listOf(
-                HomeAddressUiEvent.SearchQueryChanged("강남대로"),
-                HomeAddressUiEvent.SearchSubmitted,
-                HomeAddressUiEvent.BackClicked,
-            ),
-            events,
-        )
+        assertEquals(listOf(selected, HomeAddressUiEvent.BackClicked), events)
     }
 }

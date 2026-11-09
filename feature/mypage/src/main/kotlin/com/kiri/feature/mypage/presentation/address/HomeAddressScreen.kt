@@ -49,6 +49,7 @@ fun HomeAddressScreen(
     state: HomeAddressUiState,
     onEvent: (HomeAddressUiEvent) -> Unit,
     modifier: Modifier = Modifier,
+    addressSearch: @Composable ((HomeAddressUiEvent.AddressSelected) -> Unit) -> Unit = { PostcodePicker(it) },
 ) {
     val onBackClick = { onEvent(HomeAddressUiEvent.BackClicked) }
 
@@ -98,7 +99,7 @@ fun HomeAddressScreen(
                 onFindZipCodeClick = { onEvent(HomeAddressUiEvent.FindZipCodeClicked) },
                 onDetailAddressChange = { onEvent(HomeAddressUiEvent.DetailAddressChanged(it)) },
             )
-            HomeAddressStep.SEARCH -> PostcodePicker { onEvent(it) }
+            HomeAddressStep.SEARCH -> addressSearch { onEvent(it) }
         }
     }
 }

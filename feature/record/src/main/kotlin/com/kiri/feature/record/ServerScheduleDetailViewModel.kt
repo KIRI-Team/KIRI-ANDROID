@@ -55,6 +55,7 @@ data class ServerScheduleDetailUiState(
     val canRespond: Boolean = false,
     val canCancel: Boolean = false,
     val canReview: Boolean = false,
+    val reviewSaved: Boolean = false,
     val myResponse: String? = null,
     val author: String = "나",
     val notice: String? = null,
@@ -98,6 +99,7 @@ sealed interface ServerScheduleDetailEffect {
 
     // 약속 당일에만 컨디션 커스텀 화면을 연다
     data object OpenCustom : ServerScheduleDetailEffect
+    data object OpenRecord : ServerScheduleDetailEffect
 
     // 제안자가 상세의 수정하기를 눌러 일정 변경 화면으로 간다
     data class OpenEdit(val scheduleId: Long) : ServerScheduleDetailEffect
@@ -110,7 +112,7 @@ sealed interface ServerScheduleDetailEffect {
 class ServerScheduleDetailViewModel
 @Inject
 constructor(
-    savedState: SavedStateHandle,
+    private val savedState: SavedStateHandle,
     private val editAccess: GetScheduleEditAccessUseCase,
     private val missions: MissionInfoRepository,
     private val reviews: ScheduleReviewRepository = NoReviews,
@@ -119,6 +121,7 @@ constructor(
     private val nearbyPlaces: ScheduleNearbyRepository = NoNearby,
     private val schedules: com.kiri.domain.repository.CalendarScheduleRepository? = null,
     private val clock: java.time.Clock = java.time.Clock.systemUTC(),
+    private val photos: com.kiri.domain.repository.ReviewPhotoRepository? = null,
 ) : ViewModel() {
     private var customJob: Job? = null
     private var nearbyJob: Job? = null
@@ -127,6 +130,13 @@ constructor(
     private val scheduleId = savedState.get<Long>(SCHEDULE_ID_ARG)
     private val state = MutableStateFlow(
         ServerScheduleDetailUiState(
+            reviewSaved = savedState.get<Boolean>("reviewPosted") == true,
+            detail = DetailUiState(memoryDraft = com.kiri.feature.detail.model.MemoryDraft(
+                rating = savedState["reviewRating"] ?: 0,
+                photos = savedState.get<ArrayList<String>>("reviewPhotos").orEmpty(),
+                text = savedState["reviewText"] ?: "",
+                repeatActivity = savedState["reviewRejoin"],
+            )),
             requestedDate = savedState.get<String>(DATE_ARG)?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
         ),
     )
@@ -162,8 +172,7 @@ constructor(
                 }
             DetailUiEvent.CustomCancelled -> effects.trySend(ServerScheduleDetailEffect.Back)
             DetailUiEvent.ApplyClicked -> applyConditions()
-            // 서버 일정 상세에는 기록 남기기가 아직 없다
-            DetailUiEvent.RecordClicked -> Unit
+            DetailUiEvent.RecordClicked -> openRecord()
         }
     }
 
@@ -325,7 +334,7 @@ constructor(
         state.update { it.copy(reviewsLoading = true, reviewsFailed = false) }
         reviewsJob = viewModelScope.launch {
             reviews.getReviews(scheduleId)
-                .onSuccess { list -> state.update { it.copy(reviews = list, reviewsLoading = false) } }
+                .onSuccess { list -> state.update { it.copy(reviews = list, reviewsLoading = false, reviewSaved = it.reviewSaved || list.any { review -> review.isMine }) } }
                 .onFailure { error ->
                     if (error is CancellationException) throw error
                     state.update { it.copy(reviewsLoading = false, reviewsFailed = true) }
@@ -396,6 +405,52 @@ constructor(
             catch (e: CancellationException) { throw e }
             catch (e: Exception) { state.update { it.copy(detail = it.detail.copy(error = "처리하지 못했어요. 다시 시도해주세요.")) } }
             finally { state.update { it.copy(detail = it.detail.copy(saving = false)) } }
+        }
+    }
+
+    fun openRecord() {
+        val current = state.value
+        if (current.canReview && !current.reviewSaved && current.reviews.none { it.isMine })
+            effects.trySend(ServerScheduleDetailEffect.OpenRecord)
+    }
+
+    fun updateDraft(draft: com.kiri.feature.detail.model.MemoryDraft) {
+        if (state.value.detail.saving || state.value.reviewSaved) return
+        savedState["reviewRating"] = draft.rating
+        savedState["reviewPhotos"] = ArrayList(draft.photos)
+        savedState["reviewText"] = draft.text
+        savedState["reviewRejoin"] = draft.repeatActivity
+        state.update { it.copy(detail = it.detail.copy(memoryDraft = draft, error = null)) }
+    }
+
+    fun submitReview(onSaved: () -> Unit) {
+        val current = state.value
+        if (!current.canReview || current.reviewSaved || current.detail.saving || !current.detail.memoryDraft.canSubmit) return
+        val draft = current.detail.memoryDraft
+        state.update { it.copy(detail = it.detail.copy(saving = true, error = null)) }
+        viewModelScope.launch {
+            try {
+                val keys = draft.photos.map { uri ->
+                    val checkpoint = "uploaded:$uri"
+                    savedState.get<String>(checkpoint) ?: requireNotNull(photos).upload(uri).getOrThrow().also { savedState[checkpoint] = it }
+                }
+                val id = requireNotNull(scheduleId)
+                val result = reviews.writeReview(id, ScheduleReviewForm(draft.rating, draft.text, requireNotNull(draft.repeatActivity), keys))
+                if (result.isFailure) {
+                    val cause = result.exceptionOrNull()
+                    if (cause is CancellationException) throw cause
+                    val stored = reviews.getReviews(id).getOrNull()
+                    if (cause !is com.kiri.domain.model.review.AlreadyReviewedException && stored?.any { it.isMine } != true) throw requireNotNull(cause)
+                }
+                savedState["reviewPosted"] = true
+                state.update { it.copy(reviewSaved = true, notice = "기록을 등록했어요.") }
+                // 리뷰 등록과 함께 서버 일정이 완료되므로 상태·기록 화면도 다시 조회한다.
+                load()
+                onSaved()
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) {
+                state.update { it.copy(detail = it.detail.copy(error = "기록을 등록하지 못했어요. 입력은 유지됐으니 다시 시도해주세요.")) }
+            } finally { state.update { it.copy(detail = it.detail.copy(saving = false)) } }
         }
     }
 
