@@ -1,6 +1,8 @@
 package com.kiri.feature.mypage
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 import com.kiri.feature.mypage.model.address.HomeAddress
 import com.kiri.feature.mypage.model.address.HomeAddressUiEffect
 import com.kiri.feature.mypage.model.address.HomeAddressUiEvent
@@ -17,9 +19,8 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 
 @HiltViewModel
-class HomeAddressViewModel @Inject constructor() : ViewModel() {
-    // TODO: 주소 저장 API가 생기면 저장된 주소를 불러오고, 등록·수정 시 서버에 저장 (현재는 ViewModel 안에만 보관)
-    private val _uiState = MutableStateFlow(HomeAddressUiState(familyName = MypageProfile.Sample.familyName))
+class HomeAddressViewModel @Inject constructor(private val family: com.kiri.domain.repository.FamilyRepository) : ViewModel() {
+    private val _uiState = MutableStateFlow(HomeAddressUiState())
     val uiState: StateFlow<HomeAddressUiState> = _uiState.asStateFlow()
 
     // 화면 이동처럼 한 번만 처리해야 하는 동작은 구독 전에 보내도 사라지지 않도록 Channel 로 전달한다
@@ -27,9 +28,11 @@ class HomeAddressViewModel @Inject constructor() : ViewModel() {
     val effect: Flow<HomeAddressUiEffect> = _effect.receiveAsFlow()
 
     // 주소 검색을 연 작성 단계 (검색을 마치거나 뒤로가면 이 단계로 돌아간다)
+    private var selected: com.kiri.domain.model.family.FamilyAddress? = null
     private var formStep = HomeAddressStep.REGISTER
 
     fun onEvent(event: HomeAddressUiEvent) {
+        if (_uiState.value.saving) return
         when (event) {
             HomeAddressUiEvent.EditClicked -> edit()
             HomeAddressUiEvent.FindZipCodeClicked -> openSearch()
@@ -37,9 +40,8 @@ class HomeAddressViewModel @Inject constructor() : ViewModel() {
                 if (currentStep != HomeAddressStep.SEARCH) return
                 _uiState.update { it.copy(searchQuery = event.query) }
             }
-            // TODO: 주소 검색 API와 결과 목록 디자인이 정해지면 검색 결과를 보여주고, 고르면 AddressSelected 로 전달
             HomeAddressUiEvent.SearchSubmitted -> Unit
-            is HomeAddressUiEvent.AddressSelected -> selectAddress(event.zipCode, event.roadAddress)
+            is HomeAddressUiEvent.AddressSelected -> selectAddress(event.zipCode, event.roadAddress, event.regionCode)
             is HomeAddressUiEvent.DetailAddressChanged -> changeDetailAddress(event.detailAddress)
             HomeAddressUiEvent.RegisterClicked -> register()
             HomeAddressUiEvent.BackClicked -> previous()
@@ -63,10 +65,16 @@ class HomeAddressViewModel @Inject constructor() : ViewModel() {
     }
 
     // 새 주소를 고르면 이전에 쓴 상세주소는 비운다
-    private fun selectAddress(zipCode: String, roadAddress: String) {
+    private fun selectAddress(zipCode: String, roadAddress: String, regionCode: String) {
         if (currentStep != HomeAddressStep.SEARCH) return
-        _uiState.update {
-            it.copy(currentStep = formStep, form = HomeAddress(zipCode = zipCode, roadAddress = roadAddress))
+        val repository = family ?: return
+        _uiState.update { it.copy(saving = true, error = null) }
+        viewModelScope.launch {
+            repository.resolveAddress(zipCode, roadAddress, regionCode)
+                .onSuccess { address ->
+                    selected = address
+                    _uiState.update { it.copy(currentStep = formStep, form = HomeAddress(zipCode, roadAddress), saving = false) }
+                }.onFailure { error -> _uiState.update { it.copy(saving = false, error = error.message ?: "주소 위치를 확인하지 못했어요. 다시 선택해주세요.") } }
         }
     }
 
@@ -79,12 +87,14 @@ class HomeAddressViewModel @Inject constructor() : ViewModel() {
     private fun register() {
         val state = _uiState.value
         if (!isFormStep || !state.canRegister) return
-        _uiState.update {
-            it.copy(
-                currentStep = HomeAddressStep.SAVED,
-                savedAddress = it.form.copy(detailAddress = it.form.detailAddress.trim()),
-                form = HomeAddress(),
-            )
+        val address = selected ?: return
+        val repository = family ?: return
+        _uiState.update { it.copy(saving = true, error = null) }
+        viewModelScope.launch {
+            repository.saveAddress(address.copy(detailAddress = state.form.detailAddress.trim()))
+                .onSuccess { _uiState.update { it.copy(currentStep = HomeAddressStep.SAVED,
+                    savedAddress = state.form.copy(detailAddress = state.form.detailAddress.trim()), form = HomeAddress(), saving = false) } }
+                .onFailure { error -> _uiState.update { it.copy(saving = false, error = error.message ?: "주소를 저장하지 못했어요. 입력은 유지했어요.") } }
         }
     }
 

@@ -14,6 +14,9 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 internal interface FamilyApi {
+    @retrofit2.http.PUT("api/v1/families/{familyId}/address")
+    suspend fun saveAddress(@Path("familyId") familyId: Long, @Body address: FamilyAddressRequest): ApiResponse<JsonElement>
+
     // 로그인 토큰이 필요하다. 내가 속한 가족 공간의 ID 를 돌려준다. 회원이 없으면 MEMBER404_1,
     // 소속된 가족이 없으면 404 로 거절된다 (가족 없음 코드는 명세에 예시가 없다)
     // 전달받은 경로는 familes/me/id 이다. 다른 가족 API 처럼 api/v1/families 아래에 둔다
@@ -90,3 +93,6 @@ internal data class CreateFamilyResponse(
     val inviteUrl: String,
     val inviteExpiresAt: String? = null,
 )
+
+@Serializable internal data class FamilyAddressRequest(val postalCode: String, val address: String, val detailAddress: String,
+    val regionCode: String, val latitude: Double, val longitude: Double)

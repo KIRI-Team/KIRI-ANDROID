@@ -8,7 +8,7 @@ sealed interface HomeAddressUiEvent {
     data object SearchSubmitted : HomeAddressUiEvent
 
     // 주소 검색 결과에서 주소를 골랐다
-    data class AddressSelected(val zipCode: String, val roadAddress: String) : HomeAddressUiEvent
+    data class AddressSelected(val zipCode: String, val roadAddress: String, val regionCode: String = "") : HomeAddressUiEvent
     data class DetailAddressChanged(val detailAddress: String) : HomeAddressUiEvent
     data object RegisterClicked : HomeAddressUiEvent
     data object BackClicked : HomeAddressUiEvent
