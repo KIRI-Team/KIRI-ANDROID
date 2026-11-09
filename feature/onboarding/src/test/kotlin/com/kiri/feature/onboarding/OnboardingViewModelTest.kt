@@ -294,14 +294,14 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun 가족코드_입력_화면에서_초대하기를_누르면_메인으로_이동하는_효과를_보낸다() = runTest(mainDispatcherRule.testDispatcher) {
+    fun 가족코드_입력은_실제_참여_API_없이_메인으로_넘어가지_않는다() = runTest(mainDispatcherRule.testDispatcher) {
         moveToOnboardingMain()
         viewModel.onEvent(OnboardingUiEvent.PathSelected(OnboardingPath.JOIN_FAMILY))
         assertEquals(OnboardingStep.INPUT_FAMILY_CODE, state.currentStep)
 
         viewModel.onEvent(OnboardingUiEvent.InviteClicked)
 
-        assertEquals(OnboardingUiEffect.NavigateToMainFlow, viewModel.effect.first())
+        assertEquals(OnboardingUiEffect.ShowInviteError, viewModel.effect.first())
     }
 
     @Test

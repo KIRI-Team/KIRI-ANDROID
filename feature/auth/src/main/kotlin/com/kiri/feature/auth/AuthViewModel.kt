@@ -28,6 +28,7 @@ class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val termRepository: TermRepository,
     private val nonceGenerator: NonceGenerator,
+    private val session: com.kiri.domain.repository.SessionRepository? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
@@ -38,6 +39,21 @@ class AuthViewModel @Inject constructor(
 
     // 지금 진행 중인 SDK 로그인에 넘긴 nonce. 서버 로그인에 같은 값을 보낸다
     private var pendingNonce: String? = null
+
+    init {
+        if (session != null) viewModelScope.launch {
+            session.restore().onSuccess { destination -> if (destination == com.kiri.domain.repository.SessionDestination.TERMS) {
+                _uiState.update { it.copy(currentStep = AuthStep.TERMS_AGREEMENT, isNewUser = true) }
+                loadTerms()
+            } }
+        }
+    }
+
+    private suspend fun nextDestination(): AuthUiEffect = if (session == null) AuthUiEffect.NavigateToMain
+        else when (session.restore().getOrThrow()) {
+            com.kiri.domain.repository.SessionDestination.MAIN -> AuthUiEffect.NavigateToMain
+            else -> AuthUiEffect.NavigateToOnboarding
+        }
 
     fun onEvent(event: AuthUiEvent) {
         when (event) {
@@ -88,7 +104,11 @@ class AuthViewModel @Inject constructor(
                             currentStep = if (login.needsTermsAgreement) AuthStep.TERMS_AGREEMENT else it.currentStep,
                         )
                     }
-                    if (login.needsTermsAgreement) loadTerms() else _effect.send(AuthUiEffect.NavigateToMain)
+                    if (login.needsTermsAgreement) loadTerms() else {
+                        try { _effect.send(nextDestination()) }
+                        catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                        catch (e: Exception) { failLogin(e) }
+                    }
                 }
                 .onFailure(::failLogin)
         }
@@ -139,7 +159,9 @@ class AuthViewModel @Inject constructor(
             termRepository.agree(agreements)
                 .onSuccess {
                     _uiState.update { it.copy(isAgreeing = false) }
-                    _effect.send(if (state.isNewUser) AuthUiEffect.NavigateToOnboarding else AuthUiEffect.NavigateToMain)
+                    try { _effect.send(if (state.isNewUser) AuthUiEffect.NavigateToOnboarding else nextDestination()) }
+                    catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                    catch (e: Exception) { _effect.send(AuthUiEffect.ShowAgreeError(e)) }
                 }
                 .onFailure { cause ->
                     _uiState.update { it.copy(isAgreeing = false) }

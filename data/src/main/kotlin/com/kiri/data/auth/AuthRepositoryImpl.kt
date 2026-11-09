@@ -25,6 +25,7 @@ internal class AuthRepositoryImpl @Inject constructor(
         apiResult(json) {
             api.login(LoginRequest(socialProvider = provider.name, socialProviderToken = socialToken, nonce = nonce))
         }.mapCatching { response ->
+            tokenStore.clear()
             tokenStore.save(AuthTokens(response.accessToken, response.refreshToken))
             LoginResult(isNewUser = response.isNewUser, termsAgreed = response.termsAgreed)
         }

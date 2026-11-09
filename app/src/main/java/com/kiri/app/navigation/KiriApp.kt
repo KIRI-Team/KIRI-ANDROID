@@ -22,7 +22,7 @@ private const val ROUTE_MAIN = "main"
  * @param isLoggedIn 저장된 로그인 토큰이 있는지. 메인에 있는 동안 false 가 되면(토큰 재발급 거절) 로그인으로 보낸다
  */
 @Composable
-fun KiriApp(isLoggedIn: Flow<Boolean> = emptyFlow()) {
+fun KiriApp(isLoggedIn: Flow<Boolean> = emptyFlow(), initialRoute: String = ROUTE_AUTH) {
     val rootNavController = rememberNavController()
     // 처음 값을 읽기 전(null)에는 아무것도 하지 않는다
     val loggedIn by isLoggedIn.collectAsState(initial = null)
@@ -32,7 +32,7 @@ fun KiriApp(isLoggedIn: Flow<Boolean> = emptyFlow()) {
         if (loggedIn == false && currentRoute == ROUTE_MAIN) rootNavController.navigateToLoginFromMain()
     }
 
-    NavHost(navController = rootNavController, startDestination = ROUTE_AUTH) {
+    NavHost(navController = rootNavController, startDestination = initialRoute) {
         composable(ROUTE_AUTH) {
             AuthRoute(
                 // 로그인과 온보딩은 하나의 진입 플로우라 로그인을 백스택에 남겨둔다
@@ -40,7 +40,7 @@ fun KiriApp(isLoggedIn: Flow<Boolean> = emptyFlow()) {
                 // 약관에 동의한 기존 회원은 온보딩 없이 메인으로 가고, 로그인으로 뒤로가지 않게 지운다
                 onNavigateToMain = {
                     rootNavController.navigate(ROUTE_MAIN) {
-                        popUpTo(ROUTE_AUTH) { inclusive = true }
+                        popUpTo(rootNavController.graph.id) { inclusive = false }
                         launchSingleTop = true
                     }
                 },
@@ -51,13 +51,13 @@ fun KiriApp(isLoggedIn: Flow<Boolean> = emptyFlow()) {
                 // 온보딩을 마치면 로그인·온보딩으로 뒤로가지 않도록 백스택을 비우고, 중복 이동은 막는다
                 onNavigateToMainFlow = {
                     rootNavController.navigate(ROUTE_MAIN) {
-                        popUpTo(ROUTE_AUTH) { inclusive = true }
+                        popUpTo(rootNavController.graph.id) { inclusive = false }
                         launchSingleTop = true
                     }
                 },
                 onBrowseClick = {
                     rootNavController.navigate(ROUTE_MAIN) {
-                        popUpTo(ROUTE_AUTH) { inclusive = true }
+                        popUpTo(rootNavController.graph.id) { inclusive = false }
                         launchSingleTop = true
                     }
                 },
