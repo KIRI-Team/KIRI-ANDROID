@@ -216,7 +216,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
                 viewModel::onEvent,
                 Modifier.padding(bottom = 110.dp),
                 // 지금 조건을 불러오는 동안에는 적용하지 않는다
-                applyEnabled = !state.customLoading,
+                applyEnabled = !state.customLoading && state.customLoaded,
             )
         }
         // 서버 버킷의 일정 잡기. 일정 생성 API 로 만들고, 다 보내면 버킷이 일정 잡힘으로 바뀐 기록 탭으로 돌아간다

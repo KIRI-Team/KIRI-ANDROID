@@ -93,6 +93,21 @@ class ServerScheduleDetailViewModelTest {
     @After
     fun teardown() = Dispatchers.resetMain()
 
+    @Test fun failedConditionReadCannotBeAppliedOrChanged() = runTest {
+        var writes = 0
+        val conditions = object : ScheduleConditionRepository {
+            override suspend fun getConditionCustom(scheduleId: Long): Result<ConditionCustom> = Result.failure(IOException())
+            override suspend fun applyConditions(scheduleId: Long, conditions: Set<Condition>): Result<Unit> { writes++; return Result.success(Unit) }
+        }
+        val vm = viewModel(FakeSchedules(Result.success(detail)), conditions = conditions)
+        vm.onEvent(DetailUiEvent.CustomClicked)
+        vm.onEvent(DetailUiEvent.ConditionToggled(Condition.LESS_WALKING))
+        vm.onEvent(DetailUiEvent.ApplyClicked)
+        assertEquals(0, writes)
+        assertTrue(vm.uiState.value.detail.draft.isEmpty())
+        assertFalse(vm.uiState.value.customLoaded)
+    }
+
     private class FakeSchedules(var result: Result<ScheduleDetail>) : CalendarScheduleRepository {
         val requested = mutableListOf<Long>()
 

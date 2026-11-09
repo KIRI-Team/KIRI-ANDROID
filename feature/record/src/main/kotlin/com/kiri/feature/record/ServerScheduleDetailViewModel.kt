@@ -69,6 +69,7 @@ data class ServerScheduleDetailUiState(
     val canEdit: Boolean = false,
     // 컨디션 커스텀 화면 정보를 불러오는 중이다
     val customLoading: Boolean = false,
+    val customLoaded: Boolean = false,
     // 컨디션 커스텀 화면 정보를 불러오지 못했을 때 그 화면에 보여줄 문구
     val customError: String? = null,
     // 근처 놀거리 추천 API 결과. 서버가 정렬한 순서 그대로다 (불러오지 못하면 비어 있다)
@@ -151,7 +152,7 @@ constructor(
                     loadConditionCustom()
                 }
             is DetailUiEvent.ConditionToggled ->
-                state.update {
+                if (uiState.value.customLoaded && !uiState.value.customLoading && !uiState.value.detail.saving) state.update {
                     val draft = it.detail.draft
                     it.copy(
                         detail = it.detail.copy(
@@ -232,7 +233,7 @@ constructor(
     private fun loadConditionCustom() {
         val id = scheduleId ?: return
         customJob?.cancel()
-        state.update { it.copy(customLoading = true) }
+        state.update { it.copy(customLoading = true, customLoaded = false) }
         customJob = viewModelScope.launch {
             conditions.getConditionCustom(id)
                 .onSuccess { custom ->
@@ -240,6 +241,7 @@ constructor(
                         val current = it.detail
                         it.copy(
                             customLoading = false,
+                            customLoaded = true,
                             detail = current.copy(
                                 detail = current.detail?.withConditionCustom(custom),
                                 draft = if (current.draft.isEmpty()) custom.conditions else current.draft,
@@ -259,7 +261,7 @@ constructor(
     private fun applyConditions() {
         val id = scheduleId ?: return
         val current = uiState.value
-        if (!current.canCustomize || current.detail.saving || current.customLoading) return
+        if (!current.canCustomize || current.detail.saving || current.customLoading || !current.customLoaded) return
         val draft = current.detail.draft
         state.update { it.copy(customError = null, detail = it.detail.copy(saving = true)) }
         viewModelScope.launch {
