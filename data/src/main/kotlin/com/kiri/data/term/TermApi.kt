@@ -11,6 +11,9 @@ import retrofit2.http.POST
 
 // 두 API 모두 로그인 토큰이 필요하다
 internal interface TermApi {
+    @GET("api/v1/terms/agreements")
+    suspend fun agreements(): ApiResponse<AgreementStatus>
+
     @GET("api/v1/terms")
     suspend fun getTerms(): ApiResponse<List<TermResponse>>
 
@@ -21,6 +24,8 @@ internal interface TermApi {
 
 // shortDescription 도 오지만 화면에서 쓰지 않아 읽지 않는다
 // updatedAt 은 "2026-10-04T12:00:00" 처럼 시간대 없는 날짜·시간으로 온다
+@Serializable internal data class AgreementStatus(val termsAgreed: Boolean)
+
 @Serializable
 internal data class TermResponse(
     val termId: Long,

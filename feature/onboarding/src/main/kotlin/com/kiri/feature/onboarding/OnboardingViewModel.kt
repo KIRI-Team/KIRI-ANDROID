@@ -37,6 +37,7 @@ enum class OnboardingPath {
 class OnboardingViewModel @Inject constructor(
     private val familyRepository: FamilyRepository,
     private val memberRepository: MemberRepository,
+    private val session: com.kiri.domain.repository.SessionRepository? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
@@ -56,6 +57,24 @@ class OnboardingViewModel @Inject constructor(
     // 가족 공간을 만들 때 발급된 초대. 초대하기를 다시 눌러도 재발급하지 않고 재사용한다
     private var invite: Invite? = null
     private var isSharing = false
+
+    init {
+        if (session != null) viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true) }
+            try {
+                val progress = session.profile()
+                savedNickname = progress.nickname
+                savedRole = progress.role?.let { name -> FamilyRole.entries.find { it.toMemberRole().name == name } }
+                _uiState.update { it.copy(nickname = progress.nickname.orEmpty(), selectedRole = savedRole,
+                    currentStep = if (savedNickname == null) OnboardingStep.INPUT_NICKNAME else if (savedRole == null) OnboardingStep.CHOOSE_ROLE else OnboardingStep.ONBOARDING_MAIN) }
+            } finally { _uiState.update { it.copy(isSubmitting = false) } }
+        }
+    }
+
+    fun completeBrowse(onCompleted: () -> Unit) {
+        if (_uiState.value.isSubmitting) return
+        viewModelScope.launch { session?.completeOnboarding(); onCompleted() }
+    }
 
     fun onEvent(event: OnboardingUiEvent) {
         when (event) {
@@ -177,7 +196,7 @@ class OnboardingViewModel @Inject constructor(
                 _effect.trySend(OnboardingUiEffect.ShareInvite(invite))
             }
             // TODO: 가족코드 참여 동작이 정해지면 교체 (지금은 임시로 메인으로 이동)
-            else -> _effect.trySend(OnboardingUiEffect.NavigateToMainFlow)
+            else -> _effect.trySend(OnboardingUiEffect.ShowInviteError)
         }
     }
 

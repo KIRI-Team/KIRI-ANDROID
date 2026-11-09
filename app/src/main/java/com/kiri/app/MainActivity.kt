@@ -39,7 +39,7 @@ class MainActivity : ComponentActivity() {
             androidx.compose.runtime.CompositionLocalProvider(
                 com.kiri.uikit.LocalKiriClock provides clock
             ) {
-                KiriTheme { KiriApp(isLoggedIn = authRepository.isLoggedIn) }
+                KiriTheme { com.kiri.app.navigation.SessionStartup(isLoggedIn = authRepository.isLoggedIn) }
             }
         }
         // 화면 회전 등으로 다시 만들어질 때는 같은 링크를 다시 저장하지 않는다

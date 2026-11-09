@@ -60,7 +60,7 @@ fun OnboardingRoute(
         modifier = modifier,
         state = state,
         onEvent = viewModel::onEvent,
-        onBrowseClick = onBrowseClick,
+        onBrowseClick = { viewModel.completeBrowse(onBrowseClick) },
     )
 }
 
