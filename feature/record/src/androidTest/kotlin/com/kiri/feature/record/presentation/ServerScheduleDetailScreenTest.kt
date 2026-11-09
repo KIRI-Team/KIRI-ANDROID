@@ -3,7 +3,6 @@ package com.kiri.feature.record.presentation
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithTag
@@ -168,9 +167,6 @@ class ServerScheduleDetailScreenTest {
         compose.onNodeWithText("엄마").assertDoesNotExist()
 
         compose.onNodeWithTag("participant_check").performClick()
-        compose.waitUntil(5_000) {
-            runCatching { compose.onNodeWithTag("participant_check_tooltip").isDisplayed() }.getOrDefault(false)
-        }
         compose.onNodeWithTag("participant_check_tooltip").assertIsDisplayed()
         compose.onNodeWithText("엄마", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithText("첫째", useUnmergedTree = true).assertIsDisplayed()
