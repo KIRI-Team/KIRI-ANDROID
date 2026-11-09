@@ -84,6 +84,8 @@ fun HomeAddressScreen(
             HomeAddressStep.SEARCH -> KiriTopBar(onBackClick = onBackClick)
         }
 
+        state.error?.let { androidx.compose.material3.Text(it, Modifier.testTag("home_address_error"), color = KiriColor.Status.Error) }
+        if (state.saving) androidx.compose.material3.CircularProgressIndicator()
         when (state.currentStep) {
             HomeAddressStep.SAVED -> HomeAddressSavedContent(
                 familyName = state.familyName,
@@ -96,11 +98,7 @@ fun HomeAddressScreen(
                 onFindZipCodeClick = { onEvent(HomeAddressUiEvent.FindZipCodeClicked) },
                 onDetailAddressChange = { onEvent(HomeAddressUiEvent.DetailAddressChanged(it)) },
             )
-            HomeAddressStep.SEARCH -> AddressSearchContent(
-                query = state.searchQuery,
-                onQueryChange = { onEvent(HomeAddressUiEvent.SearchQueryChanged(it)) },
-                onSearch = { onEvent(HomeAddressUiEvent.SearchSubmitted) },
-            )
+            HomeAddressStep.SEARCH -> PostcodePicker { onEvent(it) }
         }
     }
 }

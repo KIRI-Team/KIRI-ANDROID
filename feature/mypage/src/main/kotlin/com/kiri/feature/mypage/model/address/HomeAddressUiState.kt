@@ -10,7 +10,9 @@ data class HomeAddressUiState(
     // 등록·수정 화면에서 작성 중인 주소
     val form: HomeAddress = HomeAddress(),
     val searchQuery: String = "",
+    val saving: Boolean = false,
+    val error: String? = null,
 ) {
     val canRegister: Boolean
-        get() = form.isComplete
+        get() = form.isComplete && !saving
 }

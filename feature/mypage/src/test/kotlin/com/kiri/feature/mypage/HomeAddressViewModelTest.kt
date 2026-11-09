@@ -15,7 +15,15 @@ import org.junit.Test
 
 class HomeAddressViewModelTest {
 
-    private val viewModel = HomeAddressViewModel()
+    @get:org.junit.Rule val mainDispatcherRule = MainDispatcherRule(kotlinx.coroutines.test.UnconfinedTestDispatcher())
+    private val family = object : com.kiri.domain.repository.FamilyRepository {
+        override suspend fun createFamily(name: String): Result<com.kiri.domain.model.family.Family> = error("unused")
+        override suspend fun renameFamily(name: String) = Result.success(name)
+        override suspend fun resolveAddress(postalCode: String, address: String, regionCode: String) =
+            Result.success(com.kiri.domain.model.family.FamilyAddress(postalCode, address, "", "1165010800", 37.5, 127.0))
+        override suspend fun saveAddress(address: com.kiri.domain.model.family.FamilyAddress) = Result.success(Unit)
+    }
+    private val viewModel = HomeAddressViewModel(family)
     private val state get() = viewModel.uiState.value
 
     private fun selectAddress(zipCode: String = "06134", roadAddress: String = "서울 서초구 강남대로 143") {
@@ -32,7 +40,7 @@ class HomeAddressViewModelTest {
     @Test
     fun 주소가_없으면_등록_화면에서_시작하고_등록할_수_없다() {
         assertEquals(HomeAddressStep.REGISTER, state.currentStep)
-        assertEquals(MypageProfile.Sample.familyName, state.familyName)
+        assertEquals("", state.familyName)
         assertNull(state.savedAddress)
         assertFalse(state.canRegister)
     }
