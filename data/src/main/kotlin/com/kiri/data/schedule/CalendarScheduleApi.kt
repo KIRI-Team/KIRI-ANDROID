@@ -22,6 +22,11 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 internal interface CalendarScheduleApi {
+    @PATCH("api/v1/schedules/{scheduleId}/response")
+    suspend fun respond(@Path("scheduleId") scheduleId: Long, @Body request: ScheduleResponseRequest): ApiResponse<kotlinx.serialization.json.JsonElement>
+    @PATCH("api/v1/schedules/{scheduleId}/cancel")
+    suspend fun cancel(@Path("scheduleId") scheduleId: Long): ApiResponse<kotlinx.serialization.json.JsonElement>
+
     @POST("api/v1/missions/{missionId}/schedules")
     suspend fun createWeekly(@Path("missionId") missionId: Long, @Body request: UpdateScheduleRequest): ApiResponse<CreateScheduleResponse>
 
@@ -63,6 +68,8 @@ internal interface CalendarScheduleApi {
         @Body request: UpdateScheduleRequest,
     ): ApiResponse<CreateScheduleResponse>
 }
+
+@Serializable internal data class ScheduleResponseRequest(val action: String)
 
 @Serializable
 internal data class CreateScheduleResponse(val scheduleId: Long)

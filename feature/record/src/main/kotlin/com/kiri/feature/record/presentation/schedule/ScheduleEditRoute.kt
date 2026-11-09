@@ -10,7 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
@@ -45,7 +46,14 @@ fun ScheduleEditRoute(viewModel: ScheduleEditViewModel, onBackClick: () -> Unit,
             }
         }
     }
-    ScheduleEditScreen(state, viewModel::onDraftChange, onBackClick, viewModel::save, viewModel::retry, viewModel::onMonthShown)
+    var confirmCancel by remember { mutableStateOf(false) }
+    Column {
+        Box(Modifier.weight(1f)) { ScheduleEditScreen(state, viewModel::onDraftChange, onBackClick, viewModel::save, viewModel::retry, viewModel::onMonthShown) }
+        if (!state.loading && state.loadError == null) TextButton({ confirmCancel = true }, enabled = !state.saving, modifier = Modifier.testTag("server_schedule_cancel")) { Text("일정 취소", color = KiriColor.Status.Error) }
+    }
+    if (confirmCancel) AlertDialog(onDismissRequest = { confirmCancel = false }, title = { Text("일정을 취소할까요?") },
+        confirmButton = { TextButton({ confirmCancel = false; viewModel.cancel() }) { Text("취소하기") } },
+        dismissButton = { TextButton({ confirmCancel = false }) { Text("돌아가기") } })
 }
 
 @Composable
