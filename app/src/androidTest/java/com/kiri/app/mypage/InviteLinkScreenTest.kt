@@ -29,7 +29,7 @@ class InviteLinkScreenTest {
 
     private val invite = Invite(
         code = "NWTKYJ",
-        url = "https://kiri.example.com/invite/NWTKYJ",
+        url = "https://kiri.app/invite/NWTKYJ",
         expiresAt = LocalDate.of(2026, 10, 12),
     )
 
@@ -45,7 +45,7 @@ class InviteLinkScreenTest {
 
         composeTestRule.onNodeWithText("가족이 모이면 더 즐거워져요!").assertIsDisplayed()
         composeTestRule.onNodeWithText("NWTKYJ").assertIsDisplayed()
-        composeTestRule.onNodeWithText("kiri.example.com/invite/••••••").assertIsDisplayed()
+        composeTestRule.onNodeWithText("kiri.app/invite/••••••").assertIsDisplayed()
         composeTestRule.onNodeWithText("10월 12일까지 사용가능").assertIsDisplayed()
         composeTestRule.onNodeWithTag("kiri_button").assertIsEnabled()
     }

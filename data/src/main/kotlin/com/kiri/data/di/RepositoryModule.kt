@@ -1,6 +1,6 @@
 package com.kiri.data.di
 
-import com.kiri.data.repository.InMemoryPendingInviteRepository
+import com.kiri.data.repository.DataStorePendingInviteRepository
 import com.kiri.domain.repository.PendingInviteRepository
 import dagger.Binds
 import dagger.Module
@@ -12,5 +12,5 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 internal abstract class RepositoryModule {
     @Binds
-    abstract fun bindPendingInviteRepository(impl: InMemoryPendingInviteRepository): PendingInviteRepository
+    abstract fun bindPendingInviteRepository(impl: DataStorePendingInviteRepository): PendingInviteRepository
 }

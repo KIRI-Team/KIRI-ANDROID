@@ -283,7 +283,7 @@ class OnboardingViewModelTest {
         viewModel.onEvent(OnboardingUiEvent.BackClicked)
         viewModel.onEvent(OnboardingUiEvent.FamilyNameChanged("끼리네집"))
         familyRepository.result = Result.success(
-            Family(id = 2, name = "끼리네집", invite = Invite(code = "ZZ99ZZ", url = "https://kiri.example.com/invite/ZZ99ZZ")),
+            Family(id = 2, name = "끼리네집", invite = Invite(code = "ZZ99ZZ", url = "https://kiri.app/invite/ZZ99ZZ")),
         )
 
         viewModel.onEvent(OnboardingUiEvent.NextClicked)
