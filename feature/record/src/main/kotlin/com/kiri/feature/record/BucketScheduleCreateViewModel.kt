@@ -19,6 +19,7 @@ import com.kiri.feature.record.presentation.sheet.RecordMember
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.YearMonth
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -59,17 +60,24 @@ sealed interface BucketScheduleCreateEffect {
 class BucketScheduleCreateViewModel
 @Inject
 constructor(
-    savedState: SavedStateHandle,
+    private val savedState: SavedStateHandle,
     private val schedules: CalendarScheduleRepository,
     private val home: HomeRepository,
     private val clock: Clock,
 ) : ViewModel() {
+    private val weeklyMissionId = savedState.get<String>("weeklyMissionId")?.toLongOrNull()
+    private var sent = savedState.get<Long>("createdScheduleId") != null
     private val bucketItemId = savedState.get<Long>(BUCKET_ITEM_ID_ARG)
     private val state = MutableStateFlow(
         BucketScheduleCreateUiState(
             earliest = clock.kiriNow(),
             title = savedState.get<String>(TITLE_ARG).orEmpty(),
             savedBy = savedState.get<String>(SAVER_ARG).orEmpty(),
+            draft = ScheduleRegisterDraft(
+                date = savedState.get<String>("serverDraftDate")?.let(LocalDate::parse),
+                time = savedState.get<String>("serverDraftTime")?.let(LocalTime::parse),
+                memberIds = savedState.get<ArrayList<String>>("serverDraftMembers").orEmpty().toSet(),
+                message = savedState["serverDraftMessage"] ?: ""),
         ),
     )
     val uiState = state.asStateFlow()
@@ -94,21 +102,29 @@ constructor(
     }
 
     fun onDraftChange(draft: ScheduleRegisterDraft) {
-        if (uiState.value.sending) return
+        if (uiState.value.sending || sent) return
         state.update { current ->
             // 한 줄은 100자까지, 구성원은 초대할 수 있는 가족 안에서만 고른다
             val known = current.members.map { it.id }.toSet()
-            current.copy(draft = draft.withMessage(draft.message).copy(memberIds = draft.memberIds intersect known), error = null)
+            val normalized = draft.withMessage(draft.message).copy(memberIds = draft.memberIds intersect known)
+            savedState["serverDraftDate"] = normalized.date?.toString()
+            savedState["serverDraftTime"] = normalized.time?.toString()
+            savedState["serverDraftMembers"] = ArrayList(normalized.memberIds)
+            savedState["serverDraftMessage"] = normalized.message
+            current.copy(draft = normalized, error = null)
         }
     }
 
     fun send(channel: ScheduleRequestChannel) {
         val current = uiState.value
-        val id = bucketItemId ?: return
+        val id = weeklyMissionId ?: bucketItemId ?: return
         val draft = current.draft
         val date = draft.date
         val time = draft.time
-        if (current.sending || !draft.canSubmit || date == null || time == null) return
+        if (current.sending || sent || !draft.canSubmit || date == null || time == null) return
+        if (!LocalDateTime.of(date, time).isAfter(clock.kiriNow())) {
+            state.update { it.copy(error = "지난 시각으로는 일정을 만들 수 없어요.") }; return
+        }
         val inviteeIds = draft.memberIds.mapNotNull { it.toLongOrNull() }.toSet()
         if (inviteeIds.size != draft.memberIds.size) {
             state.update { it.copy(error = "가족 정보를 다시 불러온 뒤 시도해주세요.") }
@@ -124,8 +140,12 @@ constructor(
                 }
                 return@launch
             }
-            schedules.createSchedule(id, ScheduleUpdate(date, time, inviteeIds, draft.message.takeIf { it.isNotBlank() }))
+            val form = ScheduleUpdate(date, time, inviteeIds, draft.message.takeIf { it.isNotBlank() })
+            val result = if (weeklyMissionId != null) schedules.createWeeklySchedule(id, form) else schedules.createSchedule(id, form)
+            result
                 .onSuccess {
+                    savedState["createdScheduleId"] = it
+                    sent = true
                     state.update { it.copy(sending = false) }
                     effects.send(
                         when (channel) {
@@ -147,7 +167,12 @@ constructor(
     }
 
     private fun load() {
-        if (bucketItemId == null) {
+        if (sent) {
+            state.update { it.copy(loading = false) }
+            effects.trySend(BucketScheduleCreateEffect.SentByApp)
+            return
+        }
+        if (bucketItemId == null && weeklyMissionId == null) {
             state.update { it.copy(loading = false, loadError = "찾을 수 없는 버킷이에요.") }
             return
         }
@@ -155,6 +180,11 @@ constructor(
         viewModelScope.launch {
             try {
                 val family = home.load()
+                check(!family.browsing) { "가족 연결 후 사용할 수 있어요." }
+                if (weeklyMissionId != null) {
+                    val weekly = requireNotNull(family.mission?.takeIf { it.missionId == weeklyMissionId.toString() && !it.unavailable && !it.completed })
+                    state.update { it.copy(title = weekly.title) }
+                }
                 state.update {
                     it.copy(loading = false, members = family.invitableMembers().map { m -> RecordMember(m.id, m.nickname) })
                 }

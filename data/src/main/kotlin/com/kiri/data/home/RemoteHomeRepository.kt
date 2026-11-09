@@ -54,7 +54,7 @@ internal class RemoteHomeRepository(
                     id = it.missionId.toString(), title = it.title,
                     description = it.description ?: it.recommendationReason.orEmpty(),
                     tags = listOfNotNull(it.recommendationReason),
-                    completed = false, imageUrl = it.imageUrl, recommendationOnly = true,
+                    completed = false, imageUrl = it.imageUrl, recommendationOnly = false,
                 )
             }
         } else null

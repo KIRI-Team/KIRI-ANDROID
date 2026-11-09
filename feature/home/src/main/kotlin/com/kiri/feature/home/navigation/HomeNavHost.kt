@@ -39,16 +39,17 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
             MissionPreviewRoute(onBack = { navController.popBackStack() })
         }
         composable("home_graph/weekly-schedule/{weeklyMissionId}") { entry ->
-            val viewModel: ScheduleRegisterViewModel = hiltViewModel(entry)
             val weeklyId = entry.arguments?.getString("weeklyMissionId").orEmpty()
-            ScheduleRegisterRoute(
-                viewModel = viewModel,
-                onBackClick = { navController.popBackStack() },
-                onDetailClick = { navController.navigate("$DETAIL_ROUTE/${Uri.encode(weeklyId)}") },
-                onBucketMissing = { navController.popBackStack() },
-                onSentByApp = { navController.popBackStack() },
-                onSentByKakao = { navController.popBackStack() },
-            )
+            if (weeklyId.toLongOrNull() != null) {
+                val viewModel: com.kiri.feature.record.BucketScheduleCreateViewModel = hiltViewModel(entry)
+                com.kiri.feature.record.presentation.schedule.BucketScheduleCreateRoute(viewModel,
+                    onBackClick = { navController.popBackStack() }, onSentByApp = { navController.popBackStack() }, onSentByKakao = { navController.popBackStack() })
+            } else {
+                val viewModel: ScheduleRegisterViewModel = hiltViewModel(entry)
+                ScheduleRegisterRoute(viewModel, onBackClick = { navController.popBackStack() },
+                    onDetailClick = { navController.navigate("$DETAIL_ROUTE/${Uri.encode(weeklyId)}") },
+                    onBucketMissing = { navController.popBackStack() }, onSentByApp = { navController.popBackStack() }, onSentByKakao = { navController.popBackStack() })
+            }
         }
         composable(START_ROUTE) {
             HomeRoute(
