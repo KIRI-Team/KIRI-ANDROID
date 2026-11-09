@@ -34,7 +34,13 @@ class DataStorePendingInviteRepositoryTest {
     private suspend fun reopen(): DataStorePendingInviteRepository {
         scopes.forEach { it.coroutineContext[Job]!!.cancelAndJoin() }
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob()).also { scopes += it }
-        return DataStorePendingInviteRepository(PreferenceDataStoreFactory.createWithPath(scope = scope) { file.toOkioPath() })
+        return DataStorePendingInviteRepository(PreferenceDataStoreFactory.create(
+            storage = androidx.datastore.core.okio.OkioStorage(
+                fileSystem = okio.FileSystem.SYSTEM,
+                serializer = androidx.datastore.preferences.core.PreferencesSerializer,
+                producePath = { file.toOkioPath() },
+            ), scope = scope,
+        ))
     }
 
     @Test
