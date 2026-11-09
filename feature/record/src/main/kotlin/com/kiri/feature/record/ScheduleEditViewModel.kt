@@ -93,6 +93,17 @@ constructor(
         }
     }
 
+    fun cancel() {
+        val id = scheduleId ?: return
+        if (state.value.saving || state.value.loading || state.value.loadError != null) return
+        state.update { it.copy(saving = true, error = null) }
+        viewModelScope.launch {
+            schedules.cancel(id).onSuccess { effects.send(ScheduleEditEffect.Saved) }
+                .onFailure { error -> state.update { it.copy(error = error.message ?: "취소하지 못했어요.") } }
+            state.update { it.copy(saving = false) }
+        }
+    }
+
     fun save() {
         val current = uiState.value
         val id = scheduleId ?: return

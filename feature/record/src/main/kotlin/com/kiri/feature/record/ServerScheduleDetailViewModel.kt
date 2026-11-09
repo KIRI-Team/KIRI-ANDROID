@@ -52,6 +52,12 @@ data class ServerScheduleDetailUiState(
     val requestedDate: LocalDate? = null,
     // 취소·없음·가족 없음처럼 다시 불러와도 결과가 같은 오류면 false
     val retryable: Boolean = true,
+    val canRespond: Boolean = false,
+    val canCancel: Boolean = false,
+    val canReview: Boolean = false,
+    val myResponse: String? = null,
+    val author: String = "나",
+    val notice: String? = null,
     // 완료된 일정의 가족 기록(리뷰). 작성순이다
     val reviews: List<ScheduleReview> = emptyList(),
     val reviewsLoading: Boolean = false,
@@ -110,6 +116,8 @@ constructor(
     private val home: HomeRepository? = null,
     private val conditions: ScheduleConditionRepository = NoConditions,
     private val nearbyPlaces: ScheduleNearbyRepository = NoNearby,
+    private val schedules: com.kiri.domain.repository.CalendarScheduleRepository? = null,
+    private val clock: java.time.Clock = java.time.Clock.systemUTC(),
 ) : ViewModel() {
     private var customJob: Job? = null
     private var nearbyJob: Job? = null
@@ -181,6 +189,7 @@ constructor(
                             detail = it.detail.copy(loading = false, detail = schedule.toMissionDetail(id)),
                         )
                     }
+                    loadActions(id, schedule, access)
                     if (schedule.status == ScheduleDisplayStatus.COMPLETED) {
                         loadReviews(id)
                         loadFamilyName()
@@ -334,6 +343,57 @@ constructor(
                 null
             }
             state.update { it.copy(familyName = name) }
+        }
+    }
+
+    private suspend fun loadActions(id: Long, detail: ScheduleDetail, access: com.kiri.domain.usecase.schedule.ScheduleEditAccess) {
+        if (schedules == null) return
+        val family = access.family ?: try { home?.load() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { null }
+        val me = family?.members?.find { it.id == family.currentUserId }
+        val start = detail.time?.let { detail.date.atTime(it).atZone(java.time.ZoneId.of("Asia/Seoul")).toInstant() }
+        val calendarResult = schedules?.getMonthlySchedules(java.time.YearMonth.from(detail.date))
+        calendarResult?.onFailure { state.update { it.copy(detail = it.detail.copy(error = "내 참여 상태를 불러오지 못했어요. 다시 시도해주세요.")) } }
+        val calendar = calendarResult?.getOrNull()?.find { it.id == id }
+        val status = calendar?.myStatus
+        val isMine = me != null && detail.participants.firstOrNull()?.nickname == me.nickname
+        val active = calendar?.status in setOf(com.kiri.domain.model.schedule.CalendarScheduleStatus.PENDING_RESPONSE, com.kiri.domain.model.schedule.CalendarScheduleStatus.CONFIRMED)
+        state.update { it.copy(
+            author = me?.nickname ?: "나",
+            canRespond = start?.isAfter(clock.instant()) == true && active && !isMine && (me != null || status != com.kiri.domain.model.schedule.MyScheduleStatus.ACCEPTED) && status in setOf(
+                com.kiri.domain.model.schedule.MyScheduleStatus.PENDING, com.kiri.domain.model.schedule.MyScheduleStatus.ACCEPTED,
+                com.kiri.domain.model.schedule.MyScheduleStatus.DECLINED, com.kiri.domain.model.schedule.MyScheduleStatus.RECONFIRM_REQUIRED),
+            canCancel = isMine && active,
+            canReview = status == com.kiri.domain.model.schedule.MyScheduleStatus.ACCEPTED && start != null && !start.isAfter(clock.instant()) &&
+                detail.status in setOf(ScheduleDisplayStatus.TODAY, ScheduleDisplayStatus.COMPLETED, ScheduleDisplayStatus.CONFIRMED),
+            myResponse = when (status) {
+                com.kiri.domain.model.schedule.MyScheduleStatus.PENDING -> "미응답"
+                com.kiri.domain.model.schedule.MyScheduleStatus.ACCEPTED -> "수락"
+                com.kiri.domain.model.schedule.MyScheduleStatus.DECLINED -> "거절"
+                com.kiri.domain.model.schedule.MyScheduleStatus.RECONFIRM_REQUIRED -> "재확인 필요"
+                com.kiri.domain.model.schedule.MyScheduleStatus.NOT_INVITED -> "초대받지 않은 가족 일정"
+                null -> null
+            }) }
+    }
+
+    fun respond(accept: Boolean) = mutateAction {
+        check(state.value.canRespond) { "응답할 수 있는 약속인지 다시 확인해주세요." }
+        requireNotNull(schedules).respond(requireNotNull(scheduleId), accept).getOrThrow()
+        state.update { it.copy(notice = if (accept) "수락했어요." else "거절했어요.") }
+        load()
+    }
+    fun cancel() = mutateAction {
+        check(state.value.canCancel) { "취소할 수 있는 약속인지 다시 확인해주세요." }
+        requireNotNull(schedules).cancel(requireNotNull(scheduleId)).getOrThrow()
+        effects.send(ServerScheduleDetailEffect.Back)
+    }
+    private fun mutateAction(block: suspend () -> Unit) {
+        if (state.value.detail.saving) return
+        state.update { it.copy(detail = it.detail.copy(saving = true, error = null)) }
+        viewModelScope.launch {
+            try { block() }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) { state.update { it.copy(detail = it.detail.copy(error = "처리하지 못했어요. 다시 시도해주세요.")) } }
+            finally { state.update { it.copy(detail = it.detail.copy(saving = false)) } }
         }
     }
 

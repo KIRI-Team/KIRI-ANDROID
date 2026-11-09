@@ -27,6 +27,10 @@ internal class CalendarScheduleRepositoryImpl @Inject constructor(
     override suspend fun createWeeklySchedule(missionId: Long, form: ScheduleUpdate): Result<Long> =
         apiResult(json) { api.createWeekly(missionId, form.toRequest()) }.map { it.scheduleId }
 
+    override suspend fun respond(scheduleId: Long, accept: Boolean): Result<Unit> =
+        apiCommand(json) { api.respond(scheduleId, ScheduleResponseRequest(if (accept) "ACCEPT" else "DECLINE")) }
+    override suspend fun cancel(scheduleId: Long): Result<Unit> = apiCommand(json) { api.cancel(scheduleId) }
+
     // 가족 공간이 없으면 보여줄 일정이 없는 것이므로 오류 대신 빈 목록으로 본다
     override suspend fun getMonthlySchedules(month: YearMonth): Result<List<CalendarSchedule>> =
         apiResult(json) { api.getMonthlySchedules(month.year, month.monthValue) }
