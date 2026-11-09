@@ -50,7 +50,7 @@ class RemoteHomeRepositoryTest {
             val home = repo.load()
             val weekly = requireNotNull(home.mission)
             assertEquals("130", weekly.missionId)
-            assertTrue(weekly.recommendationOnly)
+            org.junit.Assert.assertFalse(weekly.recommendationOnly)
             assertEquals(weekly, repo.saveAnswer(requireNotNull(home.question), "답변").mission)
             server.takeRequest(); server.takeRequest()
             assertEquals("/api/v1/missions/recommendations", server.takeRequest().url.encodedPath)

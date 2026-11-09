@@ -22,6 +22,9 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 internal interface CalendarScheduleApi {
+    @POST("api/v1/missions/{missionId}/schedules")
+    suspend fun createWeekly(@Path("missionId") missionId: Long, @Body request: UpdateScheduleRequest): ApiResponse<CreateScheduleResponse>
+
     // 로그인 토큰이 필요하다. year·month 가 없거나 범위를 벗어나면 COMMON400_1, 가족 공간이 없으면 SCHEDULE403_1 로 거절된다
     // TODO: 명세에 경로가 없어 추정한 경로다. 서버 명세와 대조할 것
     @GET("api/v1/schedules/calendar")

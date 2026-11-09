@@ -6,6 +6,8 @@ import com.kiri.domain.model.schedule.ScheduleUpdate
 import java.time.YearMonth
 
 interface CalendarScheduleRepository {
+    suspend fun createWeeklySchedule(missionId: Long, form: ScheduleUpdate): Result<Long> = Result.failure(UnsupportedOperationException())
+
     // 그 달의 가족 일정을 불러온다. 가족 공간이 없으면 빈 목록을 돌려준다
     suspend fun getMonthlySchedules(month: YearMonth): Result<List<CalendarSchedule>>
 
