@@ -99,7 +99,7 @@ class PlaceScreenTest {
         compose.waitUntil(10_000) {
             compose.onAllNodesWithContentDescription("사진 있는 활동 사진").fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithTag("place_image_photo").assertWidthIsEqualTo(91.dp).assertHeightIsEqualTo(91.dp)
+        compose.onNodeWithTag("place_image_photo", useUnmergedTree = true).assertWidthIsEqualTo(91.dp).assertHeightIsEqualTo(91.dp)
         compose.onNodeWithText("4.6").assertIsDisplayed()
         compose.onNodeWithText("무료").assertIsDisplayed()
         compose.onNodeWithTag("place_save_photo").performClick()
