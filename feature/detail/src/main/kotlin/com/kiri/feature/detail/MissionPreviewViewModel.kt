@@ -60,7 +60,7 @@ class MissionPreviewViewModel @Inject constructor(
                 if (serverId != null && serverMissions != null) {
                     val mission = serverMissions.getMission(serverId).getOrThrow()
                     _uiState.update { it.copy(
-                        loading = false, preview = mission.toPreview(), canSave = false,
+                        loading = false, preview = mission.toPreview(), canSave = true,
                         saved = mission.bucketState == MissionBucketState.SAVED,
                         previouslyCompleted = mission.bucketState == MissionBucketState.COMPLETED_ONLY,
                     ) }
@@ -80,11 +80,14 @@ class MissionPreviewViewModel @Inject constructor(
     private fun save() {
         val current = uiState.value
         if (loading || current.saving || current.saved || !current.canSave || current.preview == null) return
-        val bucketRepository = buckets ?: return
+        val serverId = missionId.toLongOrNull()
+        val bucketRepository = buckets
+        if (serverId == null && bucketRepository == null) return
         _uiState.update { it.copy(saving = true, error = null) }
         viewModelScope.launch {
             try {
-                bucketRepository.save(missionId)
+                if (serverId != null && serverMissions != null) serverMissions.saveBucket(serverId).getOrThrow()
+                else requireNotNull(bucketRepository).save(missionId)
                 _uiState.update { it.copy(saving = false, saved = true) }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) {

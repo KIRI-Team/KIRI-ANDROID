@@ -13,6 +13,9 @@ internal class MissionInfoRepositoryImpl @Inject constructor(
     private val json: Json,
 ) : MissionInfoRepository {
 
+    override suspend fun saveBucket(missionId: Long): Result<Unit> =
+        com.kiri.data.network.apiCommand(json) { api.saveBucket(missionId) }
+
     override suspend fun getMission(missionId: Long): Result<MissionInfo> =
         apiResult(json) { api.getMission(missionId) }
             .map { it.toMissionInfo() }

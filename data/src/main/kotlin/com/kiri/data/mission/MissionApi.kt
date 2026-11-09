@@ -15,6 +15,9 @@ import retrofit2.http.Path
 import retrofit2.http.QueryMap
 
 internal interface MissionApi {
+    @retrofit2.http.POST("api/v1/missions/{missionId}/bucket")
+    suspend fun saveBucket(@Path("missionId") missionId: Long): ApiResponse<kotlinx.serialization.json.JsonElement>
+
     @GET("api/v1/missions")
     suspend fun getFeed(@QueryMap filters: Map<String, String>): ApiResponse<MissionFeedResponse>
 
