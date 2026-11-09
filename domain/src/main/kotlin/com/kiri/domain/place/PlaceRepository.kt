@@ -7,7 +7,8 @@ data class PlaceMission(val id: String, val title: String, val place: String, va
     val category: PlaceCategory, val rating: String? = null, val tags: List<String> = emptyList(),
     val pick: Boolean = false, val saved: Boolean = false,
     val searchMetadata: PlaceSearchMetadata? = null,
-    val previouslyCompleted: Boolean = false, val canSave: Boolean = true) {
+    val previouslyCompleted: Boolean = false, val canSave: Boolean = true,
+    val imageUrl: String? = null, val imageSource: String? = null) {
     val saveLabel get() = when {
         saved -> "저장됨"
         previouslyCompleted -> "다시 버킷에 저장"

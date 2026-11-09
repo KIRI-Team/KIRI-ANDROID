@@ -43,6 +43,8 @@ internal data class MissionFeedItem(
     val title: String,
     val category: String,
     val placeName: String? = null,
+    val imageUrl: String? = null,
+    val imageSource: String? = null,
     val price: Int? = null,
     val distance: Double? = null,
 )

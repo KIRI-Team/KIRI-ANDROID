@@ -29,7 +29,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @Composable
-fun MemoryPhoto(uri: String, modifier: Modifier = Modifier) {
+fun MemoryPhoto(uri: String, modifier: Modifier = Modifier, contentDescription: String = "오늘의 사진") {
     val resolver = LocalContext.current.contentResolver
     val bitmap by produceState<ImageBitmap?>(null, uri) {
         value = withContext(Dispatchers.IO) {
@@ -54,7 +54,7 @@ fun MemoryPhoto(uri: String, modifier: Modifier = Modifier) {
         }
     }
     Box(modifier.background(KiriColor.Bg.Tertiary, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-        if (bitmap != null) Image(bitmap!!, "오늘의 사진", Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop)
+        if (bitmap != null) Image(bitmap!!, contentDescription, Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop)
         else Image(painterResource(R.drawable.memory_photo_placeholder), "사진을 표시할 수 없어요", Modifier.size(width = 68.9569.dp, height = 63.2122.dp))
     }
 }
