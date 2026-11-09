@@ -78,14 +78,13 @@ internal class ServerPlaceRepository(
     // 피드는 사진·가격·거리만 제공한다. 상세의 평점·버킷 상태를 최대 4건씩 보완한다.
     // 상세 조회 실패가 성공한 목록과 사진까지 지우지 않도록 원본 카드를 유지한다.
     private suspend fun withDetails(cards: List<PlaceMission>): List<PlaceMission> = coroutineScope {
-        val savedIds = bucketMissionIds(ignoreFailure = true)
         val semaphore = Semaphore(4)
         cards.map { card ->
             async {
                 semaphore.withPermit {
                     val detail = missions.getMission(card.id.toLong()).getOrNull()
                     if (detail != null) card.withDetail(detail)
-                    else card.copy(saved = card.id.toLong() in savedIds)
+                    else card
                 }
             }
         }.awaitAll()
