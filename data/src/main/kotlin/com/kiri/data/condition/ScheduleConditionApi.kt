@@ -14,14 +14,13 @@ internal interface ScheduleConditionApi {
     // 로그인 토큰이 필요하다. 확정된 일정의 당일에, 수락한 최종 참여자만 조회할 수 있다
     // 가족 공간이 없으면 SCHEDULE403_1, 최종 참여자가 아니면 SCHEDULE403_5, 없거나 다른 가족의 일정이면 SCHEDULE404_2,
     // 확정되지 않았거나 당일이 아니면 SCHEDULE409_6 으로 거절된다
-    // 전달받은 경로는 schedule/{scheduleId}/condition 이다. 다른 일정 API 처럼 api/v1/schedules 아래에 둔다
-    // TODO: schedule 이 단수인지 서버 명세와 대조할 것
-    @GET("api/v1/schedules/{scheduleId}/condition")
+    // 최신 Swagger의 복수형 conditions 경로를 사용한다.
+    @GET("api/v1/schedules/{scheduleId}/conditions")
     suspend fun getConditionCustom(@Path("scheduleId") scheduleId: Long): ApiResponse<ConditionCustomResponse>
 
     // 같은 경로에 PUT. 보낸 목록으로 기존 조건을 덮어쓰고, 빈 배열이면 모두 해제한다
     // 최종 참여자가 아니면 SCHEDULE403_5, 확정된 일정의 당일이 아니면 SCHEDULE409_5 로 거절된다 (그 밖은 조회와 같다)
-    @PUT("api/v1/schedules/{scheduleId}/condition")
+    @PUT("api/v1/schedules/{scheduleId}/conditions")
     suspend fun applyConditions(
         @Path("scheduleId") scheduleId: Long,
         @Body request: ApplyConditionsRequest,
