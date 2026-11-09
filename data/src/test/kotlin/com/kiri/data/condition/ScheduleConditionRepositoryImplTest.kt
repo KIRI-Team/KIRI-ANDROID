@@ -71,7 +71,7 @@ class ScheduleConditionRepositoryImplTest {
 
         val request = server.takeRequest()
         assertEquals("GET", request.method)
-        assertEquals("/api/v1/schedules/7/condition", request.url.encodedPath)
+        assertEquals("/api/v1/schedules/7/conditions", request.url.encodedPath)
         assertEquals(
             ConditionCustom(
                 "한강 뚜벅뚜벅 축제 가보기", WalkingLevel.MEDIUM, 60, 180,
@@ -115,7 +115,7 @@ class ScheduleConditionRepositoryImplTest {
 
         val request = server.takeRequest()
         assertEquals("PUT", request.method)
-        assertEquals("/api/v1/schedules/7/condition", request.url.encodedPath)
+        assertEquals("/api/v1/schedules/7/conditions", request.url.encodedPath)
         val body = kiriJson.parseToJsonElement(request.body!!.utf8()).jsonObject
         // 명세 예시와 같은 {"conditions": ["REDUCE_STEPS", "MORE_REST"]}
         assertEquals(listOf("REDUCE_STEPS", "MORE_REST"), body["conditions"]!!.jsonArray.map { it.jsonPrimitive.content })

@@ -632,7 +632,7 @@ class ServerScheduleDetailViewModelTest {
 
     @Test
     fun 약속_당일이면_컨디션_커스텀_화면을_열고_조건을_고를_수_있다() = runTest {
-        val vm = viewModel(FakeSchedules(Result.success(detail)))
+        val vm = viewModel(FakeSchedules(Result.success(detail)), conditions = FakeConditions(Result.success(custom.copy(conditions = emptySet()))))
         assertTrue(vm.uiState.value.canCustomize)
 
         vm.onEvent(DetailUiEvent.CustomClicked)
