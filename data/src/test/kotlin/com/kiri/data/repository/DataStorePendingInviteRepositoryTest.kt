@@ -1,6 +1,7 @@
 package com.kiri.data.repository
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import okio.Path.Companion.toOkioPath
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,7 +34,7 @@ class DataStorePendingInviteRepositoryTest {
     private suspend fun reopen(): DataStorePendingInviteRepository {
         scopes.forEach { it.coroutineContext[Job]!!.cancelAndJoin() }
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob()).also { scopes += it }
-        return DataStorePendingInviteRepository(PreferenceDataStoreFactory.create(scope = scope) { file })
+        return DataStorePendingInviteRepository(PreferenceDataStoreFactory.createWithPath(scope = scope) { file.toOkioPath() })
     }
 
     @Test
