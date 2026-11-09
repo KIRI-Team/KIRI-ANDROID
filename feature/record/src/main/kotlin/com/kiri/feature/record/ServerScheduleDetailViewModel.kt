@@ -444,7 +444,8 @@ constructor(
                 }
                 savedState["reviewPosted"] = true
                 state.update { it.copy(reviewSaved = true, notice = "기록을 등록했어요.") }
-                loadReviews(id)
+                // 리뷰 등록과 함께 서버 일정이 완료되므로 상태·기록 화면도 다시 조회한다.
+                load()
                 onSaved()
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {

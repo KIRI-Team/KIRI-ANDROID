@@ -28,6 +28,7 @@ class ReviewEditorTest {
         override suspend fun poke(question: DailyQuestion, memberId: String): FamilyHome = error("unused")
     }
     private class Schedules : CalendarScheduleRepository {
+        var completed = false
         var mine = MyScheduleStatus.ACCEPTED
         var date = LocalDate.parse("2026-11-08")
         var proposer = "엄마"
@@ -37,7 +38,7 @@ class ReviewEditorTest {
         var responseFails = false
         override suspend fun getMonthlySchedules(month: YearMonth) = Result.success(listOf(CalendarSchedule(7, date, LocalTime.of(10,0), CalendarScheduleStatus.CONFIRMED, mine)))
         override suspend fun getScheduleDetail(scheduleId: Long) = Result.success(ScheduleDetail(date, LocalTime.of(10,0),
-            if (date == LocalDate.parse("2026-11-08")) ScheduleDisplayStatus.TODAY else ScheduleDisplayStatus.CONFIRMED,
+            if (completed) ScheduleDisplayStatus.COMPLETED else if (date == LocalDate.parse("2026-11-08")) ScheduleDisplayStatus.TODAY else ScheduleDisplayStatus.CONFIRMED,
             listOf(ScheduleParticipant(proposer, true), ScheduleParticipant("나", mine == MyScheduleStatus.ACCEPTED))))
         override suspend fun updateSchedule(scheduleId: Long, update: ScheduleUpdate) = Result.success(Unit)
         override suspend fun createSchedule(bucketItemId: Long, form: ScheduleUpdate) = Result.success(8L)
@@ -61,15 +62,16 @@ class ReviewEditorTest {
     }
     private class Reviews : ScheduleReviewRepository {
         var fail = true
+        var onPosted: () -> Unit = {}
         val keys = mutableListOf<List<String>>()
         override suspend fun getReviews(scheduleId: Long) = Result.success(emptyList<com.kiri.domain.model.review.ScheduleReview>())
         override suspend fun writeReview(scheduleId: Long, form: com.kiri.domain.model.review.ScheduleReviewForm): Result<com.kiri.domain.model.review.ScheduleReviewResult> {
             keys += form.imageKeys
-            return if (fail) Result.failure(Exception()) else Result.success(com.kiri.domain.model.review.ScheduleReviewResult(1, scheduleId))
+            return if (fail) Result.failure(Exception()) else { onPosted(); Result.success(com.kiri.domain.model.review.ScheduleReviewResult(1, scheduleId)) }
         }
     }
-    private fun vm(photos: Photos, reviews: Reviews, saved: SavedStateHandle): ServerScheduleDetailViewModel {
-        val home = Home(); val schedules = Schedules()
+    private fun vm(photos: Photos, reviews: Reviews, saved: SavedStateHandle, schedules: Schedules = Schedules()): ServerScheduleDetailViewModel {
+        val home = Home()
         val missions = object : MissionInfoRepository { override suspend fun getMission(missionId: Long): Result<MissionInfo> = Result.failure(Exception()) }
         return ServerScheduleDetailViewModel(saved, GetScheduleEditAccessUseCase(schedules, home), missions,
             reviews = reviews, home = home, schedules = schedules, clock = clock, photos = photos)
@@ -95,4 +97,16 @@ class ReviewEditorTest {
         recreated.submitReview { completed++ }; advanceUntilIdle()
         assertEquals(1, completed)
     }
+    @Test fun successfulReviewRefreshesServerCompletionAndShowsRecord() = runTest(dispatcher) {
+        val schedules = Schedules()
+        val reviews = Reviews().apply { fail = false; onPosted = { schedules.completed = true } }
+        val photos = Photos().apply { fail = null }
+        val vm = vm(photos, reviews, SavedStateHandle(mapOf("scheduleId" to 7L)), schedules)
+        advanceUntilIdle()
+        vm.updateDraft(MemoryDraft(4, listOf("photo"), "좋은 시간", true))
+        vm.submitReview {}; advanceUntilIdle()
+        assertTrue(vm.uiState.value.showsRecord)
+        assertTrue(vm.uiState.value.reviewSaved)
+    }
+
 }
