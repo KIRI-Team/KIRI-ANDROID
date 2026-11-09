@@ -182,11 +182,22 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
                 detailViewModel,
                 onBack = { navController.popBackStack() },
                 onCustom = { navController.navigate("$SERVER_SCHEDULE_ROUTE/$id/custom") { launchSingleTop = true } },
+                onRecord = { navController.navigate("$SERVER_SCHEDULE_ROUTE/$id/review") { launchSingleTop = true } },
                 // 상세 위에 변경 화면을 띄워, 뒤로가기나 저장 후에는 상세로 돌아온다
                 onEdit = { scheduleId ->
                     navController.navigate("$SCHEDULE_EDIT_ROUTE/$scheduleId") { launchSingleTop = true }
                 },
             )
+        }
+        composable("$SERVER_SCHEDULE_ROUTE/{${ServerScheduleDetailViewModel.SCHEDULE_ID_ARG}}/review") { entry ->
+            val parent = remember(entry) { navController.getBackStackEntry(SERVER_SCHEDULE_DETAIL_PATTERN) }
+            val viewModel: ServerScheduleDetailViewModel = hiltViewModel(parent)
+            val state by viewModel.uiState.collectAsStateWithLifecycle()
+            MemoryEditorScreen(state.detail.memoryDraft, state.author,
+                onChange = viewModel::updateDraft,
+                onBack = { navController.popBackStack() },
+                onSubmit = { viewModel.submitReview { navController.popBackStack() } },
+                saving = state.detail.saving, error = state.detail.error)
         }
         // 제안자의 일정 변경하기 (일정 등록 화면의 변경 모드). 내용은 일정 상세 API 로 채우고 일정 수정 API 로 저장한다
         composable(
