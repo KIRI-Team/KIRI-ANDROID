@@ -36,7 +36,7 @@ class ServerPlaceRepositoryTest {
                 filters = PlaceFilters(regions = setOf("서울"), distanceKm = 3,
                     dateEpochDay = LocalDate.parse("2026-11-07").toEpochDay(), maxPrice = 0)))
             assertEquals(listOf("129"), result.items.map { it.id })
-            assertFalse(result.items.single().canSave)
+            assertTrue(result.items.single().canSave)
             assertNull(result.totalCount)
             assertNotNull(result.nextCursor)
             val first = server.takeRequest().url

@@ -54,7 +54,7 @@ internal class ServerPlaceRepository(
     }
 
     override suspend fun save(missionId: String) {
-        error("버킷 저장을 사용할 수 없어요.")
+        missions.saveBucket(missionId.toLong()).getOrThrow()
     }
 
     override suspend fun saved(): List<PlaceMission> = bucketMissionIds().mapNotNull { id ->
@@ -64,7 +64,7 @@ internal class ServerPlaceRepository(
         }
         val category = categories[mission.category] ?: return@mapNotNull null
         if (mission.bucketState == MissionBucketState.NONE) return@mapNotNull null
-        PlaceMission(id.toString(), mission.title, mission.place?.name.orEmpty(), "", category, canSave = false)
+        PlaceMission(id.toString(), mission.title, mission.place?.name.orEmpty(), "", category, canSave = true)
             .withState(mission.bucketState)
     }
 
@@ -104,7 +104,7 @@ private fun PlaceMission.withState(state: MissionBucketState) = copy(
 private fun MissionFeedItem.toPlace(): PlaceMission? {
     val category = categories[category] ?: return null
     val tags = listOfNotNull(price?.let { if (it == 0) "무료" else "${it}원" }, distance?.let { "${it}km" })
-    return PlaceMission(missionId.toString(), title, placeName.orEmpty(), "", category, tags = tags, canSave = false)
+    return PlaceMission(missionId.toString(), title, placeName.orEmpty(), "", category, tags = tags, canSave = true)
 }
 
 internal fun PlaceQuery.requestFilters() = buildMap {
