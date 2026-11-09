@@ -14,6 +14,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.draw.clip
+import com.kiri.feature.detail.presentation.MemoryPhoto
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.Modifier
@@ -81,13 +83,13 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 6.dp).heightIn(min = 56.dp).testTag("place_search"),
                     placeholder = { Text("장소나 활동을 검색해보세요", style = KiriDetailTypography.Body.copy(lineHeight = 24.sp)) },
                     textStyle = KiriDetailTypography.Body.copy(lineHeight = 24.sp), singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = KiriColor.Bg.Secondary,
                         focusedContainerColor = KiriColor.Bg.Secondary, unfocusedBorderColor = KiriColor.Bg.Secondary,
                         focusedBorderColor = KiriColor.Primary.Default, unfocusedPlaceholderColor = KiriColor.Text.Tertiary))
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 7.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     PlaceChip("전체", state.query.category == null, { onCategory(null) })
-                    PlaceCategory.entries.forEach { category -> PlaceChip(category.label, state.query.category == category, { onCategory(category) }, Modifier.testTag("place_category_${category.name}")) }
+                    listOf(PlaceCategory.CULTURE, PlaceCategory.POPUP, PlaceCategory.EXPERIENCE, PlaceCategory.OUTDOOR, PlaceCategory.SHOW, PlaceCategory.FOOD).forEach { category -> PlaceChip(category.label, state.query.category == category, { onCategory(category) }, Modifier.testTag("place_category_${category.name}")) }
                 }
             }
             Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -97,9 +99,9 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
                 if (!state.showingSaved) {
                     Box {
                         IconButton(onClick = { showingFilters = true }, modifier = Modifier.testTag("place_filters")) {
-                            Surface(shape = RoundedCornerShape(100.dp), color = KiriColor.Bg.Tertiary, modifier = Modifier.size(28.dp)) {
-                                Box(contentAlignment = Alignment.Center) { Image(painterResource(R.drawable.kiri_filter_action), "상세 필터", Modifier.size(width = 8.dp, height = 8.421.dp),
-                                    colorFilter = ColorFilter.tint(if (state.query.filters.activeCount > 0) KiriColor.Text.Accent else KiriColor.Text.Secondary)) }
+                            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                                Image(painterResource(R.drawable.kiri_filter_action), "상세 필터", Modifier.size(width = 19.dp, height = 20.dp),
+                                    colorFilter = ColorFilter.tint(if (state.query.filters.activeCount > 0) KiriColor.Text.Accent else KiriColor.Text.Secondary))
                             }
                         }
                         if (state.query.filters.activeCount > 0) Surface(color = KiriColor.Primary.Default, shape = RoundedCornerShape(100.dp), modifier = Modifier.align(Alignment.TopEnd).size(16.dp).testTag("place_filter_count")) {
@@ -176,12 +178,15 @@ private fun PlaceChip(label: String, selected: Boolean, onClick: () -> Unit, mod
 private fun PlaceMissionCard(mission: PlaceMission, onSave: () -> Unit, onOpen: () -> Unit) {
     Surface(onClick = onOpen, color = KiriColor.Bg.Primary, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().testTag("place_card_${mission.id}")) {
         Row(Modifier.padding(horizontal = 15.dp, vertical = 18.dp), horizontalArrangement = Arrangement.spacedBy(17.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(91.dp).background(KiriColor.Bg.Elevated, RoundedCornerShape(10.dp))) {
-                run {
-                    val rating = mission.rating ?: "평가 전"
+            Box(Modifier.size(91.dp).clip(RoundedCornerShape(10.dp)).background(KiriColor.Bg.Elevated)) {
+                mission.imageUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                    MemoryPhoto(url, Modifier.fillMaxSize().testTag("place_image_${mission.id}"),
+                        contentDescription = "${mission.title} 사진")
+                }
+                mission.rating?.takeIf { it.isNotBlank() }?.let { rating ->
                     Surface(Modifier.padding(7.dp), color = KiriColor.Bg.Tertiary, shape = RoundedCornerShape(100.dp)) {
                         Row(Modifier.padding(horizontal = 6.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Image(painterResource(R.drawable.place_star), null, Modifier.size(24.dp))
+                            Image(painterResource(R.drawable.place_star), null, Modifier.size(12.dp))
                             Text(rating, color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Small.copy(fontWeight = FontWeight.Medium, fontSize = 10.sp, lineHeight = 14.sp, letterSpacing = (-0.4).sp))
                         }
                     }
@@ -189,24 +194,22 @@ private fun PlaceMissionCard(mission: PlaceMission, onSave: () -> Unit, onOpen: 
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(21.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(mission.title, color = KiriColor.Text.Strong, style = KiriDetailTypography.Title)
+                    Text(mission.title, color = KiriColor.Text.Strong, style = KiriDetailTypography.Title, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(listOf(mission.place, mission.region).filter { it.isNotBlank() }.joinToString(" · "), color = KiriColor.Text.Secondary, style = KiriDetailTypography.Small)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        List(2) { mission.tags.getOrNull(it) ?: "정보 없음" }.forEach { tag ->
-                            Surface(color = KiriColor.Bg.Elevated, shape = RoundedCornerShape(5.dp), modifier = Modifier.weight(1f, fill = false)) {
-                                Text(tag, Modifier.padding(horizontal = 8.dp, vertical = 6.dp), style = KiriDetailTypography.Small.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 17.sp, letterSpacing = (-0.48).sp), color = KiriColor.Text.Tertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        (if (mission.pick) listOf("끼리추천") + mission.tags else mission.tags)
+                            .filter { it.isNotBlank() }.distinct().take(2).forEach { tag ->
+                            val isPick = mission.pick && tag == "끼리추천"
+                            Surface(color = if (isPick) KiriColor.Bg.GreenSoft else KiriColor.Bg.Elevated, shape = RoundedCornerShape(5.dp), modifier = Modifier.weight(1f, fill = false)) {
+                                Text(tag, Modifier.padding(horizontal = 8.dp, vertical = 6.dp), style = KiriDetailTypography.Small.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 17.sp, letterSpacing = (-0.48).sp), color = if (isPick) KiriColor.Text.Accent else KiriColor.Text.Tertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
                     Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) { IconButton(onClick = onSave, enabled = mission.canSave && !mission.saved, modifier = Modifier.requiredSize(48.dp).testTag("place_save_${mission.id}")) {
                         Image(painterResource(if (mission.saved) R.drawable.place_bookmark_filled else R.drawable.place_bookmark_outline), mission.saveLabel, Modifier.size(24.dp))
                     } }
-                }
-                TextButton(onClick = onSave, enabled = mission.canSave && !mission.saved,
-                    modifier = Modifier.align(Alignment.End)) {
-                    Text(mission.saveLabel, style = KiriDetailTypography.Small)
                 }
             }
         }

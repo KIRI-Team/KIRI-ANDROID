@@ -8,6 +8,13 @@ import com.kiri.domain.model.mission.MissionNotFoundException
 import com.kiri.domain.place.*
 import com.kiri.domain.repository.BucketItemRepository
 import com.kiri.domain.repository.MissionInfoRepository
+import com.kiri.domain.model.mission.MissionInfo
+import java.util.Locale
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import java.time.LocalDate
 import java.time.LocalTime
 import kotlinx.serialization.json.Json
@@ -47,7 +54,7 @@ internal class ServerPlaceRepository(
             }
             if (cards.isNotEmpty()) {
                 val next = if (index < regions.size) "$index:${cursor ?: ""}" else null
-                return PlacePage(withBucketStates(cards), totalCount = null, nextCursor = next)
+                return PlacePage(withDetails(cards), totalCount = null, nextCursor = next)
             }
         }
         return PlacePage(emptyList(), totalCount = null)
@@ -65,16 +72,23 @@ internal class ServerPlaceRepository(
         val category = categories[mission.category] ?: return@mapNotNull null
         if (mission.bucketState == MissionBucketState.NONE) return@mapNotNull null
         PlaceMission(id.toString(), mission.title, mission.place?.name.orEmpty(), "", category, canSave = true)
-            .withState(mission.bucketState)
+            .withDetail(mission)
     }
 
-    private suspend fun withBucketStates(cards: List<PlaceMission>): List<PlaceMission> {
+    // 피드는 사진·가격·거리만 제공한다. 상세의 평점·버킷 상태를 최대 4건씩 보완한다.
+    // 상세 조회 실패가 성공한 목록과 사진까지 지우지 않도록 원본 카드를 유지한다.
+    private suspend fun withDetails(cards: List<PlaceMission>): List<PlaceMission> = coroutineScope {
         val savedIds = bucketMissionIds(ignoreFailure = true)
-        return cards.map { card ->
-            val id = card.id.toLong()
-            if (id !in savedIds) card
-            else missions.getMission(id).getOrNull()?.let { card.withState(it.bucketState) } ?: card
-        }
+        val semaphore = Semaphore(4)
+        cards.map { card ->
+            async {
+                semaphore.withPermit {
+                    val detail = missions.getMission(card.id.toLong()).getOrNull()
+                    if (detail != null) card.withDetail(detail)
+                    else card.copy(saved = card.id.toLong() in savedIds)
+                }
+            }
+        }.awaitAll()
     }
 
     private suspend fun bucketMissionIds(ignoreFailure: Boolean = false): Set<Long> {
@@ -101,10 +115,20 @@ private fun PlaceMission.withState(state: MissionBucketState) = copy(
     previouslyCompleted = state == MissionBucketState.COMPLETED_ONLY,
 )
 
+private fun PlaceMission.withDetail(detail: MissionInfo): PlaceMission = withState(detail.bucketState).copy(
+    rating = detail.averageRating?.takeIf { it.isFinite() && it in 1.0..5.0 }
+        ?.let { String.format(Locale.ROOT, "%.1f", it) },
+    imageUrl = imageUrl ?: detail.imageUrl?.takeIf { it.isNotBlank() },
+    imageSource = if (imageUrl != null) imageSource else detail.imageSource,
+    tags = tags.ifEmpty { listOfNotNull(detail.price?.let { if (it == 0) "무료" else "${it}원" }) },
+)
+
 private fun MissionFeedItem.toPlace(): PlaceMission? {
     val category = categories[category] ?: return null
     val tags = listOfNotNull(price?.let { if (it == 0) "무료" else "${it}원" }, distance?.let { "${it}km" })
-    return PlaceMission(missionId.toString(), title, placeName.orEmpty(), "", category, tags = tags, canSave = true)
+    return PlaceMission(missionId.toString(), title, placeName.orEmpty(), "", category, tags = tags, canSave = true,
+        imageUrl = imageUrl?.takeIf { it.isNotBlank() },
+        imageSource = imageSource?.takeIf { !imageUrl.isNullOrBlank() })
 }
 
 internal fun PlaceQuery.requestFilters() = buildMap {
