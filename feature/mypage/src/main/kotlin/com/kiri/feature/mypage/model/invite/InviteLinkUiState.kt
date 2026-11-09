@@ -13,9 +13,10 @@ data class InviteLinkUiState(
     val code: String
         get() = invite?.code.orEmpty()
 
-    // 링크는 코드 부분을 가려서 보여준다 (예: kiri.example.com/invite/••••••)
+    // 링크 끝의 초대 토큰은 길이와 상관없이 같은 길이로 가려서 보여준다 (예: kiri.app/invite/••••••)
     val maskedLink: String
-        get() = invite?.let { it.url.substringAfter("://").removeSuffix(it.code) + MASK.repeat(it.code.length) }.orEmpty()
+        get() = invite?.let { it.url.substringAfter("://").trimEnd('/').substringBeforeLast('/') + "/" + MASK.repeat(MASK_LENGTH) }
+            .orEmpty()
 
     // 예: 10월 12일까지 사용가능
     val expiresText: String?
@@ -26,5 +27,6 @@ data class InviteLinkUiState(
 
     private companion object {
         const val MASK = "•"
+        const val MASK_LENGTH = 6
     }
 }

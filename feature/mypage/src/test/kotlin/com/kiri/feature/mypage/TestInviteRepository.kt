@@ -26,6 +26,6 @@ class TestInviteRepository(
     }
 
     companion object {
-        val NEW_INVITE = Invite(code = "NEW123", url = "https://kiri.example.com/invite/NEW123")
+        val NEW_INVITE = Invite(code = "NEW123", url = "https://kiri.app/invite/NEW123")
     }
 }

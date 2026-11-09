@@ -296,7 +296,7 @@ class OnboardingScreensTest {
     // 실제 서버 없이 ViewModel을 만들기 위한 고정 응답
     private object StubFamilyRepository : FamilyRepository {
         override suspend fun createFamily(name: String) = Result.success(
-            Family(id = 1, name = name, invite = Invite(code = "AB12CD", url = "https://kiri.example.com/invite/AB12CD")),
+            Family(id = 1, name = name, invite = Invite(code = "AB12CD", url = "https://kiri.app/invite/AB12CD")),
         )
 
         override suspend fun renameFamily(name: String) = Result.success(name)

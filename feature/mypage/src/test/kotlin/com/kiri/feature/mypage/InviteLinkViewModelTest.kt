@@ -29,7 +29,7 @@ class InviteLinkViewModelTest {
 
     private val issued = Invite(
         code = "NWTKYJ",
-        url = "https://kiri.example.com/invite/NWTKYJ",
+        url = "https://kiri.app/invite/NWTKYJ",
         expiresAt = LocalDate.of(2026, 10, 12),
     )
 
@@ -164,7 +164,7 @@ class InviteLinkViewModelTest {
 
         viewModel.onEvent(InviteLinkUiEvent.LinkCopyClicked)
         assertEquals(
-            InviteLinkUiEffect.CopyToClipboard("초대링크", "https://kiri.example.com/invite/NWTKYJ"),
+            InviteLinkUiEffect.CopyToClipboard("초대링크", "https://kiri.app/invite/NWTKYJ"),
             viewModel.effect.first(),
         )
     }
@@ -205,9 +205,16 @@ class InviteLinkViewModelTest {
     fun 링크는_코드를_가려서_보여주고_만료일을_한국식으로_보여준다() {
         val state = InviteLinkUiState(invite = issued)
 
-        assertEquals("kiri.example.com/invite/••••••", state.maskedLink)
+        assertEquals("kiri.app/invite/••••••", state.maskedLink)
         assertEquals("10월 12일까지 사용가능", state.expiresText)
         assertTrue(state.canShare)
+    }
+
+    @Test
+    fun 링크에_긴_초대_토큰이_와도_토큰_전체를_같은_길이로_가린다() {
+        val tokenInvite = issued.copy(url = "https://kiri.app/invite/eyJhbGciOiJIUzI1NiJ9.eyJmYW1pbHlJZCI6OX0.sig")
+
+        assertEquals("kiri.app/invite/••••••", InviteLinkUiState(invite = tokenInvite).maskedLink)
     }
 
     @Test
