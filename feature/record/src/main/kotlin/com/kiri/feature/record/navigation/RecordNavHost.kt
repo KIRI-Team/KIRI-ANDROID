@@ -59,6 +59,8 @@ private const val BUCKET_SCHEDULE_ROUTE = "record_graph/bucket-schedule"
 private const val SERVER_SCHEDULE_DETAIL_PATTERN =
     "$SERVER_SCHEDULE_ROUTE/{${ServerScheduleDetailViewModel.SCHEDULE_ID_ARG}}?${ServerScheduleDetailViewModel.DATE_ARG}={${ServerScheduleDetailViewModel.DATE_ARG}}"
 private const val SENT_TOAST_KEY = "scheduleSentToast"
+// 일정 변경 화면에서 저장했음을 상세 화면에 알린다
+private const val SCHEDULE_EDITED_KEY = "scheduleEdited"
 
 fun serverScheduleDetailRoute(scheduleId: Long): String = "$SERVER_SCHEDULE_ROUTE/$scheduleId"
 
@@ -167,16 +169,22 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
             ),
         ) { entry ->
             val id = entry.arguments?.getLong(ServerScheduleDetailViewModel.SCHEDULE_ID_ARG)
+            val detailViewModel: ServerScheduleDetailViewModel = hiltViewModel(entry)
+            // 변경 화면에서 저장하고 돌아오면 바뀐 일정을 다시 불러온다
+            val edited by entry.savedStateHandle.getStateFlow(SCHEDULE_EDITED_KEY, false).collectAsStateWithLifecycle()
+            LaunchedEffect(edited) {
+                if (edited) {
+                    entry.savedStateHandle[SCHEDULE_EDITED_KEY] = false
+                    detailViewModel.reload()
+                }
+            }
             ServerScheduleDetailRoute(
-                hiltViewModel(entry),
+                detailViewModel,
                 onBack = { navController.popBackStack() },
                 onCustom = { navController.navigate("$SERVER_SCHEDULE_ROUTE/$id/custom") { launchSingleTop = true } },
-                // 상세를 걷어내고 변경 화면을 띄워, 뒤로가기나 저장 후에는 캘린더로 돌아가게 한다
+                // 상세 위에 변경 화면을 띄워, 뒤로가기나 저장 후에는 상세로 돌아온다
                 onEdit = { scheduleId ->
-                    navController.navigate("$SCHEDULE_EDIT_ROUTE/$scheduleId") {
-                        popUpTo(SERVER_SCHEDULE_DETAIL_PATTERN) { inclusive = true }
-                        launchSingleTop = true
-                    }
+                    navController.navigate("$SCHEDULE_EDIT_ROUTE/$scheduleId") { launchSingleTop = true }
                 },
             )
         }
@@ -188,10 +196,14 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
             ScheduleEditRoute(
                 hiltViewModel(entry),
                 onBackClick = { navController.popBackStack() },
-                onSaved = { navController.popBackStack() },
+                onSaved = {
+                    navController.previousBackStackEntry?.savedStateHandle?.set(SCHEDULE_EDITED_KEY, true)
+                    navController.popBackStack()
+                },
             )
         }
-        // 약속 당일의 컨디션 커스텀. 상세 화면의 ViewModel 을 함께 쓴다. 적용 API 가 없어 적용하기는 꺼 둔다
+        // 약속 당일의 컨디션 커스텀. 상세 화면의 ViewModel 을 함께 쓴다. 들어갈 때 지금 적용된 조건을 불러오고,
+        // 적용하기로 고른 조건을 저장한 뒤 상세로 돌아간다
         composable("$SERVER_SCHEDULE_ROUTE/{${ServerScheduleDetailViewModel.SCHEDULE_ID_ARG}}/custom") { entry ->
             val parent = remember(entry) {
                 navController.getBackStackEntry(SERVER_SCHEDULE_DETAIL_PATTERN)
@@ -199,7 +211,13 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
             val viewModel: ServerScheduleDetailViewModel = hiltViewModel(parent)
             val state by viewModel.uiState.collectAsStateWithLifecycle()
             ServerScheduleDetailEffects(viewModel, onBack = { navController.popBackStack() })
-            ConditionCustomScreen(state.detail, viewModel::onEvent, Modifier.padding(bottom = 110.dp), applyEnabled = false)
+            ConditionCustomScreen(
+                state.detail.copy(error = state.customError),
+                viewModel::onEvent,
+                Modifier.padding(bottom = 110.dp),
+                // 지금 조건을 불러오는 동안에는 적용하지 않는다
+                applyEnabled = !state.customLoading,
+            )
         }
         // 서버 버킷의 일정 잡기. 일정 생성 API 로 만들고, 다 보내면 버킷이 일정 잡힘으로 바뀐 기록 탭으로 돌아간다
         composable(

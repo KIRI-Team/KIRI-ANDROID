@@ -9,11 +9,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.first
 
-// 내 가족 공간 ID 보관소. 서버에서 받아올 API가 없어 가족 공간을 만들 때 받은 값을 기억한다
+// 내 가족 공간 ID 보관소. 가족 공간을 만들 때 받은 값이나 가족 ID 조회 API 로 받은 값을 기억한다 (resolve 참고)
 internal interface FamilyIdStore {
     suspend fun save(familyId: Long)
 
-    // 이 기기에서 가족 공간을 만든 적이 없으면 null
+    // 아직 기억한 값이 없으면 null
     suspend fun get(): Long?
 }
 

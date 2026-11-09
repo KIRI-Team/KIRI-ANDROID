@@ -72,22 +72,27 @@ fun KiriButton(
     testTag: String = "kiri_button",
     layout: KiriButtonLayout = KiriButtonLayout.Full,
     trailingIcon: (@Composable () -> Unit)? = null,
+    // 기본 상태의 글자색을 바꾼다. 예) 일정 변경하기 버튼은 kiri-text-secondary (Figma 9898:21808)
+    defaultContentColor: Color? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val (containerColor, contentColor) = if (enabled && !pressed && tone == KiriButtonTone.Neutral) {
+    val baseColors = if (enabled && !pressed && tone == KiriButtonTone.Neutral) {
         when (layout) {
             KiriButtonLayout.Record -> KiriButtonColors(KiriColor.Bg.Secondary, KiriColor.Text.Strong)
             KiriButtonLayout.Inline -> KiriButtonColors(KiriColor.Bg.Primary, KiriColor.Text.Tertiary)
             KiriButtonLayout.Full -> kiriButtonColors(tone, enabled, pressed)
         }
     } else kiriButtonColors(tone, enabled, pressed)
+    // 기본 상태에서만 글자색을 바꾸고, 눌림·비활성 색은 그대로 둔다
+    val (containerColor, textColor) =
+        if (defaultContentColor != null && enabled && !pressed) baseColors.copy(content = defaultContentColor) else baseColors
     // KIRI/Button 컴포넌트는 톤과 관계없이 같은 글자 스타일(Title/Medium)을 쓴다
     val textStyle = when (layout) {
         KiriButtonLayout.Full -> KiriTypography.TitleMedium
         KiriButtonLayout.Record -> KiriTypography.TitleLarge
         KiriButtonLayout.Inline -> KiriTypography.BodySmall
-    }.copy(color = contentColor)
+    }.copy(color = textColor)
 
     Box(
         modifier = modifier
@@ -107,7 +112,7 @@ fun KiriButton(
             .testTag(testTag),
         contentAlignment = Alignment.Center,
     ) {
-        CompositionLocalProvider(LocalContentColor provides contentColor) {
+        CompositionLocalProvider(LocalContentColor provides textColor) {
           Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (layout == KiriButtonLayout.Inline) 2.dp else 8.dp)) {
             leadingIcon?.invoke()
             Text(

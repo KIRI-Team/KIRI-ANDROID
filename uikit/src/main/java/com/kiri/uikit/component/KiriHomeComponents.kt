@@ -301,13 +301,17 @@ fun KiriPlaceCard(
     imageRes: Int = R.drawable.kiri_place_card_image,
     modifier: Modifier = Modifier,
     detailStyle: Boolean = false,
+    // 서버 사진처럼 리소스가 아닌 이미지를 그린다. 넘기면 imageRes 대신 쓴다 (넘긴 Modifier 로 크기·투명도를 맞춘다)
+    image: (@Composable (Modifier) -> Unit)? = null,
 ) {
     Card(modifier.width(251.dp).height(284.dp), colors = CardDefaults.cardColors(KiriColor.Bg.Primary), shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 16.dp, bottomEnd = 16.dp)) {
         Column {
-            Image(
+            val imageModifier = Modifier.fillMaxWidth().height(144.dp).alpha(0.8f)
+            if (image != null) image(imageModifier)
+            else Image(
                 painter = painterResource(imageRes),
                 contentDescription = title,
-                modifier = Modifier.fillMaxWidth().height(144.dp).alpha(0.8f),
+                modifier = imageModifier,
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop,
             )
             Column(

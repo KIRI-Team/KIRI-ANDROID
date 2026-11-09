@@ -14,6 +14,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.kiri.domain.model.schedule.ScheduleDisplayStatus
+import com.kiri.domain.record.RecordPhoto
 import com.kiri.feature.detail.model.DetailUiEvent
 import com.kiri.feature.detail.presentation.CalendarDetailHeader
 import com.kiri.feature.detail.presentation.MissionDetailScreen
@@ -22,6 +23,8 @@ import com.kiri.feature.record.ServerScheduleDetailEffect
 import com.kiri.feature.record.ServerScheduleDetailUiState
 import com.kiri.feature.record.ServerScheduleDetailViewModel
 import com.kiri.feature.record.badgeLabel
+import com.kiri.feature.record.displayTitle
+import com.kiri.feature.record.label
 import com.kiri.feature.record.usesNeutralBadge
 
 @Composable
@@ -33,7 +36,7 @@ fun ServerScheduleDetailRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     ServerScheduleDetailEffects(viewModel, onBack, onCustom, onEdit)
-    ServerScheduleDetailScreen(state, viewModel::onEvent)
+    ServerScheduleDetailScreen(state, viewModel::onEvent, viewModel::retryReviews, viewModel::editClicked)
 }
 
 // 상세 화면과 컨디션 커스텀 화면이 같은 ViewModel 을 쓰므로, 앞에 보이는(RESUMED) 화면만 효과를 받는다
@@ -61,23 +64,54 @@ fun ServerScheduleDetailEffects(
     }
 }
 
-// 기록 캘린더의 일정 상세와 같은 화면 형식을 쓴다
+// 기록 캘린더의 일정 상세와 같은 화면 형식을 쓴다. 완료된 일정은 기록 화면(Figma 7903:1926)으로 보여준다
 @Composable
-fun ServerScheduleDetailScreen(state: ServerScheduleDetailUiState, onEvent: (DetailUiEvent) -> Unit) {
+fun ServerScheduleDetailScreen(
+    state: ServerScheduleDetailUiState,
+    onEvent: (DetailUiEvent) -> Unit,
+    onRetryReviews: () -> Unit = {},
+    onEditClick: () -> Unit = {},
+) {
     val schedule = state.schedule
+    if (schedule != null && state.showsRecord) {
+        RecordMemoryContent(
+            familyName = state.familyName,
+            title = state.detail.detail?.title ?: schedule.displayTitle(),
+            date = schedule.date,
+            participants = state.detail.detail?.participants.orEmpty(),
+            representativePhoto = DummyRepresentativePhoto,
+            memories = state.reviews.map { review ->
+                MemoryCardUi(
+                    id = review.id.toString(),
+                    authorName = review.writer.nickname,
+                    role = review.writer.familyRole.label,
+                    text = review.content,
+                    photos = review.imageUrls.mapIndexed { index, url -> RecordPhoto("review-${review.id}-$index", url) },
+                    mine = review.isMine,
+                )
+            },
+            onBack = { onEvent(DetailUiEvent.BackClicked) },
+            // TODO: 대표 사진 변경, 리뷰 수정·삭제, 나의 추억 기록하기는 서버 API 를 연결할 때 넘긴다
+            memoriesLoading = state.reviewsLoading,
+            onRetryMemories = onRetryReviews.takeIf { state.reviewsFailed },
+        )
+        return
+    }
     MissionDetailScreen(
-        state.detail,
+        state.screenDetail,
         onEvent,
         calendarHeader =
             schedule?.let {
-                // 약속 예정이면 "인원확인" 말풍선으로 참여자를 보여준다
+                // 약속 예정이거나 제안자 화면이면 "인원확인" 말풍선으로 참여자를 보여준다 (Figma 9898:20930, 9898:21783)
                 val scheduled = it.status == ScheduleDisplayStatus.SCHEDULED
                 CalendarDetailHeader(
                     title = state.appBarTitle,
                     badge = it.status.badgeLabel(),
                     showCustom = state.canCustomize,
                     neutralBadge = it.status.usesNeutralBadge(),
-                    collapseParticipants = scheduled,
+                    collapseParticipants = scheduled || state.canEdit,
+                    // 당일이 아닌(예정·확정) 내 일정이면 활동 정보 아래에 일정 변경하기를 보여준다
+                    onEditSchedule = onEditClick.takeIf { state.canEdit },
                 )
             },
         suggestionIcon = {
@@ -88,3 +122,6 @@ fun ServerScheduleDetailScreen(state: ServerScheduleDetailUiState, onEvent: (Det
         showRetry = state.retryable,
     )
 }
+
+// TODO: 서버 일정의 대표 사진 API 가 생기면 바꾼다. 그때까지는 예시 단체 사진을 보여준다
+private val DummyRepresentativePhoto = RecordPhoto("dummy-representative", "demo:group")

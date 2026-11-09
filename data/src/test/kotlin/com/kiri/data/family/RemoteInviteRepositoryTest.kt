@@ -63,13 +63,29 @@ class RemoteInviteRepositoryTest {
     }
 
     @Test
-    fun 가족_ID가_없으면_요청하지_않고_가족_정보_없음으로_실패한다() = runTest {
+    fun 기억한_가족_ID가_없으면_가족_ID_조회로_받아_기억하고_초대를_불러온다() = runTest {
         familyIdStore.saved = null
+        enqueue(200, """{"isSuccess":true,"code":"FAMILY200_6","message":"가족 ID 조회에 성공했습니다.","result":{"familyId":9}}""")
+        enqueue(200, SUCCESS_BODY)
+
+        repository().getCurrentInvite().getOrThrow()
+
+        assertEquals("/api/v1/families/me/id", server.takeRequest().url.encodedPath)
+        assertEquals("/api/v1/families/9/invite", server.takeRequest().url.encodedPath)
+        // 다음부터는 다시 조회하지 않는다
+        assertEquals(9L, familyIdStore.saved)
+    }
+
+    @Test
+    fun 소속된_가족이_없으면_초대를_요청하지_않고_가족_정보_없음으로_실패한다() = runTest {
+        familyIdStore.saved = null
+        enqueue(404, """{"isSuccess":false,"code":"FAMILY404_1","message":"가족이 존재하지 않습니다.","result":null}""")
 
         val error = repository().getCurrentInvite().exceptionOrNull()
 
         assertTrue(error is NoFamilyException)
-        assertEquals(0, server.requestCount)
+        assertEquals(1, server.requestCount)
+        assertEquals(null, familyIdStore.saved)
     }
 
     @Test
@@ -133,13 +149,15 @@ class RemoteInviteRepositoryTest {
     }
 
     @Test
-    fun 가족_ID가_없으면_재발급을_요청하지_않고_가족_정보_없음으로_실패한다() = runTest {
+    fun 소속된_가족이_없으면_재발급을_요청하지_않고_가족_정보_없음으로_실패한다() = runTest {
         familyIdStore.saved = null
+        enqueue(404, """{"isSuccess":false,"code":"FAMILY404_1","message":"가족이 존재하지 않습니다.","result":null}""")
 
         val error = repository().createInvite().exceptionOrNull()
 
         assertTrue(error is NoFamilyException)
-        assertEquals(0, server.requestCount)
+        // 가족 ID 조회만 하고 초대 삭제·재발급은 요청하지 않는다
+        assertEquals(1, server.requestCount)
     }
 
     @Test

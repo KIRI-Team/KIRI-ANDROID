@@ -14,6 +14,7 @@ import com.kiri.domain.detail.Condition
 import com.kiri.feature.detail.presentation.ConditionCustomScreen
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import com.kiri.domain.model.mission.MissionBucketState
 import com.kiri.domain.model.mission.MissionGuide
@@ -26,6 +27,9 @@ import com.kiri.domain.model.schedule.ScheduleParticipant
 import com.kiri.feature.detail.model.DetailUiEvent
 import com.kiri.feature.detail.model.DetailUiState
 import com.kiri.feature.record.ServerScheduleDetailUiState
+import com.kiri.domain.model.member.FamilyRole
+import com.kiri.domain.model.review.ReviewWriter
+import com.kiri.domain.model.review.ScheduleReview
 import com.kiri.feature.record.toMissionDetail
 import com.kiri.uikit.KiriTheme
 import java.time.LocalDate
@@ -202,5 +206,74 @@ class ServerScheduleDetailScreenTest {
         compose.onNodeWithText("약속 정보를 불러오지 못했어요.").assertIsDisplayed()
         compose.onNodeWithText("다시 시도").performClick()
         compose.runOnIdle { assertEquals(listOf<DetailUiEvent>(DetailUiEvent.RetryClicked), events) }
+    }
+
+    @Test
+    fun editButtonShowsOnlyWhenTheProposerCanEditAndSendsTheClick() {
+        val confirmed = detail.copy(status = ScheduleDisplayStatus.CONFIRMED)
+        var state by mutableStateOf(
+            ServerScheduleDetailUiState(
+                detail = DetailUiState(loading = false, detail = confirmed.toMissionDetail(7)),
+                schedule = confirmed,
+                canEdit = true,
+            ),
+        )
+        var clicks = 0
+        compose.setContent { KiriTheme { ServerScheduleDetailScreen(state, {}, onEditClick = { clicks++ }) } }
+
+        // 상세를 먼저 보여주고, 제안자 화면은 참여자를 "인원확인" 으로 접는다 (Figma 9898:21783)
+        compose.onNodeWithText("약속 확정").assertIsDisplayed()
+        compose.onNodeWithText("인원확인", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("일정 변경하기").assertIsDisplayed()
+        compose.onNodeWithTag("server_schedule_edit").performClick()
+        assertEquals(1, clicks)
+
+        state = state.copy(canEdit = false)
+        compose.onNodeWithTag("server_schedule_edit").assertDoesNotExist()
+        compose.onNodeWithText("일정 변경하기").assertDoesNotExist()
+    }
+
+    @Test
+    fun completedScheduleShowsRecordScreenWithFamilyReviews() {
+        val completed = detail.copy(status = ScheduleDisplayStatus.COMPLETED)
+        var state by mutableStateOf(
+            ServerScheduleDetailUiState(
+                detail = DetailUiState(loading = false, detail = completed.toMissionDetail(7)),
+                schedule = completed,
+                familyName = "끼리네가족",
+                reviews = listOf(
+                    ScheduleReview(1, ReviewWriter(5, "김주연", FamilyRole.DAUGHTER), "처음 가봤다.", 5, true, emptyList(), null, isMine = true),
+                    ScheduleReview(2, ReviewWriter(6, "아빠", null), "또 가요", 4, false, emptyList(), null, isMine = false),
+                ),
+            ),
+        )
+        val events = mutableListOf<DetailUiEvent>()
+        var retried = 0
+        compose.setContent { KiriTheme { ServerScheduleDetailScreen(state, { events += it }, { retried++ }) } }
+
+        compose.onNodeWithTag("record_memory_screen").assertIsDisplayed()
+        compose.onNodeWithText("끼리네가족 기록").assertIsDisplayed()
+        compose.onNodeWithText("약속 완료").assertIsDisplayed()
+        compose.onNodeWithText("2026.11.17").assertIsDisplayed()
+        compose.onNodeWithText("끼리네가족님의 기록 모아보기").performScrollTo().assertIsDisplayed()
+        // 역할을 아는 작성자는 "이름 I 역할", 모르면 이름만 쓴다
+        compose.onNodeWithText("김주연 I 딸").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("아빠").performScrollTo().assertIsDisplayed()
+        // 서버 리뷰는 아직 수정·삭제 API 가 없어 수정하기와 메뉴를 보여주지 않는다
+        compose.onNodeWithTag("edit_record_1").assertDoesNotExist()
+        compose.onNodeWithTag("record_memory_menu_1").assertDoesNotExist()
+        // 대표 사진 변경도 아직 막아 둔다
+        compose.onNodeWithTag("record_representative_photo").performScrollTo().performClick()
+        compose.onNodeWithTag("change_record_photo").assertDoesNotExist()
+
+        state = state.copy(reviews = emptyList(), reviewsFailed = true)
+        compose.onNodeWithTag("record_memory_retry").performScrollTo().performClick()
+        assertEquals(1, retried)
+
+        state = state.copy(reviewsFailed = false)
+        compose.onNodeWithTag("record_memory_empty").performScrollTo().assertIsDisplayed()
+
+        compose.onNodeWithContentDescription("뒤로").performClick()
+        assertEquals(listOf<DetailUiEvent>(DetailUiEvent.BackClicked), events)
     }
 }

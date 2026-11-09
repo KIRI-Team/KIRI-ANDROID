@@ -45,13 +45,15 @@ import com.kiri.uikit.component.*
 
 /** Calendar occurrences share mission content but own their header and available actions.
  * neutralBadge: 배지를 회색으로 그린다 (약속 예정).
- * collapseParticipants: 참여 상태 줄 대신 "인원확인 I 날짜"를 보여주고, 누르면 참여자 말풍선을 띄운다 (Figma 9898:20930). */
+ * collapseParticipants: 참여 상태 줄 대신 "인원확인 I 날짜"를 보여주고, 누르면 참여자 말풍선을 띄운다 (Figma 9898:20930).
+ * onEditSchedule: 있으면 활동 정보 아래에 "일정 변경하기" 버튼을 보여준다 (제안자, Figma 9898:21783). */
 data class CalendarDetailHeader(
     val title: String,
     val badge: String,
     val showCustom: Boolean,
     val neutralBadge: Boolean = false,
     val collapseParticipants: Boolean = false,
+    val onEditSchedule: (() -> Unit)? = null,
 )
 
 @Composable
@@ -293,6 +295,9 @@ fun MissionDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(24.dp),
                     ) {
                         state.nearby.forEach { place ->
+                            // 서버가 준 장소 사진이 있으면 그 사진을, 없으면 기본 이미지를 쓴다
+                            val photo: (@Composable (Modifier) -> Unit)? =
+                                place.imageUrl?.let { url -> @Composable { imageModifier: Modifier -> MemoryPhoto(url, imageModifier) } }
                             KiriPlaceCard(
                                 place.title,
                                 place.address,
@@ -300,6 +305,7 @@ fun MissionDetailScreen(
                                 rating = null,
                                 detailStyle = true,
                                 imageRes = nearbyImageRes,
+                                image = photo,
                             )
                         }
                     }
@@ -470,6 +476,18 @@ private fun DetailHeader(
                             if (showMemoryAction) "open_memory_editor" else "open_custom"
                         ),
                     softAccent = calendarHeader != null,
+                )
+            }
+            // Figma 9898:21808 (KIRI/Button, Layout=Record, Tone=Neutral). 정보 박스와 16 간격
+            calendarHeader?.onEditSchedule?.let { onEditSchedule ->
+                Spacer(Modifier.height(16.dp))
+                KiriButton(
+                    onEditSchedule,
+                    text = "일정 변경하기",
+                    tone = KiriButtonTone.Neutral,
+                    layout = KiriButtonLayout.Record,
+                    testTag = "server_schedule_edit",
+                    defaultContentColor = KiriColor.Text.Secondary,
                 )
             }
         }

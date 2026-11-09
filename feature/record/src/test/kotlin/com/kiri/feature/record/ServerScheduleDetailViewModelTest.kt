@@ -14,6 +14,18 @@ import com.kiri.domain.model.mission.MissionNotFoundException
 import com.kiri.domain.model.mission.MissionPlace
 import com.kiri.domain.model.mission.WalkingLevel
 import com.kiri.domain.repository.MissionInfoRepository
+import com.kiri.domain.model.member.FamilyRole
+import com.kiri.domain.model.review.ReviewWriter
+import com.kiri.domain.model.review.ScheduleReview
+import com.kiri.domain.model.review.ScheduleReviewForm
+import com.kiri.domain.model.review.ScheduleReviewResult
+import com.kiri.domain.repository.ScheduleReviewRepository
+import com.kiri.domain.model.condition.ConditionCustom
+import com.kiri.domain.model.condition.ConditionCustomUnavailableException
+import com.kiri.domain.model.condition.NotFinalParticipantException
+import com.kiri.domain.repository.ScheduleConditionRepository
+import com.kiri.domain.detail.NearbyPlace
+import com.kiri.domain.repository.ScheduleNearbyRepository
 import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.model.family.NoFamilyException
 import com.kiri.domain.model.schedule.CancelledScheduleException
@@ -120,6 +132,9 @@ class ServerScheduleDetailViewModelTest {
         date: String? = null,
         home: HomeRepository = FakeFamily("나"),
         missions: MissionInfoRepository = FakeMissions(),
+        reviews: ScheduleReviewRepository = FakeReviews(),
+        conditions: ScheduleConditionRepository? = null,
+        nearby: ScheduleNearbyRepository = FakeNearby(),
     ) =
         ServerScheduleDetailViewModel(
             SavedStateHandle(
@@ -130,33 +145,316 @@ class ServerScheduleDetailViewModelTest {
             ),
             GetScheduleEditAccessUseCase(repo, home),
             missions,
+            reviews,
+            home,
+            conditions ?: FakeConditions(Result.failure(IOException())),
+            nearby,
         )
 
-    @Test
-    fun 당일이_아닌_일정을_제안자가_열면_상세를_그리지_않고_변경_화면으로_보낸다() = runTest {
-        listOf(ScheduleDisplayStatus.SCHEDULED, ScheduleDisplayStatus.CONFIRMED).forEach { status ->
-            val vm = viewModel(FakeSchedules(Result.success(detail.copy(status = status))), home = FakeFamily("엄마"))
+    // 정해 둔 근처 놀거리를 돌려주고, 요청한 일정 id 를 기록한다
+    private class FakeNearby(var result: Result<List<NearbyPlace>> = Result.success(emptyList())) : ScheduleNearbyRepository {
+        val requested = mutableListOf<Long>()
 
-            assertEquals(ServerScheduleDetailEffect.OpenEdit(7), vm.effect.first())
-            assertNull(vm.uiState.value.detail.detail)
-            assertTrue(vm.uiState.value.detail.loading)
+        override suspend fun getNearby(scheduleId: Long): Result<List<NearbyPlace>> {
+            requested += scheduleId
+            return result
+        }
+    }
+
+    private val places = listOf(
+        NearbyPlace("nearby-0-세빛섬", "세빛섬", "서울시 서초구", "일정 장소에서 가까운 곳이에요", costWon = 30000),
+        NearbyPlace("nearby-1-반포", "반포한강공원", "서울시 서초구", "잠깐 쉬어가기 좋은 곳이에요", costWon = 0),
+    )
+
+    @Test
+    fun 완료되지_않은_일정은_근처_놀거리를_불러와_서버_순서대로_상세에_채운다() = runTest {
+        val nearby = FakeNearby(Result.success(places))
+        val vm = viewModel(FakeSchedules(Result.success(detail)), nearby = nearby)
+
+        assertEquals(listOf(7L), nearby.requested)
+        assertEquals(places, vm.uiState.value.nearby)
+        // 미션을 늦게 불러와도 근처 놀거리를 지우지 않고, 조건이 있어도 앱에서 다시 정렬하지 않는다
+        val screen = vm.uiState.value.screenDetail
+        assertEquals(places, screen.detail!!.nearby)
+        assertEquals(places, screen.copy(detail = screen.detail!!.copy(conditions = setOf(Condition.LOWER_BUDGET))).nearby)
+    }
+
+    @Test
+    fun 완료된_일정은_근처_놀거리를_부르지_않고_실패하면_비워_둔다() = runTest {
+        val completed = FakeNearby(Result.success(places))
+        viewModel(FakeSchedules(Result.success(detail.copy(status = ScheduleDisplayStatus.COMPLETED))), nearby = completed)
+        assertTrue(completed.requested.isEmpty())
+
+        val failed = viewModel(FakeSchedules(Result.success(detail)), nearby = FakeNearby(Result.failure(IOException())))
+        assertTrue(failed.uiState.value.nearby.isEmpty())
+        // 근처 놀거리 실패는 상세 화면 오류로 보지 않는다
+        assertNull(failed.uiState.value.detail.error)
+    }
+
+    @Test
+    fun 컨디션을_적용하면_다시_정렬된_근처_놀거리를_새로_불러온다() = runTest {
+        val nearby = FakeNearby(Result.success(places))
+        val vm = viewModel(
+            FakeSchedules(Result.success(detail)),
+            conditions = FakeConditions(Result.success(custom)),
+            nearby = nearby,
+        )
+        vm.onEvent(DetailUiEvent.CustomClicked)
+        assertEquals(ServerScheduleDetailEffect.OpenCustom, vm.effect.first())
+
+        nearby.result = Result.success(places.reversed())
+        vm.onEvent(DetailUiEvent.ApplyClicked)
+
+        assertEquals(ServerScheduleDetailEffect.Back, vm.effect.first())
+        assertEquals(listOf(7L, 7L), nearby.requested)
+        assertEquals(places.reversed(), vm.uiState.value.nearby)
+    }
+
+    // 정해 둔 컨디션 커스텀 정보를 돌려주고, 요청한 일정 id 를 기록한다
+    private class FakeConditions(
+        var result: Result<ConditionCustom>,
+        var applyResult: Result<Unit> = Result.success(Unit),
+    ) : ScheduleConditionRepository {
+        val requested = mutableListOf<Long>()
+        val applied = mutableListOf<Pair<Long, Set<Condition>>>()
+
+        override suspend fun getConditionCustom(scheduleId: Long): Result<ConditionCustom> {
+            requested += scheduleId
+            return result
+        }
+
+        override suspend fun applyConditions(scheduleId: Long, conditions: Set<Condition>): Result<Unit> {
+            applied += scheduleId to conditions
+            return applyResult
         }
     }
 
     @Test
-    fun 당일이거나_완료됐거나_제안자가_아니면_상세를_보여준다() = runTest {
+    fun 적용하기를_누르면_고른_조건을_저장하고_상세에_반영한_뒤_돌아간다() = runTest {
+        val conditions = FakeConditions(Result.success(custom))
+        val vm = viewModel(FakeSchedules(Result.success(detail)), conditions = conditions)
+        vm.onEvent(DetailUiEvent.CustomClicked)
+        assertEquals(ServerScheduleDetailEffect.OpenCustom, vm.effect.first())
+
+        vm.onEvent(DetailUiEvent.ConditionToggled(Condition.MORE_REST))
+        vm.onEvent(DetailUiEvent.ConditionToggled(Condition.AVOID_CROWDS))
+        vm.onEvent(DetailUiEvent.ApplyClicked)
+
+        val chosen = setOf(Condition.LESS_WALKING, Condition.AVOID_CROWDS)
+        assertEquals(listOf(7L to chosen), conditions.applied)
+        assertEquals(ServerScheduleDetailEffect.Back, vm.effect.first())
+        assertFalse(vm.uiState.value.detail.saving)
+        // 상세의 "컨디션에 맞게 추천 순서를 조정했어요" 는 적용된 조건으로 정한다
+        assertEquals(chosen, vm.uiState.value.detail.detail!!.conditions)
+    }
+
+    @Test
+    fun 모든_조건을_해제해도_빈_조건으로_적용한다() = runTest {
+        val conditions = FakeConditions(Result.success(custom))
+        val vm = viewModel(FakeSchedules(Result.success(detail)), conditions = conditions)
+        vm.onEvent(DetailUiEvent.CustomClicked)
+        vm.onEvent(DetailUiEvent.ConditionToggled(Condition.LESS_WALKING))
+        vm.onEvent(DetailUiEvent.ConditionToggled(Condition.MORE_REST))
+
+        vm.onEvent(DetailUiEvent.ApplyClicked)
+
+        assertEquals(listOf(7L to emptySet<Condition>()), conditions.applied)
+        assertTrue(vm.uiState.value.detail.detail!!.conditions.isEmpty())
+    }
+
+    @Test
+    fun 적용하지_못하면_고른_조건을_두고_이유를_보여준다() = runTest {
+        listOf(
+            ConditionCustomUnavailableException() to "확정된 약속의 당일에만 컨디션을 조정할 수 있어요.",
+            NotFinalParticipantException() to "약속에 참여하기로 한 가족만 컨디션을 조정할 수 있어요.",
+            IOException() to "적용하지 못했어요. 선택은 유지됐으니 다시 시도해주세요.",
+        ).forEach { (error, message) ->
+            val conditions = FakeConditions(Result.success(custom), applyResult = Result.failure(error))
+            val vm = viewModel(FakeSchedules(Result.success(detail)), conditions = conditions)
+            vm.onEvent(DetailUiEvent.CustomClicked)
+            assertEquals(ServerScheduleDetailEffect.OpenCustom, vm.effect.first())
+
+            vm.onEvent(DetailUiEvent.ApplyClicked)
+
+            assertEquals(message, vm.uiState.value.customError)
+            assertFalse(vm.uiState.value.detail.saving)
+            assertEquals(custom.conditions, vm.uiState.value.detail.draft)
+            assertNull(withTimeoutOrNull(100) { vm.effect.first() })
+        }
+    }
+
+    private val custom = ConditionCustom(
+        missionTitle = "한강 뚜벅뚜벅 축제 가보기",
+        walkingLevel = WalkingLevel.HIGH,
+        durationMinMinutes = 60,
+        durationMaxMinutes = 180,
+        conditions = setOf(Condition.LESS_WALKING, Condition.MORE_REST),
+    )
+
+    @Test
+    fun 컨디션_커스텀에_들어가면_지금_적용된_조건과_미션_정보를_불러와_채운다() = runTest {
+        val conditions = FakeConditions(Result.success(custom))
+        val vm = viewModel(FakeSchedules(Result.success(detail)), conditions = conditions)
+
+        vm.onEvent(DetailUiEvent.CustomClicked)
+
+        assertEquals(ServerScheduleDetailEffect.OpenCustom, vm.effect.first())
+        assertEquals(listOf(7L), conditions.requested)
+        val state = vm.uiState.value
+        assertFalse(state.customLoading)
+        assertNull(state.customError)
+        assertEquals(setOf(Condition.LESS_WALKING, Condition.MORE_REST), state.detail.draft)
+        val filled = state.detail.detail!!
+        assertEquals("한강 뚜벅뚜벅 축제 가보기", filled.title)
+        assertEquals("많음", filled.stepsLabel)
+        assertEquals("1시간 ~ 3시간", filled.durationLabel)
+
+        // 고른 조건을 바꿀 수 있다
+        vm.onEvent(DetailUiEvent.ConditionToggled(Condition.MORE_REST))
+        assertEquals(setOf(Condition.LESS_WALKING), vm.uiState.value.detail.draft)
+    }
+
+    @Test
+    fun 컨디션_정보를_불러오지_못하면_이유에_맞는_문구를_보여준다() = runTest {
+        listOf(
+            NotFinalParticipantException() to "약속에 참여하기로 한 가족만 컨디션을 조정할 수 있어요.",
+            ConditionCustomUnavailableException() to "확정된 약속의 당일에만 컨디션을 조정할 수 있어요.",
+            ScheduleNotFoundException() to "찾을 수 없는 약속이에요.",
+            NoFamilyException() to "가족 공간이 없어요.",
+            IOException() to "컨디션 정보를 불러오지 못했어요.",
+        ).forEach { (error, message) ->
+            val vm = viewModel(FakeSchedules(Result.success(detail)), conditions = FakeConditions(Result.failure(error)))
+
+            vm.onEvent(DetailUiEvent.CustomClicked)
+
+            assertEquals(message, vm.uiState.value.customError)
+            assertFalse(vm.uiState.value.customLoading)
+            assertTrue(vm.uiState.value.detail.draft.isEmpty())
+            // 상세 화면 자체의 오류로 보지 않는다
+            assertNull(vm.uiState.value.detail.error)
+        }
+    }
+
+    // 정해 둔 리뷰 목록을 돌려주고, 요청한 일정 id 를 기록한다
+    private class FakeReviews(var result: Result<List<ScheduleReview>> = Result.success(emptyList())) : ScheduleReviewRepository {
+        val requested = mutableListOf<Long>()
+
+        override suspend fun writeReview(scheduleId: Long, form: ScheduleReviewForm): Result<ScheduleReviewResult> =
+            Result.failure(UnsupportedOperationException())
+
+        override suspend fun getReviews(scheduleId: Long): Result<List<ScheduleReview>> {
+            requested += scheduleId
+            return result
+        }
+    }
+
+    private val review = ScheduleReview(
+        1, ReviewWriter(5, "김주연", FamilyRole.DAUGHTER), "처음 가봤다.", 5, true,
+        listOf("https://cdn.example.com/1.jpg"), null, isMine = true,
+    )
+
+    @Test
+    fun 완료된_일정은_기록_화면으로_보여주고_리뷰와_가족_이름을_불러온다() = runTest {
+        val reviews = FakeReviews(Result.success(listOf(review)))
+        val vm = viewModel(FakeSchedules(Result.success(detail.copy(status = ScheduleDisplayStatus.COMPLETED))), reviews = reviews)
+
+        val state = vm.uiState.value
+        assertTrue(state.showsRecord)
+        assertEquals(listOf(7L), reviews.requested)
+        assertEquals(listOf(review), state.reviews)
+        assertFalse(state.reviewsLoading)
+        assertFalse(state.reviewsFailed)
+        assertEquals("우리 가족", state.familyName)
+        // 완료된 일정은 컨디션 조정도, 변경 화면 이동도 하지 않는다
+        assertFalse(state.canCustomize)
+        assertNull(withTimeoutOrNull(100) { vm.effect.first() })
+    }
+
+    @Test
+    fun 완료되지_않은_일정은_리뷰를_불러오지_않는다() = runTest {
+        val reviews = FakeReviews()
+        listOf(ScheduleDisplayStatus.TODAY, ScheduleDisplayStatus.CONFIRMED, ScheduleDisplayStatus.SCHEDULED).forEach { status ->
+            val vm = viewModel(FakeSchedules(Result.success(detail.copy(status = status))), reviews = reviews)
+            assertFalse(vm.uiState.value.showsRecord)
+        }
+        assertTrue(reviews.requested.isEmpty())
+    }
+
+    @Test
+    fun 리뷰를_불러오지_못하면_실패로_두고_다시_시도하면_새로_불러온다() = runTest {
+        val reviews = FakeReviews(Result.failure(IOException()))
+        val vm = viewModel(
+            FakeSchedules(Result.success(detail.copy(status = ScheduleDisplayStatus.COMPLETED))),
+            home = FakeFamily(null),
+            reviews = reviews,
+        )
+
+        assertTrue(vm.uiState.value.reviewsFailed)
+        // 가족 정보를 불러오지 못하면 이름은 비워 두고 화면에서 "우리 가족" 으로 쓴다
+        assertNull(vm.uiState.value.familyName)
+
+        reviews.result = Result.success(listOf(review))
+        vm.retryReviews()
+
+        assertEquals(listOf(7L, 7L), reviews.requested)
+        assertFalse(vm.uiState.value.reviewsFailed)
+        assertEquals(listOf(review), vm.uiState.value.reviews)
+    }
+
+    @Test
+    fun 리뷰_작성자의_가족_역할을_기록_카드_문구로_바꾼다() {
+        assertEquals("엄마", FamilyRole.MOTHER.label)
+        assertEquals("아빠", FamilyRole.FATHER.label)
+        assertEquals("딸", FamilyRole.DAUGHTER.label)
+        assertEquals("아들", FamilyRole.SON.label)
+        assertEquals("", (null as FamilyRole?).label)
+    }
+
+    @Test
+    fun 당일이_아닌_일정을_제안자가_열면_상세를_먼저_보여주고_수정하기를_눌러야_변경_화면으로_간다() = runTest {
+        listOf(ScheduleDisplayStatus.SCHEDULED, ScheduleDisplayStatus.CONFIRMED).forEach { status ->
+            val vm = viewModel(FakeSchedules(Result.success(detail.copy(status = status))), home = FakeFamily("엄마"))
+
+            // 열자마자 변경 화면으로 보내지 않는다
+            assertNull(withTimeoutOrNull(100) { vm.effect.first() })
+            assertFalse(vm.uiState.value.detail.loading)
+            assertEquals(detail.copy(status = status), vm.uiState.value.schedule)
+            assertTrue(vm.uiState.value.canEdit)
+
+            vm.editClicked()
+            assertEquals(ServerScheduleDetailEffect.OpenEdit(7), vm.effect.first())
+        }
+    }
+
+    @Test
+    fun 당일이거나_완료됐거나_제안자가_아니면_수정하기를_보여주지_않고_눌러도_가지_않는다() = runTest {
         listOf(
             detail to FakeFamily("엄마"),
             detail.copy(status = ScheduleDisplayStatus.COMPLETED) to FakeFamily("엄마"),
             detail.copy(status = ScheduleDisplayStatus.CONFIRMED) to FakeFamily("첫째"),
-            // 가족 정보를 불러오지 못하면 제안자인지 알 수 없어 상세를 보여준다
+            // 가족 정보를 불러오지 못하면 제안자인지 알 수 없어 수정하기를 숨긴다
             detail.copy(status = ScheduleDisplayStatus.CONFIRMED) to FakeFamily(null),
         ).forEach { (schedule, family) ->
             val vm = viewModel(FakeSchedules(Result.success(schedule)), home = family)
 
             assertEquals(schedule, vm.uiState.value.schedule)
+            assertFalse(vm.uiState.value.canEdit)
+            vm.editClicked()
             assertNull(withTimeoutOrNull(100) { vm.effect.first() })
         }
+    }
+
+    @Test
+    fun 변경하고_돌아오면_바뀐_일정을_다시_불러온다() = runTest {
+        val repo = FakeSchedules(Result.success(detail.copy(status = ScheduleDisplayStatus.CONFIRMED)))
+        val vm = viewModel(repo, home = FakeFamily("엄마"))
+
+        repo.result = Result.success(detail.copy(status = ScheduleDisplayStatus.SCHEDULED, time = LocalTime.of(16, 0)))
+        vm.reload()
+
+        assertEquals(listOf(7L, 7L), repo.requested)
+        assertEquals(ScheduleDisplayStatus.SCHEDULED, vm.uiState.value.schedule?.status)
+        assertEquals(LocalTime.of(16, 0), vm.uiState.value.schedule?.time)
     }
 
     @Test
@@ -216,7 +514,7 @@ class ServerScheduleDetailViewModelTest {
     }
 
     @Test
-    fun 변경_화면으로_보내는_일정은_미션을_불러오지_않는다() = runTest {
+    fun 제안자의_일정도_상세에_미션을_채운다() = runTest {
         val missions = FakeMissions()
 
         val vm = viewModel(
@@ -225,8 +523,8 @@ class ServerScheduleDetailViewModelTest {
             missions = missions,
         )
 
-        assertEquals(ServerScheduleDetailEffect.OpenEdit(7), vm.effect.first())
-        assertTrue(missions.requested.isEmpty())
+        assertEquals(listOf(42L), missions.requested)
+        assertEquals(mission.title, vm.uiState.value.detail.detail?.title)
     }
 
     @Test
@@ -329,11 +627,6 @@ class ServerScheduleDetailViewModelTest {
         vm.onEvent(DetailUiEvent.ConditionToggled(Condition.LESS_WALKING))
         vm.onEvent(DetailUiEvent.ConditionToggled(Condition.MORE_REST))
         assertEquals(setOf(Condition.LESS_WALKING), vm.uiState.value.detail.draft)
-
-        // 적용 API 가 없어 적용하기는 아무 것도 바꾸지 않는다
-        vm.onEvent(DetailUiEvent.ApplyClicked)
-        assertFalse(vm.uiState.value.detail.saving)
-        assertTrue(vm.uiState.value.detail.detail!!.conditions.isEmpty())
 
         vm.onEvent(DetailUiEvent.CustomCancelled)
         assertEquals(ServerScheduleDetailEffect.Back, vm.effect.first())

@@ -139,6 +139,7 @@ internal fun RecordCalendar(
                                     Modifier.weight(1f),
                                     state.calendarPhotos[date],
                                     state.entries.count { it.date == date },
+                                    today = date == state.today,
                                 )
                         }
                     }
