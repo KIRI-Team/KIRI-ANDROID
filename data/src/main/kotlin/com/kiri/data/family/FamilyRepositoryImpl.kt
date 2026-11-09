@@ -12,23 +12,27 @@ internal class FamilyRepositoryImpl @Inject constructor(
     private val api: FamilyApi,
     private val familyIdStore: FamilyIdStore,
     private val json: Json,
-    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context? = null,
+    private val geocoder: AddressGeocoder? = null,
 ) : FamilyRepository {
 
     override suspend fun getFamilyId(): Result<Long> = apiResult(json) { api.getMyFamilyId() }
         .mapCatching { familyIdStore.save(it.familyId); it.familyId }
 
-    @Suppress("DEPRECATION")
-    override suspend fun resolveAddress(postalCode: String, address: String, regionCode: String): Result<com.kiri.domain.model.family.FamilyAddress> =
-        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            try {
-                require(postalCode.matches(Regex("[0-9]{5}")) && regionCode.matches(Regex("[0-9]{10}")) && address.isNotBlank())
-                val location = android.location.Geocoder(requireNotNull(context), java.util.Locale.KOREA).getFromLocationName(address, 1)?.firstOrNull()
-                    ?: error("주소의 위치를 찾지 못했어요. 주소를 다시 선택해주세요.")
-                Result.success(com.kiri.domain.model.family.FamilyAddress(postalCode, address, "", regionCode, location.latitude, location.longitude))
-            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
-            catch (e: Exception) { Result.failure(e) }
-        }
+    override suspend fun resolveAddress(postalCode: String, address: String, regionCode: String): Result<com.kiri.domain.model.family.FamilyAddress> {
+        val normalized = address.trim()
+        return try {
+            require(postalCode.matches(Regex("[0-9]{5}")) && regionCode.matches(Regex("[0-9]{10}")) && normalized.length in 1..300) {
+                "선택한 주소 정보를 확인하지 못했어요. 주소를 다시 선택해주세요."
+            }
+            val resolver = geocoder ?: error("주소 위치 확인을 사용할 수 없어요.")
+            val location = kotlinx.coroutines.withTimeoutOrNull(10_000) { resolver.resolve(normalized) }
+                ?: error("주소 위치를 찾지 못했어요. 인터넷 연결을 확인하고 주소를 다시 선택해주세요.")
+            val result = com.kiri.domain.model.family.FamilyAddress(postalCode, normalized, "", regionCode, location.latitude, location.longitude)
+            result.validate()
+            Result.success(result)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+        catch (error: Exception) { Result.failure(error) }
+    }
 
     override suspend fun saveAddress(address: com.kiri.domain.model.family.FamilyAddress): Result<Unit> {
         try { address.validate() } catch (e: IllegalArgumentException) { return Result.failure(e) }

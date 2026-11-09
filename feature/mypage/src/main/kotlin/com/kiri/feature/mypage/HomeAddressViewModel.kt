@@ -31,8 +31,10 @@ class HomeAddressViewModel @Inject constructor(private val family: com.kiri.doma
     private var selected: com.kiri.domain.model.family.FamilyAddress? = null
     private var formStep = HomeAddressStep.REGISTER
 
+    private var addressJob: kotlinx.coroutines.Job? = null
+
     fun onEvent(event: HomeAddressUiEvent) {
-        if (_uiState.value.saving) return
+        if (_uiState.value.saving && !(event == HomeAddressUiEvent.BackClicked && currentStep == HomeAddressStep.SEARCH)) return
         when (event) {
             HomeAddressUiEvent.EditClicked -> edit()
             HomeAddressUiEvent.FindZipCodeClicked -> openSearch()
@@ -55,25 +57,26 @@ class HomeAddressViewModel @Inject constructor(private val family: com.kiri.doma
     // 수정은 빈 칸에서 새로 작성한다
     private fun edit() {
         if (currentStep != HomeAddressStep.SAVED) return
-        _uiState.update { it.copy(currentStep = HomeAddressStep.EDIT, form = HomeAddress()) }
+        selected = null
+        _uiState.update { it.copy(currentStep = HomeAddressStep.EDIT, form = HomeAddress(), error = null) }
     }
 
     private fun openSearch() {
         if (!isFormStep) return
         formStep = currentStep
-        _uiState.update { it.copy(currentStep = HomeAddressStep.SEARCH, searchQuery = "") }
+        _uiState.update { it.copy(currentStep = HomeAddressStep.SEARCH, searchQuery = "", error = null) }
     }
 
     // 새 주소를 고르면 이전에 쓴 상세주소는 비운다
     private fun selectAddress(zipCode: String, roadAddress: String, regionCode: String) {
         if (currentStep != HomeAddressStep.SEARCH) return
-        val repository = family ?: return
+        val repository = family
         _uiState.update { it.copy(saving = true, error = null) }
-        viewModelScope.launch {
+        addressJob = viewModelScope.launch {
             repository.resolveAddress(zipCode, roadAddress, regionCode)
                 .onSuccess { address ->
                     selected = address
-                    _uiState.update { it.copy(currentStep = formStep, form = HomeAddress(zipCode, roadAddress), saving = false) }
+                    _uiState.update { it.copy(currentStep = formStep, form = HomeAddress(address.postalCode, address.address), saving = false) }
                 }.onFailure { error -> _uiState.update { it.copy(saving = false, error = error.message ?: "주소 위치를 확인하지 못했어요. 다시 선택해주세요.") } }
         }
     }
@@ -88,7 +91,7 @@ class HomeAddressViewModel @Inject constructor(private val family: com.kiri.doma
         val state = _uiState.value
         if (!isFormStep || !state.canRegister) return
         val address = selected ?: return
-        val repository = family ?: return
+        val repository = family
         _uiState.update { it.copy(saving = true, error = null) }
         viewModelScope.launch {
             repository.saveAddress(address.copy(detailAddress = state.form.detailAddress.trim()))
@@ -100,7 +103,10 @@ class HomeAddressViewModel @Inject constructor(private val family: com.kiri.doma
 
     private fun previous() {
         when (currentStep) {
-            HomeAddressStep.SEARCH -> _uiState.update { it.copy(currentStep = formStep, searchQuery = "") }
+            HomeAddressStep.SEARCH -> {
+                addressJob?.cancel()
+                _uiState.update { it.copy(currentStep = formStep, searchQuery = "", saving = false, error = null) }
+            }
             // 수정을 그만두면 작성 중인 주소는 버리고 등록한 주소로 돌아간다
             HomeAddressStep.EDIT -> _uiState.update { it.copy(currentStep = HomeAddressStep.SAVED, form = HomeAddress()) }
             HomeAddressStep.SAVED, HomeAddressStep.REGISTER -> _effect.trySend(HomeAddressUiEffect.NavigateBack)

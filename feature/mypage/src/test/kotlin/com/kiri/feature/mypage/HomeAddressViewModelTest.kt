@@ -189,4 +189,41 @@ class HomeAddressViewModelTest {
 
         assertNull(withTimeoutOrNull(100) { viewModel.effect.first() })
     }
+    @Test fun 위치_확인_중_뒤로가면_취소되고_늦은_결과를_반영하지_않는다() = runTest {
+        val pending = kotlinx.coroutines.CompletableDeferred<com.kiri.domain.model.family.FamilyAddress>()
+        val repo = object : com.kiri.domain.repository.FamilyRepository by family {
+            override suspend fun resolveAddress(postalCode: String, address: String, regionCode: String) = Result.success(pending.await())
+        }
+        val vm = HomeAddressViewModel(repo)
+        vm.onEvent(HomeAddressUiEvent.FindZipCodeClicked)
+        vm.onEvent(HomeAddressUiEvent.AddressSelected("06134", "주소", "1165010800"))
+        assertTrue(vm.uiState.value.saving)
+        vm.onEvent(HomeAddressUiEvent.BackClicked)
+        assertFalse(vm.uiState.value.saving)
+        assertEquals(HomeAddressStep.REGISTER, vm.uiState.value.currentStep)
+        pending.complete(com.kiri.domain.model.family.FamilyAddress("06134", "늦은 주소", "", "1165010800", 37.5, 127.0))
+        assertEquals(HomeAddress(), vm.uiState.value.form)
+    }
+    @Test fun 좌표_확인_실패는_검색에_남고_저장_실패는_입력을_유지한다() {
+        val repo = object : com.kiri.domain.repository.FamilyRepository by family {
+            var failResolution = true
+            override suspend fun resolveAddress(postalCode: String, address: String, regionCode: String) =
+                if (failResolution) Result.failure(IllegalStateException("위치 확인 실패")) else family.resolveAddress(postalCode, address, regionCode)
+            override suspend fun saveAddress(address: com.kiri.domain.model.family.FamilyAddress) = Result.failure<Unit>(IllegalStateException("저장 실패"))
+        }
+        val vm = HomeAddressViewModel(repo)
+        vm.onEvent(HomeAddressUiEvent.FindZipCodeClicked)
+        vm.onEvent(HomeAddressUiEvent.AddressSelected("06134", "주소", "1165010800"))
+        assertEquals(HomeAddressStep.SEARCH, vm.uiState.value.currentStep)
+        assertEquals("위치 확인 실패", vm.uiState.value.error)
+        assertFalse(vm.uiState.value.saving)
+        repo.failResolution = false
+        vm.onEvent(HomeAddressUiEvent.AddressSelected("06134", "주소", "1165010800"))
+        vm.onEvent(HomeAddressUiEvent.DetailAddressChanged("101호"))
+        vm.onEvent(HomeAddressUiEvent.RegisterClicked)
+        assertEquals("101호", vm.uiState.value.form.detailAddress)
+        assertEquals("저장 실패", vm.uiState.value.error)
+        assertTrue(vm.uiState.value.canRegister)
+    }
+
 }
