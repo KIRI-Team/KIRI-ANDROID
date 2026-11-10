@@ -230,27 +230,23 @@ fun KiriMissionCard(
     scheduleLabel: String = "일정 잡기",
 ) {
     Box(
-        modifier = modifier.fillMaxWidth().heightIn(min = 132.dp)
+        modifier = modifier.fillMaxWidth().heightIn(min = 136.dp)
             .background(KiriColor.Bg.Primary, RoundedCornerShape(8.dp)),
     ) {
         when {
             unavailable || title == null -> Column(
-                Modifier.fillMaxSize().padding(horizontal = 15.dp),
+                Modifier.fillMaxWidth().heightIn(min = 136.dp).padding(horizontal = 15.dp, vertical = 18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterVertically),
             ) {
-                Text("공개된 미션을 둘러보세요 →", color = KiriColor.Text.Strong, fontSize = 14.sp)
-                Button(
-                    onClick = onPlacesClick,
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                        containerColor = KiriColor.Bg.Tertiary,
-                        contentColor = KiriColor.Text.Secondary,
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("장소 둘러보기") }
+                Text("공개된 미션을 둘러보세요 →", color = KiriColor.Text.Strong,
+                    style = com.kiri.uikit.KiriTypography.TitleMedium,
+                    modifier = Modifier.clickable(onClick = onPlacesClick))
+                Image(painterResource(R.drawable.kiri_mission_empty), "장소 둘러보기",
+                    Modifier.size(40.dp).clickable(onClick = onPlacesClick))
             }
             completed -> Column(
-                Modifier.fillMaxSize().padding(horizontal = 15.dp),
+                Modifier.fillMaxWidth().heightIn(min = 136.dp).padding(horizontal = 15.dp, vertical = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text("이미 미션을 완료하셨군요!", color = KiriColor.Text.Accent, fontSize = 14.sp)
@@ -265,7 +261,7 @@ fun KiriMissionCard(
                 ) { Text("오늘의 추억 기록하러가기") }
             }
             else -> Row(
-                Modifier.fillMaxSize().padding(horizontal = 15.dp, vertical = 18.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 18.dp),
                 horizontalArrangement = Arrangement.spacedBy(9.dp),
                 verticalAlignment = Alignment.Top,
             ) {
@@ -276,8 +272,8 @@ fun KiriMissionCard(
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         keywords.take(2).forEach { label ->
-                            Surface(color = KiriColor.Bg.Elevated, shape = RoundedCornerShape(5.dp)) {
-                                Text(label, Modifier.padding(horizontal = 8.dp, vertical = 6.dp), color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Small.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 17.sp, letterSpacing = (-0.48).sp), maxLines = 1)
+                            Surface(modifier = Modifier.weight(1f, fill = false), color = KiriColor.Bg.Elevated, shape = RoundedCornerShape(5.dp)) {
+                                Text(label, Modifier.padding(horizontal = 8.dp, vertical = 6.dp), color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Small.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 17.sp, letterSpacing = (-0.48).sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
