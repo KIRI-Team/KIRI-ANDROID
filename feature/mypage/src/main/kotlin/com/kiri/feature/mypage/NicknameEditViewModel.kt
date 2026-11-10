@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 // 바꾼 닉네임을 서버에 저장한다 (PATCH api/v1/members/nickname). 지금 닉네임은 가족 정보 API 의 내 구성원 정보로 불러온다
 @HiltViewModel
 class NicknameEditViewModel @Inject constructor(
-    private val members: MemberRepository? = null,
+    private val members: MemberRepository?,
     private val home: HomeRepository? = null,
 ) : NameEditViewModel("") {
     init {
