@@ -209,6 +209,7 @@ internal fun RecommendationSection(
                             recommendation.keywords.joinToString(", ")
                         },
                     rating = recommendation.rating,
+                    imageUrl = recommendation.imageUrl,
                 )
             }
         }
