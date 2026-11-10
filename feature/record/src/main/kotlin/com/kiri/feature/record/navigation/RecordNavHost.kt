@@ -197,6 +197,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
                 onChange = viewModel::updateDraft,
                 onBack = { navController.popBackStack() },
                 onSubmit = { viewModel.submitReview { navController.popBackStack() } },
+                editing = state.editingReviewId != null,
                 saving = state.detail.saving, error = state.detail.error)
         }
         // 제안자의 일정 변경하기 (일정 등록 화면의 변경 모드). 내용은 일정 상세 API 로 채우고 일정 수정 API 로 저장한다
