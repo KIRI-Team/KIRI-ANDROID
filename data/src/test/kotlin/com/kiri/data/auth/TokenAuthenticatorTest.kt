@@ -156,6 +156,19 @@ class TokenAuthenticatorTest {
     }
 
     @Test
+    fun 만료된_토큰이면_재발급한_토큰을_저장하고_같은_요청을_다시_보낸다() {
+        fakeServer.unauthorizedCode = "AUTH401_2"
+
+        val response = api().me().execute()
+
+        assertEquals(200, response.code())
+        assertEquals(1, fakeServer.reissueCalls.get())
+        assertEquals(AuthTokens(NEW_ACCESS, NEW_REFRESH), tokenStore.saved)
+        val sentTokens = fakeServer.requestsTo("/api/v1/me").map { it.headers["Authorization"] }
+        assertEquals(listOf("Bearer $OLD_ACCESS", "Bearer $NEW_ACCESS"), sentTokens)
+    }
+
+    @Test
     fun 여러_요청이_동시에_401을_받아도_재발급은_한_번만_한다() {
         val requestCount = 3
         // 세 요청이 모두 예전 토큰으로 서버에 도착한 뒤에 한꺼번에 401 을 돌려준다
@@ -193,7 +206,8 @@ class TokenAuthenticatorTest {
 
     @Test
     fun 토큰_문제가_아닌_401은_재발급하지_않는다() {
-        fakeServer.unauthorizedCode = "AUTH401_2"
+        // 토큰 무효·만료(AUTH401_1, AUTH401_2)가 아닌 다른 401
+        fakeServer.unauthorizedCode = "AUTH401_9"
 
         val response = api().me().execute()
 

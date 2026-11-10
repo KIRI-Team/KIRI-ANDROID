@@ -1,7 +1,5 @@
 package com.kiri.feature.detail.presentation
 
-import android.graphics.BitmapFactory
-import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,62 +12,22 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.kiri.feature.detail.R
 import com.kiri.feature.detail.model.MemoryDraft
 import com.kiri.uikit.color.KiriColor
+import com.kiri.uikit.component.KiriAsyncImage
 import com.kiri.uikit.component.KiriDetailTypography
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
+// 서버 사진(https)과 기기 사진(content://, file://)을 Coil 로 그린다 (캐시와 크기 맞춤 디코딩은 Coil 이 한다).
+// 불러오는 동안과 불러오지 못했을 때는 기본 사진 아이콘을 보여준다
 @Composable
 fun MemoryPhoto(uri: String, modifier: Modifier = Modifier, contentDescription: String = "오늘의 사진") {
-    val resolver = LocalContext.current.contentResolver
-    val bitmap by produceState<ImageBitmap?>(null, uri) {
-        value = withContext(Dispatchers.IO) {
-            runCatching {
-                // 서버 사진(https 주소)은 한 번 내려받아 그 바이트로, 기기 사진(content 주소)은 기기에서 바로 읽는다
-                val open: () -> java.io.InputStream? =
-                    if (uri.startsWith("https://") || uri.startsWith("http://")) {
-                        val bytes = downloadPhoto(uri)
-                        ({ bytes.inputStream() })
-                    } else {
-                        val parsed = Uri.parse(uri)
-                        ({ resolver.openInputStream(parsed) })
-                    }
-                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                open()?.use { BitmapFactory.decodeStream(it, null, bounds) }
-                val options = BitmapFactory.Options().apply {
-                    inSampleSize = 1
-                    while (bounds.outWidth / inSampleSize > 1200 || bounds.outHeight / inSampleSize > 1200) inSampleSize *= 2
-                }
-                open()?.use { BitmapFactory.decodeStream(it, null, options) }?.asImageBitmap()
-            }.getOrNull()
-        }
-    }
-    Box(modifier.background(KiriColor.Bg.Tertiary, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-        if (bitmap != null) Image(bitmap!!, contentDescription, Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop)
-        else Image(painterResource(R.drawable.memory_photo_placeholder), "사진을 표시할 수 없어요", Modifier.size(width = 68.9569.dp, height = 63.2122.dp))
-    }
-}
-
-// 서버가 준 사진 주소에서 사진을 내려받는다. 이미지 라이브러리를 들이기 전까지 쓰며, 따로 저장해 두지 않는다
-// TODO: 목록을 다시 그릴 때마다 다시 내려받으므로 이미지 로딩 라이브러리(캐시 포함)로 바꿀 것
-private fun downloadPhoto(url: String): ByteArray {
-    val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-    connection.connectTimeout = 10_000
-    connection.readTimeout = 15_000
-    try {
-        check(connection.responseCode in 200..299) { "사진을 내려받지 못했어요: ${connection.responseCode}" }
-        return connection.inputStream.use { it.readBytes() }
-    } finally {
-        connection.disconnect()
+    val shape = RoundedCornerShape(8.dp)
+    KiriAsyncImage(uri, contentDescription, modifier.background(KiriColor.Bg.Tertiary, shape).clip(shape)) {
+        Image(painterResource(R.drawable.memory_photo_placeholder), "사진을 표시할 수 없어요", Modifier.size(width = 68.9569.dp, height = 63.2122.dp))
     }
 }
 

@@ -15,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.clip
-import com.kiri.feature.detail.presentation.MemoryPhoto
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.Modifier
@@ -179,9 +178,9 @@ private fun PlaceMissionCard(mission: PlaceMission, onSave: () -> Unit, onOpen: 
     Surface(onClick = onOpen, color = KiriColor.Bg.Primary, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().testTag("place_card_${mission.id}")) {
         Row(Modifier.padding(horizontal = 15.dp, vertical = 18.dp), horizontalArrangement = Arrangement.spacedBy(17.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(91.dp).clip(RoundedCornerShape(10.dp)).background(KiriColor.Bg.Elevated)) {
+                // 미션 사진 (없거나 불러오지 못하면 카드 배경색만 둔다)
                 mission.imageUrl?.takeIf { it.isNotBlank() }?.let { url ->
-                    MemoryPhoto(url, Modifier.fillMaxSize().testTag("place_image_${mission.id}"),
-                        contentDescription = "${mission.title} 사진")
+                    KiriAsyncImage(url, "${mission.title} 사진", Modifier.fillMaxSize().testTag("place_image_${mission.id}"))
                 }
                 mission.rating?.takeIf { it.isNotBlank() }?.let { rating ->
                     Surface(Modifier.padding(7.dp), color = KiriColor.Bg.Tertiary, shape = RoundedCornerShape(100.dp)) {

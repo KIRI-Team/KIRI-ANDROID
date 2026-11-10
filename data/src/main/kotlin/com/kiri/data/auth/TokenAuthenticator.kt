@@ -10,7 +10,7 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.Route
 
-// 토큰이 유효하지 않다는 401(AUTH401_1)을 받으면 refreshToken 으로 토큰을 다시 받아 같은 요청을 한 번 더 보낸다
+// 토큰이 유효하지 않거나(AUTH401_1) 만료됐다는(AUTH401_2) 401을 받으면 refreshToken 으로 토큰을 다시 받아 같은 요청을 한 번 더 보낸다
 // 재발급을 서버가 거절하면(4xx) 토큰을 지워 로그아웃 상태로 만든다. 연결 문제나 서버 오류(5xx)면 토큰을 남긴 채 실패만 돌려준다
 @Singleton
 internal class TokenAuthenticator @Inject constructor(
@@ -55,12 +55,12 @@ internal class TokenAuthenticator @Inject constructor(
     private fun Response.isInvalidToken(): Boolean {
         val body = runCatching { peekBody(MAX_ERROR_BODY_BYTES).string() }.getOrNull() ?: return false
         val error = runCatching { json.decodeFromString<ApiErrorBody>(body) }.getOrNull()
-        return error?.code == INVALID_TOKEN_CODE
+        return error?.code in REISSUE_CODES
     }
 
     private companion object {
-        // 만료된 토큰도 같은 코드로 온다
-        const val INVALID_TOKEN_CODE = "AUTH401_1"
+        // 유효하지 않은 토큰(AUTH401_1), 만료된 토큰(AUTH401_2). 서버는 만료를 별도 코드로 보낸다
+        val REISSUE_CODES = setOf("AUTH401_1", "AUTH401_2")
         const val MAX_ERROR_BODY_BYTES = 8 * 1024L
     }
 }

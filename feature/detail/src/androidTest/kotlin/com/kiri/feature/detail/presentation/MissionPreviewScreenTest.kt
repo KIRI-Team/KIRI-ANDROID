@@ -46,6 +46,19 @@ class MissionPreviewScreenTest {
         compose.onNodeWithText("아직 등록된 리뷰가 없어요.").performScrollTo().assertIsDisplayed()
     }
 
+    @Test fun bucketSaveButtonStaysInsideTopBox() {
+        compose.setContent { KiriTheme { MissionPreviewScreen(MissionPreviewUiState(loading = false, preview = MissionPreview(figmaDetailSample()),
+            error = "버킷에 저장하지 못했어요."), {}, {}, {}) } }
+
+        val header = compose.onNodeWithTag("detail_header").fetchSemanticsNode().boundsInRoot
+        val save = compose.onNodeWithTag("preview_save").fetchSemanticsNode().boundsInRoot
+        val error = compose.onNodeWithText("버킷에 저장하지 못했어요.").fetchSemanticsNode().boundsInRoot
+        // 버튼과 오류 문구가 상단 박스(흰 배경) 안쪽에 있어야 한다
+        org.junit.Assert.assertTrue("save=$save header=$header", save.top >= header.top && save.bottom <= header.bottom)
+        org.junit.Assert.assertTrue("error=$error header=$header", error.bottom <= header.bottom)
+        org.junit.Assert.assertTrue(save.left >= header.left && save.right <= header.right)
+    }
+
     private fun capture(name: String) {
         compose.waitForIdle()
         val instrumentation = InstrumentationRegistry.getInstrumentation()

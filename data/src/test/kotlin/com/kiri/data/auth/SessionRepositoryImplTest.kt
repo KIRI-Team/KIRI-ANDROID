@@ -38,8 +38,33 @@ class SessionRepositoryImplTest {
         MockWebServer().use { server ->
             server.start(); val repo = repository(server)
             tokens.clear(); assertEquals(SessionDestination.LOGIN, repo.restore().getOrThrow()); assertEquals(0, server.requestCount)
+            // 재발급을 서버가 거절하면 TokenAuthenticator 가 토큰을 지운다. 그 뒤 401 이 오면 로그인으로 간다
             tokens.save(AuthTokens("bad", "bad"))
-            server.reply("""{"isSuccess":false,"code":"AUTH401_1","message":"invalid","result":null}""", 401)
+            server.enqueue(MockResponse.Builder().code(401)
+                .body("""{"isSuccess":false,"code":"AUTH401_2","message":"토큰이 만료되었습니다.","result":null}""").build())
+            val clearedDuringCall = object : TokenStore by tokens {
+                var calls = 0
+                override suspend fun get(): AuthTokens? = if (calls++ == 0) tokens.get() else null
+            }
+            val retrofit = Retrofit.Builder().baseUrl(server.url("/"))
+                .addConverterFactory(kiriJson.asConverterFactory("application/json".toMediaType())).build()
+            val repo2 = SessionRepositoryImpl(retrofit.create(TermApi::class.java), retrofit.create(FamilyApi::class.java), clearedDuringCall, ids, kiriJson, prefs)
+            assertEquals(SessionDestination.LOGIN, repo2.restore().getOrThrow())
+        }
+    }
+    @Test fun tokenFailureWithTokensStillSavedIsRetryableInsteadOfLogout() = runTest {
+        MockWebServer().use { server ->
+            server.start(); val repo = repository(server)
+            // 재발급이 연결·서버 문제로 실패하면 토큰이 남은 채 401 이 온다. 다시 로그인시키지 않는다
+            listOf("AUTH401_1", "AUTH401_2").forEach { code ->
+                server.reply("""{"isSuccess":false,"code":"$code","message":"token","result":null}""", 401)
+                assertTrue(repo.restore().isFailure); assertNotNull(tokens.get())
+            }
+            server.reply(agreed)
+            server.reply("""{"isSuccess":false,"code":"AUTH401_2","message":"token","result":null}""", 401)
+            assertTrue(repo.restore().isFailure); assertNotNull(tokens.get())
+            // 탈퇴 등으로 회원이 없으면 로그인으로 간다
+            server.reply("""{"isSuccess":false,"code":"MEMBER404_1","message":"없음","result":null}""", 404)
             assertEquals(SessionDestination.LOGIN, repo.restore().getOrThrow()); assertNull(tokens.get())
         }
     }
