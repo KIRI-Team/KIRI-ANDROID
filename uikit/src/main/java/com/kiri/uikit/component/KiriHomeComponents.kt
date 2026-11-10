@@ -339,7 +339,7 @@ fun KiriPlaceCard(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
                     if (!detailStyle) Image(painterResource(R.drawable.kiri_place_comment), null, Modifier.size(width = 11.3965.dp, height = 10.4468.dp))
-                    Text("“$description”", Modifier.weight(1f), color = KiriColor.Text.Tertiary, fontSize = 12.sp, lineHeight = if (detailStyle) 16.8.sp else 18.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, fontFamily = KiriPretendard, letterSpacing = (-0.48).sp)
+                    Text(if (description.isBlank()) "" else "“$description”", Modifier.weight(1f), color = KiriColor.Text.Tertiary, fontSize = 12.sp, lineHeight = if (detailStyle) 16.8.sp else 18.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, fontFamily = KiriPretendard, letterSpacing = (-0.48).sp)
                 }
             }
         }

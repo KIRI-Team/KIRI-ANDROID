@@ -32,13 +32,44 @@ class RemoteHomeRepositoryTest {
         override suspend fun clear() { value = null }
     }
     // 실제 앱처럼 AuthInterceptor 가 토큰을 붙인다
-    private fun repository(server: MockWebServer, tokens: Tokens = Tokens(), weekly: Boolean = false): RemoteHomeRepository {
+    private fun repository(server: MockWebServer, tokens: Tokens = Tokens(), weekly: Boolean = false, recommendations: Boolean = false): RemoteHomeRepository {
         val retrofit = Retrofit.Builder().baseUrl(server.url("/"))
             .client(OkHttpClient.Builder().addInterceptor(AuthInterceptor(tokens)).build())
             .addConverterFactory(kiriJson.asConverterFactory("application/json".toMediaType()))
             .build()
         return RemoteHomeRepository(retrofit.create(HomeApi::class.java), tokens, kiriJson, clock,
-            retrofit.create(MissionApi::class.java).takeIf { weekly })
+            retrofit.create(MissionApi::class.java).takeIf { weekly || recommendations }, loadRecommendations = recommendations)
+    }
+
+    @Test fun homeFeedUsesServerIdsAndImagesAndSurvivesAnswerSave() = runTest {
+        MockWebServer().use { server ->
+            server.start(); server.family(); server.reply("null", status = 503)
+            server.reply("""{"missions":[{"missionId":88,"title":"산책하기","category":"OUTDOOR","placeName":"공원","imageUrl":"https://example.com/park.png"}],"hasNext":false}""")
+            server.reply("null")
+            val repo = repository(server, recommendations = true)
+            val home = repo.load()
+            assertEquals("88", home.recommendations.single().id)
+            assertEquals("https://example.com/park.png", home.recommendations.single().imageUrl)
+            assertEquals(home.recommendations, repo.saveAnswer(requireNotNull(home.question), "답변").recommendations)
+            repeat(3) { server.takeRequest() }
+            val feed = server.takeRequest()
+            assertEquals("/api/v1/missions", feed.url.encodedPath)
+            assertEquals("10", feed.url.queryParameter("size"))
+            assertEquals("Bearer access", feed.headers["Authorization"])
+        }
+    }
+
+    @Test fun feedFailureAndEmptyFeedKeepQuestionWithoutInventingContent() = runTest {
+        for (result in listOf("null", """{"missions":[],"hasNext":false}""")) {
+            MockWebServer().use { server ->
+                server.start(); server.family(); server.reply("null", status = 503)
+                server.reply(result, status = if (result == "null") 503 else 200)
+                val home = repository(server, recommendations = true).load()
+                assertEquals("12", home.question?.id)
+                assertTrue(home.recommendations.isEmpty())
+                assertEquals(result == "null", home.recommendationsLoadFailed)
+            }
+        }
     }
 
     @Test fun weeklyRecommendationKeepsMissionIdAndDoesNotEnableAssignmentScheduling() = runTest {

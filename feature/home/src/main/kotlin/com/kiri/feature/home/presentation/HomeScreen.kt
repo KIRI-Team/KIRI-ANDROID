@@ -192,6 +192,9 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
                                 home.recommendations,
                                 Modifier.bringIntoViewRequester(recommendationsTarget)
                                     .then(anchor(HomeTutorialTarget.RECOMMENDATIONS)),
+                                onMissionClick = onMissionClick,
+                                loadFailed = home.recommendationsLoadFailed,
+                                onRetry = { onEvent(HomeUiEvent.RetryClicked) },
                             )
                         }
                     }

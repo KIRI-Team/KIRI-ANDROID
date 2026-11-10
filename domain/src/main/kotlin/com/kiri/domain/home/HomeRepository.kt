@@ -59,6 +59,7 @@ data class FamilyHome(
     val inviteCode: String? = null,
     val serverBacked: Boolean = false,
     val familyId: String? = null,
+    val recommendationsLoadFailed: Boolean = false,
 ) {
     val browsing: Boolean
         get() = familyName == null

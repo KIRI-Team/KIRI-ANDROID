@@ -187,8 +187,10 @@ internal fun StoryRow(
 internal fun RecommendationSection(
     items: List<HomeRecommendation>,
     titleModifier: Modifier = Modifier,
+    onMissionClick: (String) -> Unit = {},
+    loadFailed: Boolean = false,
+    onRetry: () -> Unit = {},
 ) {
-    if (items.isEmpty()) return
     Column(Modifier.padding(top = 48.dp)) {
         Text(
             "가족과 함께라면 여기!",
@@ -196,6 +198,11 @@ internal fun RecommendationSection(
             color = HomeStrong,
             style = com.kiri.uikit.KiriTypography.TitleLarge,
         )
+        if (items.isEmpty()) {
+            Text(if (loadFailed) "추천을 불러오지 못했어요." else "아직 공개된 추천이 없어요.",
+                Modifier.padding(top = 16.dp), color = HomeSecondary)
+            if (loadFailed) TextButton(onClick = onRetry) { Text("다시 시도") }
+        }
         Row(
             Modifier.horizontalScroll(rememberScrollState()).padding(top = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(24.dp),
@@ -209,7 +216,14 @@ internal fun RecommendationSection(
                             recommendation.keywords.joinToString(", ")
                         },
                     rating = recommendation.rating,
-                    imageUrl = recommendation.imageUrl,
+                    modifier = Modifier.clickable { onMissionClick(recommendation.id) }
+                        .testTag("home_recommendation_${recommendation.id}"),
+                    image = { imageModifier ->
+                        com.kiri.uikit.component.KiriAsyncImage(
+                            recommendation.imageUrl, recommendation.title,
+                            imageModifier.background(KiriColor.Bg.Tertiary),
+                        )
+                    },
                 )
             }
         }

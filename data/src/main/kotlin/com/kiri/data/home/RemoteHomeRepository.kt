@@ -26,6 +26,7 @@ internal class RemoteHomeRepository(
     // 가족 정보 API. 없으면(테스트 등) family() 가 load() 를 그대로 쓴다
     private val families: FamilyApi? = null,
     private val familyIds: FamilyIdStore? = null,
+    private val loadRecommendations: Boolean = false,
 ) : HomeRepository {
     private val mutex = Mutex()
     private var snapshot: FamilyHome? = null
@@ -131,10 +132,19 @@ internal class RemoteHomeRepository(
                 )
             }
         } else null
+        var recommendationsLoadFailed = false
+        val recommendations = if (loadRecommendations) missions?.let { missionApi ->
+            apiResult(json) { missionApi.getFeed(mapOf("size" to "10")) }
+                .onFailure { recommendationsLoadFailed = true }.getOrNull()?.missions.orEmpty().map { item ->
+                HomeRecommendation(id = item.missionId.toString(), title = item.title,
+                    place = item.placeName.orEmpty(), imageUrl = item.imageUrl)
+            }
+        }.orEmpty() else emptyList()
         return FamilyHome(date, me, if (daily.hasFamily) info?.familyName ?: "우리 가족" else null,
             info?.members() ?: family?.answers.orEmpty().map { FamilyMember(it.memberId.toString(), it.nickname, "") },
             question, answers, poked, mission = weekly, serverBacked = true,
-            familyId = info?.familyId?.toString()).also { snapshot = it }
+            familyId = info?.familyId?.toString(), recommendations = recommendations,
+            recommendationsLoadFailed = recommendationsLoadFailed).also { snapshot = it }
     }
 
     override suspend fun saveAnswer(question: DailyQuestion, answer: String): FamilyHome = mutex.withLock { mapped {
