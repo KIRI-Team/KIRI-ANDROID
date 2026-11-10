@@ -25,6 +25,7 @@ class HomeViewModel @Inject constructor(
     private val tutorialRepository: HomeTutorialRepository = NoHomeTutorial,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val scheduleRepository: com.kiri.domain.schedule.ScheduleRepository? = null,
+    private val tasteRepository: com.kiri.domain.repository.TasteRepository? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState(
         tutorialStep = savedState.get<String>("homeTutorialStep")?.let { value -> HomeTutorialStep.entries.firstOrNull { it.name == value } },
@@ -137,6 +138,7 @@ class HomeViewModel @Inject constructor(
                 val loaded = repository.load()
                 scheduleRepository?.refresh()
                 val home = loaded.withSchedules()
+                val taste = if (!home.browsing) tasteRepository?.getMyTaste()?.getOrNull() else null
                 if (!home.browsing && savedState.get<Boolean>("homeTutorialChecked") != true) {
                     // Mark the visit before showing it: returning home or restarting cannot replay it.
                     val firstVisit = runCatching { tutorialRepository.claimFirstVisit(home.currentUserId) }
@@ -150,7 +152,9 @@ class HomeViewModel @Inject constructor(
                 _uiState.update { old ->
                     val changed = old.home != null && old.home.date != home.date
                     old.copy(
-                        loading = false, home = home, loadFailure = null, error = if (changed) null else old.error,
+                        loading = false, home = home, loadFailure = null,
+                        showTasteBanner = taste != null && !taste.isSet,
+                        tasteNickname = taste?.nickname.orEmpty(), error = if (changed) null else old.error,
                         editing = if (changed) false else old.editing,
                         selectedMemberId = if (changed) null else old.selectedMemberId,
                         draft = if (changed) "" else old.draft,

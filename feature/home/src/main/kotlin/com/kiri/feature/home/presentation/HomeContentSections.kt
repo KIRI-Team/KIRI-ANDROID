@@ -49,13 +49,14 @@ internal fun TopBar(name: String, onNotifications: () -> Unit) {
 }
 
 @Composable
-internal fun HomeTasteBanner(name: String) {
+internal fun HomeTasteBanner(name: String, onClick: () -> Unit = {}) {
     Row(
         Modifier.fillMaxWidth()
             .heightIn(min = 84.dp)
             .background(KiriColor.Bg.Primary, RoundedCornerShape(16.dp))
             .padding(horizontal = 21.dp, vertical = 15.dp)
-            .testTag("home_taste_banner"),
+            .testTag("home_taste_banner")
+            .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

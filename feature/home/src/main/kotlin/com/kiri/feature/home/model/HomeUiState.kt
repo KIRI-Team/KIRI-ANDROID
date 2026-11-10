@@ -4,6 +4,8 @@ import com.kiri.domain.home.*
 
 data class HomeUiState(
     val loading: Boolean = true,
+    val showTasteBanner: Boolean = false,
+    val tasteNickname: String = "",
     val home: FamilyHome? = null,
     // 홈을 불러오지 못한 이유 (불러왔거나 불러오는 중이면 null)
     val loadFailure: HomeLoadFailure? = null,

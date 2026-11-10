@@ -19,6 +19,7 @@ data class Taste(
 data class MyTaste(
     val nickname: String,
     val taste: Taste?,
+    val isSet: Boolean = taste != null,
 )
 
 enum class TasteCategory { EXHIBITION, POPUP, PERFORMANCE, FOOD_CAFE, OUTDOOR, EXPERIENCE }

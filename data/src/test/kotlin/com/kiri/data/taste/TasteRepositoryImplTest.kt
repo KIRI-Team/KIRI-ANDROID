@@ -62,6 +62,12 @@ class TasteRepositoryImplTest {
         duration = TasteDuration.WITHIN_1H,
     )
 
+    @Test fun completionFlagSurvivesUnknownActivityValue() {
+        val taste = TasteResponse(isSet = true, activityLevel = "NEW_ACTIVITY").toMyTaste()
+        assertTrue(taste.isSet)
+        assertNull(taste.taste)
+    }
+
     @Test
     fun 내_취향을_GET으로_불러온다() = runTest {
         enqueue(200, SET_BODY)

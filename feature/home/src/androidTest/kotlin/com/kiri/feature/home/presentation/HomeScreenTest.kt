@@ -91,6 +91,22 @@ class HomeScreenTest {
         capture("home-recommendations-local")
     }
 
+    @Test fun tasteBannerDispatchesSettingsDestination() {
+        var destination: com.kiri.feature.home.model.HomeUiDestination? = null
+        val home = ScreenRepository().home
+        compose.setContent {
+            KiriTheme {
+                HomeScreen(com.kiri.feature.home.model.HomeUiState(loading = false, home = home,
+                    showTasteBanner = true, tasteNickname = "나"), onEvent = { event ->
+                    if (event is com.kiri.feature.home.model.HomeUiEvent.DestinationClicked) destination = event.destination
+                })
+            }
+        }
+        compose.onNodeWithTag("home_taste_banner").performClick()
+        compose.runOnIdle { assertEquals(com.kiri.feature.home.model.HomeUiDestination.TasteSettings, destination) }
+        capture("home-taste-banner-local")
+    }
+
     @Test
     fun questionAndMissionFlipAreVisible() {
         val repository = ScreenRepository()
