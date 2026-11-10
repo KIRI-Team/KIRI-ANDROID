@@ -347,7 +347,7 @@ constructor(
         val source = home ?: return
         viewModelScope.launch {
             val name = try {
-                source.load().familyName
+                source.family().familyName
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
@@ -359,7 +359,7 @@ constructor(
 
     private suspend fun loadActions(id: Long, detail: ScheduleDetail, access: com.kiri.domain.usecase.schedule.ScheduleEditAccess) {
         if (schedules == null) return
-        val family = access.family ?: try { home?.load() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { null }
+        val family = access.family ?: try { home?.family() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { null }
         val me = family?.members?.find { it.id == family.currentUserId }
         val start = detail.time?.let { detail.date.atTime(it).atZone(java.time.ZoneId.of("Asia/Seoul")).toInstant() }
         val calendarResult = schedules?.getMonthlySchedules(java.time.YearMonth.from(detail.date))

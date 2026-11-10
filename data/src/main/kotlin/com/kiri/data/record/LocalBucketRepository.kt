@@ -35,7 +35,7 @@ class LocalBucketRepository(
 
     private suspend fun family(): FamilyHome {
         try {
-            val family = home.load()
+            val family = home.family()
             val next = family.localStorageScope()
             if (next != scope) {
                 scope = null

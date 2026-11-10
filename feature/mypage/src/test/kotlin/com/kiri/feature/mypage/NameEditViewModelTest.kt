@@ -2,7 +2,6 @@ package com.kiri.feature.mypage
 
 import com.kiri.domain.model.family.DuplicateFamilyNameException
 import com.kiri.domain.model.nickname.NicknameRule
-import com.kiri.feature.mypage.model.common.MypageProfile
 import com.kiri.feature.mypage.model.nameedit.NameEditUiEffect
 import com.kiri.feature.mypage.model.nameedit.NameEditUiEvent
 import java.io.IOException
@@ -30,16 +29,90 @@ class NameEditViewModelTest {
     private val viewModel: NameEditViewModel = NicknameEditViewModel()
     private val state get() = viewModel.uiState.value
 
+    // 가족 정보 API 대신 정해 둔 가족을 돌려주고, 캐시를 비운 횟수를 센다
+    private class FamilyHomeRepository : com.kiri.domain.home.HomeRepository {
+        var invalidated = 0
+        val family = com.kiri.domain.home.FamilyHome(
+            java.time.LocalDate.of(2026, 11, 10), "1", "끼리네가족",
+            listOf(com.kiri.domain.home.FamilyMember("1", "쥬123", "딸"), com.kiri.domain.home.FamilyMember("2", "마마", "엄마")),
+            null, emptyMap(), emptySet(), null, serverBacked = true,
+        )
+        override suspend fun load() = family
+        override suspend fun saveAnswer(question: com.kiri.domain.home.DailyQuestion, answer: String) = family
+        override suspend fun poke(question: com.kiri.domain.home.DailyQuestion, memberId: String) = family
+        override suspend fun invalidateFamily() { invalidated++ }
+    }
+
     @Test
-    fun 닉네임_수정은_지금_닉네임을_보여주고_입력은_비어_있다() {
-        assertEquals(MypageProfile.Sample.nickname, state.currentName)
+    fun 닉네임_수정은_입력이_비어_있고_가족_정보가_없으면_지금_닉네임도_비어_있다() {
+        assertEquals("", state.currentName)
         assertEquals("", state.name)
         assertTrue(state.violations.isEmpty())
     }
 
     @Test
-    fun 가족명_수정은_지금_가족명을_보여준다() {
-        assertEquals(MypageProfile.Sample.familyName, FamilyNameEditViewModel(familyRepository).uiState.value.currentName)
+    fun 지금_닉네임과_가족명을_가족_정보에서_불러온다() = runTest(mainDispatcherRule.testDispatcher) {
+        val home = FamilyHomeRepository()
+        val nickname = NicknameEditViewModel(home = home)
+        val familyName = FamilyNameEditViewModel(familyRepository, home)
+        advanceUntilIdle()
+
+        assertEquals("쥬123", nickname.uiState.value.currentName)
+        assertEquals("끼리네가족", familyName.uiState.value.currentName)
+    }
+
+    // 닉네임 변경 결과를 정해 두고 보낸 닉네임을 모은다
+    private class Members(var error: Throwable? = null) : com.kiri.domain.repository.MemberRepository {
+        val sent = mutableListOf<String>()
+        override suspend fun updateNickname(nickname: String): Result<Unit> {
+            sent += nickname
+            return error?.let { Result.failure(it) } ?: Result.success(Unit)
+        }
+        override suspend fun updateFamilyRole(role: com.kiri.domain.model.member.FamilyRole): Result<Unit> = Result.success(Unit)
+    }
+
+    @Test
+    fun 닉네임을_서버에_저장하고_가족_정보_캐시를_비운_뒤_돌아간다() = runTest(mainDispatcherRule.testDispatcher) {
+        val members = Members()
+        val home = FamilyHomeRepository()
+        val nickname = NicknameEditViewModel(members, home)
+        nickname.onEvent(NameEditUiEvent.NameChanged("새닉네임"))
+        nickname.onEvent(NameEditUiEvent.NextClicked)
+        advanceUntilIdle()
+
+        assertEquals(listOf("새닉네임"), members.sent)
+        assertEquals(1, home.invalidated)
+        assertEquals(NameEditUiEffect.NavigateBack, nickname.effect.first())
+    }
+
+    @Test
+    fun 이미_쓰는_닉네임이면_중복으로_표시하고_다른_실패는_알린다() = runTest(mainDispatcherRule.testDispatcher) {
+        val members = Members(com.kiri.domain.model.nickname.DuplicateNicknameException())
+        val home = FamilyHomeRepository()
+        val nickname = NicknameEditViewModel(members, home)
+        nickname.onEvent(NameEditUiEvent.NameChanged("새닉네임"))
+        nickname.onEvent(NameEditUiEvent.NextClicked)
+        advanceUntilIdle()
+        assertTrue(nickname.uiState.value.isDuplicated)
+        assertEquals(0, home.invalidated)
+
+        members.error = IOException()
+        nickname.onEvent(NameEditUiEvent.NameChanged("다른닉네임"))
+        nickname.onEvent(NameEditUiEvent.NextClicked)
+        advanceUntilIdle()
+        assertFalse(nickname.uiState.value.isDuplicated)
+        assertEquals(NameEditUiEffect.ShowSaveError, nickname.effect.first())
+    }
+
+    @Test
+    fun 가족명을_저장하면_가족_정보_캐시를_비운다() = runTest(mainDispatcherRule.testDispatcher) {
+        val home = FamilyHomeRepository()
+        val familyNameViewModel = FamilyNameEditViewModel(familyRepository, home)
+        familyNameViewModel.onEvent(NameEditUiEvent.NameChanged("끼리네가족2"))
+        familyNameViewModel.onEvent(NameEditUiEvent.NextClicked)
+        advanceUntilIdle()
+
+        assertEquals(1, home.invalidated)
     }
 
     @Test

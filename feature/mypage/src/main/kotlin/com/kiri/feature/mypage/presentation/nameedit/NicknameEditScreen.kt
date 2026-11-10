@@ -36,6 +36,7 @@ fun NicknameEditScreen(
         subtitle = "닉네임은 월 1회 수정 가능합니다",
         placeholder = "지금 닉네임: ${state.currentName}",
         testTag = "nickname_edit_screen",
+        duplicatedText = "이미 사용 중인 닉네임입니다.",
         modifier = modifier,
     )
 }

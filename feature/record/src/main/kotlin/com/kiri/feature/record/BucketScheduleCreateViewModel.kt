@@ -179,7 +179,8 @@ constructor(
         state.update { it.copy(loading = true, loadError = null, earliest = clock.kiriNow()) }
         viewModelScope.launch {
             try {
-                val family = home.load()
+                // 주간 미션 일정은 미션 제목이 필요해 홈 전체를, 버킷 일정은 가족 정보만 불러온다
+                val family = if (weeklyMissionId != null) home.load() else home.family()
                 check(!family.browsing) { "가족 연결 후 사용할 수 있어요." }
                 if (weeklyMissionId != null) {
                     val weekly = requireNotNull(family.mission?.takeIf { it.missionId == weeklyMissionId.toString() && !it.unavailable && !it.completed })

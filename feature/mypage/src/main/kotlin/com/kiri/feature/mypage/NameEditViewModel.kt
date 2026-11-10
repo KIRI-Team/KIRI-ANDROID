@@ -29,6 +29,9 @@ abstract class NameEditViewModel(
 
     private var isSaving = false
 
+    // 지금 이름을 나중에 불러온 경우(가족 정보 API) 안내 문구를 바꾼다
+    protected fun updateCurrentName(name: String) = _uiState.update { it.copy(currentName = name) }
+
     // 바꾼 이름을 저장한다. 서버에 저장하지 않는 화면은 바로 성공한다
     protected open suspend fun save(name: String): Result<Unit> = Result.success(Unit)
 

@@ -10,6 +10,8 @@ data class FamilyMember(
     val nickname: String,
     val role: String,
     val accessible: Boolean = true,
+    // 서버가 준 캐릭터 이미지 주소 (없으면 역할별 기본 캐릭터)
+    val imageUrl: String? = null,
 )
 
 data class WeeklyMission(
@@ -39,6 +41,10 @@ data class HomeRecommendation(
 // 일정에 초대할 수 있는 가족. 나와 탈퇴한 구성원은 뺀다
 fun FamilyHome.invitableMembers(): List<FamilyMember> = members.filter { it.accessible && it.id != currentUserId }
 
+/**
+ * 가족 정보(내 회원 id, 구성원, 가족 이름, 가족 id)만 담은 FamilyHome 을 돌려주는 [HomeRepository.family] 결과에서는
+ * 오늘의 질문·답변·일정·주간 미션이 비어 있다.
+ */
 data class FamilyHome(
     val date: LocalDate,
     val currentUserId: String,
@@ -156,7 +162,15 @@ class HomeException(val reason: HomeFailure) : Exception(reason.name)
  * successful mutation returns the complete consistent snapshot.
  */
 interface HomeRepository {
+    // 홈 화면 전체(오늘의 질문·답변·일정 카드·주간 미션)를 불러온다. 홈 화면에서만 쓴다
     suspend fun load(): FamilyHome
+
+    // 가족 정보(내 회원 id, 구성원, 가족 이름)만 필요할 때 쓴다. 질문·일정은 비어 있고, 최근에 불러온 값을 재사용할 수 있다.
+    // 가족 정보 API 가 없는 구현(데모 등)은 load() 를 그대로 쓴다
+    suspend fun family(): FamilyHome = load()
+
+    // 가족명·구성원이 바뀌었을 때 재사용하던 가족 정보를 버린다. 다음 family() 는 새로 불러온다
+    suspend fun invalidateFamily() {}
 
     suspend fun saveAnswer(question: DailyQuestion, answer: String): FamilyHome
 
