@@ -27,6 +27,13 @@ internal interface FamilyApi {
     @POST("api/v1/families")
     suspend fun createFamily(@Body request: CreateFamilyRequest): ApiResponse<CreateFamilyResponse>
 
+    // 로그인 토큰이 필요하다. 초대 코드로 가족에 가입한다 (FAMILY200_7)
+    // 코드 누락·형식 오류 COMMON400_1, 회원 없음 MEMBER404_1, 코드에 맞는 가족 없음 FAMILY404_1,
+    // 이미 다른 가족 FAMILY409_2, 코드 만료 FAMILY410_1
+    // 전달받은 경로는 families/join/code 이다. 다른 가족 API 처럼 api/v1 아래에 둔다
+    @POST("api/v1/families/join/code")
+    suspend fun joinByCode(@Body request: JoinFamilyRequest): ApiResponse<JoinFamilyResponse>
+
     // 로그인 토큰이 필요하다. 그 가족의 구성원이 아니면 FAMILY403_1 로 거절된다
     @GET("api/v1/families/{familyId}/invite")
     suspend fun getInvite(@Path("familyId") familyId: Long): ApiResponse<InviteResponse>
@@ -46,6 +53,12 @@ internal interface FamilyApi {
         @Body request: RenameFamilyRequest,
     ): ApiResponse<RenameFamilyResponse>
 }
+
+@Serializable
+internal data class JoinFamilyRequest(val inviteCode: String)
+
+@Serializable
+internal data class JoinFamilyResponse(val familyId: Long, val familyName: String)
 
 @Serializable
 internal data class InviteResponse(

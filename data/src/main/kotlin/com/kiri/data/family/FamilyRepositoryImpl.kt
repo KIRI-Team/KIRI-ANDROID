@@ -50,6 +50,29 @@ internal class FamilyRepositoryImpl @Inject constructor(
             }
             .recoverDuplicateName()
 
+    // 코드는 앞뒤 공백을 지우고 대문자로 보낸다. 빈 코드는 보내지 않는다. 가입하면 가족 ID 를 기억해 다른 가족 API 에 쓴다
+    override suspend fun joinFamily(inviteCode: String): Result<com.kiri.domain.model.family.JoinedFamily> {
+        val code = inviteCode.trim().uppercase()
+        if (code.isEmpty()) return Result.failure(com.kiri.domain.model.family.InvalidInviteCodeException())
+        return apiResult(json) { api.joinByCode(JoinFamilyRequest(code)) }
+            .mapCatching { response ->
+                familyIdStore.save(response.familyId)
+                com.kiri.domain.model.family.JoinedFamily(response.familyId, response.familyName)
+            }
+            .recoverCatching { error ->
+                val serverCode = (error as? KiriApiException)?.code ?: throw error
+                throw when {
+                    serverCode == "FAMILY410_1" -> com.kiri.domain.model.family.ExpiredInviteCodeException()
+                    serverCode == "FAMILY409_2" -> com.kiri.domain.model.family.AlreadyInFamilyException()
+                    // 코드에 맞는 가족이 없으면 FAMILY404_1(존재하지 않는 가족). FAMILY403_1 도 코드가 그 가족의 것이
+                    // 아니라는 뜻이라 같은 안내를 한다
+                    serverCode in INVALID_INVITE_CODES ->
+                        com.kiri.domain.model.family.InvalidInviteCodeException()
+                    else -> error
+                }
+            }
+    }
+
     // 가족 ID 는 기억해 둔 값을, 없으면 서버에서 받아 쓴다. 소속된 가족이 없으면 바꾸지 않고 실패한다
     override suspend fun renameFamily(name: String): Result<String> {
         val familyId = familyIdStore.resolve(api, json).getOrElse { return Result.failure(it) }
@@ -66,5 +89,6 @@ internal class FamilyRepositoryImpl @Inject constructor(
 
     private companion object {
         const val DUPLICATE_FAMILY_NAME_CODE = "FAMILY409_1"
+        val INVALID_INVITE_CODES = setOf("COMMON400_1", "FAMILY403_1", "FAMILY404_1")
     }
 }

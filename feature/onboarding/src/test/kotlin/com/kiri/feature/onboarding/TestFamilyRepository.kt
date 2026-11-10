@@ -1,6 +1,7 @@
 package com.kiri.feature.onboarding
 
 import com.kiri.domain.model.family.Family
+import com.kiri.domain.model.family.JoinedFamily
 import com.kiri.domain.model.invite.Invite
 import com.kiri.domain.repository.FamilyRepository
 
@@ -11,6 +12,15 @@ class TestFamilyRepository(
     ),
 ) : FamilyRepository {
     val sentNames = mutableListOf<String>()
+
+    // 초대 코드 가입 결과와 보낸 코드
+    var joinResult: Result<JoinedFamily> = Result.success(JoinedFamily(9, "끼리네가족"))
+    val sentCodes = mutableListOf<String>()
+
+    override suspend fun joinFamily(inviteCode: String): Result<JoinedFamily> {
+        sentCodes += inviteCode
+        return joinResult
+    }
 
     override suspend fun createFamily(name: String): Result<Family> {
         sentNames += name

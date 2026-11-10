@@ -20,4 +20,7 @@ sealed interface OnboardingUiEffect {
 
     // 이름 중복 외의 이유로 가족 공간을 만들지 못했다 (네트워크, 서버 오류 등)
     data object ShowCreateFamilyError : OnboardingUiEffect
+
+    // 가족코드로 가족에 참여하지 못했다 (안내 문구를 함께 보낸다)
+    data class ShowJoinFamilyError(val message: String) : OnboardingUiEffect
 }

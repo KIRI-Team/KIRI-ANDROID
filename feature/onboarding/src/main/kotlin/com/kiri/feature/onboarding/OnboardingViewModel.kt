@@ -3,7 +3,10 @@ package com.kiri.feature.onboarding
 import com.kiri.domain.model.nickname.NicknameValidator
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kiri.domain.model.family.AlreadyInFamilyException
 import com.kiri.domain.model.family.DuplicateFamilyNameException
+import com.kiri.domain.model.family.ExpiredInviteCodeException
+import com.kiri.domain.model.family.InvalidInviteCodeException
 import com.kiri.domain.model.family.Family
 import com.kiri.domain.model.invite.Invite
 import com.kiri.domain.model.nickname.DuplicateNicknameException
@@ -195,8 +198,39 @@ class OnboardingViewModel @Inject constructor(
                 isSharing = true
                 _effect.trySend(OnboardingUiEffect.ShareInvite(invite))
             }
-            // TODO: 가족코드 참여 동작이 정해지면 교체 (지금은 임시로 메인으로 이동)
-            else -> _effect.trySend(OnboardingUiEffect.ShowInviteError)
+            // 가족코드 입력 화면: 입력한 코드로 가족에 가입한다
+            OnboardingStep.INPUT_FAMILY_CODE -> joinFamily()
+            else -> Unit
+        }
+    }
+
+    // 6자리를 모두 입력해야 보낸다. 가입하면 온보딩을 마치고 메인으로 간다. 실패하면 입력은 그대로 두고 이유를 알린다
+    private fun joinFamily() {
+        val state = _uiState.value
+        if (state.isSubmitting) return
+        val code = state.inputFamilyCode
+        if (code.length != FAMILY_CODE_LENGTH) {
+            _effect.trySend(OnboardingUiEffect.ShowJoinFamilyError("6자리 가족코드를 모두 입력해주세요."))
+            return
+        }
+        _uiState.update { it.copy(isSubmitting = true) }
+        viewModelScope.launch {
+            val result = familyRepository.joinFamily(code)
+            result
+                .onSuccess {
+                    session?.completeOnboarding()
+                    _effect.trySend(OnboardingUiEffect.NavigateToMainFlow)
+                }
+                .onFailure { error ->
+                    _effect.trySend(OnboardingUiEffect.ShowJoinFamilyError(when (error) {
+                        is InvalidInviteCodeException -> "가족코드를 다시 확인해주세요."
+                        is ExpiredInviteCodeException -> "만료된 가족코드예요. 가족에게 새 코드를 받아주세요."
+                        // 이미 다른 가족에 있어도 지금은 입력 화면에 머문다 (메인으로 보내지 않는다)
+                        is AlreadyInFamilyException -> "이미 다른 가족에 가입되어 있어요."
+                        else -> "가족에 참여하지 못했어요. 잠시 후 다시 시도해주세요."
+                    }))
+                }
+            _uiState.update { it.copy(isSubmitting = false) }
         }
     }
 
@@ -276,6 +310,7 @@ class OnboardingViewModel @Inject constructor(
 
     private companion object {
         const val LOADING_DURATION_MILLIS = 1_000L
+        const val FAMILY_CODE_LENGTH = 6
 
         val COMMON_STEPS = listOf(
             OnboardingStep.INPUT_NICKNAME,
