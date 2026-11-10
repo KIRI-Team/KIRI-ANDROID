@@ -87,12 +87,12 @@ internal fun LoadingHome() {
 }
 
 @Composable
-internal fun ErrorHome(onRetry: () -> Unit) {
+internal fun ErrorHome(message: String, onRetry: () -> Unit) {
     Column(
         Modifier.fillMaxWidth().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("홈을 불러오지 못했어요.", color = HomeStrong)
+        Text(message, color = HomeStrong, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         Spacer(Modifier.height(14.dp))
         Button(onClick = onRetry) { Text("다시 시도") }
     }

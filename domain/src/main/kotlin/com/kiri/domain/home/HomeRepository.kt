@@ -140,7 +140,12 @@ enum class HomeFailure {
     EXPIRED,
     ALREADY_ANSWERED,
     ALREADY_POKED,
+    // 연결 문제나 분류하지 못한 서버 실패
     NETWORK,
+    // 서버 오류(5xx). 잠시 후 다시 시도하면 될 수 있다
+    SERVER,
+    // 로그인 토큰을 재발급하지 못했다
+    SESSION_EXPIRED,
 }
 
 class HomeException(val reason: HomeFailure) : Exception(reason.name)

@@ -133,6 +133,23 @@ class RemoteHomeRepositoryTest {
         }
     }
 
+    @Test fun loadFailuresAreSplitIntoServerSessionAndNetwork() = runTest {
+        MockWebServer().use { server ->
+            server.start(); val repo = repository(server)
+            suspend fun reason() = (runCatching { repo.load() }.exceptionOrNull() as HomeException).reason
+            // nginx 가 HTML 로 답한 502
+            server.enqueue(MockResponse.Builder().code(502).body("<html><head><title>502 Bad Gateway</title></head></html>").build())
+            assertEquals(HomeFailure.SERVER, reason())
+            server.reply("null", code = "COMMON500_1", status = 500)
+            assertEquals(HomeFailure.SERVER, reason())
+            // 재발급 후에도 남은 만료 토큰 401
+            server.reply("null", code = "AUTH401_2", status = 401)
+            assertEquals(HomeFailure.SESSION_EXPIRED, reason())
+            server.reply("null", code = "UNKNOWN400_1", status = 400)
+            assertEquals(HomeFailure.NETWORK, reason())
+        }
+    }
+
     @Test fun missingTokenDoesNotSendRequest() = runTest {
         MockWebServer().use { server ->
             server.start()
