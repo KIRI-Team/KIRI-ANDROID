@@ -28,6 +28,8 @@ okhttp = "5.4.0"
 kotlinxSerialization = "1.11.0"
 googleServices = "4.5.0"
 firebaseBom = "34.0.0"
+# 이미지 로딩. 3.3.0 은 Kotlin 2.2 로 빌드되어 현재 Kotlin(2.2.21)에서 읽을 수 있다
+coil = "3.3.0"
 
 [libraries]
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
@@ -77,6 +79,10 @@ okhttp-logging-interceptor = { module = "com.squareup.okhttp3:logging-intercepto
 okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver3", version.ref = "okhttp" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 kotlin-serialization-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
+
+# 이미지 로딩 (Coil 3 + OkHttp 네트워크)
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
 
 # Firebase (버전은 BOM 이 맞춘다)
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }

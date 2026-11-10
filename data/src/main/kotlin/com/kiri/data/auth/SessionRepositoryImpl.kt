@@ -23,7 +23,7 @@ internal class SessionRepositoryImpl(private val terms: TermApi, private val fam
     override suspend fun restore(): Result<SessionDestination> {
         if (tokens.get() == null) return Result.success(SessionDestination.LOGIN)
         val agreed = apiResult(json) { terms.agreements() }.getOrElse { error ->
-            return if (tokens.get() == null || (error as? KiriApiException)?.code in setOf("COMMON401_1", "AUTH401_1", "AUTH401_2", "MEMBER404_1")) {
+            return if (tokens.get() == null || (error as? KiriApiException)?.code in LOGOUT_CODES) {
                 tokens.clear(); Result.success(SessionDestination.LOGIN)
             } else Result.failure(error)
         }
@@ -31,7 +31,7 @@ internal class SessionRepositoryImpl(private val terms: TermApi, private val fam
         val prefs = store.data.first()
         val family = apiResult(json) { families.getMyFamilyId() }
         family.onSuccess { familyIds.save(it.familyId) }
-        if (family.isFailure && (tokens.get() == null || (family.exceptionOrNull() as? KiriApiException)?.code in setOf("COMMON401_1", "AUTH401_1", "AUTH401_2", "MEMBER404_1"))) {
+        if (family.isFailure && (tokens.get() == null || (family.exceptionOrNull() as? KiriApiException)?.code in LOGOUT_CODES)) {
             tokens.clear(); return Result.success(SessionDestination.LOGIN)
         }
         if (family.isFailure && (family.exceptionOrNull() as? KiriApiException)?.code != "FAMILY404_1")
@@ -49,6 +49,10 @@ internal class SessionRepositoryImpl(private val terms: TermApi, private val fam
     override suspend fun saveRole(value: String) { store.edit { it[ROLE] = value } }
     override suspend fun completeOnboarding() { store.edit { it[COMPLETE] = true } }
     private companion object {
+        // 토큰 무효·만료(AUTH401_1, AUTH401_2)는 TokenAuthenticator 가 먼저 재발급한다. 서버가 재발급을 거절하면
+        // 토큰이 지워져 위의 tokens.get() == null 로 로그인에 간다. 토큰이 남아 있는데 401 이 왔다면
+        // 재발급이 연결·서버 문제로 실패한 것이므로 로그아웃하지 않고 실패(다시 시도)로 돌려준다
+        val LOGOUT_CODES = setOf("COMMON401_1", "MEMBER404_1")
         val NICKNAME = stringPreferencesKey("onboarding_nickname")
         val ROLE = stringPreferencesKey("onboarding_role")
         val COMPLETE = booleanPreferencesKey("onboarding_complete")

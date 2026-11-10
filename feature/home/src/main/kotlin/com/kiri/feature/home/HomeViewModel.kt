@@ -131,7 +131,7 @@ class HomeViewModel @Inject constructor(
     private fun load() {
         if (uiState.value.busy || loadingInProgress) return
         loadingInProgress = true
-        _uiState.update { it.copy(loading = it.home == null, loadError = false) }
+        _uiState.update { it.copy(loading = it.home == null, loadFailure = null) }
         viewModelScope.launch {
             try {
                 val loaded = repository.load()
@@ -150,7 +150,7 @@ class HomeViewModel @Inject constructor(
                 _uiState.update { old ->
                     val changed = old.home != null && old.home.date != home.date
                     old.copy(
-                        loading = false, home = home, loadError = false, error = if (changed) null else old.error,
+                        loading = false, home = home, loadFailure = null, error = if (changed) null else old.error,
                         editing = if (changed) false else old.editing,
                         selectedMemberId = if (changed) null else old.selectedMemberId,
                         draft = if (changed) "" else old.draft,
@@ -159,7 +159,11 @@ class HomeViewModel @Inject constructor(
                     )
                 }
             } catch (error: CancellationException) { throw error }
-            catch (_: Exception) { _uiState.update { it.copy(loading = false, loadError = true) } }
+            catch (error: Exception) {
+                // 실패 원인을 debug 로그에 남긴다. JVM 단위 테스트에는 android.util.Log 가 없어 실패해도 무시한다
+                runCatching { android.util.Log.w("HomeViewModel", "홈을 불러오지 못했어요", error) }
+                _uiState.update { it.copy(loading = false, loadFailure = HomeLoadFailure.from(error)) }
+            }
             finally { loadingInProgress = false }
         }
     }
@@ -207,6 +211,8 @@ class HomeViewModel @Inject constructor(
             HomeFailure.ALREADY_ANSWERED -> "이미 답변한 가족이에요."
             HomeFailure.ALREADY_POKED -> "오늘은 이미 콕을 보냈어요."
             HomeFailure.UNAVAILABLE -> "지금은 이 질문이나 구성원에게 접근할 수 없어요."
+            HomeFailure.SERVER -> "서버에 잠시 문제가 있어요. 입력은 유지됐으니 잠시 후 다시 시도해주세요."
+            HomeFailure.SESSION_EXPIRED -> "로그인 정보를 확인하지 못했어요. 입력은 유지됐으니 다시 시도해주세요."
             else -> "처리하지 못했어요. 입력은 유지됐으니 다시 시도해주세요."
         }) }
         if (reason == HomeFailure.EXPIRED) load()

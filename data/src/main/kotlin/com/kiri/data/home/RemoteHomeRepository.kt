@@ -163,14 +163,23 @@ internal class RemoteHomeRepository(
     private suspend fun <T> mapped(block: suspend () -> T): T = try { block() }
     catch (error: CancellationException) { throw error }
     catch (error: KiriApiException) {
-        throw HomeException(when (error.code) {
-            "QUESTION400_1" -> HomeFailure.EXPIRED
-            "QUESTION409_2" -> HomeFailure.ALREADY_POKED
-            "QUESTION404_1", "QUESTION404_2", "QUESTION404_3", "QUESTION403_1", "QUESTION400_2" -> HomeFailure.UNAVAILABLE
+        throw HomeException(when {
+            error.code == "QUESTION400_1" -> HomeFailure.EXPIRED
+            error.code == "QUESTION409_2" -> HomeFailure.ALREADY_POKED
+            error.code in setOf("QUESTION404_1", "QUESTION404_2", "QUESTION404_3", "QUESTION403_1", "QUESTION400_2") -> HomeFailure.UNAVAILABLE
+            // TokenAuthenticator 가 재발급을 시도하고도 401 이 남았다
+            error.code.startsWith("AUTH401") || error.code == "COMMON401_1" -> HomeFailure.SESSION_EXPIRED
+            error.isServerError() -> HomeFailure.SERVER
             else -> HomeFailure.NETWORK
         })
     }
+    catch (error: java.io.IOException) { throw HomeException(HomeFailure.NETWORK) }
 }
+
+// 서버 응답 code 가 COMMON500_1 처럼 5xx 이거나, 본문을 읽지 못한 HTTP 5xx(예: nginx 502 → HTTP502)
+private val SERVER_ERROR_CODE = Regex("""(HTTP5\d\d|[A-Z]+5\d\d_\d+)""")
+
+private fun KiriApiException.isServerError() = SERVER_ERROR_CODE.matches(code)
 
 // 가족 정보를 재사용하는 시간(초). 홈을 열면 새로 받는다
 private const val FAMILY_CACHE_SECONDS = 30L

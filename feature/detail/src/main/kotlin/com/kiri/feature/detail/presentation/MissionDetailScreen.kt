@@ -141,16 +141,17 @@ fun MissionDetailScreen(
                 state.memoriesSelected,
                 calendarHeader,
                 showAppBar,
+                // 버킷 저장 버튼은 상단 박스 안, 정보 박스 아래에 둔다 (박스 밖 회색 배경으로 넘어가지 않게)
+                footer = if (discovery && discoverySaveLabel != null) {
+                    {
+                        KiriDetailButton(discoverySaveLabel, onDiscoverySave,
+                            enabled = discoverySaveEnabled,
+                            modifier = Modifier.testTag("preview_save"))
+                        if (state.error != null) Text(state.error, Modifier.padding(top = 8.dp),
+                            color = KiriColor.Text.Primary, style = KiriDetailTypography.Body)
+                    }
+                } else null,
             )
-            if (discovery && discoverySaveLabel != null) {
-                Column(Modifier.padding(horizontal = 18.dp)) {
-                    KiriDetailButton(discoverySaveLabel, onDiscoverySave,
-                        enabled = discoverySaveEnabled,
-                        modifier = Modifier.testTag("preview_save"))
-                    if (state.error != null) Text(state.error, color = KiriColor.Text.Primary,
-                        style = KiriDetailTypography.Body)
-                }
-            }
             Spacer(Modifier.height(if (showTabs) 36.dp else 16.dp))
             if (showTabs)
                 Row(
@@ -295,9 +296,7 @@ fun MissionDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(24.dp),
                     ) {
                         state.nearby.forEach { place ->
-                            // 서버가 준 장소 사진이 있으면 그 사진을, 없으면 기본 이미지를 쓴다
-                            val photo: (@Composable (Modifier) -> Unit)? =
-                                place.imageUrl?.let { url -> @Composable { imageModifier: Modifier -> MemoryPhoto(url, imageModifier) } }
+                            // 서버가 준 장소 사진이 있으면 그 사진을, 없거나 불러오지 못하면 기본 이미지를 쓴다
                             KiriPlaceCard(
                                 place.title,
                                 place.address,
@@ -305,7 +304,7 @@ fun MissionDetailScreen(
                                 rating = null,
                                 detailStyle = true,
                                 imageRes = nearbyImageRes,
-                                image = photo,
+                                imageUrl = place.imageUrl,
                             )
                         }
                     }
@@ -329,8 +328,10 @@ private fun DetailHeader(
     memoriesSelected: Boolean = false,
     calendarHeader: CalendarDetailHeader? = null,
     showAppBar: Boolean = true,
+    // 정보 박스 아래, 상단 박스 안쪽에 붙일 내용 (미션 미리보기의 버킷 저장 버튼)
+    footer: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
-    Column(Modifier.fillMaxWidth().background(KiriColor.Bg.Primary)) {
+    Column(Modifier.fillMaxWidth().background(KiriColor.Bg.Primary).testTag("detail_header")) {
         if (showAppBar)
             KiriDetailAppBar(
                 calendarHeader?.title
@@ -489,6 +490,10 @@ private fun DetailHeader(
                     testTag = "server_schedule_edit",
                     defaultContentColor = KiriColor.Text.Secondary,
                 )
+            }
+            footer?.let { content ->
+                Spacer(Modifier.height(16.dp))
+                content()
             }
         }
     }

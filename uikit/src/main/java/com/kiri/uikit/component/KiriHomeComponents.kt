@@ -303,11 +303,16 @@ fun KiriPlaceCard(
     detailStyle: Boolean = false,
     // 서버 사진처럼 리소스가 아닌 이미지를 그린다. 넘기면 imageRes 대신 쓴다 (넘긴 Modifier 로 크기·투명도를 맞춘다)
     image: (@Composable (Modifier) -> Unit)? = null,
+    // 서버 사진 주소. 불러오는 동안과 불러오지 못했을 때는 imageRes 를 보여준다
+    imageUrl: String? = null,
 ) {
     Card(modifier.width(251.dp).height(284.dp), colors = CardDefaults.cardColors(KiriColor.Bg.Primary), shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 16.dp, bottomEnd = 16.dp)) {
         Column {
             val imageModifier = Modifier.fillMaxWidth().height(144.dp).alpha(0.8f)
             if (image != null) image(imageModifier)
+            else if (!imageUrl.isNullOrBlank()) KiriAsyncImage(imageUrl, title, imageModifier) {
+                Image(painterResource(imageRes), null, Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+            }
             else Image(
                 painter = painterResource(imageRes),
                 contentDescription = title,
