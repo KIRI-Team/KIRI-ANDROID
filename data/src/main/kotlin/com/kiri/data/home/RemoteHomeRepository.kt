@@ -56,6 +56,8 @@ internal class RemoteHomeRepository(
         } }
     }
 
+    override suspend fun invalidateFamily() = mutex.withLock { familyCache = null }
+
     // 가족 정보를 불러온다. reuseWithinSeconds 안에 불러온 값이 있으면 다시 부르지 않는다(null 이면 항상 새로 부른다).
     // 소속된 가족이 없으면 null
     private suspend fun familyInfo(reuseWithinSeconds: Long?): FamilyInfoResponse? {
@@ -86,7 +88,8 @@ internal class RemoteHomeRepository(
     }
 
     private fun FamilyInfoResponse.members() = members.map {
-        FamilyMember(it.memberId.toString(), it.nickname, roleLabel(it.familyRole))
+        FamilyMember(it.memberId.toString(), it.nickname, roleLabel(it.familyRole),
+            imageUrl = it.characterImageUrl?.takeIf { url -> url.isNotBlank() })
     }
 
     private fun roleLabel(role: String?) = when (role) {

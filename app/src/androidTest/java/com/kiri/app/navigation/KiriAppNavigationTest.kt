@@ -205,29 +205,7 @@ class KiriAppNavigationTest {
         compose.onNodeWithTag("mypage_screen").assertIsDisplayed()
     }
 
-    @Test
-    fun 가족_기본_설정에서_가족명_수정_화면으로_이동하고_뒤로가면_돌아온다() {
-        start()
-        compose.onNodeWithTag("bottom_nav_mypage").performClick()
-        compose.onNodeWithTag("mypage_menu_family_setting").performScrollTo().performClick()
-        compose.onNodeWithTag("family_setting_screen").assertIsDisplayed()
-
-        compose.onNodeWithTag("family_name_edit").performClick()
-        compose.onNodeWithTag("family_name_edit_screen").assertIsDisplayed()
-
-        compose.onNodeWithTag("kiri_back_button").performClick()
-        compose.onNodeWithTag("family_setting_screen").assertIsDisplayed()
-    }
-
-    @Test
-    fun 가족_기본_설정에서_내_카드의_수정_아이콘을_누르면_닉네임_수정_화면으로_이동한다() {
-        start()
-        compose.onNodeWithTag("bottom_nav_mypage").performClick()
-        compose.onNodeWithTag("mypage_menu_family_setting").performScrollTo().performClick()
-
-        compose.onNodeWithTag("family_member_nickname_edit").performClick()
-        compose.onNodeWithTag("nickname_edit_screen").assertIsDisplayed()
-    }
+    // 가족 기본 설정에서 가족명·닉네임 수정으로 가는 이동은 가족 정보가 필요해 MypageFamilyNavigationTest 에서 확인한다
 
     @Test
     fun 계정_정보를_누르면_계정_정보_화면으로_이동하고_뒤로가면_마이페이지로_돌아온다() {

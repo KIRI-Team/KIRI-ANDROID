@@ -62,7 +62,8 @@ fun MypageProfileRow(
                     ),
                 )
                 Text(
-                    text = "${profile.familyName} I ${profile.role}",
+                    // 역할을 정하지 않았거나 불러오기 전이면 빈 칸 없이 있는 값만 잇는다
+                    text = listOf(profile.familyName, profile.role).filter { it.isNotBlank() }.joinToString(" I "),
                     style = TextStyle(
                         color = KiriColor.Text.Secondary,
                         fontSize = 14.sp,

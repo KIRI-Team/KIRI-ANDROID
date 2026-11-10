@@ -2,6 +2,7 @@ package com.kiri.app.mypage
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -9,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kiri.feature.mypage.model.family.FamilyMember
+import com.kiri.feature.mypage.model.family.FamilySettingUiState
 import com.kiri.feature.mypage.model.nameedit.NameEditUiEvent
 import com.kiri.feature.mypage.model.nameedit.NameEditUiState
 import com.kiri.feature.mypage.presentation.family.FamilySettingScreen
@@ -26,31 +28,48 @@ class FamilySettingScreenTest {
     val composeTestRule = createComposeRule()
 
     private val members = listOf(
-        FamilyMember(role = "딸", nickname = "쥬123", isMe = true),
-        FamilyMember(role = "아들", nickname = "첫째"),
-        FamilyMember(role = "엄마", nickname = "마마"),
-        FamilyMember(role = "아빠", nickname = "빠빠"),
+        FamilyMember(role = "딸", nickname = "쥬123", isMe = true, id = "1"),
+        FamilyMember(role = "아들", nickname = "첫째", id = "2"),
+        FamilyMember(role = "", nickname = "막내", id = "3"),
+        FamilyMember(role = "아빠", nickname = "빠빠", id = "4"),
     )
+    private val loaded = FamilySettingUiState(loading = false, familyName = "끼리네가족", members = members)
 
     @Test
-    fun 가족_이름과_구성원이_보이고_내_카드에만_수정_아이콘이_있다() {
+    fun 가족_이름과_구성원_수_닉네임_역할이_보이고_내_카드에만_수정_아이콘이_있다() {
         composeTestRule.setContent {
             KiriTheme {
-                FamilySettingScreen(
-                    onBackClick = {},
-                    onFamilyNameEditClick = {},
-                    onMyNicknameEditClick = {},
-                    familyName = "끼리네가족",
-                    members = members,
-                )
+                FamilySettingScreen(onBackClick = {}, onFamilyNameEditClick = {}, onMyNicknameEditClick = {}, state = loaded)
             }
         }
 
         composeTestRule.onNodeWithText("가족 기본 설정").assertIsDisplayed()
+        composeTestRule.onNodeWithText("현재 가족 이름").assertIsDisplayed()
         composeTestRule.onNodeWithText("끼리네가족").assertIsDisplayed()
-        members.forEach { composeTestRule.onNodeWithText("역할 I ${it.role}").assertIsDisplayed() }
-        composeTestRule.onNodeWithText("빠빠").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("family_member_count").assertTextEquals("4")
+        members.forEach { composeTestRule.onNodeWithText(it.nickname).assertIsDisplayed() }
+        listOf("딸", "아들", "아빠").forEach { composeTestRule.onNodeWithText(it).assertIsDisplayed() }
         composeTestRule.onAllNodesWithTag("family_member_nickname_edit").assertCountEquals(1)
+    }
+
+    @Test
+    fun 불러오지_못하면_다시_시도를_전달하고_가족이_없으면_가족명_수정_아이콘이_없다() {
+        var retries = 0
+        val state = androidx.compose.runtime.mutableStateOf(FamilySettingUiState(loading = false, failed = true))
+        composeTestRule.setContent {
+            KiriTheme {
+                FamilySettingScreen(onBackClick = {}, onFamilyNameEditClick = {}, onMyNicknameEditClick = {},
+                    state = state.value, onRetry = { retries++ })
+            }
+        }
+
+        composeTestRule.onNodeWithText("가족 정보를 불러오지 못했어요.").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("family_setting_retry").performClick()
+        assertEquals(1, retries)
+        composeTestRule.onNodeWithTag("family_name_edit").assertDoesNotExist()
+
+        composeTestRule.runOnIdle { state.value = FamilySettingUiState(loading = false) }
+        composeTestRule.onNodeWithText("가족에 참여하면 구성원을 볼 수 있어요.").assertIsDisplayed()
     }
 
     @Test
@@ -62,7 +81,7 @@ class FamilySettingScreenTest {
                     onBackClick = { clicks += "back" },
                     onFamilyNameEditClick = { clicks += "familyName" },
                     onMyNicknameEditClick = { clicks += "nickname" },
-                    members = members,
+                    state = loaded,
                 )
             }
         }

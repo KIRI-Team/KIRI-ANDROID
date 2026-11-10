@@ -10,6 +10,8 @@ data class FamilyMember(
     val nickname: String,
     val role: String,
     val accessible: Boolean = true,
+    // 서버가 준 캐릭터 이미지 주소 (없으면 역할별 기본 캐릭터)
+    val imageUrl: String? = null,
 )
 
 data class WeeklyMission(
@@ -166,6 +168,9 @@ interface HomeRepository {
     // 가족 정보(내 회원 id, 구성원, 가족 이름)만 필요할 때 쓴다. 질문·일정은 비어 있고, 최근에 불러온 값을 재사용할 수 있다.
     // 가족 정보 API 가 없는 구현(데모 등)은 load() 를 그대로 쓴다
     suspend fun family(): FamilyHome = load()
+
+    // 가족명·구성원이 바뀌었을 때 재사용하던 가족 정보를 버린다. 다음 family() 는 새로 불러온다
+    suspend fun invalidateFamily() {}
 
     suspend fun saveAnswer(question: DailyQuestion, answer: String): FamilyHome
 

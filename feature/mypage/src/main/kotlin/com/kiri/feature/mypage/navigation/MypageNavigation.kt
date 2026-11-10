@@ -8,10 +8,10 @@ import androidx.navigation.navigation
 import com.kiri.feature.mypage.model.common.MypageMenu
 import com.kiri.feature.mypage.presentation.account.AccountInfoRoute
 import com.kiri.feature.mypage.presentation.address.HomeAddressRoute
-import com.kiri.feature.mypage.presentation.family.FamilySettingScreen
+import com.kiri.feature.mypage.presentation.family.FamilySettingRoute
 import com.kiri.feature.mypage.presentation.invite.InviteLinkRoute
 import com.kiri.feature.mypage.presentation.license.OpenLicenseRoute
-import com.kiri.feature.mypage.presentation.main.MypageScreen
+import com.kiri.feature.mypage.presentation.main.MypageRoute
 import com.kiri.feature.mypage.presentation.nameedit.FamilyNameEditRoute
 import com.kiri.feature.mypage.presentation.nameedit.NicknameEditRoute
 import com.kiri.feature.mypage.presentation.notification.NotificationSettingRoute
@@ -38,7 +38,7 @@ fun NavGraphBuilder.mypageGraph(
 ) {
     navigation(startDestination = MYPAGE_ROUTE, route = MYPAGE_GRAPH_ROUTE) {
         composable(MYPAGE_ROUTE) {
-            MypageScreen(
+            MypageRoute(
                 onMenuClick = { navController.navigate(mypageMenuRoute(it)) },
                 onProfileEditClick = { navController.navigate(NICKNAME_EDIT_ROUTE) },
             )
@@ -80,7 +80,7 @@ private fun MypageMenuScreen(
     when (menu) {
         MypageMenu.MY_PREFERENCE -> MyPreferenceRoute(onNavigateBack = onBackClick)
         MypageMenu.NOTIFICATION_SETTING -> NotificationSettingRoute(onNavigateBack = onBackClick)
-        MypageMenu.FAMILY_SETTING -> FamilySettingScreen(
+        MypageMenu.FAMILY_SETTING -> FamilySettingRoute(
             onBackClick = onBackClick,
             onFamilyNameEditClick = { navController.navigate(FAMILY_NAME_EDIT_ROUTE) },
             onMyNicknameEditClick = { navController.navigate(NICKNAME_EDIT_ROUTE) },

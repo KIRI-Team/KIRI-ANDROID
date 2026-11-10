@@ -23,10 +23,29 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.kiri.feature.mypage.model.common.MypageMenu
 import com.kiri.feature.mypage.model.common.MypageProfile
+import androidx.compose.runtime.getValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kiri.feature.mypage.FamilySettingViewModel
+import com.kiri.feature.mypage.toProfile
 import com.kiri.feature.mypage.model.common.MypageSection
 import com.kiri.feature.mypage.presentation.common.MypageMenuGroup
 import com.kiri.feature.mypage.presentation.main.component.MypageProfileRow
 import com.kiri.uikit.color.KiriColor
+
+// 프로필(닉네임, 가족 이름, 역할)은 가족 정보 API 로 채운다. 이름을 바꾸고 돌아오면 다시 불러온다
+@Composable
+fun MypageRoute(
+    onMenuClick: (MypageMenu) -> Unit,
+    onProfileEditClick: () -> Unit,
+    viewModel: FamilySettingViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.load() }
+    MypageScreen(onMenuClick = onMenuClick, profile = state.toProfile(), onProfileEditClick = onProfileEditClick)
+}
 
 // 시스템 바 여백은 메인 화면의 Scaffold가 처리한다
 @Composable
