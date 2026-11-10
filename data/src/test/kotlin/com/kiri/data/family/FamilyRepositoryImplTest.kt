@@ -222,6 +222,47 @@ class FamilyRepositoryImplTest {
         assertTrue(error is IOException)
     }
 
+    @Test
+    fun 초대_코드를_대문자로_POST하고_가입한_가족_ID를_기억한다() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"FAMILY200_7","message":"가족 가입에 성공했습니다.","result":{"familyId":1,"familyName":"끼리네가족"}}""")
+
+        val joined = repository().joinFamily(" 4qnc1q ").getOrThrow()
+
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/v1/families/join/code", request.url.encodedPath)
+        val body = kiriJson.parseToJsonElement(request.body!!.utf8()).jsonObject
+        assertEquals("4QNC1Q", body["inviteCode"]!!.jsonPrimitive.content)
+        assertEquals(com.kiri.domain.model.family.JoinedFamily(1, "끼리네가족"), joined)
+        assertEquals(1L, familyIdStore.saved)
+    }
+
+    @Test
+    fun 빈_초대_코드는_보내지_않는다() = runTest {
+        val error = repository().joinFamily("  ").exceptionOrNull()
+
+        assertTrue(error is com.kiri.domain.model.family.InvalidInviteCodeException)
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test
+    fun 가입_실패_코드를_도메인_오류로_바꾸고_가족_ID는_기억하지_않는다() = runTest {
+        fun failure(code: String) = """{"isSuccess":false,"code":"$code","message":"실패","result":null}"""
+        enqueue(410, failure("FAMILY410_1"))
+        enqueue(409, failure("FAMILY409_2"))
+        enqueue(400, """{"isSuccess":false,"code":"COMMON400_1","message":"잘못된 요청입니다.","result":{"inviteCode":"초대 코드는 필수입니다."}}""")
+        enqueue(404, """{"isSuccess":false,"code":"FAMILY404_1","message":"존재하지 않는 가족입니다.","result":null}""")
+        enqueue(403, failure("FAMILY403_1"))
+        enqueue(500, failure("COMMON500_1"))
+
+        val repo = repository()
+        assertTrue(repo.joinFamily("4QNC1Q").exceptionOrNull() is com.kiri.domain.model.family.ExpiredInviteCodeException)
+        assertTrue(repo.joinFamily("4QNC1Q").exceptionOrNull() is com.kiri.domain.model.family.AlreadyInFamilyException)
+        repeat(3) { assertTrue(repo.joinFamily("4QNC1Q").exceptionOrNull() is com.kiri.domain.model.family.InvalidInviteCodeException) }
+        assertEquals("COMMON500_1", (repo.joinFamily("4QNC1Q").exceptionOrNull() as KiriApiException).code)
+        assertNull(familyIdStore.saved)
+    }
+
     private companion object {
         const val RENAME_BODY = """{"isSuccess":true,"code":"FAMILY200_4","message":"가족명이 변경되었습니다.",""" +
             """"result":{"familyId":7,"name":"끼리네가족2"}}"""

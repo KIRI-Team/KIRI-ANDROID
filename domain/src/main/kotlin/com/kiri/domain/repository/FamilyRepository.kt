@@ -11,6 +11,12 @@ interface FamilyRepository {
     // 같은 이름의 가족 공간이 이미 있으면 DuplicateFamilyNameException 으로 실패한다
     suspend fun createFamily(name: String): Result<Family>
 
+    // 초대 코드로 가족에 가입하고 가입한 가족을 돌려준다. 가입하면 그 가족 ID 를 기억한다
+    // 코드가 틀렸거나 가족을 찾을 수 없으면 InvalidInviteCodeException, 만료됐으면 ExpiredInviteCodeException,
+    // 이미 다른 가족에 있으면 AlreadyInFamilyException 으로 실패한다
+    suspend fun joinFamily(inviteCode: String): Result<com.kiri.domain.model.family.JoinedFamily> =
+        Result.failure(UnsupportedOperationException())
+
     // 내 가족 공간의 이름을 바꾸고 바뀐 이름을 돌려준다
     // 같은 이름의 가족 공간이 이미 있으면 DuplicateFamilyNameException, 이 기기에 가족 공간 정보가 없으면 NoFamilyException 으로 실패한다
     suspend fun renameFamily(name: String): Result<String>

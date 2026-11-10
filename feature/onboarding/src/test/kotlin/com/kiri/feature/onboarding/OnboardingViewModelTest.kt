@@ -293,15 +293,70 @@ class OnboardingViewModelTest {
         assertEquals(listOf("끼리네가족", "끼리네집"), familyRepository.sentNames)
     }
 
-    @Test
-    fun 가족코드_입력은_실제_참여_API_없이_메인으로_넘어가지_않는다() = runTest(mainDispatcherRule.testDispatcher) {
+    private fun moveToFamilyCode(code: String) {
         moveToOnboardingMain()
         viewModel.onEvent(OnboardingUiEvent.PathSelected(OnboardingPath.JOIN_FAMILY))
-        assertEquals(OnboardingStep.INPUT_FAMILY_CODE, state.currentStep)
+        viewModel.onEvent(OnboardingUiEvent.InputFamilyCodeChanged(code))
+    }
+
+    @Test
+    fun 가족코드로_가입하면_입력한_코드를_보내고_메인으로_넘어간다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToFamilyCode("4QNC1Q")
+        val effects = collectEffects()
 
         viewModel.onEvent(OnboardingUiEvent.InviteClicked)
+        advanceUntilIdle()
 
-        assertEquals(OnboardingUiEffect.ShowInviteError, viewModel.effect.first())
+        assertEquals(listOf("4QNC1Q"), familyRepository.sentCodes)
+        assertEquals(listOf<OnboardingUiEffect>(OnboardingUiEffect.NavigateToMainFlow), effects)
+        assertFalse(state.isSubmitting)
+    }
+
+    @Test
+    fun 가족코드를_6자리_모두_입력하지_않으면_보내지_않는다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToFamilyCode("4QNC")
+        val effects = collectEffects()
+
+        viewModel.onEvent(OnboardingUiEvent.InviteClicked)
+        advanceUntilIdle()
+
+        assertTrue(familyRepository.sentCodes.isEmpty())
+        assertEquals(listOf<OnboardingUiEffect>(OnboardingUiEffect.ShowJoinFamilyError("6자리 가족코드를 모두 입력해주세요.")), effects)
+    }
+
+    @Test
+    fun 가입하는_동안_다시_눌러도_한_번만_보낸다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToFamilyCode("4QNC1Q")
+
+        viewModel.onEvent(OnboardingUiEvent.InviteClicked)
+        assertTrue(state.isSubmitting)
+        viewModel.onEvent(OnboardingUiEvent.InviteClicked)
+        advanceUntilIdle()
+
+        assertEquals(1, familyRepository.sentCodes.size)
+    }
+
+    @Test
+    fun 가입하지_못하면_이유를_알리고_입력과_화면을_그대로_둔다() = runTest(mainDispatcherRule.testDispatcher) {
+        moveToFamilyCode("4QNC1Q")
+        val effects = collectEffects()
+        val cases = listOf(
+            com.kiri.domain.model.family.InvalidInviteCodeException() to "가족코드를 다시 확인해주세요.",
+            com.kiri.domain.model.family.ExpiredInviteCodeException() to "만료된 가족코드예요. 가족에게 새 코드를 받아주세요.",
+            com.kiri.domain.model.family.AlreadyInFamilyException() to "이미 다른 가족에 가입되어 있어요.",
+            IOException() to "가족에 참여하지 못했어요. 잠시 후 다시 시도해주세요.",
+        )
+
+        cases.forEach { (error, _) ->
+            familyRepository.joinResult = Result.failure(error)
+            viewModel.onEvent(OnboardingUiEvent.InviteClicked)
+            advanceUntilIdle()
+        }
+
+        assertEquals(cases.map { OnboardingUiEffect.ShowJoinFamilyError(it.second) }, effects)
+        assertEquals(OnboardingStep.INPUT_FAMILY_CODE, state.currentStep)
+        assertEquals("4QNC1Q", state.inputFamilyCode)
+        assertFalse(state.isSubmitting)
     }
 
     @Test
