@@ -138,7 +138,7 @@ open class LocalDetailRepository(
     private suspend fun familySnapshot(): com.kiri.domain.home.FamilyHome {
         val home =
             try {
-                homeRepository.load()
+                homeRepository.family()
             } catch (error: Exception) {
                 selections.clear()
                 scope = null

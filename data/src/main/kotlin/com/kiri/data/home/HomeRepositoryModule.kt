@@ -18,9 +18,10 @@ object HomeRepositoryModule {
 
     @Provides
     @Singleton
-    internal fun provideHomeRepository(retrofit: retrofit2.Retrofit, tokens: com.kiri.data.auth.TokenStore, json: kotlinx.serialization.json.Json, clock: Clock, missions: com.kiri.data.mission.MissionApi): HomeRepository {
+    internal fun provideHomeRepository(retrofit: retrofit2.Retrofit, tokens: com.kiri.data.auth.TokenStore, json: kotlinx.serialization.json.Json, clock: Clock, missions: com.kiri.data.mission.MissionApi, familyIds: com.kiri.data.family.FamilyIdStore): HomeRepository {
         val api = retrofit.create(HomeApi::class.java)
-        return UpcomingHomeRepository(RemoteHomeRepository(api, tokens, json, clock, missions), api, json)
+        val families = retrofit.create(com.kiri.data.family.FamilyApi::class.java)
+        return UpcomingHomeRepository(RemoteHomeRepository(api, tokens, json, clock, missions, families, familyIds), api, json)
     }
 
     @Provides

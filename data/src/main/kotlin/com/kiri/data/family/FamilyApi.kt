@@ -46,6 +46,11 @@ internal interface FamilyApi {
     @PATCH("api/v1/families/{familyId}/invite")
     suspend fun reissueInvite(@Path("familyId") familyId: Long): ApiResponse<InviteResponse>
 
+    // 로그인 토큰이 필요하다. 가족 이름과 탈퇴하지 않은 구성원 목록을 준다 (FAMILY200_9)
+    // 그 가족의 구성원이 아니면 FAMILY403_1, 회원이나 가족이 없으면 404 (MEMBER404_1, FAMILY404_1)
+    @GET("api/v1/families/{familyId}")
+    suspend fun getFamily(@Path("familyId") familyId: Long): ApiResponse<FamilyInfoResponse>
+
     // 로그인 토큰이 필요하다. 같은 이름의 가족이 있으면 FAMILY409_1, 구성원이 아니면 FAMILY403_1 로 거절된다
     @PATCH("api/v1/families/{familyId}")
     suspend fun renameFamily(
@@ -53,6 +58,23 @@ internal interface FamilyApi {
         @Body request: RenameFamilyRequest,
     ): ApiResponse<RenameFamilyResponse>
 }
+
+@Serializable
+internal data class FamilyInfoResponse(
+    val familyId: Long,
+    val familyName: String,
+    val ownerMemberId: Long? = null,
+    val members: List<FamilyInfoMemberResponse> = emptyList(),
+)
+
+@Serializable
+internal data class FamilyInfoMemberResponse(
+    val memberId: Long,
+    val nickname: String,
+    // MOTHER·FATHER·DAUGHTER·SON. 아직 정하지 않았거나 모르는 값이면 역할 없이 보여준다
+    val familyRole: String? = null,
+    val characterImageUrl: String? = null,
+)
 
 @Serializable
 internal data class JoinFamilyRequest(val inviteCode: String)

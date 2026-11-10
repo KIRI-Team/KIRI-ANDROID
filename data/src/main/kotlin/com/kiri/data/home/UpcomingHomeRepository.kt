@@ -13,6 +13,8 @@ internal class UpcomingHomeRepository(private val questions: HomeRepository, pri
     private val json: Json) : HomeRepository {
     private val mutex = Mutex()
     override suspend fun load() = mutex.withLock { enrich(questions.load()) }
+    // 가족 정보만 필요하면 일정 카드를 부르지 않는다
+    override suspend fun family() = questions.family()
     override suspend fun saveAnswer(question: DailyQuestion, answer: String) = mutex.withLock {
         questions.saveAnswer(question, answer).copy(schedules = schedules)
     }

@@ -58,7 +58,7 @@ class ScheduleViewModel @Inject constructor(
         viewModelScope.launch {
             state.update { it.copy(loading = true, error = null) }
             try {
-                val family = home.load(); check(!family.browsing) { "가족 연결 후 사용할 수 있어요." }
+                val family = home.family(); check(!family.browsing) { "가족 연결 후 사용할 수 있어요." }
                 buckets.refresh(); repository.refresh()
                 val schedule = repository.schedules.value.find { it.id == (state.value.schedule?.id ?: id) }
                 val bucket = buckets.buckets.value.find { it.id == bucketId }

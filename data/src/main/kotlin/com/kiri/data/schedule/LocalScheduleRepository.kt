@@ -305,7 +305,7 @@ class LocalScheduleRepository(
 
     private suspend fun family(): FamilyHome {
         try {
-            val family = home.load()
+            val family = home.family()
             val next = family.localStorageScope()
             if (scope != next) {
                 scope = null

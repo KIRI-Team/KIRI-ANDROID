@@ -38,7 +38,7 @@ open class LocalRecordRepository(
 
     private suspend fun family(): com.kiri.domain.home.FamilyHome {
         try {
-            val family = home.load()
+            val family = home.family()
             val next = family.localStorageScope()
             if (next != scope) {
                 scope = null

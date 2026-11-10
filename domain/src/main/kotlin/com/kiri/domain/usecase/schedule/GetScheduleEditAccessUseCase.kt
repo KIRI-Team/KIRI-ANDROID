@@ -24,7 +24,7 @@ class GetScheduleEditAccessUseCase(
         }
 
     private suspend fun loadFamily(): FamilyHome? = try {
-        home.load()
+        home.family()
     } catch (e: CancellationException) {
         throw e
     } catch (_: Exception) {
