@@ -21,6 +21,14 @@ class HomeViewModelTest {
     @Before fun setup() { Dispatchers.setMain(dispatcher) }
     @After fun tearDown() { Dispatchers.resetMain() }
 
+    @Test fun serverInviteOpensApiBackedFlowWithoutCachedCode() = runTest(dispatcher) {
+        val repo = TestRepository().apply { home = home.copy(serverBacked = true) }
+        val vm = HomeViewModel(repo)
+        advanceUntilIdle()
+        vm.onEvent(HomeUiEvent.InviteFamilyClicked)
+        assertEquals(HomeUiEffect.Navigate(HomeUiDestination.InviteFamily), vm.effect.first())
+    }
+
     @Test fun tasteBannerRefreshesAfterSaveAndIsHiddenOnReadFailure() = runTest(dispatcher) {
         val tastes = TestTastes()
         val vm = HomeViewModel(TestRepository(), tasteRepository = tastes)
