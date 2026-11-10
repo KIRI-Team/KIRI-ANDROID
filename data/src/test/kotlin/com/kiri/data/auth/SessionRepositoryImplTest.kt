@@ -44,7 +44,7 @@ class SessionRepositoryImplTest {
                 .body("""{"isSuccess":false,"code":"AUTH401_2","message":"토큰이 만료되었습니다.","result":null}""").build())
             val clearedDuringCall = object : TokenStore by tokens {
                 var calls = 0
-                override suspend fun get(): AuthTokens? = if (calls++ == 0) tokens.get() else null
+                override suspend fun get(): AuthTokens? = if (calls++ == 0) this@SessionRepositoryImplTest.tokens.get() else null
             }
             val retrofit = Retrofit.Builder().baseUrl(server.url("/"))
                 .addConverterFactory(kiriJson.asConverterFactory("application/json".toMediaType())).build()
