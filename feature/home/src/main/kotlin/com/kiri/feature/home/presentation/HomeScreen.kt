@@ -126,10 +126,12 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
                 }
                 Spacer(Modifier.height(11.dp))
                 Column(Modifier.padding(horizontal = 18.dp)) {
-                    if (home != null && !home.browsing && !state.loading && !state.loadError) {
+                    if (home != null && !home.browsing && state.showTasteBanner && !state.loading && !state.loadError) {
                         HomeTasteBanner(
-                            home.members.firstOrNull { it.id == home.currentUserId }?.nickname
-                                ?: "우리 가족"
+                            state.tasteNickname.ifBlank {
+                                home.members.firstOrNull { it.id == home.currentUserId }?.nickname ?: "우리 가족"
+                            },
+                            onClick = { onDestination(HomeUiDestination.TasteSettings) },
                         )
                         Spacer(Modifier.height(48.dp))
                     }

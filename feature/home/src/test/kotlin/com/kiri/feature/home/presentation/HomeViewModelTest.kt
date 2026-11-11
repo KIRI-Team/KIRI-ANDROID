@@ -21,6 +21,48 @@ class HomeViewModelTest {
     @Before fun setup() { Dispatchers.setMain(dispatcher) }
     @After fun tearDown() { Dispatchers.resetMain() }
 
+    @Test fun tasteBannerRefreshesAfterSaveAndIsHiddenOnReadFailure() = runTest(dispatcher) {
+        val tastes = TestTastes()
+        val vm = HomeViewModel(TestRepository(), tasteRepository = tastes)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.showTasteBanner)
+        vm.onEvent(HomeUiEvent.DestinationClicked(HomeUiDestination.TasteSettings))
+        assertEquals(HomeUiEffect.Navigate(HomeUiDestination.TasteSettings), vm.effect.first())
+        tastes.result = Result.success(com.kiri.domain.model.taste.MyTaste("나",
+            com.kiri.domain.model.taste.Taste(setOf(com.kiri.domain.model.taste.TasteCategory.OUTDOOR), com.kiri.domain.model.taste.TasteActivity.LIGHT)))
+        vm.refreshOnResume(); advanceUntilIdle()
+        assertFalse(vm.uiState.value.showTasteBanner)
+        tastes.result = Result.failure(IllegalStateException("network"))
+        vm.refreshOnResume(); advanceUntilIdle()
+        assertFalse(vm.uiState.value.showTasteBanner)
+        assertFalse(vm.uiState.value.loadError)
+    }
+
+    @Test fun serverCompletionFlagWinsEvenWithUnknownTasteFields() = runTest(dispatcher) {
+        val tastes = TestTastes().apply {
+            result = Result.success(com.kiri.domain.model.taste.MyTaste("나", null, isSet = true))
+        }
+        val vm = HomeViewModel(TestRepository(), tasteRepository = tastes)
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.showTasteBanner)
+    }
+
+    @Test fun browsingSkipsTasteQuery() = runTest(dispatcher) {
+        val tastes = TestTastes()
+        val repo = TestRepository().apply { home = home.copy(familyName = null) }
+        val vm = HomeViewModel(repo, tasteRepository = tastes)
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.showTasteBanner)
+        assertEquals(0, tastes.calls)
+    }
+
+    private class TestTastes : com.kiri.domain.repository.TasteRepository {
+        var calls = 0
+        var result: Result<com.kiri.domain.model.taste.MyTaste> = Result.success(com.kiri.domain.model.taste.MyTaste("나", null))
+        override suspend fun getMyTaste(): Result<com.kiri.domain.model.taste.MyTaste> { calls++; return result }
+        override suspend fun saveMyTaste(taste: com.kiri.domain.model.taste.Taste): Result<com.kiri.domain.model.taste.MyTaste> = error("unused")
+    }
+
     @Test fun invitationUsesRepositoryCodeAndIsBufferedBeforeCollection() = runTest(dispatcher) {
         val repo = TestRepository().apply { home = home.copy(inviteCode = "TESTCODE") }
         val vm = HomeViewModel(repo)

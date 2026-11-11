@@ -53,7 +53,7 @@ internal data class TasteResponse(
     val durationLevel: String? = null,
 )
 
-// 모르는 값은 고르지 않은 것으로 본다. 필수인 활동량을 읽지 못하면 취향을 정하지 않은 것으로 본다
+// 모르는 값은 선택값만 비운다. 설정 완료 여부는 서버의 isSet을 유지한다.
 internal fun TasteResponse.toMyTaste(): MyTaste {
     val activity = activityLevel.toEnumOrNull<TasteActivity>()
     val taste = if (isSet && activity != null) {
@@ -67,7 +67,7 @@ internal fun TasteResponse.toMyTaste(): MyTaste {
     } else {
         null
     }
-    return MyTaste(nickname = nickname, taste = taste)
+    return MyTaste(nickname = nickname, taste = taste, isSet = isSet)
 }
 
 private inline fun <reified T : Enum<T>> String?.toEnumOrNull(): T? =

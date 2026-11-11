@@ -26,6 +26,7 @@ fun KiriNavHost(
                     ?: scheduleRoute(id, "home_graph")
                 navController.navigate(route) { launchSingleTop = true }
             },
+            onTasteSettings = { navController.navigate("mypage_graph/my_preference") { launchSingleTop = true } },
             scheduleDestinations = { scheduleGraph(navController, "home_graph") },
         )
         recordNavHost(navController, onCreateSchedule = { navController.navigate(scheduleCreateRoute(it, "record_graph")) }, onManageSchedule = { navController.navigate(scheduleRoute(it, "record_graph")) }, scheduleDestinations = { scheduleGraph(navController, "record_graph") })
