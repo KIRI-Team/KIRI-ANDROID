@@ -76,6 +76,21 @@ class HomeScreenTest {
         capture("home-long-mission-local")
     }
 
+    @Test fun recommendationDispatchesSelectedMission() {
+        var missionId: String? = null
+        val home = ScreenRepository().home
+        compose.setContent {
+            KiriTheme {
+                HomeScreen(com.kiri.feature.home.model.HomeUiState(loading = false, home = home), onEvent = { event ->
+                    if (event is com.kiri.feature.home.model.HomeUiEvent.MissionClicked) missionId = event.id
+                })
+            }
+        }
+        compose.onNodeWithTag("home_recommendation_place").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals("place", missionId) }
+        capture("home-recommendations-local")
+    }
+
     @Test
     fun questionAndMissionFlipAreVisible() {
         val repository = ScreenRepository()

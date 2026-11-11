@@ -61,6 +61,7 @@ data class FamilyHome(
     val familyId: String? = null,
     // 가족 공간을 만든 방장의 회원 id. 가족명은 방장만 바꿀 수 있다. 모르면 null
     val ownerId: String? = null,
+    val recommendationsLoadFailed: Boolean = false,
 ) {
     val browsing: Boolean
         get() = familyName == null
