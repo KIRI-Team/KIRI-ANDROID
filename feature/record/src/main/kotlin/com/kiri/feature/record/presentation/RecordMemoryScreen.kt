@@ -248,6 +248,29 @@ private fun MemoryMenuRow(label: String, icon: Int, tag: String, onClick: () -> 
 
 @Composable
 fun RecordPhotoSelectionScreen(state: RecordDetailUiState, onBack: () -> Unit, onSelect: (String) -> Unit, onSave: () -> Unit) {
+    RecordPhotoSelectionContent(
+        photos = state.photos,
+        currentPhotoId = state.entry?.representativePhotoId,
+        selectedPhotoId = state.selectedPhotoId,
+        saving = state.detail.saving,
+        error = state.detail.error,
+        onBack = onBack, onSelect = onSelect, onSave = onSave,
+    )
+}
+
+// 대표 사진 변경(사진변경). 로컬 기록과 서버 일정(리뷰 사진)이 함께 쓴다. 지금 대표 사진에는 "현재사진"을 표시하고,
+// 다른 사진을 골랐을 때만 저장할 수 있다
+@Composable
+fun RecordPhotoSelectionContent(
+    photos: List<RecordPhoto>,
+    currentPhotoId: String?,
+    selectedPhotoId: String?,
+    saving: Boolean,
+    error: String?,
+    onBack: () -> Unit,
+    onSelect: (String) -> Unit,
+    onSave: () -> Unit,
+) {
     Column(Modifier.fillMaxSize().background(KiriColor.Bg.Base).statusBarsPadding().navigationBarsPadding().testTag("record_photo_selection")) {
         RecordMemoryAppBar("사진변경", onBack)
         Spacer(Modifier.height(28.dp))
@@ -256,11 +279,11 @@ fun RecordPhotoSelectionScreen(state: RecordDetailUiState, onBack: () -> Unit, o
         Text("변경된 내용은 모든 가족 구성원에게 반영됩니다", Modifier.fillMaxWidth().padding(horizontal = 18.dp), style = KiriDetailTypography.Body, color = KiriColor.Text.Tertiary, textAlign = TextAlign.Center)
         Spacer(Modifier.height(40.dp))
         LazyVerticalGrid(GridCells.Fixed(2), Modifier.weight(1f).fillMaxWidth().testTag("record_photo_grid"), contentPadding = PaddingValues(horizontal = 36.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(18.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-            items(state.photos, key = { it.id }) { photo ->
-                val selected = state.selectedPhotoId == photo.id
-                Box(Modifier.aspectRatio(1f).clip(RoundedCornerShape(4.dp)).selectable(selected, enabled = !state.detail.saving, role = Role.RadioButton) { onSelect(photo.id) }.testTag("record_photo_${photo.id}")) {
+            items(photos, key = { it.id }) { photo ->
+                val selected = selectedPhotoId == photo.id
+                Box(Modifier.aspectRatio(1f).clip(RoundedCornerShape(4.dp)).selectable(selected, enabled = !saving, role = Role.RadioButton) { onSelect(photo.id) }.testTag("record_photo_${photo.id}")) {
                     RecordPhotoImage(photo, Modifier.fillMaxSize())
-                    if (photo.id == state.entry?.representativePhotoId) {
+                    if (photo.id == currentPhotoId) {
                         Box(Modifier.fillMaxSize().background(KiriColor.Bg.Base.copy(alpha = .45f)))
                         Text("현재사진", Modifier.align(Alignment.Center).background(KiriColor.Bg.Tertiary, RoundedCornerShape(100.dp)).padding(horizontal = 14.dp, vertical = 6.dp), color = KiriColor.Text.Primary, style = KiriDetailTypography.Small)
                     } else if (selected) {
@@ -270,9 +293,9 @@ fun RecordPhotoSelectionScreen(state: RecordDetailUiState, onBack: () -> Unit, o
                 }
             }
         }
-        state.detail.error?.let { Text(it, Modifier.padding(horizontal = 18.dp, vertical = 8.dp), color = KiriColor.Status.Error, style = KiriDetailTypography.Small) }
-        KiriButton(onSave, Modifier.padding(horizontal = 18.dp, vertical = 16.dp).testTag("save_record_photo"), text = if (state.detail.saving) "저장 중…" else "저장하기",
-            enabled = !state.detail.saving && state.selectedPhotoId != null && state.selectedPhotoId != state.entry?.representativePhotoId && state.photos.any { it.id == state.selectedPhotoId })
+        error?.let { Text(it, Modifier.padding(horizontal = 18.dp, vertical = 8.dp), color = KiriColor.Status.Error, style = KiriDetailTypography.Small) }
+        KiriButton(onSave, Modifier.padding(horizontal = 18.dp, vertical = 16.dp).testTag("save_record_photo"), text = if (saving) "저장 중…" else "저장하기",
+            enabled = !saving && selectedPhotoId != null && selectedPhotoId != currentPhotoId && photos.any { it.id == selectedPhotoId })
     }
 }
 

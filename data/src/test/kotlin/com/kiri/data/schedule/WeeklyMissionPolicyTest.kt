@@ -46,6 +46,8 @@ class WeeklyMissionPolicyTest {
                 return loaded.copy(currentUserId = user, schedules = emptyList(),
                     mission = loaded.mission?.copy(id = weeklyId))
             }
+            // by source 로 위임하면 family() 가 source 의 load() 로 가서 위에서 바꾼 load() 를 거치지 않는다. 가족 정보도 바꾼 load() 로 준다
+            override suspend fun family(): FamilyHome = load()
         }
         val missions = FakeMissionRepository()
         val store = Store()

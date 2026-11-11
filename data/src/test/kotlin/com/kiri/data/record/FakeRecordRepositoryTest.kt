@@ -21,6 +21,8 @@ class FakeRecordRepositoryTest {
         val mutableHome =
             object : com.kiri.domain.home.HomeRepository by source {
                 override suspend fun load() = snapshot
+                // 위임하면 family() 가 source 로 가므로 가족 정보도 같은 값을 준다
+                override suspend fun family() = snapshot
             }
         val repo = FakeRecordRepository(mutableHome, FakeMissionRepository(), clock = clock)
         repo.refresh()
@@ -127,6 +129,8 @@ class FakeRecordRepositoryTest {
         val access =
             object : com.kiri.domain.home.HomeRepository by source {
                 override suspend fun load() = family
+                // 위임하면 family() 가 source 로 가므로 가족 정보도 같은 값을 준다
+                override suspend fun family() = family
             }
         val repo = FakeRecordRepository(access, FakeMissionRepository(), clock = clock)
         repo.refresh()
