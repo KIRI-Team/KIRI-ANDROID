@@ -65,6 +65,9 @@ constructor(
     // 기기에 저장된 활동으로 만든 날짜별 표시. 서버 일정 표시와 합쳐 calendarMarks 가 된다
     private var localMarks: Map<LocalDate, RecordCalendarMark> = emptyMap()
 
+    // 기기에 저장된 사진 기록의 날짜별 대표 사진. 완료된 서버 일정의 리뷰 대표 이미지와 합쳐 calendarPhotos 가 된다
+    private var localPhotos: Map<LocalDate, RecordPhoto> = emptyMap()
+
     // 서버에서 받은 달별 가족 일정. 달을 오가도 다시 받지 않는다 (다시 시도하면 새로 받는다)
     private val schedulesByMonth = mutableMapOf<YearMonth, List<CalendarSchedule>>()
     private val loadingMonths = mutableSetOf<YearMonth>()
@@ -122,7 +125,8 @@ constructor(
                                         ?.let { entry.date to it }
                                 }
                                 .groupBy({ it.first }, { it.second })
-                                .mapValues { it.value.first() },
+                                .mapValues { it.value.first() }
+                                .also { localPhotos = it },
                     ).withServerSchedules()
                 }
             }
@@ -265,6 +269,8 @@ constructor(
         return copy(
             monthSchedules = schedules,
             calendarMarks = mergeCalendarMarks(localMarks, schedules.toCalendarMarks()),
+            // 기기 사진 기록이 있는 날은 그 사진을, 없으면 완료된 서버 일정의 리뷰 대표 이미지를 날짜 배경으로 쓴다
+            calendarPhotos = schedules.toCalendarPhotos() + localPhotos,
         )
     }
 

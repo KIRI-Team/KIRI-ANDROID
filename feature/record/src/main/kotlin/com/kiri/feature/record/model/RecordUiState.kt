@@ -71,11 +71,20 @@ internal fun List<CalendarSchedule>.toCalendarMarks(): Map<LocalDate, RecordCale
     groupBy { it.date }.mapValues { (_, schedules) ->
         val statuses = schedules.map { it.status }
         when {
+            // 리뷰 대표 이미지가 있는 완료 일정은 사진 기록처럼 날짜 위에 사진을 깐다
+            schedules.any { it.reviewImageUrl != null } -> RecordCalendarMark.PHOTO_FIRST
             statuses.any { it == CalendarScheduleStatus.CONFIRMED || it == CalendarScheduleStatus.COMPLETED } -> RecordCalendarMark.CONFIRMED
             statuses.any { it != CalendarScheduleStatus.CANCELLED } -> RecordCalendarMark.PLANNED
             else -> RecordCalendarMark.CANCELLED
         }
     }
+
+// 완료된 서버 일정의 리뷰 대표 이미지를 날짜 배경 사진으로 쓴다. 한 날에 여럿이면 이른 시간 일정의 사진
+internal fun List<CalendarSchedule>.toCalendarPhotos(): Map<LocalDate, RecordPhoto> =
+    filter { it.reviewImageUrl != null }
+        .sortedWith(compareBy({ it.time ?: java.time.LocalTime.MAX }, { it.id }))
+        .groupBy { it.date }
+        .mapValues { (_, schedules) -> schedules.first().let { RecordPhoto("schedule-${it.id}", requireNotNull(it.reviewImageUrl)) } }
 
 // 기기에 저장된 활동 표시와 서버 일정 표시를 합친다. 사진 기록이 있는 날은 사진을 그대로 보여주고,
 // 나머지는 확정 > 예정 > 버킷 > 가족 질문 > 취소 순으로 하나만 고른다

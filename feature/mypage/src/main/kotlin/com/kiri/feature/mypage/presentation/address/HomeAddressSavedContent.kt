@@ -9,13 +9,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -32,7 +35,8 @@ import com.kiri.feature.mypage.R
 import com.kiri.feature.mypage.presentation.address.component.HomeAddressTitle
 import com.kiri.uikit.color.KiriColor
 
-// 등록한 주소 보기
+// Figma 10298:38339 (우리집위치/O) 등록한 주소 보기.
+// 제목 "OO님의 공간", 안내 문구, 주소 칸(KIRI/Input 모양)과 그 안의 수정 아이콘. 주소 칸을 누르면 수정 화면을 연다
 @Composable
 internal fun HomeAddressSavedContent(
     familyName: String,
@@ -48,46 +52,42 @@ internal fun HomeAddressSavedContent(
         Spacer(Modifier.height(24.dp))
         HomeAddressTitle(
             title = buildAnnotatedString {
-                withStyle(SpanStyle(color = KiriColor.Text.Accent)) { append(familyName) }
+                // 가족 이름을 아직 못 불러왔거나 불러오지 못하면 "우리 가족" 으로 쓴다
+                withStyle(SpanStyle(color = KiriColor.Text.Accent)) { append(familyName.ifBlank { "우리 가족" }) }
                 append("님의 공간")
             },
         )
         Spacer(Modifier.height(24.dp))
-        Text(
-            text = address,
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(KiriColor.Bg.Primary, RoundedCornerShape(8.dp))
-                .padding(horizontal = 12.dp, vertical = 24.dp)
-                .testTag("home_address_saved"),
-            style = TextStyle(
-                color = KiriColor.Text.Strong,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Medium,
-                lineHeight = 28.sp,
-                letterSpacing = (-0.04).em,
-            ),
-        )
-        Spacer(Modifier.height(8.dp))
+        // KIRI/Input: 높이 54, 배경 #2C2C2B(Bg.Secondary), 모서리 8, 좌우 24·상하 18 여백, 글자 Title/Medium(16·Medium·24)
         Row(
             modifier = Modifier
-                .align(Alignment.End)
+                .fillMaxWidth()
+                .heightIn(min = 54.dp)
                 .clip(RoundedCornerShape(8.dp))
+                .background(KiriColor.Bg.Secondary)
                 .clickable(role = Role.Button, onClick = onEditClick)
+                .padding(horizontal = 24.dp, vertical = 15.dp)
                 .testTag("home_address_edit"),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Image(painter = painterResource(R.drawable.ic_mypage_edit_24), contentDescription = null)
             Text(
-                text = "수정하기",
+                text = address,
+                modifier = Modifier.weight(1f).testTag("home_address_saved"),
                 style = TextStyle(
-                    color = KiriColor.Text.Tertiary,
+                    color = KiriColor.Text.Secondary,
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Normal,
-                    lineHeight = 26.sp,
+                    fontWeight = FontWeight.Medium,
+                    lineHeight = 24.sp,
                     letterSpacing = (-0.04).em,
                 ),
+            )
+            // KIRI/Icon/Action/Edit (24, 비활성 색 #737473)
+            Image(
+                painter = painterResource(R.drawable.ic_mypage_edit_24),
+                contentDescription = "주소 수정",
+                modifier = Modifier.size(24.dp),
+                colorFilter = ColorFilter.tint(KiriColor.Icon.Disabled),
             )
         }
     }

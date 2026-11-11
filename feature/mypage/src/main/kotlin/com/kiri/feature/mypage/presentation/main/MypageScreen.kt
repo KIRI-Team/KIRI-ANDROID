@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.kiri.feature.mypage.model.common.MypageMenu
+import com.kiri.feature.mypage.model.common.requiresFamily
 import com.kiri.feature.mypage.model.common.MypageProfile
 import androidx.compose.runtime.getValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -44,7 +45,20 @@ fun MypageRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.load() }
-    MypageScreen(onMenuClick = onMenuClick, profile = state.toProfile(), onProfileEditClick = onProfileEditClick)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    MypageScreen(
+        onMenuClick = { menu ->
+            // 둘러보기 중에는 가족 설정 메뉴로 가지 않는다
+            // TODO: 제한 안내 UI 가 정해지면 바꾼다. 그전까지는 토스트로 알린다
+            if (menu.requiresFamily && state.isBrowsing) {
+                android.widget.Toast.makeText(context, com.kiri.domain.home.BROWSING_BLOCKED_MESSAGE, android.widget.Toast.LENGTH_SHORT).show()
+            } else {
+                onMenuClick(menu)
+            }
+        },
+        profile = state.toProfile(),
+        onProfileEditClick = onProfileEditClick,
+    )
 }
 
 // 시스템 바 여백은 메인 화면의 Scaffold가 처리한다

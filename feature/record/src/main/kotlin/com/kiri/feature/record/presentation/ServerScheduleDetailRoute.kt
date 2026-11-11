@@ -39,12 +39,13 @@ fun ServerScheduleDetailRoute(
     onCustom: () -> Unit,
     onEdit: (scheduleId: Long) -> Unit = {},
     onRecord: () -> Unit = {},
+    onPhotoChange: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    ServerScheduleDetailEffects(viewModel, onBack, onCustom, onEdit, onRecord)
+    ServerScheduleDetailEffects(viewModel, onBack, onCustom, onEdit, onRecord, onPhotoChange)
     var confirmCancel by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f)) { ServerScheduleDetailScreen(state, viewModel::onEvent, viewModel::retryReviews, viewModel::editClicked) }
+        Box(Modifier.weight(1f)) { ServerScheduleDetailScreen(state, viewModel::onEvent, viewModel::retryReviews, viewModel::editClicked, viewModel::editReview, viewModel::deleteReview, viewModel::openPhotoChange) }
         state.myResponse?.let { Text("내 응답: $it", Modifier.padding(horizontal = 12.dp), color = KiriColor.Text.Secondary) }
         state.detail.error?.let { Text(it, Modifier.padding(12.dp), color = KiriColor.Status.Error) }
         state.notice?.let { Text(it, Modifier.padding(horizontal = 12.dp), color = KiriColor.Text.Accent) }
@@ -75,8 +76,10 @@ fun ServerScheduleDetailEffects(
     onCustom: () -> Unit = {},
     onEdit: (scheduleId: Long) -> Unit = {},
     onRecord: () -> Unit = {},
+    onPhotoChange: () -> Unit = {},
 ) {
     val back by rememberUpdatedState(onBack)
+    val photoChange by rememberUpdatedState(onPhotoChange)
     val custom by rememberUpdatedState(onCustom)
     val edit by rememberUpdatedState(onEdit)
     val record by rememberUpdatedState(onRecord)
@@ -89,6 +92,7 @@ fun ServerScheduleDetailEffects(
                     ServerScheduleDetailEffect.OpenCustom -> custom()
                     ServerScheduleDetailEffect.OpenRecord -> record()
                     is ServerScheduleDetailEffect.OpenEdit -> edit(it.scheduleId)
+                    ServerScheduleDetailEffect.OpenPhotoChange -> photoChange()
                 }
             }
         }
@@ -102,6 +106,12 @@ fun ServerScheduleDetailScreen(
     onEvent: (DetailUiEvent) -> Unit,
     onRetryReviews: () -> Unit = {},
     onEditClick: () -> Unit = {},
+    // 내 리뷰 카드의 수정하기
+    onEditReview: (reviewId: Long) -> Unit = {},
+    // 내 리뷰 카드의 ⋯ > 삭제 (확인 창에서 삭제를 누른 뒤)
+    onDeleteReview: (reviewId: Long) -> Unit = {},
+    // 대표 사진의 사진 변경
+    onChangePhoto: () -> Unit = {},
 ) {
     val schedule = state.schedule
     if (schedule != null && state.showsRecord) {
@@ -110,7 +120,9 @@ fun ServerScheduleDetailScreen(
             title = state.detail.detail?.title ?: schedule.displayTitle(),
             date = schedule.date,
             participants = state.detail.detail?.participants.orEmpty(),
-            representativePhoto = DummyRepresentativePhoto,
+            // 정한 대표 사진, 없으면 리뷰 목록의 첫 사진. 고를 사진이 두 장 이상이면 사진 변경을 보여준다
+            representativePhoto = state.representativePhoto,
+            onChangePhoto = onChangePhoto.takeIf { state.reviewPhotos.size > 1 },
             memories = state.reviews.map { review ->
                 MemoryCardUi(
                     id = review.id.toString(),
@@ -122,6 +134,10 @@ fun ServerScheduleDetailScreen(
                 )
             },
             onBack = { onEvent(DetailUiEvent.BackClicked) },
+            // 내 리뷰에만 수정하기와 ⋯(삭제)를 보여준다 (RecordMemoryContent 가 mine 으로 거르고, 삭제는 확인 창을 띄운다)
+            onEdit = { id -> id.toLongOrNull()?.let(onEditReview) },
+            onDelete = { id -> id.toLongOrNull()?.let(onDeleteReview) },
+            saving = state.detail.saving,
             onReview = ({ onEvent(DetailUiEvent.RecordClicked) }).takeIf { state.canReview && !state.reviewSaved && state.reviews.none { it.isMine } },
             memoriesLoading = state.reviewsLoading,
             onRetryMemories = onRetryReviews.takeIf { state.reviewsFailed },
@@ -154,5 +170,3 @@ fun ServerScheduleDetailScreen(
     )
 }
 
-// TODO: 서버 일정의 대표 사진 API 가 생기면 바꾼다. 그때까지는 예시 단체 사진을 보여준다
-private val DummyRepresentativePhoto = RecordPhoto("dummy-representative", "demo:group")
