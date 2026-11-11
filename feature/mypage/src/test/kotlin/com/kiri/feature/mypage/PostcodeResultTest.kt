@@ -1,6 +1,7 @@
 package com.kiri.feature.mypage
 
 import com.kiri.feature.mypage.presentation.address.parsePostcodeSelection
+import com.kiri.feature.mypage.presentation.address.postcodePage
 import java.net.URLEncoder
 import org.junit.Assert.*
 import org.junit.Test
