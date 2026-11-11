@@ -176,6 +176,27 @@ class CalendarScheduleRepositoryImplTest {
     }
 
     @Test
+    fun 완료된_일정만_리뷰_대표_이미지를_읽고_빈_주소는_버린다() = runTest {
+        enqueue(
+            200,
+            body(
+                """{"scheduleId":100,"date":"2026-10-03","time":"14:50","status":"COMPLETED","myStatus":"ACCEPTED",""" +
+                    """"reviewImageUrl":"https://cdn.example.com/review/100/a.jpg?Signature=s"},""" +
+                    """{"scheduleId":101,"date":"2026-10-04","time":"14:50","status":"COMPLETED","myStatus":"ACCEPTED","reviewImageUrl":" "},""" +
+                    """{"scheduleId":102,"date":"2026-10-05","time":"14:50","status":"CONFIRMED","myStatus":"ACCEPTED","reviewImageUrl":"https://cdn/x.jpg"},""" +
+                    """{"scheduleId":103,"date":"2026-10-06","time":"14:50","status":"COMPLETED","myStatus":"ACCEPTED"}""",
+            ),
+        )
+
+        val schedules = repository().getMonthlySchedules(YearMonth.of(2026, 10)).getOrThrow()
+
+        assertEquals(
+            listOf("https://cdn.example.com/review/100/a.jpg?Signature=s", null, null, null),
+            schedules.map { it.reviewImageUrl },
+        )
+    }
+
+    @Test
     fun 상태나_날짜를_읽지_못한_일정만_빼고_나머지는_보여준다() = runTest {
         enqueue(
             200,

@@ -13,6 +13,8 @@ data class CalendarSchedule(
     val status: CalendarScheduleStatus,
     // 앱이 모르는 값이면 null
     val myStatus: MyScheduleStatus?,
+    // 완료(COMPLETED)된 일정의 리뷰 대표 이미지 주소(서명 URL). 캘린더 날짜 배경으로 쓴다. 없으면 null
+    val reviewImageUrl: String? = null,
 )
 
 // 월간 조회의 일정 상태 (명세 기준 5가지). 재확인 필요는 일정 상태가 아니라 회원별 응답 상태(myStatus)다
