@@ -30,7 +30,12 @@ import com.kiri.uikit.component.KiriDetailTypography
 
 /** Figma 8389:5585. Keep selection tied to the main back stack. */
 @Composable
-fun KiriBottomBar(navController: NavHostController) {
+fun KiriBottomBar(
+    navController: NavHostController,
+    // 이 탭으로 가지 못하게 막을지 (둘러보기 사용자의 기록 탭 등). 막으면 이동하지 않고 onBlocked 를 부른다
+    isBlocked: (TopLevelDestination) -> Boolean = { false },
+    onBlocked: (TopLevelDestination) -> Unit = {},
+) {
     val currentDestination = navController.currentBackStackEntryAsState().value?.destination
     Box(
         Modifier.fillMaxWidth().testTag("bottom_nav_area").navigationBarsPadding().padding(horizontal = 19.dp, vertical = 16.dp),
@@ -50,6 +55,7 @@ fun KiriBottomBar(navController: NavHostController) {
                     ) {
                         Column(
                             Modifier.clip(RoundedCornerShape(100.dp)).selectable(selected = selected, role = Role.Tab, onClick = {
+                                if (isBlocked(destination)) return@selectable onBlocked(destination)
                                 navController.navigate(destination.graphRoute) {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                     launchSingleTop = true

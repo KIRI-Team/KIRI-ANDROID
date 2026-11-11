@@ -9,6 +9,7 @@ import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import kotlinx.coroutines.flow.first
 import org.junit.Assert.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -32,6 +33,31 @@ class MissionPreviewViewModelTest {
         vm.onEvent(com.kiri.feature.detail.model.MissionPreviewUiEvent.SaveClicked)
         advanceUntilIdle()
         assertEquals(1, buckets.saves)
+    }
+
+
+    // 가족 정보만 돌려주는 홈 저장소. familyName 이 null 이면 둘러보기 사용자다
+    private fun homeWith(familyName: String?) = object : com.kiri.domain.home.HomeRepository {
+        private val family = com.kiri.domain.home.FamilyHome(java.time.LocalDate.of(2026, 11, 11), "13", familyName,
+            emptyList(), null, emptyMap(), emptySet(), null, serverBacked = true)
+        override suspend fun load() = family
+        override suspend fun saveAnswer(question: com.kiri.domain.home.DailyQuestion, answer: String) = family
+        override suspend fun poke(question: com.kiri.domain.home.DailyQuestion, memberId: String) = family
+    }
+
+    @Test fun browsingUserCannotSaveBucketAndSeesNotice() = runTest(dispatcher) {
+        val buckets = Buckets(emptyList())
+        val vm = MissionPreviewViewModel(Repository(), SavedStateHandle(mapOf("missionId" to "place-river")), buckets,
+            home = homeWith(familyName = null))
+        advanceUntilIdle()
+
+        vm.onEvent(com.kiri.feature.detail.model.MissionPreviewUiEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertEquals(0, buckets.saves)
+        assertFalse(vm.uiState.value.saving)
+        assertEquals(com.kiri.feature.detail.model.MissionPreviewUiEffect.ShowMessage("가족에 참여하면 이용할 수 있어요."),
+            vm.effect.first())
     }
 
     @Test fun failedResaveKeepsRepeatActionAvailableForRetry() = runTest(dispatcher) {
