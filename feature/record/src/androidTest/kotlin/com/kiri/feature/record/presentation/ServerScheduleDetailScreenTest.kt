@@ -234,6 +234,28 @@ class ServerScheduleDetailScreenTest {
     }
 
     @Test
+    fun completedScheduleCanChangeRepresentativePhotoWhenThereAreTwoReviewPhotos() {
+        val completed = detail.copy(status = ScheduleDisplayStatus.COMPLETED)
+        val reviews = listOf(
+            ScheduleReview(1, ReviewWriter(5, "김주연", FamilyRole.DAUGHTER), "처음 가봤다.", 5, true,
+                listOf("content://first"), null, isMine = true, photoIds = mapOf("content://first" to 11L)),
+            ScheduleReview(2, ReviewWriter(6, "아빠", null), "또 가요", 4, false,
+                listOf("content://second"), null, isMine = false, photoIds = mapOf("content://second" to 12L)),
+        )
+        val state = ServerScheduleDetailUiState(
+            detail = DetailUiState(loading = false, detail = completed.toMissionDetail(7)),
+            schedule = completed, familyName = "끼리네가족", reviews = reviews,
+        )
+        var changes = 0
+        compose.setContent { KiriTheme { ServerScheduleDetailScreen(state, {}, onChangePhoto = { changes++ }) } }
+
+        compose.onNodeWithTag("record_representative_photo").performScrollTo().performClick()
+        compose.onNodeWithTag("change_record_photo").performClick()
+
+        assertEquals(1, changes)
+    }
+
+    @Test
     fun completedScheduleShowsRecordScreenWithFamilyReviews() {
         val completed = detail.copy(status = ScheduleDisplayStatus.COMPLETED)
         var state by mutableStateOf(
@@ -259,10 +281,12 @@ class ServerScheduleDetailScreenTest {
         // 역할을 아는 작성자는 "이름 I 역할", 모르면 이름만 쓴다
         compose.onNodeWithText("김주연 I 딸").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("아빠").performScrollTo().assertIsDisplayed()
-        // 서버 리뷰는 아직 수정·삭제 API 가 없어 수정하기와 메뉴를 보여주지 않는다
-        compose.onNodeWithTag("edit_record_1").assertDoesNotExist()
-        compose.onNodeWithTag("record_memory_menu_1").assertDoesNotExist()
-        // 대표 사진 변경도 아직 막아 둔다
+        // 내 리뷰에만 수정하기와 메뉴(삭제)를 보여준다
+        compose.onNodeWithTag("edit_record_1").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("record_memory_menu_1").assertExists()
+        compose.onNodeWithTag("edit_record_2").assertDoesNotExist()
+        compose.onNodeWithTag("record_memory_menu_2").assertDoesNotExist()
+        // 고를 리뷰 사진이 없으면 대표 사진을 바꿀 수 없다
         compose.onNodeWithTag("record_representative_photo").performScrollTo().performClick()
         compose.onNodeWithTag("change_record_photo").assertDoesNotExist()
 

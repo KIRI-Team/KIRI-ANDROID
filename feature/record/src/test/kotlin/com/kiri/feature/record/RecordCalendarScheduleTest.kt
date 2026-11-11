@@ -21,6 +21,7 @@ import com.kiri.feature.record.model.RecordCalendarMark
 import com.kiri.feature.record.model.RecordUiEvent
 import com.kiri.feature.record.model.mergeCalendarMarks
 import com.kiri.feature.record.model.toCalendarMarks
+import com.kiri.feature.record.model.toCalendarPhotos
 import java.io.IOException
 import java.time.Clock
 import java.time.Instant
@@ -119,6 +120,40 @@ class RecordCalendarScheduleTest {
         assertEquals(RecordCalendarMark.CONFIRMED, state.calendarMarks[confirmed])
         assertEquals(RecordCalendarMark.PLANNED, state.calendarMarks[planned])
         assertEquals(RecordCalendarMark.CANCELLED, state.calendarMarks[cancelled])
+    }
+
+    @Test
+    fun 리뷰_대표_이미지가_있는_완료_일정은_그_사진을_날짜_배경으로_쓴다() {
+        val (withImage, withoutImage, confirmed) = emptyDays(october)
+        val repo = RecordingCalendarSchedules()
+        repo.results[october] = Result.success(
+            listOf(
+                schedule(1, withImage, CalendarScheduleStatus.COMPLETED).copy(reviewImageUrl = "https://cdn/review/1.jpg"),
+                schedule(2, withoutImage, CalendarScheduleStatus.COMPLETED),
+                schedule(3, confirmed, CalendarScheduleStatus.CONFIRMED),
+            ),
+        )
+
+        val state = viewModel(repo).uiState.value
+
+        // 사진 기록처럼 날짜 위에 사진을 깔고 날짜 숫자를 보여준다
+        assertEquals(RecordCalendarMark.PHOTO_FIRST, state.calendarMarks[withImage])
+        assertEquals(com.kiri.domain.record.RecordPhoto("schedule-1", "https://cdn/review/1.jpg"), state.calendarPhotos[withImage])
+        // 이미지가 없는 완료 일정과 확정 일정은 지금처럼 확정 표시만 한다
+        assertEquals(RecordCalendarMark.CONFIRMED, state.calendarMarks[withoutImage])
+        assertEquals(null, state.calendarPhotos[withoutImage])
+        assertEquals(null, state.calendarPhotos[confirmed])
+    }
+
+    @Test
+    fun 한_날에_사진_있는_완료_일정이_여럿이면_이른_시간_일정의_사진을_쓴다() {
+        val day = october.atDay(1)
+        val photos = listOf(
+            CalendarSchedule(5, day, LocalTime.of(15, 0), CalendarScheduleStatus.COMPLETED, MyScheduleStatus.ACCEPTED, "https://cdn/late.jpg"),
+            CalendarSchedule(6, day, LocalTime.of(9, 0), CalendarScheduleStatus.COMPLETED, MyScheduleStatus.ACCEPTED, "https://cdn/early.jpg"),
+        ).toCalendarPhotos()
+
+        assertEquals("https://cdn/early.jpg", photos[day]?.source)
     }
 
     @Test

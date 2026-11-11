@@ -107,6 +107,8 @@ internal data class CalendarScheduleResponse(
     val time: String? = null,
     val status: String,
     val myStatus: String? = null,
+    // 완료된 일정에만 온다. 리뷰 대표 이미지(서명 URL)
+    val reviewImageUrl: String? = null,
 )
 
 // 날짜나 일정 상태를 읽지 못하면 캘린더에 표시할 수 없으니 그 일정만 뺀다
@@ -119,6 +121,8 @@ internal fun CalendarScheduleResponse.toCalendarSchedule(): CalendarSchedule? {
         time = time?.let { runCatching { LocalTime.parse(it) }.getOrNull() },
         status = status,
         myStatus = MyScheduleStatus.entries.firstOrNull { it.name == myStatus },
+        // 완료된 일정의 이미지만 날짜 배경으로 쓴다. 빈 주소는 버린다
+        reviewImageUrl = reviewImageUrl?.takeIf { status == CalendarScheduleStatus.COMPLETED && it.isNotBlank() },
     )
 }
 

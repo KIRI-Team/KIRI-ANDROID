@@ -26,11 +26,28 @@ internal fun parsePostcodeSelection(url: String): HomeAddressUiEvent.AddressSele
 }.getOrNull()
 
 internal val postcodePage = """
-<!doctype html><html lang="ko"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0"><div id="picker" style="width:100%;height:100vh"></div>
+<!doctype html><html lang="ko"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;padding:0;width:100%;height:100%;background:#1A1A1A}#picker{width:100%;height:100%}</style></head>
+<body><div id="picker"></div>
 <script>
+// WebView 의 레이아웃 높이가 늦게 정해지면 화면 높이 단위(vh)나 100% 가 0 으로 계산되어 검색 화면이 흰 화면으로 보인다.
+// 그래서 실제 화면 높이(innerHeight)로 직접 맞추고, 크기가 바뀔 때마다 다시 맞춘다
+function fitPicker(){var p=document.getElementById('picker');if(p&&window.innerHeight>0)p.style.height=window.innerHeight+'px';}
+window.addEventListener('resize',fitPicker);fitPicker();
+// 앱 색(KiriColor)에 맞춘 우편번호 서비스 테마. 카카오가 열어 둔 색 옵션만 바꾼다
+var POSTCODE_THEME={
+  bgColor:'#1A1A1A',          // 바탕 (Bg.Base)
+  searchBgColor:'#252524',    // 검색창 바탕 (Bg.Primary)
+  contentBgColor:'#1A1A1A',   // 검색 결과·안내 바탕 (Bg.Base)
+  pageBgColor:'#252524',      // 하단 페이지 바탕 (Bg.Primary)
+  textColor:'#D9D9D8',        // 기본 글자 (Text.Primary)
+  queryTextColor:'#F7F7F6',   // 검색어 글자 (Text.Strong)
+  postcodeTextColor:'#9BEA51',// 우편번호 (Text.Accent)
+  emphTextColor:'#9BEA51',    // 강조 글자 (Text.Accent)
+  outlineColor:'#404140'      // 테두리 (Border.Default)
+};
 function reportError(){window.location.href='kiri-address://error';}
 function openPicker(){try{
+  fitPicker();
   var Postcode=(window.kakao&&kakao.Postcode)||(window.daum&&daum.Postcode);
   if(!Postcode){reportError();return;}
   new Postcode({oncomplete:function(d){
@@ -38,7 +55,7 @@ function openPicker(){try{
     address=address||d.roadAddress||d.jibunAddress||'';
     window.location.href='kiri-address://selected?zip='+encodeURIComponent(d.zonecode||'')+
       '&address='+encodeURIComponent(address)+'&region='+encodeURIComponent(d.bcode||'');
-  },width:'100%',height:'100%'}).embed(document.getElementById('picker'),{autoClose:false});
+  },width:'100%',height:'100%',theme:POSTCODE_THEME}).embed(document.getElementById('picker'),{autoClose:false});
   window.location.href='kiri-address://ready';
 }catch(e){reportError();}}
 </script>

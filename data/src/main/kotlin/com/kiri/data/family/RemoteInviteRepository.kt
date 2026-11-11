@@ -26,8 +26,7 @@ internal class RemoteInviteRepository @Inject constructor(
     override suspend fun getCurrentInvite(): Result<Invite> = withFamilyId { apiResult(json) { api.getInvite(it) } }
 
     // 소속된 가족이 없으면 초대를 요청하지 않고 실패한다
-    private suspend fun withFamilyId(call: suspend (Long) -> Result<InviteResponse>): Result<Invite> {
-        val familyId = familyIdStore.resolve(api, json).getOrElse { return Result.failure(it) }
-        return call(familyId).map { it.toInvite() }
-    }
+    // 기억해 둔 가족 ID 가 오래돼 거절되면 가족 ID 를 다시 받아 한 번 더 시도한다
+    private suspend fun withFamilyId(call: suspend (Long) -> Result<InviteResponse>): Result<Invite> =
+        familyIdStore.withFamilyId(api, json, call).map { it.toInvite() }
 }

@@ -23,7 +23,11 @@ class ActivityPolicyTest {
         val clock = MutableClock()
         val source = FakeHomeRepository(clock, latencyMillis = 0)
         var user = "me"
-        val home = object : HomeRepository by source { override suspend fun load() = source.load().copy(currentUserId = user) }
+        // by source 로 위임하면 family() 가 바꾼 load() 를 거치지 않으므로 가족 정보도 바꾼 load() 로 준다
+        val home = object : HomeRepository by source {
+            override suspend fun load() = source.load().copy(currentUserId = user)
+            override suspend fun family() = load()
+        }
         val missions = FakeMissionRepository()
         val buckets = LocalBucketRepository(home, missions, clock)
         val schedules = LocalScheduleRepository(home, missions, buckets, clock)

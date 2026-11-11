@@ -42,9 +42,11 @@ class SessionRepositoryImplTest {
             tokens.save(AuthTokens("bad", "bad"))
             server.enqueue(MockResponse.Builder().code(401)
                 .body("""{"isSuccess":false,"code":"AUTH401_2","message":"토큰이 만료되었습니다.","result":null}""").build())
-            val clearedDuringCall = object : TokenStore by tokens {
+            // 익명 객체 안에서 tokens 는 TokenStore 의 tokens(Flow) 속성을 가리키므로, 바깥 저장소는 따로 받아 둔다
+            val saved = tokens
+            val clearedDuringCall = object : TokenStore by saved {
                 var calls = 0
-                override suspend fun get(): AuthTokens? = if (calls++ == 0) tokens.get() else null
+                override suspend fun get(): AuthTokens? = if (calls++ == 0) saved.get() else null
             }
             val retrofit = Retrofit.Builder().baseUrl(server.url("/"))
                 .addConverterFactory(kiriJson.asConverterFactory("application/json".toMediaType())).build()

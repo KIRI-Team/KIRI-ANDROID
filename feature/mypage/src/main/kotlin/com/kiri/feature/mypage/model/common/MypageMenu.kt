@@ -7,6 +7,9 @@ enum class MypageSection(val title: String) {
     SETTINGS("설정"),
 }
 
+// 가족 설정 메뉴(가족 기본 설정, 우리집 주소, 공용초대링크)는 가족 공간이 있어야 쓸 수 있다
+val MypageMenu.requiresFamily: Boolean get() = section == MypageSection.FAMILY
+
 // 마이페이지 메뉴. 각 메뉴는 같은 이름의 화면으로 이동한다
 enum class MypageMenu(val title: String, val section: MypageSection) {
     MY_PREFERENCE("내 취향 설정", MypageSection.MY),
