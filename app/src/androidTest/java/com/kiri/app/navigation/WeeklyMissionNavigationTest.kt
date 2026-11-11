@@ -86,6 +86,8 @@ class WeeklyMissionNavigationTest {
                     return loaded.copy(familyName = "주간 미션 테스트 $identity", schedules = emptyList(),
                         mission = loaded.mission?.copy(id = identity))
                 }
+                // by source 로 위임하면 family() 가 source 의 load() 로 가서 위에서 바꾼 load() 를 거치지 않는다. 가족 정보도 바꾼 load() 로 준다
+                override suspend fun family(): FamilyHome = load()
             }
         }
     }

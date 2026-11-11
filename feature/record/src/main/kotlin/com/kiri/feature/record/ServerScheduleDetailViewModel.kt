@@ -56,6 +56,14 @@ data class ServerScheduleDetailUiState(
     val canCancel: Boolean = false,
     val canReview: Boolean = false,
     val reviewSaved: Boolean = false,
+    // 수정 중인 내 리뷰 id (새로 쓰는 중이면 null). 작성 화면을 수정 모드로 쓴다
+    val editingReviewId: Long? = null,
+    // 수정 중인 리뷰의 기존 사진 주소 → 사진 Key. 그대로 둔 사진은 이 Key 로 보낸다
+    val editingPhotoKeys: Map<String, String> = emptyMap(),
+    // 리뷰 목록 조회가 준 일정의 대표 사진 id. 없으면 리뷰 목록의 첫 사진이 대표 사진이다
+    val representativePhotoId: Long? = null,
+    // 대표 사진 변경 화면에서 고른 사진 id
+    val selectedPhotoId: String? = null,
     val myResponse: String? = null,
     val author: String = "나",
     val notice: String? = null,
@@ -92,6 +100,21 @@ data class ServerScheduleDetailUiState(
 
     // 약속 당일에만 컨디션 조정하러가기 버튼을 보여준다
     val canCustomize get() = schedule?.status == ScheduleDisplayStatus.TODAY
+
+    // 대표 사진 후보: 리뷰 사진 중 id 가 있는 것 (리뷰 작성순, 리뷰 안 사진 순서)
+    val reviewPhotos: List<com.kiri.domain.record.RecordPhoto>
+        get() = reviews.flatMap { review ->
+            review.imageUrls.mapNotNull { url -> review.photoIds[url]?.let { com.kiri.domain.record.RecordPhoto(it.toString(), url) } }
+        }
+
+    // 대표 사진: 리뷰 목록 조회의 representativePhotoId 사진. 없거나 그 사진을 찾지 못하면 리뷰 목록의 첫 사진
+    val representativePhoto: com.kiri.domain.record.RecordPhoto?
+        get() = reviewPhotos.firstOrNull { it.id == representativePhotoId?.toString() }
+            ?: reviews.firstNotNullOfOrNull { review ->
+                review.imageUrls.firstOrNull()?.let { url ->
+                    com.kiri.domain.record.RecordPhoto(review.photoIds[url]?.toString() ?: "review-${review.id}-0", url)
+                }
+            }
 }
 
 sealed interface ServerScheduleDetailEffect {
@@ -103,6 +126,9 @@ sealed interface ServerScheduleDetailEffect {
 
     // 제안자가 상세의 수정하기를 눌러 일정 변경 화면으로 간다
     data class OpenEdit(val scheduleId: Long) : ServerScheduleDetailEffect
+
+    // 기록 화면의 대표 사진에서 사진 변경을 눌렀다
+    data object OpenPhotoChange : ServerScheduleDetailEffect
 }
 
 // 일정 상세 API 로 받은 날짜·시간·상태·참여자로 머리말을 먼저 채우고,
@@ -131,6 +157,9 @@ constructor(
     private val state = MutableStateFlow(
         ServerScheduleDetailUiState(
             reviewSaved = savedState.get<Boolean>("reviewPosted") == true,
+            editingReviewId = savedState.get<Long>(EDITING_REVIEW_ID),
+            editingPhotoKeys = savedState.get<ArrayList<String>>(EDITING_PHOTO_URLS).orEmpty()
+                .zip(savedState.get<ArrayList<String>>(EDITING_PHOTO_KEYS).orEmpty()).toMap(),
             detail = DetailUiState(memoryDraft = com.kiri.feature.detail.model.MemoryDraft(
                 rating = savedState["reviewRating"] ?: 0,
                 photos = savedState.get<ArrayList<String>>("reviewPhotos").orEmpty(),
@@ -333,8 +362,14 @@ constructor(
         reviewsJob?.cancel()
         state.update { it.copy(reviewsLoading = true, reviewsFailed = false) }
         reviewsJob = viewModelScope.launch {
-            reviews.getReviews(scheduleId)
-                .onSuccess { list -> state.update { it.copy(reviews = list, reviewsLoading = false, reviewSaved = it.reviewSaved || list.any { review -> review.isMine }) } }
+            reviews.getReviewList(scheduleId)
+                .onSuccess { result ->
+                    val list = result.reviews
+                    state.update {
+                        it.copy(reviews = list, representativePhotoId = result.representativePhotoId, reviewsLoading = false,
+                            reviewSaved = it.reviewSaved || list.any { review -> review.isMine })
+                    }
+                }
                 .onFailure { error ->
                     if (error is CancellationException) throw error
                     state.update { it.copy(reviewsLoading = false, reviewsFailed = true) }
@@ -414,17 +449,40 @@ constructor(
             effects.trySend(ServerScheduleDetailEffect.OpenRecord)
     }
 
-    fun updateDraft(draft: com.kiri.feature.detail.model.MemoryDraft) {
-        if (state.value.detail.saving || state.value.reviewSaved) return
+    // 내 리뷰의 수정하기: 작성 화면을 기존 별점·사진·내용·재참여 의사로 채워 수정 모드로 연다
+    fun editReview(reviewId: Long) {
+        val current = state.value
+        if (current.detail.saving) return
+        val review = current.reviews.firstOrNull { it.id == reviewId && it.isMine } ?: return
+        val draft = com.kiri.feature.detail.model.MemoryDraft(review.starRating, review.imageUrls, review.content, review.rejoinIntended)
+        savedState[EDITING_REVIEW_ID] = reviewId
+        savedState[EDITING_PHOTO_URLS] = ArrayList(review.photoKeys.keys)
+        savedState[EDITING_PHOTO_KEYS] = ArrayList(review.photoKeys.values)
+        saveDraft(draft)
+        state.update {
+            it.copy(editingReviewId = reviewId, editingPhotoKeys = review.photoKeys,
+                detail = it.detail.copy(memoryDraft = draft, error = null))
+        }
+        effects.trySend(ServerScheduleDetailEffect.OpenRecord)
+    }
+
+    private fun saveDraft(draft: com.kiri.feature.detail.model.MemoryDraft) {
         savedState["reviewRating"] = draft.rating
         savedState["reviewPhotos"] = ArrayList(draft.photos)
         savedState["reviewText"] = draft.text
         savedState["reviewRejoin"] = draft.repeatActivity
+    }
+
+    fun updateDraft(draft: com.kiri.feature.detail.model.MemoryDraft) {
+        // 리뷰를 등록한 뒤에는 수정 중일 때만 바꿀 수 있다
+        if (state.value.detail.saving || (state.value.reviewSaved && state.value.editingReviewId == null)) return
+        saveDraft(draft)
         state.update { it.copy(detail = it.detail.copy(memoryDraft = draft, error = null)) }
     }
 
     fun submitReview(onSaved: () -> Unit) {
         val current = state.value
+        current.editingReviewId?.let { reviewId -> return submitEdit(reviewId, onSaved) }
         if (!current.canReview || current.reviewSaved || current.detail.saving || !current.detail.memoryDraft.canSubmit) return
         val draft = current.detail.memoryDraft
         state.update { it.copy(detail = it.detail.copy(saving = true, error = null)) }
@@ -454,6 +512,121 @@ constructor(
         }
     }
 
+    // 수정 화면의 최종 상태로 리뷰를 바꾼다. 그대로 둔 기존 사진은 저장된 Key 로, 새 사진은 올린 뒤 받은 Key 로 보낸다
+    private fun submitEdit(reviewId: Long, onSaved: () -> Unit) {
+        val current = state.value
+        if (current.detail.saving || !current.detail.memoryDraft.canSubmit) return
+        val draft = current.detail.memoryDraft
+        state.update { it.copy(detail = it.detail.copy(saving = true, error = null)) }
+        viewModelScope.launch {
+            try {
+                val keys = draft.photos.map { photo ->
+                    current.editingPhotoKeys[photo] ?: run {
+                        // 서버 주소인데 Key 를 모르면 그대로 보낼 수 없다 (다시 고르게 한다)
+                        if (photo.startsWith("http://") || photo.startsWith("https://")) throw MissingPhotoKeyException()
+                        val checkpoint = "uploaded:$photo"
+                        savedState.get<String>(checkpoint) ?: requireNotNull(photos).upload(photo).getOrThrow().also { savedState[checkpoint] = it }
+                    }
+                }
+                val id = requireNotNull(scheduleId)
+                reviews.updateReview(id, reviewId, ScheduleReviewForm(draft.rating, draft.text, requireNotNull(draft.repeatActivity), keys)).getOrThrow()
+                listOf(EDITING_REVIEW_ID, EDITING_PHOTO_URLS, EDITING_PHOTO_KEYS).forEach { savedState.remove<Any>(it) }
+                state.update { it.copy(editingReviewId = null, editingPhotoKeys = emptyMap(), notice = "기록을 수정했어요.") }
+                loadReviews(id)
+                onSaved()
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) {
+                val message = when (e) {
+                    is MissingPhotoKeyException -> "기존 사진 정보를 찾지 못했어요. 사진을 지우고 다시 골라주세요."
+                    is com.kiri.domain.model.review.ReviewNotFoundException -> "기록을 찾을 수 없어요. 화면을 새로고침해주세요."
+                    is com.kiri.domain.model.review.ReviewAccessDeniedException -> "내가 쓴 기록만 수정할 수 있어요."
+                    is com.kiri.domain.model.review.InvalidReviewException -> e.message ?: "입력한 내용을 다시 확인해주세요."
+                    else -> "기록을 수정하지 못했어요. 입력은 유지됐으니 다시 시도해주세요."
+                }
+                state.update { it.copy(detail = it.detail.copy(error = message)) }
+            } finally { state.update { it.copy(detail = it.detail.copy(saving = false)) } }
+        }
+    }
+
+    private class MissingPhotoKeyException : Exception()
+
+    // 대표 사진 변경 화면을 연다. 고를 사진이 두 장 이상일 때만 연다
+    fun openPhotoChange() {
+        val current = state.value
+        if (current.detail.saving || current.reviewPhotos.size < 2) return
+        state.update { it.copy(selectedPhotoId = null, detail = it.detail.copy(error = null)) }
+        effects.trySend(ServerScheduleDetailEffect.OpenPhotoChange)
+    }
+
+    fun selectRepresentativePhoto(photoId: String) {
+        if (state.value.detail.saving) return
+        state.update { it.copy(selectedPhotoId = photoId) }
+    }
+
+    // 고른 사진을 대표 사진으로 정한다. 가족 모두에게 반영된다
+    fun saveRepresentativePhoto(onSaved: () -> Unit) {
+        val current = state.value
+        val selected = current.selectedPhotoId?.toLongOrNull() ?: return
+        if (current.detail.saving || current.selectedPhotoId == current.representativePhoto?.id) return
+        val id = scheduleId ?: return
+        state.update { it.copy(detail = it.detail.copy(saving = true, error = null), notice = null) }
+        viewModelScope.launch {
+            reviews.changeRepresentativePhoto(id, selected)
+                .onSuccess { photoId ->
+                    // 응답의 대표 사진 id 로 바로 바꾸고, 목록도 다시 불러와 서버 값과 맞춘다
+                    state.update { it.copy(representativePhotoId = photoId, selectedPhotoId = null, notice = "대표 사진을 변경했어요.") }
+                    loadReviews(id)
+                    onSaved()
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    val message = when (error) {
+                        is com.kiri.domain.model.review.ReviewPhotoNotFoundException -> "지워진 사진이에요. 다른 사진을 골라주세요."
+                        is com.kiri.domain.model.review.ReviewAccessDeniedException -> "우리 가족의 일정만 바꿀 수 있어요."
+                        else -> "대표 사진을 바꾸지 못했어요. 잠시 후 다시 시도해주세요."
+                    }
+                    state.update { it.copy(detail = it.detail.copy(error = message)) }
+                    // 사진이 이미 빠졌으면 목록을 다시 불러와 후보를 맞춘다
+                    if (error is com.kiri.domain.model.review.ReviewPhotoNotFoundException) loadReviews(id)
+                }
+            state.update { it.copy(detail = it.detail.copy(saving = false)) }
+        }
+    }
+
+    // 내 리뷰를 지운다 (화면에서 한 번 더 확인한 뒤 부른다). 지우면 다시 기록을 남길 수 있다. 일정은 완료 상태로 남는다
+    fun deleteReview(reviewId: Long) {
+        val current = state.value
+        if (current.detail.saving || current.reviews.none { it.id == reviewId && it.isMine }) return
+        val id = scheduleId ?: return
+        state.update { it.copy(detail = it.detail.copy(saving = true, error = null), notice = null) }
+        viewModelScope.launch {
+            reviews.deleteReview(id, reviewId)
+                .onSuccess {
+                    // 등록·수정하던 작성 내용은 지운 리뷰의 것이므로 비운다
+                    listOf("reviewPosted", "reviewRating", "reviewPhotos", "reviewText", "reviewRejoin",
+                        EDITING_REVIEW_ID, EDITING_PHOTO_URLS, EDITING_PHOTO_KEYS).forEach { savedState.remove<Any>(it) }
+                    state.update {
+                        it.copy(reviewSaved = false, editingReviewId = null, editingPhotoKeys = emptyMap(), notice = "기록을 삭제했어요.",
+                            reviews = it.reviews.filterNot { review -> review.id == reviewId },
+                            detail = it.detail.copy(memoryDraft = com.kiri.feature.detail.model.MemoryDraft()))
+                    }
+                    loadReviews(id)
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    val message = when (error) {
+                        is com.kiri.domain.model.review.ReviewNotFoundException -> "이미 지워졌거나 찾을 수 없는 기록이에요."
+                        is com.kiri.domain.model.review.ReviewAccessDeniedException -> "내가 쓴 기록만 삭제할 수 있어요."
+                        else -> "기록을 삭제하지 못했어요. 잠시 후 다시 시도해주세요."
+                    }
+                    state.update { it.copy(detail = it.detail.copy(error = message)) }
+                    // 이미 없는 기록이면 목록을 다시 불러와 맞춘다
+                    if (error is com.kiri.domain.model.review.ReviewNotFoundException) loadReviews(id)
+                }
+            state.update { it.copy(detail = it.detail.copy(saving = false)) }
+        }
+    }
+
     private fun Throwable.isRetryable() =
         this !is CancelledScheduleException && this !is ScheduleNotFoundException && this !is NoFamilyException
 
@@ -466,6 +639,9 @@ constructor(
 
     companion object {
         const val SCHEDULE_ID_ARG = "scheduleId"
+        private const val EDITING_REVIEW_ID = "editingReviewId"
+        private const val EDITING_PHOTO_URLS = "editingPhotoUrls"
+        private const val EDITING_PHOTO_KEYS = "editingPhotoKeys"
         // "2026-11-17" 형식
         const val DATE_ARG = "date"
     }

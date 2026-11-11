@@ -9,6 +9,7 @@ import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import kotlinx.coroutines.flow.first
 import org.junit.Assert.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -72,6 +73,37 @@ class PlaceViewModelTest {
         vm.onEvent(PlaceUiEvent.SavedClicked); advanceUntilIdle()
         assertEquals(1, vm.uiState.value.savedItems.size)
     }
+
+    // 가족 정보만 돌려주는 홈 저장소. familyName 이 null 이면 둘러보기 사용자다
+    private fun homeWith(familyName: String?) = object : com.kiri.domain.home.HomeRepository {
+        private val family = com.kiri.domain.home.FamilyHome(java.time.LocalDate.of(2026, 11, 11), "13", familyName,
+            emptyList(), null, emptyMap(), emptySet(), null, serverBacked = true)
+        override suspend fun load() = family
+        override suspend fun saveAnswer(question: com.kiri.domain.home.DailyQuestion, answer: String) = family
+        override suspend fun poke(question: com.kiri.domain.home.DailyQuestion, memberId: String) = family
+    }
+
+    @Test fun browsingUserCannotOpenBucketSaveAndSeesNotice() = runTest(dispatcher) {
+        val repo = TestRepository()
+        val vm = PlaceViewModel(repo, home = homeWith(familyName = null)); advanceUntilIdle()
+
+        vm.onEvent(PlaceUiEvent.SaveClicked(repo.mission)); advanceUntilIdle()
+
+        // 저장 확인을 띄우지 않고 안내한다
+        assertNull(vm.uiState.value.pending)
+        assertEquals(PlaceUiEffect.ShowMessage("가족에 참여하면 이용할 수 있어요."), vm.effect.first())
+        assertEquals(0, repo.saves)
+    }
+
+    @Test fun familyMemberOpensBucketSaveAsBefore() = runTest(dispatcher) {
+        val repo = TestRepository()
+        val vm = PlaceViewModel(repo, home = homeWith(familyName = "끼리네")); advanceUntilIdle()
+
+        vm.onEvent(PlaceUiEvent.SaveClicked(repo.mission)); advanceUntilIdle()
+
+        assertEquals(repo.mission, vm.uiState.value.pending)
+    }
+
     @Test fun paginationDeduplicatesAndCanRetry() = runTest(dispatcher) {
         val repo = TestRepository(); val vm = PlaceViewModel(repo); advanceUntilIdle()
         repo.failLoad = true; vm.onEvent(PlaceUiEvent.MoreRequested); vm.onEvent(PlaceUiEvent.MoreRequested); advanceUntilIdle()

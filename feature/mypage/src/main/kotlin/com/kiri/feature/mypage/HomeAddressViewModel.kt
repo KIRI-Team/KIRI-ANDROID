@@ -19,9 +19,23 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 
 @HiltViewModel
-class HomeAddressViewModel @Inject constructor(private val family: com.kiri.domain.repository.FamilyRepository) : ViewModel() {
+class HomeAddressViewModel @Inject constructor(
+    private val family: com.kiri.domain.repository.FamilyRepository,
+    // 등록한 주소 화면의 "OO님의 공간" 에 쓸 가족 이름을 가족 정보 API 로 불러온다
+    private val home: com.kiri.domain.home.HomeRepository? = null,
+) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeAddressUiState())
     val uiState: StateFlow<HomeAddressUiState> = _uiState.asStateFlow()
+
+    init {
+        home?.let { source ->
+            viewModelScope.launch {
+                try { source.family().familyName?.let { name -> _uiState.update { it.copy(familyName = name) } } }
+                catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                catch (_: Exception) { }
+            }
+        }
+    }
 
     // 화면 이동처럼 한 번만 처리해야 하는 동작은 구독 전에 보내도 사라지지 않도록 Channel 로 전달한다
     private val _effect = Channel<HomeAddressUiEffect>(Channel.BUFFERED)

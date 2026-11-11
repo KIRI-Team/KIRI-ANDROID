@@ -64,6 +64,23 @@ class FamilySettingViewModelTest {
     }
 
     @Test
+    fun 가족명은_방장만_바꿀_수_있고_방장을_모르면_막지_않는다() = runTest(mainDispatcherRule.testDispatcher) {
+        val home = Home(Result.success(family().copy(ownerId = "1")))
+        val viewModel = FamilySettingViewModel(home)
+        viewModel.load(); advanceUntilIdle()
+        // 나는 2번, 방장은 1번
+        assertFalse(viewModel.uiState.value.canRenameFamily)
+
+        home.result = Result.success(family().copy(ownerId = "2"))
+        viewModel.load(); advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.canRenameFamily)
+
+        home.result = Result.success(family().copy(ownerId = null))
+        viewModel.load(); advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.canRenameFamily)
+    }
+
+    @Test
     fun 불러오지_못하면_실패로_두고_다시_시도하면_채운다() = runTest(mainDispatcherRule.testDispatcher) {
         val home = Home(Result.failure(IOException()))
         val viewModel = FamilySettingViewModel(home)

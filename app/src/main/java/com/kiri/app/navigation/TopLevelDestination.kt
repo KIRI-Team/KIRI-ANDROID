@@ -21,4 +21,7 @@ enum class TopLevelDestination(
     MY_PAGE(graphRoute = MYPAGE_GRAPH_ROUTE, startRoute = MYPAGE_ROUTE, label = "마이페이지", icon = Icons.Default.Person);
 
     fun detailRoute() = "$graphRoute/detail"
+
+    // 가족 공간이 있어야 쓸 수 있는 탭 (둘러보기 사용자는 막는다)
+    val requiresFamily: Boolean get() = this == RECORD
 }

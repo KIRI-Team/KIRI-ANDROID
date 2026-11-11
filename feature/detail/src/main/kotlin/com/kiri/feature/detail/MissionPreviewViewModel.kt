@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.kiri.domain.home.isBrowsing
 
 @HiltViewModel
 class MissionPreviewViewModel @Inject constructor(
@@ -27,6 +28,8 @@ class MissionPreviewViewModel @Inject constructor(
     private val savedState: SavedStateHandle,
     private val buckets: com.kiri.domain.record.BucketRepository? = null,
     private val serverMissions: MissionInfoRepository? = null,
+    // 둘러보기 사용자는 버킷에 저장할 수 없다 (가족 정보로 확인). 없으면 확인하지 않는다
+    private val home: com.kiri.domain.home.HomeRepository? = null,
 ) : ViewModel() {
     private val missionId: String = savedState["missionId"] ?: ""
     private val _uiState = MutableStateFlow(MissionPreviewUiState(reviewsSelected = savedState["reviewsSelected"] ?: false))
@@ -85,6 +88,12 @@ class MissionPreviewViewModel @Inject constructor(
         if (serverId == null && bucketRepository == null) return
         _uiState.update { it.copy(saving = true, error = null) }
         viewModelScope.launch {
+            // 둘러보기 중이면 저장하지 않고 안내한다
+            if (home != null && home.isBrowsing()) {
+                _uiState.update { it.copy(saving = false) }
+                _effect.trySend(MissionPreviewUiEffect.ShowMessage(com.kiri.domain.home.BROWSING_BLOCKED_MESSAGE))
+                return@launch
+            }
             try {
                 if (serverId != null && serverMissions != null) serverMissions.saveBucket(serverId).getOrThrow()
                 else requireNotNull(bucketRepository).save(missionId)
