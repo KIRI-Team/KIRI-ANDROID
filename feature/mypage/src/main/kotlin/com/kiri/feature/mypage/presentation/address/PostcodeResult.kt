@@ -29,7 +29,7 @@ internal val postcodePage = """
 <!doctype html><html lang="ko"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;padding:0;width:100%;height:100%;background:#1A1A1A}#picker{width:100%;height:100%}</style></head>
 <body><div id="picker"></div>
 <script>
-// WebView 의 레이아웃 높이가 늦게 정해지면 100vh·100% 가 0 으로 계산되어 검색 화면이 흰 화면으로 보인다.
+// WebView 의 레이아웃 높이가 늦게 정해지면 화면 높이 단위(vh)나 100% 가 0 으로 계산되어 검색 화면이 흰 화면으로 보인다.
 // 그래서 실제 화면 높이(innerHeight)로 직접 맞추고, 크기가 바뀔 때마다 다시 맞춘다
 function fitPicker(){var p=document.getElementById('picker');if(p&&window.innerHeight>0)p.style.height=window.innerHeight+'px';}
 window.addEventListener('resize',fitPicker);fitPicker();
