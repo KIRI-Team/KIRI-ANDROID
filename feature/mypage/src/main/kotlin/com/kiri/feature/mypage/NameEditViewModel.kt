@@ -38,6 +38,9 @@ abstract class NameEditViewModel(
     // 저장 실패가 이미 있는 이름 때문인지. 그렇다면 입력창 아래에 따로 안내한다
     protected open fun isDuplicated(error: Throwable): Boolean = false
 
+    // 저장 실패를 일반 안내 대신 따로 알려야 하면 그 문구를 돌려준다 (없으면 null)
+    protected open fun failureMessage(error: Throwable): String? = null
+
     fun onEvent(event: NameEditUiEvent) {
         when (event) {
             is NameEditUiEvent.NameChanged -> _uiState.update {
@@ -61,8 +64,11 @@ abstract class NameEditViewModel(
             save(name)
                 .onSuccess { _effect.trySend(NameEditUiEffect.NavigateBack) }
                 .onFailure { error ->
+                    val message = failureMessage(error)
                     if (isDuplicated(error)) {
                         _uiState.update { it.copy(isDuplicated = true) }
+                    } else if (message != null) {
+                        _effect.trySend(NameEditUiEffect.ShowMessage(message))
                     } else {
                         _effect.trySend(NameEditUiEffect.ShowSaveError)
                     }

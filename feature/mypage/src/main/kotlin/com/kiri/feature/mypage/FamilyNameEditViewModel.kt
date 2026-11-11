@@ -34,4 +34,11 @@ class FamilyNameEditViewModel @Inject constructor(
         familyRepository.renameFamily(name).map { }.onSuccess { home?.invalidateFamily() }
 
     override fun isDuplicated(error: Throwable): Boolean = error is DuplicateFamilyNameException
+
+    override fun failureMessage(error: Throwable): String? =
+        if (error is com.kiri.domain.model.family.NotFamilyOwnerException) OWNER_ONLY_MESSAGE else null
+
+    companion object {
+        const val OWNER_ONLY_MESSAGE = "방장만 가족명을 바꿀 수 있어요."
+    }
 }

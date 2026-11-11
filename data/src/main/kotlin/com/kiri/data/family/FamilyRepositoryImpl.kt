@@ -75,10 +75,15 @@ internal class FamilyRepositoryImpl @Inject constructor(
 
     // 가족 ID 는 기억해 둔 값을, 없으면 서버에서 받아 쓴다. 소속된 가족이 없으면 바꾸지 않고 실패한다
     // 기억해 둔 가족 ID 가 오래돼 거절되면 가족 ID 를 다시 받아 한 번 더 시도한다 (withFamilyId)
+    // 가족 ID 를 다시 확인하고도 FAMILY403_1 이면 그 가족의 구성원이지만 방장이 아닌 것이다 (가족명은 방장만 바꿀 수 있다)
     override suspend fun renameFamily(name: String): Result<String> =
         familyIdStore.withFamilyId(api, json) { familyId -> apiResult(json) { api.renameFamily(familyId, RenameFamilyRequest(name)) } }
             .map { it.name }
             .recoverDuplicateName()
+            .recoverCatching { error ->
+                if (error is KiriApiException && error.code == NOT_OWNER_CODE) throw com.kiri.domain.model.family.NotFamilyOwnerException()
+                throw error
+            }
 
     // 가족 이름 중복은 화면에서 따로 안내해야 해서 도메인 오류로 바꾼다. 나머지 실패는 그대로 돌려준다
     private fun <T> Result<T>.recoverDuplicateName(): Result<T> = recoverCatching { error ->
@@ -88,6 +93,7 @@ internal class FamilyRepositoryImpl @Inject constructor(
 
     private companion object {
         const val DUPLICATE_FAMILY_NAME_CODE = "FAMILY409_1"
+        const val NOT_OWNER_CODE = "FAMILY403_1"
         val INVALID_INVITE_CODES = setOf("COMMON400_1", "FAMILY403_1", "FAMILY404_1")
     }
 }

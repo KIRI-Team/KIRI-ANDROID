@@ -202,7 +202,7 @@ class FamilyRepositoryImplTest {
     }
 
     @Test
-    fun 가족_구성원이_아니면_가족명_변경이_서버의_code를_담아_실패한다() = runTest {
+    fun 방장이_아니면_가족명을_바꾸지_못하고_방장_아님으로_실패한다() = runTest {
         familyIdStore.saved = 7
         // 명세상 403 응답의 isSuccess 가 true 로 오지만 HTTP 상태로 실패를 판단한다
         enqueue(403, """{"isSuccess":true,"code":"FAMILY403_1","message":"해당 가족에 대한 권한이 없습니다.","result":null}""")
@@ -211,7 +211,8 @@ class FamilyRepositoryImplTest {
 
         val error = repository().renameFamily("끼리네가족2").exceptionOrNull()
 
-        assertEquals("FAMILY403_1", (error as KiriApiException).code)
+        // 같은 가족의 구성원이지만 방장이 아니어서 거절된 것으로 본다
+        assertTrue(error is com.kiri.domain.model.family.NotFamilyOwnerException)
         assertEquals(2, server.requestCount)
     }
 
@@ -290,7 +291,8 @@ class FamilyRepositoryImplTest {
 
         val error = repository().renameFamily("끼리네가족2").exceptionOrNull()
 
-        assertEquals("FAMILY403_1", (error as KiriApiException).code)
+        // 같은 가족의 구성원이지만 방장이 아니어서 거절된 것으로 본다
+        assertTrue(error is com.kiri.domain.model.family.NotFamilyOwnerException)
         assertEquals(2, server.requestCount)
     }
 
@@ -302,7 +304,8 @@ class FamilyRepositoryImplTest {
 
         val error = repository().renameFamily("끼리네가족2").exceptionOrNull()
 
-        assertEquals("FAMILY403_1", (error as KiriApiException).code)
+        // 같은 가족의 구성원이지만 방장이 아니어서 거절된 것으로 본다
+        assertTrue(error is com.kiri.domain.model.family.NotFamilyOwnerException)
         assertEquals(2, server.requestCount)
     }
 
