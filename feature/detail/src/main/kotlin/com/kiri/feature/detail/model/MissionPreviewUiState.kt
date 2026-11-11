@@ -29,4 +29,7 @@ sealed interface MissionPreviewUiEvent {
 
 sealed interface MissionPreviewUiEffect {
     data object NavigateBack : MissionPreviewUiEffect
+
+    // 토스트로 알린다 (둘러보기 중 가족 기능 제한 등)
+    data class ShowMessage(val message: String) : MissionPreviewUiEffect
 }

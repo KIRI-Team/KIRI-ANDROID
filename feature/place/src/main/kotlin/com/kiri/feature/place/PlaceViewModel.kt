@@ -6,13 +6,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.kiri.domain.place.*
+import com.kiri.domain.home.isBrowsing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
 @HiltViewModel
-class PlaceViewModel @Inject constructor(private val repository: PlaceRepository, private val savedState: SavedStateHandle = SavedStateHandle()) : ViewModel() {
+class PlaceViewModel @Inject constructor(
+    private val repository: PlaceRepository,
+    private val savedState: SavedStateHandle = SavedStateHandle(),
+    // 둘러보기 사용자는 버킷에 저장할 수 없다 (가족 정보로 확인). 없으면 확인하지 않는다
+    private val home: com.kiri.domain.home.HomeRepository? = null,
+) : ViewModel() {
     private val _uiState = MutableStateFlow(PlaceUiState(query = PlaceQuery(filters = restoreFilters())))
     val uiState = _uiState.asStateFlow()
     private val _effect = kotlinx.coroutines.channels.Channel<PlaceUiEffect>(kotlinx.coroutines.channels.Channel.BUFFERED)
@@ -82,7 +88,15 @@ class PlaceViewModel @Inject constructor(private val repository: PlaceRepository
             catch (_: Exception) { if (version == generation) _uiState.update { it.copy(loadingMore = false, error = "다음 활동을 불러오지 못했어요.") } }
         }
     }
-    private fun requestSave(mission: PlaceMission) { if (mission.canSave && !mission.saved && !uiState.value.saving) _uiState.update { it.copy(pending = mission, error = null) } }
+    private fun requestSave(mission: PlaceMission) {
+        if (!mission.canSave || mission.saved || uiState.value.saving) return
+        val source = home ?: return _uiState.update { it.copy(pending = mission, error = null) }
+        viewModelScope.launch {
+            // 둘러보기 중이면 저장 확인을 띄우지 않고 안내한다
+            if (source.isBrowsing()) _effect.trySend(PlaceUiEffect.ShowMessage(com.kiri.domain.home.BROWSING_BLOCKED_MESSAGE))
+            else _uiState.update { it.copy(pending = mission, error = null) }
+        }
+    }
     private fun dismissSave() { if (!uiState.value.saving) _uiState.update { it.copy(pending = null, error = null) } }
     private fun save() {
         val mission = uiState.value.pending ?: return

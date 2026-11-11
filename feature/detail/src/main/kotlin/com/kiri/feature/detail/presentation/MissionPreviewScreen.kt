@@ -19,10 +19,18 @@ fun MissionPreviewRoute(onBack: () -> Unit, viewModel: MissionPreviewViewModel =
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentBack by rememberUpdatedState(onBack)
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             viewModel.retry()
-            viewModel.effect.collect { currentBack() }
+            viewModel.effect.collect { effect ->
+                when (effect) {
+                    com.kiri.feature.detail.model.MissionPreviewUiEffect.NavigateBack -> currentBack()
+                    // TODO: 제한 안내 UI 가 정해지면 바꾼다
+                    is com.kiri.feature.detail.model.MissionPreviewUiEffect.ShowMessage ->
+                        android.widget.Toast.makeText(context, effect.message, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
     MissionPreviewScreen(state,

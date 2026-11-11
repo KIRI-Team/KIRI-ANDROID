@@ -26,6 +26,9 @@ data class FamilySettingUiState(
 ) {
     val me: FamilyMember? get() = members.firstOrNull { it.isMe }
 
+    // 가족 정보를 불러왔는데 소속된 가족이 없다 = 둘러보기 중 (불러오는 중이거나 실패하면 둘러보기로 보지 않는다)
+    val isBrowsing: Boolean get() = !loading && !failed && familyName == null
+
     // 가족명은 방장만 바꿀 수 있다. 방장을 모르면 막지 않고 서버 판단에 맡긴다
     val canRenameFamily: Boolean get() = familyName != null && (ownerId == null || me?.id == ownerId)
 }
