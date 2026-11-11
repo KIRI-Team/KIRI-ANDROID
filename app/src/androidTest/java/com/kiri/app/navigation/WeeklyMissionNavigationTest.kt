@@ -81,6 +81,7 @@ class WeeklyMissionNavigationTest {
             val source = FakeHomeRepository(clock, latencyMillis = 0)
             val identity = UUID.randomUUID().toString()
             return object : HomeRepository by source {
+                override suspend fun family() = load()
                 override suspend fun load(): FamilyHome {
                     val loaded = source.load()
                     return loaded.copy(familyName = "주간 미션 테스트 $identity", schedules = emptyList(),

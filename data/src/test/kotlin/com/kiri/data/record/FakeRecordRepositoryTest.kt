@@ -20,6 +20,7 @@ class FakeRecordRepositoryTest {
         var snapshot = source.load()
         val mutableHome =
             object : com.kiri.domain.home.HomeRepository by source {
+                override suspend fun family() = load()
                 override suspend fun load() = snapshot
             }
         val repo = FakeRecordRepository(mutableHome, FakeMissionRepository(), clock = clock)
@@ -126,6 +127,7 @@ class FakeRecordRepositoryTest {
         var family = source.load()
         val access =
             object : com.kiri.domain.home.HomeRepository by source {
+                override suspend fun family() = load()
                 override suspend fun load() = family
             }
         val repo = FakeRecordRepository(access, FakeMissionRepository(), clock = clock)

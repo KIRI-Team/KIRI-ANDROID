@@ -41,6 +41,8 @@ class WeeklyMissionPolicyTest {
         var user = "me"
         var weeklyId = "weekly-demo"
         val home = object : HomeRepository by source {
+            override suspend fun family() = load()
+
             override suspend fun load(): FamilyHome {
                 val loaded = source.load()
                 return loaded.copy(currentUserId = user, schedules = emptyList(),
