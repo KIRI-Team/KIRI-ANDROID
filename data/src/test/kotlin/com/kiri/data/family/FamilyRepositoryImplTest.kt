@@ -206,10 +206,13 @@ class FamilyRepositoryImplTest {
         familyIdStore.saved = 7
         // 명세상 403 응답의 isSuccess 가 true 로 오지만 HTTP 상태로 실패를 판단한다
         enqueue(403, """{"isSuccess":true,"code":"FAMILY403_1","message":"해당 가족에 대한 권한이 없습니다.","result":null}""")
+        // 기억한 가족 ID 가 거절되면 가족 ID 를 다시 확인한다. 같은 가족(7)이면 다시 요청하지 않는다
+        enqueue(200, """{"isSuccess":true,"code":"FAMILY200_6","message":"ok","result":{"familyId":7}}""")
 
         val error = repository().renameFamily("끼리네가족2").exceptionOrNull()
 
         assertEquals("FAMILY403_1", (error as KiriApiException).code)
+        assertEquals(2, server.requestCount)
     }
 
     @Test
@@ -261,6 +264,46 @@ class FamilyRepositoryImplTest {
         repeat(3) { assertTrue(repo.joinFamily("4QNC1Q").exceptionOrNull() is com.kiri.domain.model.family.InvalidInviteCodeException) }
         assertEquals("COMMON500_1", (repo.joinFamily("4QNC1Q").exceptionOrNull() as KiriApiException).code)
         assertNull(familyIdStore.saved)
+    }
+
+    @Test
+    fun 기억한_가족_ID가_오래돼_거절되면_가족_ID를_다시_받아_한_번_더_가족명을_바꾼다() = runTest {
+        familyIdStore.saved = 9
+        enqueue(403, """{"isSuccess":false,"code":"FAMILY403_1","message":"해당 가족에 대한 권한이 없습니다.","result":null}""")
+        enqueue(200, """{"isSuccess":true,"code":"FAMILY200_6","message":"가족 ID 조회에 성공했습니다.","result":{"familyId":10}}""")
+        enqueue(200, RENAME_BODY)
+
+        repository().renameFamily("끼리네가족2").getOrThrow()
+
+        assertEquals(
+            listOf("PATCH /api/v1/families/9", "GET /api/v1/families/me/id", "PATCH /api/v1/families/10"),
+            List(3) { server.takeRequest().let { r -> "${r.method} ${r.url.encodedPath}" } },
+        )
+        assertEquals(10L, familyIdStore.saved)
+    }
+
+    @Test
+    fun 다시_받은_가족_ID가_같으면_다시_요청하지_않고_처음_실패를_돌려준다() = runTest {
+        familyIdStore.saved = 9
+        enqueue(403, """{"isSuccess":false,"code":"FAMILY403_1","message":"해당 가족에 대한 권한이 없습니다.","result":null}""")
+        enqueue(200, """{"isSuccess":true,"code":"FAMILY200_6","message":"가족 ID 조회에 성공했습니다.","result":{"familyId":9}}""")
+
+        val error = repository().renameFamily("끼리네가족2").exceptionOrNull()
+
+        assertEquals("FAMILY403_1", (error as KiriApiException).code)
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test
+    fun 방금_서버에서_받은_가족_ID로_거절되면_다시_시도하지_않는다() = runTest {
+        familyIdStore.saved = null
+        enqueue(200, """{"isSuccess":true,"code":"FAMILY200_6","message":"가족 ID 조회에 성공했습니다.","result":{"familyId":9}}""")
+        enqueue(403, """{"isSuccess":false,"code":"FAMILY403_1","message":"해당 가족에 대한 권한이 없습니다.","result":null}""")
+
+        val error = repository().renameFamily("끼리네가족2").exceptionOrNull()
+
+        assertEquals("FAMILY403_1", (error as KiriApiException).code)
+        assertEquals(2, server.requestCount)
     }
 
     private companion object {
