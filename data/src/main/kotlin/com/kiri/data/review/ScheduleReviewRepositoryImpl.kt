@@ -43,6 +43,18 @@ internal class ScheduleReviewRepositoryImpl @Inject constructor(
     override suspend fun deleteReview(scheduleId: Long, reviewId: Long): Result<Unit> =
         apiCommand(json) { api.deleteReview(scheduleId, reviewId) }.recoverMyReviewErrors()
 
+    override suspend fun changeRepresentativePhoto(scheduleId: Long, reviewPhotoId: Long): Result<Long> =
+        apiResult(json) { api.changeRepresentativePhoto(scheduleId, RepresentativePhotoRequest(reviewPhotoId)) }
+            .map { it.representativePhotoId }
+            .recoverCatching { error ->
+                throw when ((error as? KiriApiException)?.code) {
+                    PHOTO_NOT_FOUND -> com.kiri.domain.model.review.ReviewPhotoNotFoundException()
+                    ACCESS_DENIED -> ReviewAccessDeniedException()
+                    SCHEDULE_NOT_FOUND -> ScheduleNotFoundException()
+                    else -> error
+                }
+            }
+
     // 수정·삭제가 함께 쓰는 실패 변환
     private fun <T> Result<T>.recoverMyReviewErrors(): Result<T> = recoverCatching { error ->
         val api = error as? KiriApiException
@@ -56,8 +68,13 @@ internal class ScheduleReviewRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getReviews(scheduleId: Long): Result<List<ScheduleReview>> =
+        getReviewList(scheduleId).map { it.reviews }
+
+    override suspend fun getReviewList(scheduleId: Long): Result<com.kiri.domain.model.review.ScheduleReviewList> =
         apiResult(json) { api.getReviews(scheduleId) }
-            .map { response -> response.reviews.map { it.toScheduleReview() } }
+            .map { response ->
+                com.kiri.domain.model.review.ScheduleReviewList(response.reviews.map { it.toScheduleReview() }, response.representativePhotoId)
+            }
             .recoverCatching { error ->
                 throw when ((error as? KiriApiException)?.code) {
                     ACCESS_DENIED -> ReviewAccessDeniedException()
@@ -74,5 +91,6 @@ internal class ScheduleReviewRepositoryImpl @Inject constructor(
         const val SCHEDULE_NOT_FOUND = "SCHEDULE404_2"
         const val INVALID_INPUT = "COMMON400_1"
         const val REVIEW_NOT_FOUND = "REVIEW404_1"
+        const val PHOTO_NOT_FOUND = "REVIEW404_2"
     }
 }

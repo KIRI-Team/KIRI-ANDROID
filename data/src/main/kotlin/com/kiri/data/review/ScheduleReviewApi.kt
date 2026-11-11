@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -43,6 +44,14 @@ internal interface ScheduleReviewApi {
         @Path("reviewId") reviewId: Long,
     ): ApiResponse<kotlinx.serialization.json.JsonElement>
 
+    // 로그인 토큰이 필요하다. 일정의 대표 사진을 그 일정의 리뷰 사진 하나로 정한다 (REVIEW200_5)
+    // 다른 가족 일정 REVIEW403_2, 그 일정에 없는 리뷰 사진 REVIEW404_2, 요청 형식 오류 COMMON400_1
+    @PATCH("api/v1/schedules/{scheduleId}/representative-photo")
+    suspend fun changeRepresentativePhoto(
+        @Path("scheduleId") scheduleId: Long,
+        @Body request: RepresentativePhotoRequest,
+    ): ApiResponse<RepresentativePhotoResponse>
+
     @GET("api/v1/schedules/{scheduleId}/reviews")
     suspend fun getReviews(@Path("scheduleId") scheduleId: Long): ApiResponse<ReviewListResponse>
 }
@@ -68,6 +77,8 @@ internal fun ScheduleReviewForm.toRequest() = WriteReviewRequest(
 @Serializable
 internal data class ReviewListResponse(
     val scheduleId: Long,
+    // 일정의 대표 사진(photos[].reviewPhotoId). 리뷰나 사진이 없으면 null
+    val representativePhotoId: Long? = null,
     val reviews: List<ReviewResponse> = emptyList(),
 )
 
@@ -84,6 +95,12 @@ internal data class ReviewResponse(
     val createdAt: String? = null,
     val isMine: Boolean = false,
 )
+
+@Serializable
+internal data class RepresentativePhotoRequest(val reviewPhotoId: Long)
+
+@Serializable
+internal data class RepresentativePhotoResponse(val scheduleId: Long, val representativePhotoId: Long)
 
 @Serializable
 internal data class ReviewPhotoResponse(
@@ -118,5 +135,9 @@ internal fun ReviewResponse.toScheduleReview() = ScheduleReview(
         val url = photo.imageUrl?.takeIf(String::isNotBlank) ?: return@mapNotNull null
         val key = photo.imageKey?.takeIf(String::isNotBlank) ?: return@mapNotNull null
         url to key
+    }.toMap(),
+    photoIds = photos.mapNotNull { photo ->
+        val url = photo.imageUrl?.takeIf(String::isNotBlank) ?: return@mapNotNull null
+        photo.reviewPhotoId?.let { url to it }
     }.toMap(),
 )

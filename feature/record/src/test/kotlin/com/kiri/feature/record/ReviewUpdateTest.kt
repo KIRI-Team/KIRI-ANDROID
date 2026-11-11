@@ -54,6 +54,17 @@ class ReviewUpdateTest {
         val updates = mutableListOf<Pair<Long, ScheduleReviewForm>>()
         var gets = 0
         var deleteResult: Result<Unit> = Result.success(Unit)
+        var changeResult: Result<Long>? = null
+        val changes = mutableListOf<Long>()
+        // 다른 가족이 쓴 리뷰. 사진 두 장 (id 21, 22)
+        val other = ScheduleReview(
+            id = 4, writer = ReviewWriter(2, "엄마", null), content = "좋았어", starRating = 5, rejoinIntended = true,
+            imageUrls = listOf("https://cdn/c.jpg", "https://cdn/d.jpg"), createdAt = null, isMine = false,
+            photoIds = mapOf("https://cdn/c.jpg" to 21L, "https://cdn/d.jpg" to 22L),
+        )
+        var withOther = false
+        // 서버가 목록 조회에 함께 주는 대표 사진 id (정하지 않았으면 null)
+        var representative: Long? = null
         val deleted = mutableListOf<Long>()
         // 지운 뒤에는 목록에서 빠진다
         private var removed = false
@@ -61,11 +72,18 @@ class ReviewUpdateTest {
             id = 3, writer = ReviewWriter(1, "나", null), content = "즐거웠어요", starRating = 4, rejoinIntended = true,
             imageUrls = listOf("https://cdn/user/original/a.jpg", "https://cdn/user/original/b.jpg"),
             createdAt = null, isMine = true,
+            photoIds = mapOf("https://cdn/user/original/a.jpg" to 11L, "https://cdn/user/original/b.jpg" to 12L),
             photoKeys = mapOf("https://cdn/user/original/a.jpg" to "user/original/a.jpg", "https://cdn/user/original/b.jpg" to "user/original/b.jpg"),
         )
         override suspend fun getReviews(scheduleId: Long): Result<List<ScheduleReview>> {
             gets++
-            return Result.success(if (removed) emptyList() else listOf(mine))
+            return Result.success((if (removed) emptyList() else listOf(mine)) + (if (withOther) listOf(other) else emptyList()))
+        }
+        override suspend fun getReviewList(scheduleId: Long): Result<com.kiri.domain.model.review.ScheduleReviewList> =
+            getReviews(scheduleId).map { com.kiri.domain.model.review.ScheduleReviewList(it, representative) }
+        override suspend fun changeRepresentativePhoto(scheduleId: Long, reviewPhotoId: Long): Result<Long> {
+            changes += reviewPhotoId
+            return changeResult ?: Result.success(reviewPhotoId).also { representative = reviewPhotoId }
         }
         override suspend fun deleteReview(scheduleId: Long, reviewId: Long): Result<Unit> {
             deleted += reviewId
@@ -199,6 +217,68 @@ class ReviewUpdateTest {
         assertEquals(1, viewModel.uiState.value.reviews.size)
         assertTrue(viewModel.uiState.value.reviewSaved)
         assertEquals("내가 쓴 기록만 삭제할 수 있어요.", viewModel.uiState.value.detail.error)
+    }
+
+    @Test fun 대표_사진은_목록_조회의_대표_사진_id이고_없으면_첫_사진이며_바꾸면_반영한다() = runTest(dispatcher) {
+        val reviews = Reviews().apply { withOther = true }
+        val viewModel = vm(Photos(), reviews)
+        advanceUntilIdle()
+        // 서버가 대표 사진을 주지 않으면 리뷰 목록의 첫 사진
+        assertEquals("11", viewModel.uiState.value.representativePhoto?.id)
+
+        // 서버가 준 대표 사진 id 를 쓴다 (다른 가족이 바꾼 경우 등)
+        reviews.representative = 21
+        viewModel.retryReviews()
+        advanceUntilIdle()
+        assertEquals("21", viewModel.uiState.value.representativePhoto?.id)
+        reviews.representative = null
+        viewModel.retryReviews()
+        advanceUntilIdle()
+        assertEquals(listOf("11", "12", "21", "22"), viewModel.uiState.value.reviewPhotos.map { it.id })
+
+        viewModel.openPhotoChange()
+        assertEquals(ServerScheduleDetailEffect.OpenPhotoChange, viewModel.effect.first())
+        // 지금 대표 사진을 다시 고르면 저장하지 않는다
+        viewModel.selectRepresentativePhoto("11")
+        viewModel.saveRepresentativePhoto {}
+        advanceUntilIdle()
+        assertTrue(reviews.changes.isEmpty())
+
+        var closed = false
+        viewModel.selectRepresentativePhoto("22")
+        viewModel.saveRepresentativePhoto { closed = true }
+        advanceUntilIdle()
+
+        assertEquals(listOf(22L), reviews.changes)
+        assertTrue(closed)
+        // 다시 불러온 목록의 대표 사진 id 로 보여준다
+        assertEquals(22L, viewModel.uiState.value.representativePhotoId)
+        assertEquals("22", viewModel.uiState.value.representativePhoto?.id)
+        assertEquals("https://cdn/d.jpg", viewModel.uiState.value.representativePhoto?.source)
+        assertEquals("대표 사진을 변경했어요.", viewModel.uiState.value.notice)
+    }
+
+    @Test fun 대표_사진을_바꾸지_못하면_이유를_알리고_사진이_한_장뿐이면_열지_않는다() = runTest(dispatcher) {
+        val reviews = Reviews().apply { withOther = true; changeResult = Result.failure(com.kiri.domain.model.review.ReviewPhotoNotFoundException()) }
+        val viewModel = vm(Photos(), reviews)
+        advanceUntilIdle()
+        viewModel.selectRepresentativePhoto("21")
+        var closed = false
+
+        viewModel.saveRepresentativePhoto { closed = true }
+        advanceUntilIdle()
+
+        assertFalse(closed)
+        assertEquals("지워진 사진이에요. 다른 사진을 골라주세요.", viewModel.uiState.value.detail.error)
+        assertEquals("11", viewModel.uiState.value.representativePhoto?.id)
+
+        // 고를 사진이 두 장 미만이면(내 리뷰를 지워 사진이 없음) 변경 화면을 열지 않는다
+        val empty = vm(Photos(), Reviews().apply { deleteResult = Result.success(Unit) })
+        advanceUntilIdle()
+        empty.deleteReview(3)
+        advanceUntilIdle()
+        empty.openPhotoChange()
+        assertNull(withTimeoutOrNull(100) { empty.effect.first() })
     }
 
     @Test fun 수정_중인_상태는_화면이_다시_만들어져도_이어진다() = runTest(dispatcher) {

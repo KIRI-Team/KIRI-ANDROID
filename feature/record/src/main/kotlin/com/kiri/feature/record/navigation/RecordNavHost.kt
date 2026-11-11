@@ -183,10 +183,27 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
                 onBack = { navController.popBackStack() },
                 onCustom = { navController.navigate("$SERVER_SCHEDULE_ROUTE/$id/custom") { launchSingleTop = true } },
                 onRecord = { navController.navigate("$SERVER_SCHEDULE_ROUTE/$id/review") { launchSingleTop = true } },
+                onPhotoChange = { navController.navigate("$SERVER_SCHEDULE_ROUTE/$id/photos") { launchSingleTop = true } },
                 // 상세 위에 변경 화면을 띄워, 뒤로가기나 저장 후에는 상세로 돌아온다
                 onEdit = { scheduleId ->
                     navController.navigate("$SCHEDULE_EDIT_ROUTE/$scheduleId") { launchSingleTop = true }
                 },
+            )
+        }
+        // 완료 일정의 대표 사진 변경. 후보는 가족 리뷰 사진이고, 저장하면 대표 사진 변경 API 로 가족 모두에게 반영한다
+        dialog("$SERVER_SCHEDULE_ROUTE/{${ServerScheduleDetailViewModel.SCHEDULE_ID_ARG}}/photos", dialogProperties = DialogProperties(usePlatformDefaultWidth = false)) { entry ->
+            val parent = remember(entry) { navController.getBackStackEntry(SERVER_SCHEDULE_DETAIL_PATTERN) }
+            val viewModel: ServerScheduleDetailViewModel = hiltViewModel(parent)
+            val state by viewModel.uiState.collectAsStateWithLifecycle()
+            RecordPhotoSelectionContent(
+                photos = state.reviewPhotos,
+                currentPhotoId = state.representativePhoto?.id,
+                selectedPhotoId = state.selectedPhotoId,
+                saving = state.detail.saving,
+                error = state.detail.error,
+                onBack = { navController.popBackStack() },
+                onSelect = viewModel::selectRepresentativePhoto,
+                onSave = { viewModel.saveRepresentativePhoto { navController.popBackStack() } },
             )
         }
         composable("$SERVER_SCHEDULE_ROUTE/{${ServerScheduleDetailViewModel.SCHEDULE_ID_ARG}}/review") { entry ->

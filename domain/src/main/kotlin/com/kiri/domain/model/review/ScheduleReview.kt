@@ -19,6 +19,13 @@ data class ScheduleReviewForm(
 
 data class ScheduleReviewResult(val reviewId: Long, val scheduleId: Long)
 
+// 리뷰 목록 조회 결과. representativePhotoId 는 서버가 정한 일정의 대표 사진(리뷰 사진 id)이다.
+// 없으면(null) 리뷰 목록의 첫 사진을 대표 사진으로 본다
+data class ScheduleReviewList(
+    val reviews: List<ScheduleReview>,
+    val representativePhotoId: Long? = null,
+)
+
 // 일정 참여자가 작성한 리뷰 한 건. 기록 완료 화면의 '가족 추억' 탭에서 보여준다
 data class ScheduleReview(
     val id: Long,
@@ -35,6 +42,8 @@ data class ScheduleReview(
     val isMine: Boolean,
     // 사진 주소 → 저장된 사진 Key(user/original/...). 수정할 때 유지할 기존 사진은 이 Key 로 보낸다
     val photoKeys: Map<String, String> = emptyMap(),
+    // 사진 주소 → 리뷰 사진 id. 대표 사진으로 지정할 때 쓴다
+    val photoIds: Map<String, Long> = emptyMap(),
 )
 
 data class ReviewWriter(
@@ -55,6 +64,9 @@ class ReviewAccessDeniedException : Exception("해당 일정의 리뷰를 조회
 
 // 수정하려는 리뷰가 없거나 그 일정의 리뷰가 아니다 (REVIEW404_1)
 class ReviewNotFoundException : Exception("존재하지 않는 리뷰입니다.")
+
+// 대표 사진으로 고른 사진이 이 일정의 리뷰 사진이 아니다 (REVIEW404_2)
+class ReviewPhotoNotFoundException : Exception("해당 일정에 존재하지 않는 리뷰 사진입니다.")
 
 // 필수값 누락, 별점 범위, 내용 길이, 이미지 미등록 등 입력 오류. 서버가 준 안내 문구를 담는다
 class InvalidReviewException(message: String) : Exception(message)

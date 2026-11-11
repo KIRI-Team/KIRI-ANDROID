@@ -60,6 +60,10 @@ data class ServerScheduleDetailUiState(
     val editingReviewId: Long? = null,
     // 수정 중인 리뷰의 기존 사진 주소 → 사진 Key. 그대로 둔 사진은 이 Key 로 보낸다
     val editingPhotoKeys: Map<String, String> = emptyMap(),
+    // 리뷰 목록 조회가 준 일정의 대표 사진 id. 없으면 리뷰 목록의 첫 사진이 대표 사진이다
+    val representativePhotoId: Long? = null,
+    // 대표 사진 변경 화면에서 고른 사진 id
+    val selectedPhotoId: String? = null,
     val myResponse: String? = null,
     val author: String = "나",
     val notice: String? = null,
@@ -96,6 +100,21 @@ data class ServerScheduleDetailUiState(
 
     // 약속 당일에만 컨디션 조정하러가기 버튼을 보여준다
     val canCustomize get() = schedule?.status == ScheduleDisplayStatus.TODAY
+
+    // 대표 사진 후보: 리뷰 사진 중 id 가 있는 것 (리뷰 작성순, 리뷰 안 사진 순서)
+    val reviewPhotos: List<com.kiri.domain.record.RecordPhoto>
+        get() = reviews.flatMap { review ->
+            review.imageUrls.mapNotNull { url -> review.photoIds[url]?.let { com.kiri.domain.record.RecordPhoto(it.toString(), url) } }
+        }
+
+    // 대표 사진: 리뷰 목록 조회의 representativePhotoId 사진. 없거나 그 사진을 찾지 못하면 리뷰 목록의 첫 사진
+    val representativePhoto: com.kiri.domain.record.RecordPhoto?
+        get() = reviewPhotos.firstOrNull { it.id == representativePhotoId?.toString() }
+            ?: reviews.firstNotNullOfOrNull { review ->
+                review.imageUrls.firstOrNull()?.let { url ->
+                    com.kiri.domain.record.RecordPhoto(review.photoIds[url]?.toString() ?: "review-${review.id}-0", url)
+                }
+            }
 }
 
 sealed interface ServerScheduleDetailEffect {
@@ -107,6 +126,9 @@ sealed interface ServerScheduleDetailEffect {
 
     // 제안자가 상세의 수정하기를 눌러 일정 변경 화면으로 간다
     data class OpenEdit(val scheduleId: Long) : ServerScheduleDetailEffect
+
+    // 기록 화면의 대표 사진에서 사진 변경을 눌렀다
+    data object OpenPhotoChange : ServerScheduleDetailEffect
 }
 
 // 일정 상세 API 로 받은 날짜·시간·상태·참여자로 머리말을 먼저 채우고,
@@ -340,8 +362,14 @@ constructor(
         reviewsJob?.cancel()
         state.update { it.copy(reviewsLoading = true, reviewsFailed = false) }
         reviewsJob = viewModelScope.launch {
-            reviews.getReviews(scheduleId)
-                .onSuccess { list -> state.update { it.copy(reviews = list, reviewsLoading = false, reviewSaved = it.reviewSaved || list.any { review -> review.isMine }) } }
+            reviews.getReviewList(scheduleId)
+                .onSuccess { result ->
+                    val list = result.reviews
+                    state.update {
+                        it.copy(reviews = list, representativePhotoId = result.representativePhotoId, reviewsLoading = false,
+                            reviewSaved = it.reviewSaved || list.any { review -> review.isMine })
+                    }
+                }
                 .onFailure { error ->
                     if (error is CancellationException) throw error
                     state.update { it.copy(reviewsLoading = false, reviewsFailed = true) }
@@ -521,6 +549,49 @@ constructor(
     }
 
     private class MissingPhotoKeyException : Exception()
+
+    // 대표 사진 변경 화면을 연다. 고를 사진이 두 장 이상일 때만 연다
+    fun openPhotoChange() {
+        val current = state.value
+        if (current.detail.saving || current.reviewPhotos.size < 2) return
+        state.update { it.copy(selectedPhotoId = null, detail = it.detail.copy(error = null)) }
+        effects.trySend(ServerScheduleDetailEffect.OpenPhotoChange)
+    }
+
+    fun selectRepresentativePhoto(photoId: String) {
+        if (state.value.detail.saving) return
+        state.update { it.copy(selectedPhotoId = photoId) }
+    }
+
+    // 고른 사진을 대표 사진으로 정한다. 가족 모두에게 반영된다
+    fun saveRepresentativePhoto(onSaved: () -> Unit) {
+        val current = state.value
+        val selected = current.selectedPhotoId?.toLongOrNull() ?: return
+        if (current.detail.saving || current.selectedPhotoId == current.representativePhoto?.id) return
+        val id = scheduleId ?: return
+        state.update { it.copy(detail = it.detail.copy(saving = true, error = null), notice = null) }
+        viewModelScope.launch {
+            reviews.changeRepresentativePhoto(id, selected)
+                .onSuccess { photoId ->
+                    // 응답의 대표 사진 id 로 바로 바꾸고, 목록도 다시 불러와 서버 값과 맞춘다
+                    state.update { it.copy(representativePhotoId = photoId, selectedPhotoId = null, notice = "대표 사진을 변경했어요.") }
+                    loadReviews(id)
+                    onSaved()
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    val message = when (error) {
+                        is com.kiri.domain.model.review.ReviewPhotoNotFoundException -> "지워진 사진이에요. 다른 사진을 골라주세요."
+                        is com.kiri.domain.model.review.ReviewAccessDeniedException -> "우리 가족의 일정만 바꿀 수 있어요."
+                        else -> "대표 사진을 바꾸지 못했어요. 잠시 후 다시 시도해주세요."
+                    }
+                    state.update { it.copy(detail = it.detail.copy(error = message)) }
+                    // 사진이 이미 빠졌으면 목록을 다시 불러와 후보를 맞춘다
+                    if (error is com.kiri.domain.model.review.ReviewPhotoNotFoundException) loadReviews(id)
+                }
+            state.update { it.copy(detail = it.detail.copy(saving = false)) }
+        }
+    }
 
     // 내 리뷰를 지운다 (화면에서 한 번 더 확인한 뒤 부른다). 지우면 다시 기록을 남길 수 있다. 일정은 완료 상태로 남는다
     fun deleteReview(reviewId: Long) {
