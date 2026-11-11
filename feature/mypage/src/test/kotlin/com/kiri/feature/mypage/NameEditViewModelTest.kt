@@ -105,6 +105,18 @@ class NameEditViewModelTest {
     }
 
     @Test
+    fun 방장이_아니면_가족명을_바꾸지_못한다고_알린다() = runTest(mainDispatcherRule.testDispatcher) {
+        familyRepository.renameError = com.kiri.domain.model.family.NotFamilyOwnerException()
+        val familyNameViewModel = FamilyNameEditViewModel(familyRepository)
+        familyNameViewModel.onEvent(NameEditUiEvent.NameChanged("끼리네가족2"))
+        familyNameViewModel.onEvent(NameEditUiEvent.NextClicked)
+        advanceUntilIdle()
+
+        assertEquals(NameEditUiEffect.ShowMessage("방장만 가족명을 바꿀 수 있어요."), familyNameViewModel.effect.first())
+        assertFalse(familyNameViewModel.uiState.value.isDuplicated)
+    }
+
+    @Test
     fun 가족명을_저장하면_가족_정보_캐시를_비운다() = runTest(mainDispatcherRule.testDispatcher) {
         val home = FamilyHomeRepository()
         val familyNameViewModel = FamilyNameEditViewModel(familyRepository, home)

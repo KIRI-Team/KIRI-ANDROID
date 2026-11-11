@@ -35,6 +35,13 @@ internal fun PostcodePicker(
         } else if (!ready) LinearProgressIndicator(Modifier.fillMaxWidth().testTag("postcode_loading"))
         key(attempt) {
             AndroidView(factory = { context -> WebView(context).apply {
+                // 기본(WRAP_CONTENT)이면 페이지 높이가 0 으로 잡혀 우편번호 검색이 흰 화면으로 보인다. 주어진 칸을 꽉 채운다
+                layoutParams = android.view.ViewGroup.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                )
+                // 페이지를 그리기 전 흰 바탕이 번쩍이지 않도록 앱 바탕색(Bg.Base)으로 둔다
+                setBackgroundColor(android.graphics.Color.parseColor("#1A1A1A"))
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
                 settings.allowFileAccess = false

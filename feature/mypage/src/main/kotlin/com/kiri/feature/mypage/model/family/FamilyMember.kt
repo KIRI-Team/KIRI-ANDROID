@@ -21,8 +21,13 @@ data class FamilySettingUiState(
     // 내 카드를 맨 앞에 둔다
     val members: List<FamilyMember> = emptyList(),
     val failed: Boolean = false,
+    // 방장의 회원 id (모르면 null)
+    val ownerId: String? = null,
 ) {
     val me: FamilyMember? get() = members.firstOrNull { it.isMe }
+
+    // 가족명은 방장만 바꿀 수 있다. 방장을 모르면 막지 않고 서버 판단에 맡긴다
+    val canRenameFamily: Boolean get() = familyName != null && (ownerId == null || me?.id == ownerId)
 }
 
 // 가족 정보를 화면 상태로 바꾼다. 내 카드를 맨 앞에 두고 나머지는 서버 순서대로 둔다
@@ -32,5 +37,6 @@ internal fun FamilyHome.toFamilySettingUiState(): FamilySettingUiState {
         loading = false,
         familyName = familyName,
         members = members.sortedByDescending { it.isMe },
+        ownerId = ownerId,
     )
 }

@@ -45,6 +45,7 @@ internal fun NameEditEffects(
             when (effect) {
                 NameEditUiEffect.NavigateBack -> currentOnNavigateBack()
                 NameEditUiEffect.ShowSaveError -> Toast.makeText(context, saveErrorText, Toast.LENGTH_SHORT).show()
+                is NameEditUiEffect.ShowMessage -> Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
             }
         }
     }

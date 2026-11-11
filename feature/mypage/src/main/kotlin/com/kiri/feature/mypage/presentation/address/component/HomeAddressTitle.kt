@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.sp
 import com.kiri.uikit.color.KiriColor
 
 // 우리집 주소 화면 위쪽 제목과 안내 문구. 제목 일부를 강조색으로 칠할 수 있도록 AnnotatedString을 받는다
+// Figma 10298:38339: 제목 KIRI/Display/Large(28·Medium·40), 안내 KIRI/Body/Large(16·Regular·26), 사이 6
 @Composable
 fun HomeAddressTitle(
     title: AnnotatedString,
@@ -22,15 +23,15 @@ fun HomeAddressTitle(
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
             text = title,
             style = TextStyle(
                 color = KiriColor.Text.Strong,
                 fontSize = 28.sp,
-                fontWeight = FontWeight.Normal,
-                lineHeight = 1.4.em,
+                fontWeight = FontWeight.Medium,
+                lineHeight = 40.sp,
                 letterSpacing = (-0.02).em,
             ),
         )
@@ -39,8 +40,8 @@ fun HomeAddressTitle(
             style = TextStyle(
                 color = KiriColor.Text.Tertiary,
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                lineHeight = 1.4.em,
+                fontWeight = FontWeight.Normal,
+                lineHeight = 26.sp,
                 letterSpacing = (-0.04).em,
             ),
         )
