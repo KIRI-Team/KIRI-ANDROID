@@ -4,6 +4,7 @@ import com.kiri.feature.home.HomeViewModel
 
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.swipeUp
@@ -38,6 +39,42 @@ import org.junit.Test
 class HomeScreenTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test fun emptyMissionMatchesFigmaHeightAndOpensPlaces() {
+        var opened = false
+        compose.setContent {
+            KiriTheme {
+                androidx.compose.foundation.layout.Column {
+                    com.kiri.uikit.component.KiriMissionCard(null, null, emptyList(), false, false,
+                        onPlacesClick = { opened = true },
+                        modifier = androidx.compose.ui.Modifier.then(androidx.compose.ui.Modifier.testTag("empty_mission")))
+                }
+            }
+        }
+        compose.onNodeWithTag("empty_mission").assertHeightIsEqualTo(136.dp)
+        compose.onNodeWithText("공개된 미션을 둘러보세요 →").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(true, opened) }
+        capture("home-empty-mission-local")
+    }
+
+    @Test fun missionWithLongReasonsKeepsScheduleActionVisible() {
+        var scheduled = false
+        compose.setContent {
+            KiriTheme {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(
+                        androidx.compose.ui.platform.LocalDensity.current.density, fontScale = 1.5f)
+                ) {
+                    com.kiri.uikit.component.KiriMissionCard("가족과 함께 공원에서 산책하기", "서울 공원",
+                        listOf("가족의 산책 취향을 반영한 아주 긴 추천 이유입니다", "무료 체험"), false, false,
+                        onPlacesClick = {}, onScheduleClick = { scheduled = true })
+                }
+            }
+        }
+        compose.onNodeWithText("일정 잡기").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(true, scheduled) }
+        capture("home-long-mission-local")
+    }
 
     @Test
     fun questionAndMissionFlipAreVisible() {
