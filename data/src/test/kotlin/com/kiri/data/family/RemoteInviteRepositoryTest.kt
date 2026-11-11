@@ -92,6 +92,8 @@ class RemoteInviteRepositoryTest {
     fun 가족_구성원이_아니면_서버의_code를_담아_실패한다() = runTest {
         // 명세상 403 응답의 isSuccess 가 true 로 오지만 HTTP 상태로 실패를 판단한다
         enqueue(403, """{"isSuccess":true,"code":"FAMILY403_1","message":"해당 가족에 대한 권한이 없습니다.","result":null}""")
+        // 기억한 가족 ID 가 거절되면 가족 ID 를 다시 확인한다. 같은 가족(7)이면 다시 요청하지 않는다
+        enqueue(200, """{"isSuccess":true,"code":"FAMILY200_6","message":"ok","result":{"familyId":7}}""")
 
         val error = repository().getCurrentInvite().exceptionOrNull()
 
@@ -129,11 +131,14 @@ class RemoteInviteRepositoryTest {
     @Test
     fun 지우지_못하면_재발급을_요청하지_않고_서버의_code를_담아_실패한다() = runTest {
         enqueue(403, """{"isSuccess":true,"code":"FAMILY403_1","message":"해당 가족에 대한 권한이 없습니다.","result":null}""")
+        // 기억한 가족 ID 가 거절되면 가족 ID 를 다시 확인한다. 같은 가족(7)이면 다시 요청하지 않는다
+        enqueue(200, """{"isSuccess":true,"code":"FAMILY200_6","message":"ok","result":{"familyId":7}}""")
 
         val error = repository().createInvite().exceptionOrNull()
 
         assertEquals("FAMILY403_1", (error as KiriApiException).code)
-        assertEquals(1, server.requestCount)
+        // 지우기 요청과 가족 ID 확인만 하고 재발급은 요청하지 않는다
+        assertEquals(2, server.requestCount)
     }
 
     @Test
@@ -167,6 +172,21 @@ class RemoteInviteRepositoryTest {
         val error = repository().createInvite().exceptionOrNull()
 
         assertTrue(error is IOException)
+    }
+
+    @Test
+    fun 기억한_가족_ID가_오래돼_거절되면_가족_ID를_다시_받아_초대를_불러온다() = runTest {
+        familyIdStore.saved = 7
+        enqueue(403, """{"isSuccess":false,"code":"FAMILY403_1","message":"해당 가족에 대한 권한이 없습니다.","result":null}""")
+        enqueue(200, """{"isSuccess":true,"code":"FAMILY200_6","message":"가족 ID 조회에 성공했습니다.","result":{"familyId":9}}""")
+        enqueue(200, SUCCESS_BODY)
+
+        repository().getCurrentInvite().getOrThrow()
+
+        assertEquals("/api/v1/families/7/invite", server.takeRequest().url.encodedPath)
+        assertEquals("/api/v1/families/me/id", server.takeRequest().url.encodedPath)
+        assertEquals("/api/v1/families/9/invite", server.takeRequest().url.encodedPath)
+        assertEquals(9L, familyIdStore.saved)
     }
 
     private companion object {

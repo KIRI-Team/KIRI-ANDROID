@@ -45,6 +45,7 @@ fun PlaceRoute(onBack: () -> Unit = {}, viewModel: PlaceViewModel = hiltViewMode
     val currentBack by rememberUpdatedState(onBack)
     val currentMission by rememberUpdatedState(onMission)
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             viewModel.refreshSaves()
@@ -52,6 +53,8 @@ fun PlaceRoute(onBack: () -> Unit = {}, viewModel: PlaceViewModel = hiltViewMode
                 when (effect) {
                     PlaceUiEffect.NavigateBack -> currentBack()
                     is PlaceUiEffect.OpenMission -> currentMission(effect.missionId)
+                    // TODO: 제한 안내 UI 가 정해지면 바꾼다
+                    is PlaceUiEffect.ShowMessage -> android.widget.Toast.makeText(context, effect.message, android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }

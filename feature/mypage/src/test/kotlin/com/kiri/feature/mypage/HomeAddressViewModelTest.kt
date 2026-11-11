@@ -26,6 +26,23 @@ class HomeAddressViewModelTest {
     private val viewModel = HomeAddressViewModel(family)
     private val state get() = viewModel.uiState.value
 
+    @Test
+    fun 가족_이름을_가족_정보에서_불러오고_불러오지_못하면_비워_둔다() {
+        fun home(result: () -> com.kiri.domain.home.FamilyHome) = object : com.kiri.domain.home.HomeRepository {
+            override suspend fun load() = result()
+            override suspend fun saveAnswer(question: com.kiri.domain.home.DailyQuestion, answer: String) = result()
+            override suspend fun poke(question: com.kiri.domain.home.DailyQuestion, memberId: String) = result()
+        }
+        val loaded = HomeAddressViewModel(family, home {
+            com.kiri.domain.home.FamilyHome(java.time.LocalDate.of(2026, 11, 11), "1", "끼리네가족", emptyList(),
+                null, emptyMap(), emptySet(), null, serverBacked = true)
+        })
+        assertEquals("끼리네가족", loaded.uiState.value.familyName)
+
+        val failed = HomeAddressViewModel(family, home { throw java.io.IOException() })
+        assertEquals("", failed.uiState.value.familyName)
+    }
+
     private fun selectAddress(zipCode: String = "06134", roadAddress: String = "서울 서초구 강남대로 143") {
         viewModel.onEvent(HomeAddressUiEvent.FindZipCodeClicked)
         viewModel.onEvent(HomeAddressUiEvent.AddressSelected(zipCode, roadAddress))

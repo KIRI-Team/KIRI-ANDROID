@@ -93,7 +93,7 @@ fun FamilySettingScreen(
             Spacer(Modifier.height(36.dp))
             SectionTitle("가족 닉네임 관리")
             Spacer(Modifier.height(16.dp))
-            FamilyNameCard(state.familyName, onFamilyNameEditClick)
+            FamilyNameCard(state.familyName, state.canRenameFamily, onFamilyNameEditClick)
             Spacer(Modifier.height(56.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SectionTitle("가족 구성원 관리")
@@ -139,7 +139,7 @@ fun FamilySettingScreen(
 
 // Figma 10298:38232 현재 가족 이름 카드 (배경 Bg.Primary, 모서리 8, 여백 16·18)
 @Composable
-private fun FamilyNameCard(familyName: String?, onEditClick: () -> Unit) {
+private fun FamilyNameCard(familyName: String?, canRename: Boolean, onEditClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -173,8 +173,8 @@ private fun FamilyNameCard(familyName: String?, onEditClick: () -> Unit) {
                     letterSpacing = (-0.04).em,
                 ),
             )
-            // 가족이 있을 때만 가족명을 바꿀 수 있다
-            if (familyName != null) {
+            // 가족명은 방장만 바꿀 수 있어 방장에게만 수정 아이콘을 보여준다
+            if (canRename) {
                 Image(
                     painter = painterResource(R.drawable.ic_mypage_edit),
                     contentDescription = "가족명 수정",

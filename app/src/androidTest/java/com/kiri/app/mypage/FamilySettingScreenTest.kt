@@ -73,6 +73,22 @@ class FamilySettingScreenTest {
     }
 
     @Test
+    fun 방장이_아니면_가족명_수정_아이콘을_보여주지_않는다() {
+        // 나는 1번, 방장은 4번
+        composeTestRule.setContent {
+            KiriTheme {
+                FamilySettingScreen(onBackClick = {}, onFamilyNameEditClick = {}, onMyNicknameEditClick = {},
+                    state = loaded.copy(ownerId = "4"))
+            }
+        }
+
+        composeTestRule.onNodeWithText("끼리네가족").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("family_name_edit").assertDoesNotExist()
+        // 내 닉네임 수정은 그대로 할 수 있다
+        composeTestRule.onAllNodesWithTag("family_member_nickname_edit").assertCountEquals(1)
+    }
+
+    @Test
     fun 수정_아이콘과_뒤로가기를_누르면_각각_전달한다() {
         val clicks = mutableListOf<String>()
         composeTestRule.setContent {

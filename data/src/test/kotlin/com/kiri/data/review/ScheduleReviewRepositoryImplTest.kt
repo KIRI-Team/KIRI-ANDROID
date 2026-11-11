@@ -121,6 +121,11 @@ class ScheduleReviewRepositoryImplTest {
                     1, ReviewWriter(5, "김주연", FamilyRole.DAUGHTER), "아빠가 자주 가는 식당에 처음 가봤다.", 5, true,
                     listOf("https://cdn.example.com/review/1/image-1.jpg", "https://cdn.example.com/review/1/image-2.jpg"),
                     LocalDateTime.of(2026, 6, 13, 14, 50), isMine = true,
+                    photoKeys = mapOf(
+                        "https://cdn.example.com/review/1/image-1.jpg" to "user/original/5/image-1.jpg",
+                        "https://cdn.example.com/review/1/image-2.jpg" to "user/original/5/image-2.jpg",
+                    ),
+                    photoIds = mapOf("https://cdn.example.com/review/1/image-1.jpg" to 1L, "https://cdn.example.com/review/1/image-2.jpg" to 2L),
                 ),
                 // 모르는 역할·읽지 못한 날짜는 null, 빈 사진 주소는 뺀다
                 ScheduleReview(2, ReviewWriter(6, "아빠", null), "또 가요", 4, false, emptyList(), null, isMine = false),
@@ -143,6 +148,115 @@ class ScheduleReviewRepositoryImplTest {
         assertEquals("MEMBER404_1", (repo.getReviews(3).exceptionOrNull() as KiriApiException).code)
     }
 
+    @Test
+    fun 리뷰_수정은_리뷰_경로로_PUT_하고_최종_상태를_통째로_보낸다() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"REVIEW200_3","message":"리뷰 수정이 완료되었습니다.","result":{"reviewId":3,"scheduleId":10}}""")
+
+        val result = repository().updateReview(10, 3,
+            ScheduleReviewForm(5, " 다시 갈래요 ", false, listOf("pending/new.jpg", "user/original/b.jpg"))).getOrThrow()
+
+        val request = server.takeRequest()
+        assertEquals("PUT", request.method)
+        assertEquals("/api/v1/schedules/10/reviews/3", request.url.encodedPath)
+        val body = kiriJson.parseToJsonElement(request.body!!.utf8()).jsonObject
+        assertEquals(5, body["starRating"]!!.jsonPrimitive.int)
+        assertEquals("다시 갈래요", body["content"]!!.jsonPrimitive.content)
+        assertEquals(false, body["isRejoinIntended"]!!.jsonPrimitive.boolean)
+        assertEquals(listOf("pending/new.jpg", "user/original/b.jpg"), body["imageKeys"]!!.jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(ScheduleReviewResult(3, 10), result)
+    }
+
+    @Test
+    fun 리뷰_수정_실패_코드를_도메인_오류로_바꾼다() = runTest {
+        fun failure(code: String) = """{"isSuccess":false,"code":"$code","message":"별점을 입력해주세요.","result":null}"""
+        enqueue(404, failure("REVIEW404_1"))
+        enqueue(403, failure("REVIEW403_2"))
+        enqueue(403, failure("REVIEW403_3"))
+        enqueue(400, failure("COMMON400_1"))
+        enqueue(500, failure("IMAGE500_1"))
+        val form = ScheduleReviewForm(5, "내용", true, listOf("user/original/a.jpg"))
+
+        val repo = repository()
+        assertTrue(repo.updateReview(10, 3, form).exceptionOrNull() is com.kiri.domain.model.review.ReviewNotFoundException)
+        assertTrue(repo.updateReview(10, 3, form).exceptionOrNull() is ReviewAccessDeniedException)
+        assertTrue(repo.updateReview(10, 3, form).exceptionOrNull() is ReviewAccessDeniedException)
+        assertEquals("별점을 입력해주세요.", (repo.updateReview(10, 3, form).exceptionOrNull() as InvalidReviewException).message)
+        assertEquals("IMAGE500_1", (repo.updateReview(10, 3, form).exceptionOrNull() as KiriApiException).code)
+    }
+
+    @Test
+    fun 리뷰_삭제는_리뷰_경로로_DELETE_하고_실패_코드를_도메인_오류로_바꾼다() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"REVIEW200_4","message":"리뷰 삭제가 완료되었습니다.","result":null}""")
+        fun failure(code: String) = """{"isSuccess":false,"code":"$code","message":"실패","result":null}"""
+        enqueue(404, failure("REVIEW404_1"))
+        enqueue(403, failure("REVIEW403_2"))
+        enqueue(500, failure("COMMON500_1"))
+
+        val repo = repository()
+        repo.deleteReview(10, 3).getOrThrow()
+        val request = server.takeRequest()
+        assertEquals("DELETE", request.method)
+        assertEquals("/api/v1/schedules/10/reviews/3", request.url.encodedPath)
+
+        assertTrue(repo.deleteReview(10, 3).exceptionOrNull() is com.kiri.domain.model.review.ReviewNotFoundException)
+        assertTrue(repo.deleteReview(10, 3).exceptionOrNull() is ReviewAccessDeniedException)
+        assertEquals("COMMON500_1", (repo.deleteReview(10, 3).exceptionOrNull() as KiriApiException).code)
+    }
+
+    @Test
+    fun 대표_사진은_일정_경로로_PATCH_하고_정해진_사진_id를_돌려준다() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"REVIEW200_5","message":"대표사진 변경이 완료되었습니다.","result":{"scheduleId":10,"representativePhotoId":3}}""")
+        fun failure(code: String) = """{"isSuccess":false,"code":"$code","message":"실패","result":null}"""
+        enqueue(404, failure("REVIEW404_2"))
+        enqueue(403, failure("REVIEW403_2"))
+        enqueue(404, failure("SCHEDULE404_2"))
+        enqueue(500, failure("COMMON500_1"))
+
+        val repo = repository()
+        assertEquals(3L, repo.changeRepresentativePhoto(10, 3).getOrThrow())
+        val request = server.takeRequest()
+        assertEquals("PATCH", request.method)
+        assertEquals("/api/v1/schedules/10/representative-photo", request.url.encodedPath)
+        assertEquals(3, kiriJson.parseToJsonElement(request.body!!.utf8()).jsonObject["reviewPhotoId"]!!.jsonPrimitive.int)
+
+        assertTrue(repo.changeRepresentativePhoto(10, 3).exceptionOrNull() is com.kiri.domain.model.review.ReviewPhotoNotFoundException)
+        assertTrue(repo.changeRepresentativePhoto(10, 3).exceptionOrNull() is ReviewAccessDeniedException)
+        assertTrue(repo.changeRepresentativePhoto(10, 3).exceptionOrNull() is ScheduleNotFoundException)
+        assertEquals("COMMON500_1", (repo.changeRepresentativePhoto(10, 3).exceptionOrNull() as KiriApiException).code)
+    }
+
+    @Test
+    fun 목록_조회는_일정의_대표_사진_id를_함께_돌려주고_없으면_null이다() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"REVIEW200_2","message":"ok","result":{"scheduleId":10,"representativePhotoId":2,"reviews":[
+            {"reviewId":1,"writer":{"memberId":5,"nickname":"나"},"photos":[
+              {"reviewPhotoId":1,"imageKey":"user/original/a.jpg","imageUrl":"https://cdn/a.jpg"},
+              {"reviewPhotoId":2,"imageKey":"user/original/b.jpg","imageUrl":"https://cdn/b.jpg"}]}]}}""")
+        enqueue(200, """{"isSuccess":true,"code":"REVIEW200_2","message":"ok","result":{"scheduleId":10,"representativePhotoId":null,"reviews":[]}}""")
+
+        val repo = repository()
+        val list = repo.getReviewList(10).getOrThrow()
+        assertEquals(2L, list.representativePhotoId)
+        assertEquals(1, list.reviews.size)
+        assertEquals(null, repo.getReviewList(10).getOrThrow().representativePhotoId)
+    }
+
+    @Test
+    fun 리뷰_사진은_표시_순서대로_주소와_수정용_Key를_함께_읽는다() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"REVIEW200_2","message":"ok","result":{"scheduleId":10,"reviews":[
+            {"reviewId":1,"writer":{"memberId":5,"nickname":"나"},"isMine":true,"photos":[
+              {"reviewPhotoId":1,"imageKey":"user/original/5/a.jpg","imageUrl":"https://cdn.example.com/user/original/5/a.jpg?Expires=1&Signature=s"},
+              {"reviewPhotoId":2,"imageKey":null,"imageUrl":"https://cdn.example.com/b.jpg"},
+              {"reviewPhotoId":3,"imageKey":"user/original/5/c.jpg","imageUrl":""}]}]}}""")
+
+        val review = repository().getReviews(10).getOrThrow().single()
+
+        // 주소가 없는 사진은 빼고, Key 가 없는 사진은 그리기만 한다
+        assertEquals(listOf("https://cdn.example.com/user/original/5/a.jpg?Expires=1&Signature=s", "https://cdn.example.com/b.jpg"), review.imageUrls)
+        assertEquals(mapOf("https://cdn.example.com/user/original/5/a.jpg?Expires=1&Signature=s" to "user/original/5/a.jpg"), review.photoKeys)
+        // 대표 사진으로 지정할 때 쓰는 사진 id
+        assertEquals(mapOf("https://cdn.example.com/user/original/5/a.jpg?Expires=1&Signature=s" to 1L, "https://cdn.example.com/b.jpg" to 2L), review.photoIds)
+    }
+
     private companion object {
         // 명세의 성공 응답 예시에 앱이 모르는 값을 담은 리뷰를 하나 더했다
         const val LIST = """{
@@ -158,9 +272,9 @@ class ScheduleReviewRepositoryImplTest {
         "content": "아빠가 자주 가는 식당에 처음 가봤다.",
         "starRating": 5,
         "isRejoinIntended": true,
-        "imageUrls": [
-          "https://cdn.example.com/review/1/image-1.jpg",
-          "https://cdn.example.com/review/1/image-2.jpg"
+        "photos": [
+          { "reviewPhotoId": 1, "imageKey": "user/original/5/image-1.jpg", "imageUrl": "https://cdn.example.com/review/1/image-1.jpg" },
+          { "reviewPhotoId": 2, "imageKey": "user/original/5/image-2.jpg", "imageUrl": "https://cdn.example.com/review/1/image-2.jpg" }
         ],
         "createdAt": "2026-06-13T14:50:00",
         "isMine": true
@@ -171,7 +285,7 @@ class ScheduleReviewRepositoryImplTest {
         "content": "또 가요",
         "starRating": 4,
         "isRejoinIntended": false,
-        "imageUrls": [""],
+        "photos": [{ "reviewPhotoId": 3, "imageKey": "user/original/6/x.jpg", "imageUrl": "" }],
         "createdAt": "later",
         "isMine": false
       }

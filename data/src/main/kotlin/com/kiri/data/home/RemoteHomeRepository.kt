@@ -53,7 +53,7 @@ internal class RemoteHomeRepository(
             val me = sessionToken?.let(::memberIdOf).orEmpty()
             if (info == null) FamilyHome(today(), me, null, emptyList(), null, emptyMap(), emptySet(), null, serverBacked = true)
             else FamilyHome(today(), me, info.familyName, info.members(), null, emptyMap(), emptySet(), null,
-                serverBacked = true, familyId = info.familyId.toString())
+                serverBacked = true, familyId = info.familyId.toString(), ownerId = info.ownerMemberId?.toString())
         } }
     }
 
@@ -143,7 +143,8 @@ internal class RemoteHomeRepository(
         return FamilyHome(date, me, if (daily.hasFamily) info?.familyName ?: "우리 가족" else null,
             info?.members() ?: family?.answers.orEmpty().map { FamilyMember(it.memberId.toString(), it.nickname, "") },
             question, answers, poked, mission = weekly, serverBacked = true,
-            familyId = info?.familyId?.toString(), recommendations = recommendations,
+            familyId = info?.familyId?.toString(), ownerId = info?.ownerMemberId?.toString(),
+            recommendations = recommendations,
             recommendationsLoadFailed = recommendationsLoadFailed).also { snapshot = it }
     }
 

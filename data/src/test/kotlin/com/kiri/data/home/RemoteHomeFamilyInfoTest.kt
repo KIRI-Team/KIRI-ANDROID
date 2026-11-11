@@ -72,6 +72,8 @@ class RemoteHomeFamilyInfoTest {
             assertEquals(members, family.members)
             assertEquals("1", family.currentUserId)
             assertEquals("9", family.familyId)
+            // 방장(ownerMemberId)도 함께 채운다. 가족명은 방장만 바꿀 수 있다
+            assertEquals("1", family.ownerId)
             assertNull(family.question)
             // 여러 곳이 잇달아 찾아도 다시 부르지 않는다
             repo.family(); repo.family()
