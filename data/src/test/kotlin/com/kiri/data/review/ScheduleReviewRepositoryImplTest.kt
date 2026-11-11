@@ -184,6 +184,25 @@ class ScheduleReviewRepositoryImplTest {
     }
 
     @Test
+    fun 리뷰_삭제는_리뷰_경로로_DELETE_하고_실패_코드를_도메인_오류로_바꾼다() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"REVIEW200_4","message":"리뷰 삭제가 완료되었습니다.","result":null}""")
+        fun failure(code: String) = """{"isSuccess":false,"code":"$code","message":"실패","result":null}"""
+        enqueue(404, failure("REVIEW404_1"))
+        enqueue(403, failure("REVIEW403_2"))
+        enqueue(500, failure("COMMON500_1"))
+
+        val repo = repository()
+        repo.deleteReview(10, 3).getOrThrow()
+        val request = server.takeRequest()
+        assertEquals("DELETE", request.method)
+        assertEquals("/api/v1/schedules/10/reviews/3", request.url.encodedPath)
+
+        assertTrue(repo.deleteReview(10, 3).exceptionOrNull() is com.kiri.domain.model.review.ReviewNotFoundException)
+        assertTrue(repo.deleteReview(10, 3).exceptionOrNull() is ReviewAccessDeniedException)
+        assertEquals("COMMON500_1", (repo.deleteReview(10, 3).exceptionOrNull() as KiriApiException).code)
+    }
+
+    @Test
     fun 리뷰_사진은_표시_순서대로_주소와_수정용_Key를_함께_읽는다() = runTest {
         enqueue(200, """{"isSuccess":true,"code":"REVIEW200_2","message":"ok","result":{"scheduleId":10,"reviews":[
             {"reviewId":1,"writer":{"memberId":5,"nickname":"나"},"isMine":true,"photos":[

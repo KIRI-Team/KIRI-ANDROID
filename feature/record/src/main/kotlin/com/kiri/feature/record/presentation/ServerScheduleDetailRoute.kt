@@ -44,7 +44,7 @@ fun ServerScheduleDetailRoute(
     ServerScheduleDetailEffects(viewModel, onBack, onCustom, onEdit, onRecord)
     var confirmCancel by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f)) { ServerScheduleDetailScreen(state, viewModel::onEvent, viewModel::retryReviews, viewModel::editClicked, viewModel::editReview) }
+        Box(Modifier.weight(1f)) { ServerScheduleDetailScreen(state, viewModel::onEvent, viewModel::retryReviews, viewModel::editClicked, viewModel::editReview, viewModel::deleteReview) }
         state.myResponse?.let { Text("내 응답: $it", Modifier.padding(horizontal = 12.dp), color = KiriColor.Text.Secondary) }
         state.detail.error?.let { Text(it, Modifier.padding(12.dp), color = KiriColor.Status.Error) }
         state.notice?.let { Text(it, Modifier.padding(horizontal = 12.dp), color = KiriColor.Text.Accent) }
@@ -104,6 +104,8 @@ fun ServerScheduleDetailScreen(
     onEditClick: () -> Unit = {},
     // 내 리뷰 카드의 수정하기
     onEditReview: (reviewId: Long) -> Unit = {},
+    // 내 리뷰 카드의 ⋯ > 삭제 (확인 창에서 삭제를 누른 뒤)
+    onDeleteReview: (reviewId: Long) -> Unit = {},
 ) {
     val schedule = state.schedule
     if (schedule != null && state.showsRecord) {
@@ -124,8 +126,10 @@ fun ServerScheduleDetailScreen(
                 )
             },
             onBack = { onEvent(DetailUiEvent.BackClicked) },
-            // 내 리뷰에만 수정하기를 보여준다 (RecordMemoryContent 가 mine 으로 거른다). 삭제는 API 가 없어 숨긴다
+            // 내 리뷰에만 수정하기와 ⋯(삭제)를 보여준다 (RecordMemoryContent 가 mine 으로 거르고, 삭제는 확인 창을 띄운다)
             onEdit = { id -> id.toLongOrNull()?.let(onEditReview) },
+            onDelete = { id -> id.toLongOrNull()?.let(onDeleteReview) },
+            saving = state.detail.saving,
             onReview = ({ onEvent(DetailUiEvent.RecordClicked) }).takeIf { state.canReview && !state.reviewSaved && state.reviews.none { it.isMine } },
             memoriesLoading = state.reviewsLoading,
             onRetryMemories = onRetryReviews.takeIf { state.reviewsFailed },

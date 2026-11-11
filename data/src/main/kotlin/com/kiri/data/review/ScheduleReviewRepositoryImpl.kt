@@ -1,6 +1,7 @@
 package com.kiri.data.review
 
 import com.kiri.data.network.KiriApiException
+import com.kiri.data.network.apiCommand
 import com.kiri.data.network.apiResult
 import com.kiri.domain.model.review.AlreadyReviewedException
 import com.kiri.domain.model.review.InvalidReviewException
@@ -36,16 +37,23 @@ internal class ScheduleReviewRepositoryImpl @Inject constructor(
     override suspend fun updateReview(scheduleId: Long, reviewId: Long, form: ScheduleReviewForm): Result<ScheduleReviewResult> =
         apiResult(json) { api.updateReview(scheduleId, reviewId, form.toRequest()) }
             .map { ScheduleReviewResult(it.reviewId, it.scheduleId) }
-            .recoverCatching { error ->
-                val api = error as? KiriApiException
-                throw when {
-                    api?.code == REVIEW_NOT_FOUND -> com.kiri.domain.model.review.ReviewNotFoundException()
-                    // 다른 가족의 리뷰(REVIEW403_2)와 본인 리뷰가 아닌 경우(같은 403) 모두 권한 없음으로 본다
-                    api?.code?.startsWith("REVIEW403") == true -> ReviewAccessDeniedException()
-                    api?.code == INVALID_INPUT -> InvalidReviewException(api.message)
-                    else -> error
-                }
-            }
+            .recoverMyReviewErrors()
+
+    // 성공하면 result 가 null 이라 결과 없이 성공으로 본다
+    override suspend fun deleteReview(scheduleId: Long, reviewId: Long): Result<Unit> =
+        apiCommand(json) { api.deleteReview(scheduleId, reviewId) }.recoverMyReviewErrors()
+
+    // 수정·삭제가 함께 쓰는 실패 변환
+    private fun <T> Result<T>.recoverMyReviewErrors(): Result<T> = recoverCatching { error ->
+        val api = error as? KiriApiException
+        throw when {
+            api?.code == REVIEW_NOT_FOUND -> com.kiri.domain.model.review.ReviewNotFoundException()
+            // 다른 가족의 리뷰(REVIEW403_2)와 본인 리뷰가 아닌 경우(같은 403) 모두 권한 없음으로 본다
+            api?.code?.startsWith("REVIEW403") == true -> ReviewAccessDeniedException()
+            api?.code == INVALID_INPUT -> InvalidReviewException(api.message)
+            else -> error
+        }
+    }
 
     override suspend fun getReviews(scheduleId: Long): Result<List<ScheduleReview>> =
         apiResult(json) { api.getReviews(scheduleId) }

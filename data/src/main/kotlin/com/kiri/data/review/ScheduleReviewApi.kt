@@ -8,6 +8,7 @@ import com.kiri.domain.model.review.ScheduleReviewForm
 import java.time.LocalDateTime
 import kotlinx.serialization.Serializable
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -33,6 +34,14 @@ internal interface ScheduleReviewApi {
         @Path("reviewId") reviewId: Long,
         @Body request: WriteReviewRequest,
     ): ApiResponse<WriteReviewResponse>
+
+    // 로그인 토큰이 필요하다. 본인이 쓴 리뷰와 사진을 지운다 (REVIEW200_4, result 는 null)
+    // 리뷰 없음 REVIEW404_1, 다른 가족·본인 리뷰 아님 403
+    @DELETE("api/v1/schedules/{scheduleId}/reviews/{reviewId}")
+    suspend fun deleteReview(
+        @Path("scheduleId") scheduleId: Long,
+        @Path("reviewId") reviewId: Long,
+    ): ApiResponse<kotlinx.serialization.json.JsonElement>
 
     @GET("api/v1/schedules/{scheduleId}/reviews")
     suspend fun getReviews(@Path("scheduleId") scheduleId: Long): ApiResponse<ReviewListResponse>

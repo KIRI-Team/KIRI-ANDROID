@@ -53,13 +53,25 @@ class ReviewUpdateTest {
         var updateResult: Result<ScheduleReviewResult> = Result.success(ScheduleReviewResult(3, 7))
         val updates = mutableListOf<Pair<Long, ScheduleReviewForm>>()
         var gets = 0
+        var deleteResult: Result<Unit> = Result.success(Unit)
+        val deleted = mutableListOf<Long>()
+        // 지운 뒤에는 목록에서 빠진다
+        private var removed = false
         val mine = ScheduleReview(
             id = 3, writer = ReviewWriter(1, "나", null), content = "즐거웠어요", starRating = 4, rejoinIntended = true,
             imageUrls = listOf("https://cdn/user/original/a.jpg", "https://cdn/user/original/b.jpg"),
             createdAt = null, isMine = true,
             photoKeys = mapOf("https://cdn/user/original/a.jpg" to "user/original/a.jpg", "https://cdn/user/original/b.jpg" to "user/original/b.jpg"),
         )
-        override suspend fun getReviews(scheduleId: Long): Result<List<ScheduleReview>> { gets++; return Result.success(listOf(mine)) }
+        override suspend fun getReviews(scheduleId: Long): Result<List<ScheduleReview>> {
+            gets++
+            return Result.success(if (removed) emptyList() else listOf(mine))
+        }
+        override suspend fun deleteReview(scheduleId: Long, reviewId: Long): Result<Unit> {
+            deleted += reviewId
+            if (deleteResult.isSuccess) removed = true
+            return deleteResult
+        }
         override suspend fun writeReview(scheduleId: Long, form: ScheduleReviewForm): Result<ScheduleReviewResult> = error("수정에서는 작성하지 않는다")
         override suspend fun updateReview(scheduleId: Long, reviewId: Long, form: ScheduleReviewForm): Result<ScheduleReviewResult> {
             updates += reviewId to form
@@ -150,6 +162,43 @@ class ReviewUpdateTest {
 
         assertTrue(reviews.updates.isEmpty())
         assertEquals("기존 사진 정보를 찾지 못했어요. 사진을 지우고 다시 골라주세요.", viewModel.uiState.value.detail.error)
+    }
+
+    @Test fun 내_리뷰를_지우면_목록에서_빠지고_다시_기록을_남길_수_있다() = runTest(dispatcher) {
+        val reviews = Reviews()
+        val viewModel = vm(Photos(), reviews)
+        advanceUntilIdle()
+        viewModel.editReview(3)
+        viewModel.effect.first()
+
+        viewModel.deleteReview(3)
+        advanceUntilIdle()
+
+        assertEquals(listOf(3L), reviews.deleted)
+        val state = viewModel.uiState.value
+        assertTrue(state.reviews.isEmpty())
+        assertFalse(state.reviewSaved)
+        assertNull(state.editingReviewId)
+        assertEquals("", state.detail.memoryDraft.text)
+        assertEquals("기록을 삭제했어요.", state.notice)
+        assertFalse(state.detail.saving)
+    }
+
+    @Test fun 지우지_못하면_리뷰를_그대로_두고_이유를_알린다() = runTest(dispatcher) {
+        val reviews = Reviews().apply { deleteResult = Result.failure(ReviewAccessDeniedException()) }
+        val viewModel = vm(Photos(), reviews)
+        advanceUntilIdle()
+
+        viewModel.deleteReview(3)
+        advanceUntilIdle()
+        // 내 리뷰가 아니면 요청하지 않는다
+        viewModel.deleteReview(99)
+        advanceUntilIdle()
+
+        assertEquals(listOf(3L), reviews.deleted)
+        assertEquals(1, viewModel.uiState.value.reviews.size)
+        assertTrue(viewModel.uiState.value.reviewSaved)
+        assertEquals("내가 쓴 기록만 삭제할 수 있어요.", viewModel.uiState.value.detail.error)
     }
 
     @Test fun 수정_중인_상태는_화면이_다시_만들어져도_이어진다() = runTest(dispatcher) {

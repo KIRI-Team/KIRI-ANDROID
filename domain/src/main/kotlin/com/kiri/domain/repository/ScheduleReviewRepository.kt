@@ -20,4 +20,9 @@ interface ScheduleReviewRepository {
     // 입력 오류면 InvalidReviewException 으로 실패한다
     suspend fun updateReview(scheduleId: Long, reviewId: Long, form: ScheduleReviewForm): Result<ScheduleReviewResult> =
         Result.failure(UnsupportedOperationException())
+
+    // 내가 쓴 리뷰와 그 사진을 지운다. 일정은 완료 상태로 남는다
+    // 리뷰가 없으면 ReviewNotFoundException, 내 리뷰가 아니거나 다른 가족이면 ReviewAccessDeniedException 으로 실패한다
+    suspend fun deleteReview(scheduleId: Long, reviewId: Long): Result<Unit> =
+        Result.failure(UnsupportedOperationException())
 }

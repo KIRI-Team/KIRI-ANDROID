@@ -522,6 +522,40 @@ constructor(
 
     private class MissingPhotoKeyException : Exception()
 
+    // 내 리뷰를 지운다 (화면에서 한 번 더 확인한 뒤 부른다). 지우면 다시 기록을 남길 수 있다. 일정은 완료 상태로 남는다
+    fun deleteReview(reviewId: Long) {
+        val current = state.value
+        if (current.detail.saving || current.reviews.none { it.id == reviewId && it.isMine }) return
+        val id = scheduleId ?: return
+        state.update { it.copy(detail = it.detail.copy(saving = true, error = null), notice = null) }
+        viewModelScope.launch {
+            reviews.deleteReview(id, reviewId)
+                .onSuccess {
+                    // 등록·수정하던 작성 내용은 지운 리뷰의 것이므로 비운다
+                    listOf("reviewPosted", "reviewRating", "reviewPhotos", "reviewText", "reviewRejoin",
+                        EDITING_REVIEW_ID, EDITING_PHOTO_URLS, EDITING_PHOTO_KEYS).forEach { savedState.remove<Any>(it) }
+                    state.update {
+                        it.copy(reviewSaved = false, editingReviewId = null, editingPhotoKeys = emptyMap(), notice = "기록을 삭제했어요.",
+                            reviews = it.reviews.filterNot { review -> review.id == reviewId },
+                            detail = it.detail.copy(memoryDraft = com.kiri.feature.detail.model.MemoryDraft()))
+                    }
+                    loadReviews(id)
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    val message = when (error) {
+                        is com.kiri.domain.model.review.ReviewNotFoundException -> "이미 지워졌거나 찾을 수 없는 기록이에요."
+                        is com.kiri.domain.model.review.ReviewAccessDeniedException -> "내가 쓴 기록만 삭제할 수 있어요."
+                        else -> "기록을 삭제하지 못했어요. 잠시 후 다시 시도해주세요."
+                    }
+                    state.update { it.copy(detail = it.detail.copy(error = message)) }
+                    // 이미 없는 기록이면 목록을 다시 불러와 맞춘다
+                    if (error is com.kiri.domain.model.review.ReviewNotFoundException) loadReviews(id)
+                }
+            state.update { it.copy(detail = it.detail.copy(saving = false)) }
+        }
+    }
+
     private fun Throwable.isRetryable() =
         this !is CancelledScheduleException && this !is ScheduleNotFoundException && this !is NoFamilyException
 
