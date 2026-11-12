@@ -1,6 +1,7 @@
 package com.kiri.feature.mypage.presentation.suggestion
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,6 +33,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -65,12 +67,9 @@ fun SuggestionRoute(
     val onPicked: (List<Uri>) -> Unit = { uris ->
         viewModel.onEvent(SuggestionUiEvent.PhotosPicked(uris.map(Uri::toString)))
     }
-    // 여러 장 선택기는 2장 이상만 받으므로, 1장 남았을 때는 한 장 선택기를 쓴다
-    // 남은 장수보다 많이 골라도 ViewModel 이 남은 장수만큼만 붙인다
-    val pickMultiple = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickMultipleVisualMedia(SuggestionUiState.MAX_PHOTO_COUNT),
-        onResult = onPicked,
-    )
+    val context = LocalContext.current
+    // 건의 API 가 사진을 한 장만 받으므로 한 장 선택기를 쓴다
+    // (여러 장 선택기는 2장 이상만 받는다. 최대 장수를 늘리면 여러 장 선택기를 다시 붙인다)
     val pickSingle = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         onPicked(listOfNotNull(uri))
     }
@@ -78,10 +77,10 @@ fun SuggestionRoute(
     LaunchedEffect(viewModel) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is SuggestionUiEffect.OpenPhotoPicker -> {
-                    val request = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    if (effect.maxCount >= 2) pickMultiple.launch(request) else pickSingle.launch(request)
-                }
+                is SuggestionUiEffect.OpenPhotoPicker ->
+                    pickSingle.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                is SuggestionUiEffect.ShowMessage ->
+                    Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
                 SuggestionUiEffect.NavigateBack -> currentOnNavigateBack()
             }
         }
@@ -163,7 +162,7 @@ fun SuggestionScreen(
             )
             Spacer(Modifier.height(24.dp))
         }
-        // 내용이 비어 있으면 디자인처럼 Neutral, 내용을 적으면 Accent 로 바뀐다
+        // 내용이 비어 있거나 보내는 중이면 디자인처럼 Neutral, 내용을 적으면 Accent 로 바뀐다
         KiriButton(
             onClick = { onEvent(SuggestionUiEvent.SendClicked) },
             modifier = Modifier
