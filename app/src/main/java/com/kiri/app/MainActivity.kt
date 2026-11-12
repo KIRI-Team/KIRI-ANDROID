@@ -53,8 +53,8 @@ class MainActivity : ComponentActivity() {
 
     // 초대 링크(https://kiri.app/invite/{token})로 열렸으면 초대 토큰을 기기에 보관한다.
     // 로그인 -> 온보딩 도중 앱이 종료돼도 남아 있고, 가족 참여가 끝나면 지운다
-    // TODO(invite-accept): 가족 참여 API 가 나오면 온보딩을 마치고 홈에 들어갈 때 pendingInviteRepository.get() 으로 꺼내
-    //  참여를 요청하고, 성공하거나 더 쓸 수 없는 토큰이면 clear() 한다
+    // 보관한 토큰은 AcceptPendingInviteUseCase 가 꺼내 참여한다: 온보딩은 가족 선택 화면에 들어올 때,
+    // 메인은 화면에 돌아올 때(FamilyAccessViewModel). 참여했거나 더 쓸 수 없는 토큰이면 지운다
     private fun saveInviteToken(intent: Intent?) {
         val uri = intent?.takeIf { it.action == Intent.ACTION_VIEW }?.data ?: return
         val token = InviteLink.parseToken(uri.scheme, uri.host, uri.path) ?: return

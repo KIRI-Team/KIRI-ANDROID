@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Scaffold
 import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -28,6 +29,10 @@ fun MainScreen(onNavigateToLogin: () -> Unit = {}, accessViewModel: FamilyAccess
     // 둘러보기 중이면 가족 기능인 기록 탭을 막는다. 화면에 돌아올 때마다 상태를 다시 확인한다
     val access by accessViewModel.access.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { accessViewModel.refresh() }
+    // 초대 링크로 가족에 참여한 결과를 알린다
+    LaunchedEffect(accessViewModel) {
+        accessViewModel.messages.collect { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
+    }
 
     Scaffold(
         containerColor = KiriColor.Bg.Base,

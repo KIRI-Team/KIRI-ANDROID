@@ -23,4 +23,7 @@ sealed interface OnboardingUiEffect {
 
     // 가족코드로 가족에 참여하지 못했다 (안내 문구를 함께 보낸다)
     data class ShowJoinFamilyError(val message: String) : OnboardingUiEffect
+
+    // 토스트로 알린다 (초대 링크로 참여한 결과 등)
+    data class ShowMessage(val message: String) : OnboardingUiEffect
 }

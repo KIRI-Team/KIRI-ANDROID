@@ -22,6 +22,15 @@ class TestFamilyRepository(
         return joinResult
     }
 
+    // 초대 토큰 가입 결과와 보낸 토큰
+    var tokenJoinResult: Result<JoinedFamily> = Result.success(JoinedFamily(9, "끼리네가족"))
+    val sentTokens = mutableListOf<String>()
+
+    override suspend fun joinFamilyByToken(inviteToken: String): Result<JoinedFamily> {
+        sentTokens += inviteToken
+        return tokenJoinResult
+    }
+
     override suspend fun createFamily(name: String): Result<Family> {
         sentNames += name
         return result

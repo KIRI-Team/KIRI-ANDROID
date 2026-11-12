@@ -242,6 +242,45 @@ class FamilyRepositoryImplTest {
     }
 
     @Test
+    fun 초대_토큰을_경로에_담아_본문_없이_POST하고_가입한_가족_ID를_기억한다() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"FAMILY200_7","message":"가족 가입에 성공했습니다.","result":{"familyId":3,"familyName":"끼리네가족"}}""")
+
+        val joined = repository().joinFamilyByToken(" tok-abc123 ").getOrThrow()
+
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/v1/families/join/tok-abc123", request.url.encodedPath)
+        assertEquals(0, request.body?.size ?: 0)
+        assertEquals(com.kiri.domain.model.family.JoinedFamily(3, "끼리네가족"), joined)
+        assertEquals(3L, familyIdStore.saved)
+    }
+
+    @Test
+    fun 빈_초대_토큰은_보내지_않는다() = runTest {
+        val error = repository().joinFamilyByToken(" ").exceptionOrNull()
+
+        assertTrue(error is com.kiri.domain.model.family.InvalidInviteCodeException)
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test
+    fun 토큰_가입_실패_코드를_도메인_오류로_바꾼다() = runTest {
+        fun failure(code: String) = """{"isSuccess":false,"code":"$code","message":"실패","result":null}"""
+        enqueue(410, failure("FAMILY410_2"))
+        enqueue(409, failure("FAMILY409_2"))
+        enqueue(404, failure("FAMILY404_1"))
+        enqueue(403, failure("FAMILY403_1"))
+        enqueue(404, failure("MEMBER404_1"))
+
+        val repo = repository()
+        assertTrue(repo.joinFamilyByToken("tok").exceptionOrNull() is com.kiri.domain.model.family.ExpiredInviteCodeException)
+        assertTrue(repo.joinFamilyByToken("tok").exceptionOrNull() is com.kiri.domain.model.family.AlreadyInFamilyException)
+        repeat(2) { assertTrue(repo.joinFamilyByToken("tok").exceptionOrNull() is com.kiri.domain.model.family.InvalidInviteCodeException) }
+        assertEquals("MEMBER404_1", (repo.joinFamilyByToken("tok").exceptionOrNull() as KiriApiException).code)
+        assertNull(familyIdStore.saved)
+    }
+
+    @Test
     fun 빈_초대_코드는_보내지_않는다() = runTest {
         val error = repository().joinFamily("  ").exceptionOrNull()
 

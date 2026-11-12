@@ -54,24 +54,34 @@ internal class FamilyRepositoryImpl @Inject constructor(
     override suspend fun joinFamily(inviteCode: String): Result<com.kiri.domain.model.family.JoinedFamily> {
         val code = inviteCode.trim().uppercase()
         if (code.isEmpty()) return Result.failure(com.kiri.domain.model.family.InvalidInviteCodeException())
-        return apiResult(json) { api.joinByCode(JoinFamilyRequest(code)) }
-            .mapCatching { response ->
-                familyIdStore.save(response.familyId)
-                com.kiri.domain.model.family.JoinedFamily(response.familyId, response.familyName)
-            }
-            .recoverCatching { error ->
-                val serverCode = (error as? KiriApiException)?.code ?: throw error
-                throw when {
-                    serverCode == "FAMILY410_1" -> com.kiri.domain.model.family.ExpiredInviteCodeException()
-                    serverCode == "FAMILY409_2" -> com.kiri.domain.model.family.AlreadyInFamilyException()
-                    // 코드에 맞는 가족이 없으면 FAMILY404_1(존재하지 않는 가족). FAMILY403_1 도 코드가 그 가족의 것이
-                    // 아니라는 뜻이라 같은 안내를 한다
-                    serverCode in INVALID_INVITE_CODES ->
-                        com.kiri.domain.model.family.InvalidInviteCodeException()
-                    else -> error
-                }
-            }
+        return apiResult(json) { api.joinByCode(JoinFamilyRequest(code)) }.toJoinedFamily()
     }
+
+    // 초대 링크의 토큰으로 가입한다. 빈 토큰은 보내지 않는다. 오류는 코드 가입과 같은 도메인 오류로 바꾼다
+    override suspend fun joinFamilyByToken(inviteToken: String): Result<com.kiri.domain.model.family.JoinedFamily> {
+        val token = inviteToken.trim()
+        if (token.isEmpty()) return Result.failure(com.kiri.domain.model.family.InvalidInviteCodeException())
+        return apiResult(json) { api.joinByToken(token) }.toJoinedFamily()
+    }
+
+    // 가입하면 가족 ID 를 기억해 다른 가족 API 에 쓴다
+    private suspend fun Result<JoinFamilyResponse>.toJoinedFamily(): Result<com.kiri.domain.model.family.JoinedFamily> =
+        mapCatching { response ->
+            familyIdStore.save(response.familyId)
+            com.kiri.domain.model.family.JoinedFamily(response.familyId, response.familyName)
+        }.recoverCatching { error ->
+            val serverCode = (error as? KiriApiException)?.code ?: throw error
+            throw when {
+                // 코드 만료는 FAMILY410_1, 토큰 만료는 FAMILY410_2
+                serverCode in EXPIRED_INVITE_CODES -> com.kiri.domain.model.family.ExpiredInviteCodeException()
+                serverCode == "FAMILY409_2" -> com.kiri.domain.model.family.AlreadyInFamilyException()
+                // 코드에 맞는 가족이 없으면 FAMILY404_1(존재하지 않는 가족). FAMILY403_1 도 코드가 그 가족의 것이
+                // 아니라는 뜻이라 같은 안내를 한다
+                serverCode in INVALID_INVITE_CODES ->
+                    com.kiri.domain.model.family.InvalidInviteCodeException()
+                else -> error
+            }
+        }
 
     // 가족 ID 는 기억해 둔 값을, 없으면 서버에서 받아 쓴다. 소속된 가족이 없으면 바꾸지 않고 실패한다
     // 기억해 둔 가족 ID 가 오래돼 거절되면 가족 ID 를 다시 받아 한 번 더 시도한다 (withFamilyId)
@@ -95,5 +105,6 @@ internal class FamilyRepositoryImpl @Inject constructor(
         const val DUPLICATE_FAMILY_NAME_CODE = "FAMILY409_1"
         const val NOT_OWNER_CODE = "FAMILY403_1"
         val INVALID_INVITE_CODES = setOf("COMMON400_1", "FAMILY403_1", "FAMILY404_1")
+        val EXPIRED_INVITE_CODES = setOf("FAMILY410_1", "FAMILY410_2")
     }
 }
