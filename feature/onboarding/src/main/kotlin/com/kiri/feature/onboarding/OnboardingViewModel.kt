@@ -54,6 +54,13 @@ class OnboardingViewModel @Inject constructor(
     val effect: Flow<OnboardingUiEffect> = _effect.receiveAsFlow()
 
     private var selectedPath: OnboardingPath? = null
+    private var initialPathOpened = false
+
+    fun openInitialFamilyPath(path: OnboardingPath) {
+        if (initialPathOpened || _uiState.value.isSubmitting || _uiState.value.currentStep != OnboardingStep.ONBOARDING_MAIN) return
+        initialPathOpened = true
+        selectPath(path)
+    }
 
     // 서버에 저장한 닉네임·역할. 뒤로 왔다가 바꾸지 않고 다음을 누르면 다시 보내지 않는다
     private var savedNickname: String? = null

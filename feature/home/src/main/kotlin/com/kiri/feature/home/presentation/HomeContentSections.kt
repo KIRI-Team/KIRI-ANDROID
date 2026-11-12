@@ -129,22 +129,30 @@ internal fun AnswersHeader(
 
 @Composable
 internal fun BrowseCard(onDestination: (HomeUiDestination) -> Unit) {
-    Card(
-        Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(HomeCard),
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("가족과 함께하는 질문을 시작해보세요", color = HomeStrong, fontSize = 18.sp)
-            Text("가족공간을 만들거나 초대코드로 참여하면 오늘의 질문을 받을 수 있어요.", color = HomeSecondary, fontSize = 14.sp)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { onDestination(HomeUiDestination.CreateFamily) }) {
-                    Text("가족 만들기")
+    Column(horizontalAlignment = Alignment.End) {
+        Card(
+            onClick = { onDestination(HomeUiDestination.CreateFamily) },
+            modifier = Modifier.fillMaxWidth().testTag("home_create_family"),
+            colors = CardDefaults.cardColors(KiriColor.Bg.Primary),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(48.dp).background(KiriColor.Bg.Secondary, CircleShape), contentAlignment = Alignment.Center) {
+                    Image(painterResource(com.kiri.feature.home.R.drawable.home_family_email), null, Modifier.size(24.dp))
                 }
-                Button(onClick = { onDestination(HomeUiDestination.JoinFamily) }) {
-                    Text("가족 참여하기")
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("아직 가족 공간이 없군요!", color = KiriColor.Text.Tertiary, style = com.kiri.uikit.KiriTypography.BodySmall)
+                    Text("가족공간 만들러 가기", color = KiriColor.Text.Strong, style = com.kiri.uikit.KiriTypography.TitleLarge)
                 }
+                Icon(Icons.Default.ChevronRight, null, tint = KiriColor.Text.Primary)
             }
+        }
+        TextButton(onClick = { onDestination(HomeUiDestination.JoinFamily) }, modifier = Modifier.testTag("home_join_family")) {
+            Text("가족 참여하기", color = KiriColor.Text.Accent)
         }
     }
 }
@@ -243,19 +251,24 @@ internal fun ScheduleCard(card: HomeScheduleCard, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(KiriColor.Bg.Primary),
-        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(if (today) KiriColor.Bg.Secondary else KiriColor.Bg.Primary),
+        shape = RoundedCornerShape(if (today) 12.dp else 8.dp),
     ) {
         Row(
             Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text(
-                    label,
-                    color = if (today) KiriColor.Text.Accent else KiriColor.Text.Strong,
-                    fontSize = 16.sp,
-                )
+                val title = androidx.compose.ui.text.buildAnnotatedString {
+                    if (today) {
+                        append("오늘 ")
+                        pushStyle(androidx.compose.ui.text.SpanStyle(color = KiriColor.Text.Accent))
+                        append("약속 당일")
+                        pop()
+                        append("이에요!")
+                    } else append(label)
+                }
+                Text(title, color = KiriColor.Text.Strong, style = com.kiri.uikit.KiriTypography.TitleMedium)
                 if (today) Text("코스를 확인하세요", color = KiriColor.Text.Strong, fontSize = 16.sp)
                 else Text(card.schedule.title, color = KiriColor.Text.Strong, fontSize = 16.sp)
             }

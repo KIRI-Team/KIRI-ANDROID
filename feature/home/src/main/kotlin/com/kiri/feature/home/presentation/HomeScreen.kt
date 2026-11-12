@@ -139,7 +139,15 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
                         state.loading -> LoadingHome()
                         state.loadError || home == null ->
                             ErrorHome((state.loadFailure ?: HomeLoadFailure.UNKNOWN).message) { onEvent(HomeUiEvent.RetryClicked) }
-                        home.browsing -> BrowseCard(onDestination)
+                        home.browsing -> {
+                            BrowseCard(onDestination)
+                            RecommendationSection(
+                                home.recommendations,
+                                onMissionClick = onMissionClick,
+                                loadFailed = home.recommendationsLoadFailed,
+                                onRetry = { onEvent(HomeUiEvent.RetryClicked) },
+                            )
+                        }
                         else -> {
                             val responseSchedules =
                                 home.schedules.filter {

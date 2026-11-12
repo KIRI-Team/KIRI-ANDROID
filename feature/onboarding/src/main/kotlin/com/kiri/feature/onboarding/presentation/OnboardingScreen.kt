@@ -30,6 +30,8 @@ fun OnboardingRoute(
     modifier: Modifier = Modifier,
     viewModel: OnboardingViewModel = hiltViewModel(),
     onBrowseClick: () -> Unit = {},
+    initialPath: OnboardingPath? = null,
+    onExit: (() -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnNavigateToMainFlow by rememberUpdatedState(onNavigateToMainFlow)
@@ -60,11 +62,16 @@ fun OnboardingRoute(
         }
     }
 
+    LaunchedEffect(viewModel, initialPath, state.currentStep, state.isSubmitting) {
+        initialPath?.let(viewModel::openInitialFamilyPath)
+    }
+
     OnboardingScreen(
         modifier = modifier,
         state = state,
         onEvent = viewModel::onEvent,
         onBrowseClick = { viewModel.completeBrowse(onBrowseClick) },
+        onExit = onExit,
     )
 }
 
@@ -74,8 +81,13 @@ fun OnboardingScreen(
     onEvent: (OnboardingUiEvent) -> Unit,
     modifier: Modifier = Modifier,
     onBrowseClick: () -> Unit = {},
+    onExit: (() -> Unit)? = null,
 ) {
-    val onBackClick = { onEvent(OnboardingUiEvent.BackClicked) }
+    val onBackClick = {
+        if (onExit != null && !state.isSubmitting &&
+            state.currentStep in setOf(OnboardingStep.INPUT_NICKNAME, OnboardingStep.ONBOARDING_MAIN)
+        ) onExit() else onEvent(OnboardingUiEvent.BackClicked)
+    }
 
     // 첫 단계에서는 비활성화해서 시스템 뒤로가기로 앱을 종료할 수 있게 한다
     BackHandler(enabled = state.currentStep != OnboardingStep.INPUT_NICKNAME, onBack = onBackClick)

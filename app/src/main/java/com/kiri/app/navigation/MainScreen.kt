@@ -23,7 +23,7 @@ import com.kiri.uikit.color.KiriColor
 
 // onNavigateToLogin: 로그아웃·회원탈퇴 뒤 로그인 화면으로 간다
 @Composable
-fun MainScreen(onNavigateToLogin: () -> Unit = {}, accessViewModel: FamilyAccessViewModel = hiltViewModel()) {
+fun MainScreen(onNavigateToLogin: () -> Unit = {}, accessViewModel: FamilyAccessViewModel = hiltViewModel(), onCreateFamily: () -> Unit = {}, onJoinFamily: () -> Unit = {}) {
     val navController = rememberNavController()
     val context = LocalContext.current
     // 둘러보기 중이면 가족 기능인 기록 탭을 막는다. 화면에 돌아올 때마다 상태를 다시 확인한다
@@ -48,7 +48,8 @@ fun MainScreen(onNavigateToLogin: () -> Unit = {}, accessViewModel: FamilyAccess
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).testTag("main_content")) {
-            KiriNavHost(navController, Modifier.fillMaxSize(), onNavigateToLogin = onNavigateToLogin)
+            KiriNavHost(navController, Modifier.fillMaxSize(), onNavigateToLogin = onNavigateToLogin,
+                onCreateFamily = onCreateFamily, onJoinFamily = onJoinFamily)
         }
     }
 }
