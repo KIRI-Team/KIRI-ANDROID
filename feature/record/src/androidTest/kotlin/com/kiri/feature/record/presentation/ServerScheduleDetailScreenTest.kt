@@ -51,6 +51,27 @@ class ServerScheduleDetailScreenTest {
     )
 
     @Test
+    fun homeTodayShowsReviewActionAndParticipants() {
+        var event: DetailUiEvent? = null
+        compose.setContent {
+            KiriTheme {
+                ServerScheduleDetailScreen(
+                    ServerScheduleDetailUiState(
+                        detail = DetailUiState(loading = false, detail = detail.toMissionDetail(7)),
+                        schedule = detail,
+                        canReview = true,
+                    ),
+                    onEvent = { event = it },
+                    fromHome = true,
+                )
+            }
+        }
+        compose.onNodeWithText("엄마").assertIsDisplayed()
+        compose.onNodeWithTag("open_memory_editor").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(DetailUiEvent.RecordClicked, event) }
+    }
+
+    @Test
     fun showsDateStatusTimeAndParticipantsFromScheduleDetail() {
         compose.setContent {
             KiriTheme {

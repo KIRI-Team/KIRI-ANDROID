@@ -154,6 +154,7 @@ constructor(
     private var loadJob: Job? = null
     private var reviewsJob: Job? = null
     private val scheduleId = savedState.get<Long>(SCHEDULE_ID_ARG)
+    private val fromHome = savedState.get<Boolean>("fromHome") == true
     private val state = MutableStateFlow(
         ServerScheduleDetailUiState(
             reviewSaved = savedState.get<Boolean>("reviewPosted") == true,
@@ -229,10 +230,11 @@ constructor(
                         )
                     }
                     loadActions(id, schedule, access)
-                    if (schedule.status == ScheduleDisplayStatus.COMPLETED) {
+                    if (schedule.status == ScheduleDisplayStatus.COMPLETED || (fromHome && schedule.status == ScheduleDisplayStatus.TODAY)) {
                         loadReviews(id)
                         loadFamilyName()
-                    } else {
+                    }
+                    if (schedule.status != ScheduleDisplayStatus.COMPLETED) {
                         loadNearby(id)
                     }
                     val missionId = schedule.missionId ?: return@onSuccess
@@ -354,7 +356,7 @@ constructor(
     // 기록 모아보기에서 다시 시도를 눌렀다
     fun retryReviews() {
         val id = scheduleId ?: return
-        if (uiState.value.showsRecord && !uiState.value.reviewsLoading) loadReviews(id)
+        if ((uiState.value.showsRecord || (fromHome && uiState.value.canCustomize)) && !uiState.value.reviewsLoading) loadReviews(id)
     }
 
     // 완료된 일정의 가족 기록(리뷰)을 불러온다
@@ -501,7 +503,13 @@ constructor(
                     if (cause !is com.kiri.domain.model.review.AlreadyReviewedException && stored?.any { it.isMine } != true) throw requireNotNull(cause)
                 }
                 savedState["reviewPosted"] = true
-                state.update { it.copy(reviewSaved = true, notice = "기록을 등록했어요.") }
+                state.update {
+                    it.copy(
+                        reviewSaved = true,
+                        notice = "기록을 등록했어요.",
+                        detail = it.detail.copy(memoriesSelected = fromHome || it.detail.memoriesSelected),
+                    )
+                }
                 // 리뷰 등록과 함께 서버 일정이 완료되므로 상태·기록 화면도 다시 조회한다.
                 load()
                 onSaved()

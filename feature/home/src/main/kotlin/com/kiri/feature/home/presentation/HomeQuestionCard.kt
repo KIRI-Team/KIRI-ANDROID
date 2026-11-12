@@ -34,18 +34,18 @@ internal fun QuestionMissionSection(
     onWeeklyScheduleClick: () -> Unit = {},
 ) {
     Column {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 if (showingMission) "이번주 미션이에요!" else "오늘 나의 질문카드",
-                Modifier.weight(1f),
+                Modifier.weight(1f, fill = false),
                 color = KiriColor.Text.Strong,
                 style = com.kiri.uikit.component.KiriDetailTypography.Title,
             )
             Text(
-                "다른 가족들의 답변을 기다려요!",
+                if (showingMission) "버킷리스트에서 일정을 확정해보세요!" else "다른 가족들의 답변을 기다려요!",
                 Modifier.weight(1f),
                 textAlign = androidx.compose.ui.text.style.TextAlign.End,
-                color = KiriColor.Text.Secondary,
+                color = if (showingMission) KiriColor.Text.Accent else KiriColor.Text.Secondary,
                 style = com.kiri.uikit.KiriTypography.BodyMedium,
             )
         }

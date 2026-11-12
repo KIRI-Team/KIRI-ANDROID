@@ -91,6 +91,27 @@ class HomeScreenTest {
         capture("home-recommendations-local")
     }
 
+    @Test fun browsingHomeOffersFamilyCreationAndJoining() {
+        val destinations = mutableListOf<com.kiri.feature.home.model.HomeUiDestination>()
+        val home = ScreenRepository().home.copy(familyName = null)
+        compose.setContent {
+            KiriTheme {
+                HomeScreen(com.kiri.feature.home.model.HomeUiState(loading = false, home = home), onEvent = { event ->
+                    if (event is com.kiri.feature.home.model.HomeUiEvent.DestinationClicked) destinations += event.destination
+                })
+            }
+        }
+        compose.onNodeWithTag("home_create_family").performClick()
+        compose.onNodeWithTag("home_join_family").performClick()
+        compose.onNodeWithText("답변 모아보기").assertDoesNotExist()
+        compose.runOnIdle {
+            assertEquals(
+                listOf(com.kiri.feature.home.model.HomeUiDestination.CreateFamily, com.kiri.feature.home.model.HomeUiDestination.JoinFamily),
+                destinations,
+            )
+        }
+    }
+
     @Test fun tasteBannerDispatchesSettingsDestination() {
         var destination: com.kiri.feature.home.model.HomeUiDestination? = null
         val home = ScreenRepository().home
@@ -125,6 +146,7 @@ class HomeScreenTest {
         compose.onNodeWithTag("home_question_card").assertIsDisplayed()
         compose.onNodeWithContentDescription("미션 카드로 전환").performClick()
         compose.onNodeWithText("이번주 미션이에요!").assertIsDisplayed()
+        compose.onNodeWithText("버킷리스트에서 일정을 확정해보세요!").assertIsDisplayed()
         compose.onNodeWithText("광장시장에서 시장음식 먹어보기").assertIsDisplayed()
         capture("home-mission")
         compose.onNodeWithContentDescription("질문 카드로 전환").performClick()

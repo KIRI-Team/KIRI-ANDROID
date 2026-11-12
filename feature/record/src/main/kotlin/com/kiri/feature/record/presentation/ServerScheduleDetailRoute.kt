@@ -40,16 +40,24 @@ fun ServerScheduleDetailRoute(
     onEdit: (scheduleId: Long) -> Unit = {},
     onRecord: () -> Unit = {},
     onPhotoChange: () -> Unit = {},
+    fromHome: Boolean = false,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     ServerScheduleDetailEffects(viewModel, onBack, onCustom, onEdit, onRecord, onPhotoChange)
     var confirmCancel by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f)) { ServerScheduleDetailScreen(state, viewModel::onEvent, viewModel::retryReviews, viewModel::editClicked, viewModel::editReview, viewModel::deleteReview, viewModel::openPhotoChange) }
+        Box(Modifier.weight(1f)) { ServerScheduleDetailScreen(state, viewModel::onEvent, viewModel::retryReviews, viewModel::editClicked, viewModel::editReview, viewModel::deleteReview, viewModel::openPhotoChange, fromHome = fromHome) }
         state.myResponse?.let { Text("내 응답: $it", Modifier.padding(horizontal = 12.dp), color = KiriColor.Text.Secondary) }
         state.detail.error?.let { Text(it, Modifier.padding(12.dp), color = KiriColor.Status.Error) }
         state.notice?.let { Text(it, Modifier.padding(horizontal = 12.dp), color = KiriColor.Text.Accent) }
-        ServerScheduleActions(state, viewModel::respond, { confirmCancel = true }, viewModel::openRecord)
+        val confirmedFromHome = fromHome && state.schedule?.status in setOf(
+            ScheduleDisplayStatus.CONFIRMED, ScheduleDisplayStatus.TODAY, ScheduleDisplayStatus.COMPLETED,
+        )
+        ServerScheduleActions(
+            state, viewModel::respond, { confirmCancel = true }, viewModel::openRecord,
+            showReview = !confirmedFromHome,
+            showCancel = !confirmedFromHome,
+        )
     }
     if (confirmCancel) AlertDialog(onDismissRequest = { confirmCancel = false }, title = { Text("일정을 취소할까요?") },
         confirmButton = { TextButton({ confirmCancel = false; viewModel.cancel() }) { Text("취소하기") } },
@@ -57,14 +65,14 @@ fun ServerScheduleDetailRoute(
 }
 
 @Composable
-fun ServerScheduleActions(state: ServerScheduleDetailUiState, onRespond: (Boolean) -> Unit, onCancel: () -> Unit, onRecord: () -> Unit = {}) {
+fun ServerScheduleActions(state: ServerScheduleDetailUiState, onRespond: (Boolean) -> Unit, onCancel: () -> Unit, onRecord: () -> Unit = {}, showReview: Boolean = true, showCancel: Boolean = true) {
     Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (state.canRespond) {
             Button({ onRespond(false) }, enabled = !state.detail.saving, modifier = Modifier.testTag("server_schedule_decline")) { Text("거절") }
             Button({ onRespond(true) }, enabled = !state.detail.saving, modifier = Modifier.testTag("server_schedule_accept")) { Text("수락") }
         }
-        if (state.canReview && !state.showsRecord && !state.reviewSaved && state.reviews.none { it.isMine }) Button(onRecord, enabled = !state.detail.saving, modifier = Modifier.testTag("server_schedule_review")) { Text("기록 남기기") }
-        if (state.canCancel) TextButton(onCancel, enabled = !state.detail.saving, modifier = Modifier.testTag("server_schedule_cancel")) { Text("일정 취소", color = KiriColor.Status.Error) }
+        if (showReview && state.canReview && !state.showsRecord && !state.reviewSaved && state.reviews.none { it.isMine }) Button(onRecord, enabled = !state.detail.saving, modifier = Modifier.testTag("server_schedule_review")) { Text("기록 남기기") }
+        if (showCancel && state.canCancel) TextButton(onCancel, enabled = !state.detail.saving, modifier = Modifier.testTag("server_schedule_cancel")) { Text("일정 취소", color = KiriColor.Status.Error) }
     }
 }
 
@@ -112,9 +120,10 @@ fun ServerScheduleDetailScreen(
     onDeleteReview: (reviewId: Long) -> Unit = {},
     // 대표 사진의 사진 변경
     onChangePhoto: () -> Unit = {},
+    fromHome: Boolean = false,
 ) {
     val schedule = state.schedule
-    if (schedule != null && state.showsRecord) {
+    if (schedule != null && state.showsRecord && !fromHome) {
         RecordMemoryContent(
             familyName = state.familyName,
             title = state.detail.detail?.title ?: schedule.displayTitle(),
@@ -151,14 +160,19 @@ fun ServerScheduleDetailScreen(
             schedule?.let {
                 // 약속 예정이거나 제안자 화면이면 "인원확인" 말풍선으로 참여자를 보여준다 (Figma 9898:20930, 9898:21783)
                 val scheduled = it.status == ScheduleDisplayStatus.SCHEDULED
+                val todayFromHome = fromHome && it.status == ScheduleDisplayStatus.TODAY
+                val confirmedFromHome = fromHome && it.status == ScheduleDisplayStatus.CONFIRMED
                 CalendarDetailHeader(
                     title = state.appBarTitle,
                     badge = it.status.badgeLabel(),
-                    showCustom = state.canCustomize,
+                    showCustom = state.canCustomize && !todayFromHome,
+                    showRecord = todayFromHome || (fromHome && state.showsRecord),
+                    showConditionsInNearby = todayFromHome,
+                    recordEnabled = state.canReview && !state.detail.saving && !state.reviewSaved && state.reviews.none { it.isMine },
                     neutralBadge = it.status.usesNeutralBadge(),
-                    collapseParticipants = scheduled || state.canEdit,
+                    collapseParticipants = !todayFromHome && (scheduled || confirmedFromHome || state.canEdit),
                     // 당일이 아닌(예정·확정) 내 일정이면 활동 정보 아래에 일정 변경하기를 보여준다
-                    onEditSchedule = onEditClick.takeIf { state.canEdit },
+                    onEditSchedule = onEditClick.takeIf { state.canEdit && (!fromHome || confirmedFromHome) },
                 )
             },
         suggestionIcon = {
@@ -167,6 +181,59 @@ fun ServerScheduleDetailScreen(
         nearbyImageRes = R.drawable.record_calendar_nearby,
         placeholderTitle = state.appBarTitle,
         showRetry = state.retryable,
+        familyMemories = if (fromHome && (state.canCustomize || state.showsRecord)) {
+            { HomeScheduleMemories(state, onRetryReviews, onEditReview, onDeleteReview) }
+        } else null,
     )
 }
 
+
+@Composable
+private fun HomeScheduleMemories(
+    state: ServerScheduleDetailUiState,
+    onRetry: () -> Unit,
+    onEdit: (Long) -> Unit,
+    onDelete: (Long) -> Unit,
+) {
+    var deleteId by remember { mutableStateOf<Long?>(null) }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        when {
+            state.reviewsLoading -> CircularProgressIndicator(Modifier.align(androidx.compose.ui.Alignment.CenterHorizontally))
+            state.reviewsFailed -> {
+                Text("기록을 불러오지 못했어요.", color = KiriColor.Text.Secondary)
+                com.kiri.uikit.component.KiriDetailButton("다시 시도", onRetry)
+            }
+            state.reviews.isEmpty() -> com.kiri.uikit.component.KiriEmptyState(
+                "아직 기록이 없어요!", Modifier.testTag("family_memories_empty"),
+            )
+            else -> {
+                val family = state.familyName?.takeIf { it.isNotBlank() } ?: "우리 가족"
+                Text("$family 님의 한 줄", style = com.kiri.uikit.KiriTypography.TitleLarge, color = KiriColor.Text.Strong)
+                state.reviews.forEach { review ->
+                    FamilyMemoryCard(
+                        MemoryCardUi(
+                            id = review.id.toString(),
+                            authorName = review.writer.nickname,
+                            role = review.writer.familyRole.label,
+                            text = review.content,
+                            photos = review.imageUrls.mapIndexed { index, url -> RecordPhoto("review-${review.id}-$index", url) },
+                            mine = review.isMine,
+                        ),
+                        saving = state.detail.saving,
+                        onEdit = ({ onEdit(review.id) }).takeIf { review.isMine },
+                        onDelete = ({ deleteId = review.id }).takeIf { review.isMine },
+                    )
+                }
+            }
+        }
+    }
+    deleteId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { deleteId = null },
+            title = { Text("기록을 삭제할까요?") },
+            text = { Text("삭제한 기록은 다시 복구할 수 없어요.") },
+            confirmButton = { TextButton(onClick = { deleteId = null; onDelete(id) }) { Text("삭제하기") } },
+            dismissButton = { TextButton(onClick = { deleteId = null }) { Text("취소") } },
+        )
+    }
+}

@@ -47,6 +47,16 @@ class OnboardingViewModelTest {
         runPending()
     }
 
+    @Test
+    fun homeFamilySetupOpensRequestedStepOnlyOnce() {
+        moveToOnboardingMain()
+        viewModel.openInitialFamilyPath(OnboardingPath.JOIN_FAMILY)
+        assertEquals(OnboardingStep.INPUT_FAMILY_CODE, state.currentStep)
+        viewModel.onEvent(OnboardingUiEvent.BackClicked)
+        viewModel.openInitialFamilyPath(OnboardingPath.JOIN_FAMILY)
+        assertEquals(OnboardingStep.ONBOARDING_MAIN, state.currentStep)
+    }
+
     private fun moveToLoading() {
         moveToOnboardingMain()
         viewModel.onEvent(OnboardingUiEvent.PathSelected(OnboardingPath.CREATE_FAMILY))

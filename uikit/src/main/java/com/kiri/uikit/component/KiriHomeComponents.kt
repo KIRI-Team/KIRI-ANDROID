@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -348,16 +349,19 @@ fun KiriPlaceCard(
 
 @Composable
 fun KiriAnswerPopup(onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = onDismiss, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
         Column(
-            Modifier.fillMaxWidth().background(KiriColor.Bg.Primary, RoundedCornerShape(30.dp)).padding(24.dp),
+            Modifier.padding(horizontal = 24.dp).widthIn(max = 340.dp).fillMaxWidth().heightIn(min = 265.dp)
+                .background(KiriColor.Bg.Primary, RoundedCornerShape(16.dp))
+                .padding(start = 12.dp, end = 12.dp, top = 38.dp, bottom = 35.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("답변이 완료됐어요!", color = KiriColor.Text.Strong, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.size(4.dp))
-            Text("다른 가족의 답변을 기다려볼까요?", color = KiriColor.Text.Secondary, fontSize = 16.sp)
-            Spacer(Modifier.size(20.dp))
-            Image(painterResource(R.drawable.kiri_answer_success), null, Modifier.size(131.dp))
+            Text("답변이 완료됐어요!", color = KiriColor.Text.Strong, fontSize = 20.sp, lineHeight = 28.sp, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.size(2.dp))
+            Text("다른 가족의 답변을 기다려볼까요?", color = KiriColor.Text.Primary, fontSize = 16.sp, lineHeight = 24.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Spacer(Modifier.size(8.dp))
+            Image(painterResource(R.drawable.kiri_answer_success_updated), null, Modifier.size(width = 135.dp, height = 130.dp))
         }
     }
 }

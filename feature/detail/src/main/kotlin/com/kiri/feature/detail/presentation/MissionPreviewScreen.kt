@@ -15,7 +15,7 @@ import com.kiri.feature.detail.model.DetailUiState
 import com.kiri.feature.detail.model.DetailUiEvent
 
 @Composable
-fun MissionPreviewRoute(onBack: () -> Unit, viewModel: MissionPreviewViewModel = hiltViewModel()) {
+fun MissionPreviewRoute(onBack: () -> Unit, viewModel: MissionPreviewViewModel = hiltViewModel(), showSaveAction: Boolean = true) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentBack by rememberUpdatedState(onBack)
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -38,11 +38,12 @@ fun MissionPreviewRoute(onBack: () -> Unit, viewModel: MissionPreviewViewModel =
         { viewModel.onEvent(MissionPreviewUiEvent.RetryClicked) },
         { viewModel.onEvent(MissionPreviewUiEvent.ReviewsSelected(it)) },
         { viewModel.onEvent(MissionPreviewUiEvent.SaveClicked) },
+        showSaveAction = showSaveAction,
     )
 }
 
 @Composable
-fun MissionPreviewScreen(state: MissionPreviewUiState, onBack: () -> Unit, onRetry: () -> Unit, onSelectReviews: (Boolean) -> Unit, onSave: () -> Unit = {}) {
+fun MissionPreviewScreen(state: MissionPreviewUiState, onBack: () -> Unit, onRetry: () -> Unit, onSelectReviews: (Boolean) -> Unit, onSave: () -> Unit = {}, showSaveAction: Boolean = true) {
     MissionDetailScreen(
         DetailUiState(loading = state.loading, detail = state.preview?.detail, error = state.error),
         onEvent = { event ->
@@ -54,7 +55,7 @@ fun MissionPreviewScreen(state: MissionPreviewUiState, onBack: () -> Unit, onRet
         },
         discovery = true, reviews = state.preview?.reviews.orEmpty(), reviewsSelected = state.reviewsSelected,
         onSelectReviews = onSelectReviews, curated = state.preview?.curated == true,
-        discoverySaveLabel = state.saveLabel,
+        discoverySaveLabel = state.saveLabel.takeIf { showSaveAction },
         discoverySaveEnabled = state.canSave && !state.saved && !state.saving,
         onDiscoverySave = onSave,
     )

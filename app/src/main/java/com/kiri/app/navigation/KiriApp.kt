@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.kiri.feature.auth.presentation.AuthRoute
+import com.kiri.feature.onboarding.OnboardingPath
 import com.kiri.feature.onboarding.presentation.OnboardingRoute
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -29,7 +30,7 @@ fun KiriApp(isLoggedIn: Flow<Boolean> = emptyFlow(), initialRoute: String = ROUT
     val currentRoute = rootNavController.currentBackStackEntryAsState().value?.destination?.route
 
     LaunchedEffect(loggedIn, currentRoute) {
-        if (loggedIn == false && currentRoute == ROUTE_MAIN) rootNavController.navigateToLoginFromMain()
+        if (loggedIn == false && (currentRoute == ROUTE_MAIN || currentRoute == "family-setup/{path}")) rootNavController.navigateToLoginFromMain()
     }
 
     NavHost(navController = rootNavController, startDestination = initialRoute) {
@@ -67,6 +68,22 @@ fun KiriApp(isLoggedIn: Flow<Boolean> = emptyFlow(), initialRoute: String = ROUT
             MainScreen(
                 // 로그아웃·회원탈퇴 뒤에는 메인으로 뒤로가지 않도록 메인을 지우고 로그인으로 간다
                 onNavigateToLogin = { rootNavController.navigateToLoginFromMain() },
+                onCreateFamily = { rootNavController.navigate("family-setup/create") { launchSingleTop = true } },
+                onJoinFamily = { rootNavController.navigate("family-setup/join") { launchSingleTop = true } },
+            )
+        }
+        composable("family-setup/{path}") { entry ->
+            val path = entry.arguments?.getString("path")
+            OnboardingRoute(
+                initialPath = if (path == "join") OnboardingPath.JOIN_FAMILY else OnboardingPath.CREATE_FAMILY,
+                onExit = { rootNavController.popBackStack() },
+                onBrowseClick = { rootNavController.popBackStack() },
+                onNavigateToMainFlow = {
+                    rootNavController.navigate(ROUTE_MAIN) {
+                        popUpTo(ROUTE_MAIN) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
             )
         }
     }
