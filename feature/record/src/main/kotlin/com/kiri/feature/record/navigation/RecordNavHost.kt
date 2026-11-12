@@ -57,12 +57,13 @@ private const val SERVER_SCHEDULE_ROUTE = "record_graph/server-schedule"
 private const val SCHEDULE_EDIT_ROUTE = "record_graph/schedule-edit"
 private const val BUCKET_SCHEDULE_ROUTE = "record_graph/bucket-schedule"
 private const val SERVER_SCHEDULE_DETAIL_PATTERN =
-    "$SERVER_SCHEDULE_ROUTE/{${ServerScheduleDetailViewModel.SCHEDULE_ID_ARG}}?${ServerScheduleDetailViewModel.DATE_ARG}={${ServerScheduleDetailViewModel.DATE_ARG}}"
+    "$SERVER_SCHEDULE_ROUTE/{${ServerScheduleDetailViewModel.SCHEDULE_ID_ARG}}?${ServerScheduleDetailViewModel.DATE_ARG}={${ServerScheduleDetailViewModel.DATE_ARG}}&fromHome={fromHome}"
 private const val SENT_TOAST_KEY = "scheduleSentToast"
 // 일정 변경 화면에서 저장했음을 상세 화면에 알린다
 private const val SCHEDULE_EDITED_KEY = "scheduleEdited"
 
-fun serverScheduleDetailRoute(scheduleId: Long): String = "$SERVER_SCHEDULE_ROUTE/$scheduleId"
+fun serverScheduleDetailRoute(scheduleId: Long, fromHome: Boolean = false): String =
+    "$SERVER_SCHEDULE_ROUTE/$scheduleId" + if (fromHome) "?fromHome=true" else ""
 
 /** Registers this feature in the main tab back stack. */
 fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSchedule: (String) -> Unit = {}, onManageSchedule: (String) -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
@@ -166,6 +167,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
             arguments = listOf(
                 navArgument(ServerScheduleDetailViewModel.SCHEDULE_ID_ARG) { type = NavType.LongType },
                 navArgument(ServerScheduleDetailViewModel.DATE_ARG) { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("fromHome") { type = NavType.BoolType; defaultValue = false },
             ),
         ) { entry ->
             val id = entry.arguments?.getLong(ServerScheduleDetailViewModel.SCHEDULE_ID_ARG)
@@ -180,6 +182,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
             }
             ServerScheduleDetailRoute(
                 detailViewModel,
+                fromHome = entry.arguments?.getBoolean("fromHome") == true,
                 onBack = { navController.popBackStack() },
                 onCustom = { navController.navigate("$SERVER_SCHEDULE_ROUTE/$id/custom") { launchSingleTop = true } },
                 onRecord = { navController.navigate("$SERVER_SCHEDULE_ROUTE/$id/review") { launchSingleTop = true } },

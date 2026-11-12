@@ -196,7 +196,7 @@ internal fun RecordMemoryContent(
 
 // onEdit·onDelete 가 없으면 수정하기·메뉴를 숨긴다 (내 기록이 아니거나 수정 기능이 없는 경우)
 @Composable
-private fun FamilyMemoryCard(memory: MemoryCardUi, saving: Boolean, onEdit: (() -> Unit)?, onDelete: (() -> Unit)?) {
+internal fun FamilyMemoryCard(memory: MemoryCardUi, saving: Boolean, onEdit: (() -> Unit)?, onDelete: (() -> Unit)?) {
     var menu by remember { mutableStateOf(false) }
     val menuOffset = with(LocalDensity.current) { 29.dp.roundToPx() }
     Box(Modifier.fillMaxWidth().background(KiriColor.Bg.Primary, RoundedCornerShape(16.dp)).testTag("family_memory_${memory.id}")) {

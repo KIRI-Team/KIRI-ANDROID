@@ -46,6 +46,19 @@ class MissionPreviewScreenTest {
         compose.onNodeWithText("아직 등록된 리뷰가 없어요.").performScrollTo().assertIsDisplayed()
     }
 
+    @Test fun placeDetailOmitsSaveAction() {
+        compose.setContent {
+            KiriTheme {
+                MissionPreviewScreen(
+                    MissionPreviewUiState(loading = false, preview = MissionPreview(figmaDetailSample())),
+                    {}, {}, {}, showSaveAction = false,
+                )
+            }
+        }
+        compose.onNodeWithTag("detail_header").assertIsDisplayed()
+        compose.onNodeWithTag("preview_save").assertDoesNotExist()
+    }
+
     @Test fun bucketSaveButtonStaysInsideTopBox() {
         compose.setContent { KiriTheme { MissionPreviewScreen(MissionPreviewUiState(loading = false, preview = MissionPreview(figmaDetailSample()),
             error = "버킷에 저장하지 못했어요."), {}, {}, {}) } }

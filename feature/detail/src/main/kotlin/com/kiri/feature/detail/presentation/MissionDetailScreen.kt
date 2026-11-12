@@ -54,6 +54,9 @@ data class CalendarDetailHeader(
     val neutralBadge: Boolean = false,
     val collapseParticipants: Boolean = false,
     val onEditSchedule: (() -> Unit)? = null,
+    val showRecord: Boolean = false,
+    val showConditionsInNearby: Boolean = false,
+    val recordEnabled: Boolean = false,
 )
 
 @Composable
@@ -104,6 +107,7 @@ fun MissionDetailScreen(
     placeholderTitle: String = "미션 상세",
     // 다시 불러와도 결과가 같은 오류면 false 로 다시 시도 버튼을 숨긴다
     showRetry: Boolean = true,
+    familyMemories: (@Composable () -> Unit)? = null,
 ) {
     val onBack = { onEvent(DetailUiEvent.BackClicked) }
     val onCustom = { onEvent(DetailUiEvent.CustomClicked) }
@@ -192,7 +196,9 @@ fun MissionDetailScreen(
             Spacer(Modifier.height(if (showTabs) 36.dp else 0.dp))
             Column(Modifier.padding(horizontal = 18.dp)) {
                 if (!discovery && state.memoriesSelected) {
-                    if (state.submittedMemory == null) {
+                    if (familyMemories != null) {
+                        familyMemories()
+                    } else if (state.submittedMemory == null) {
                         // Figma 9898:17487 (KIRI/Empty State)
                         com.kiri.uikit.component.KiriEmptyState(
                             "아직 기록이 없어요!",
@@ -276,6 +282,10 @@ fun MissionDetailScreen(
                         style = KiriDetailTypography.Small,
                         color = KiriColor.Text.Tertiary,
                     )
+                    if (calendarHeader?.showConditionsInNearby == true) {
+                        Spacer(Modifier.height(12.dp))
+                        KiriDetailButton("컨디션 조정하러가기", onCustom, softAccent = true)
+                    }
                     if (detail.conditions.isNotEmpty())
                         Text(
                             "컨디션에 맞게 추천 순서를 조정했어요.",
@@ -460,6 +470,15 @@ private fun DetailHeader(
                     InfoText("예상 걸음수 I ${detail.stepsLabel}")
                     InfoText("활동시간 I ${detail.durationLabel}")
                 }
+            }
+            if (!discovery && calendarHeader?.showRecord == true) {
+                Spacer(Modifier.height(16.dp))
+                KiriDetailButton(
+                    "오늘의 추억 기록하러가기", onRecord,
+                    modifier = Modifier.testTag("open_memory_editor"),
+                    accent = calendarHeader.recordEnabled,
+                    enabled = calendarHeader.recordEnabled,
+                )
             }
             if (!discovery && (calendarHeader == null || calendarHeader.showCustom)) {
                 Spacer(Modifier.height(16.dp))
