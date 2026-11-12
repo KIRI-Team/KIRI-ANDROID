@@ -54,6 +54,8 @@ fun OnboardingRoute(
                     Toast.makeText(context, "가족 공간을 만들지 못했어요. 잠시 후 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
                 is OnboardingUiEffect.ShowJoinFamilyError ->
                     Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
+                is OnboardingUiEffect.ShowMessage ->
+                    Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
             }
         }
     }

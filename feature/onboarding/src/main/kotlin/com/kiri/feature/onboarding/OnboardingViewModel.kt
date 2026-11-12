@@ -12,6 +12,9 @@ import com.kiri.domain.model.invite.Invite
 import com.kiri.domain.model.nickname.DuplicateNicknameException
 import com.kiri.domain.repository.FamilyRepository
 import com.kiri.domain.repository.MemberRepository
+import com.kiri.domain.usecase.invite.AcceptPendingInviteUseCase
+import com.kiri.domain.usecase.invite.InviteAcceptResult
+import com.kiri.domain.usecase.invite.message
 import com.kiri.feature.onboarding.model.FamilyRole
 import com.kiri.domain.model.member.FamilyRole as MemberFamilyRole
 import com.kiri.feature.onboarding.model.OnboardingUiEffect
@@ -41,6 +44,8 @@ class OnboardingViewModel @Inject constructor(
     private val familyRepository: FamilyRepository,
     private val memberRepository: MemberRepository,
     private val session: com.kiri.domain.repository.SessionRepository? = null,
+    // 초대 링크로 받아 둔 토큰이 있으면 가족 선택 화면에 들어올 때 그 가족에 참여한다. 없으면 확인하지 않는다
+    private val acceptInvite: AcceptPendingInviteUseCase? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
@@ -71,6 +76,7 @@ class OnboardingViewModel @Inject constructor(
                 _uiState.update { it.copy(nickname = progress.nickname.orEmpty(), selectedRole = savedRole,
                     currentStep = if (savedNickname == null) OnboardingStep.INPUT_NICKNAME else if (savedRole == null) OnboardingStep.CHOOSE_ROLE else OnboardingStep.ONBOARDING_MAIN) }
             } finally { _uiState.update { it.copy(isSubmitting = false) } }
+            if (_uiState.value.currentStep == OnboardingStep.ONBOARDING_MAIN) acceptPendingInvite()
         }
     }
 
@@ -127,6 +133,32 @@ class OnboardingViewModel @Inject constructor(
         val nextStep = steps.getOrNull(steps.indexOf(currentStep) + 1) ?: return
         _uiState.update { it.copy(currentStep = nextStep) }
         if (nextStep == OnboardingStep.GENERATE_FAMILY_CODE_LOADING) startLoading()
+        if (nextStep == OnboardingStep.ONBOARDING_MAIN) acceptPendingInvite()
+    }
+
+    // 링크 -> 로그인 -> 온보딩(닉네임·역할) 다음, 가족 선택 화면에 들어오면 받아 둔 초대로 참여한다
+    // 참여하면 가족 선택 없이 온보딩을 마치고 메인으로 간다. 실패하면 이유를 알리고 가족 선택 화면에 머문다
+    // 확인하는 동안에는 다른 경로를 고르지 못하게 막는다
+    private fun acceptPendingInvite() {
+        val accept = acceptInvite ?: return
+        _uiState.update { it.copy(isSubmitting = true) }
+        viewModelScope.launch {
+            val result = try {
+                accept()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // 받아 둔 토큰을 읽지 못하면 초대가 없는 것으로 보고 평소처럼 고르게 한다
+                InviteAcceptResult.NoInvite
+            } finally {
+                _uiState.update { it.copy(isSubmitting = false) }
+            }
+            result.message?.let { _effect.trySend(OnboardingUiEffect.ShowMessage(it)) }
+            if (result is InviteAcceptResult.Joined) {
+                session?.completeOnboarding()
+                _effect.trySend(OnboardingUiEffect.NavigateToMainFlow)
+            }
+        }
     }
 
     private fun submitNickname(nickname: String) = submit(

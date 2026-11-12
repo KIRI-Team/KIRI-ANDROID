@@ -34,6 +34,13 @@ internal interface FamilyApi {
     @POST("api/v1/families/join/code")
     suspend fun joinByCode(@Body request: JoinFamilyRequest): ApiResponse<JoinFamilyResponse>
 
+    // 로그인 토큰이 필요하고 본문은 없다. 초대 링크의 토큰으로 가족에 가입한다 (FAMILY200_7)
+    // 토큰에 맞는 가족 없음 FAMILY404_1, 권한 없음 FAMILY403_1, 회원 없음 MEMBER404_1,
+    // 이미 다른 가족 FAMILY409_2, 토큰 만료 FAMILY410_2
+    // 전달받은 경로는 families/join/{inviteToken} 이다 (메서드는 명세에 없어 코드 가입과 같은 POST 로 둔다)
+    @POST("api/v1/families/join/{inviteToken}")
+    suspend fun joinByToken(@Path("inviteToken") inviteToken: String): ApiResponse<JoinFamilyResponse>
+
     // 로그인 토큰이 필요하다. 그 가족의 구성원이 아니면 FAMILY403_1 로 거절된다
     @GET("api/v1/families/{familyId}/invite")
     suspend fun getInvite(@Path("familyId") familyId: Long): ApiResponse<InviteResponse>

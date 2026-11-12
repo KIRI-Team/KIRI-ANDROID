@@ -2,6 +2,8 @@ package com.kiri.data.family
 
 import com.kiri.domain.repository.FamilyRepository
 import com.kiri.domain.repository.InviteRepository
+import com.kiri.domain.repository.PendingInviteRepository
+import com.kiri.domain.usecase.invite.AcceptPendingInviteUseCase
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -16,6 +18,13 @@ internal object FamilyApiModule {
     @Provides
     @Singleton
     fun provideFamilyApi(retrofit: Retrofit): FamilyApi = retrofit.create(FamilyApi::class.java)
+
+    // domain 은 DI 에 의존하지 않으므로 UseCase 는 여기서 만들어 준다
+    @Provides
+    fun provideAcceptPendingInviteUseCase(
+        pending: PendingInviteRepository,
+        families: FamilyRepository,
+    ): AcceptPendingInviteUseCase = AcceptPendingInviteUseCase(pending, families)
 }
 
 @Module
