@@ -4,6 +4,8 @@ data class SuggestionUiState(
     val content: String = "",
     // 고른 사진의 content Uri 문자열 (고른 순서대로)
     val photoUris: List<String> = emptyList(),
+    // 보내는 중 (사진 업로드 포함). 이때는 다시 보낼 수 없다
+    val sending: Boolean = false,
 ) {
     // 예: 0/500
     val contentCountText: String
@@ -17,10 +19,11 @@ data class SuggestionUiState(
 
     // 내용이 있어야 보낼 수 있다 (사진은 선택)
     val canSend: Boolean
-        get() = content.isNotBlank()
+        get() = content.isNotBlank() && !sending
 
     companion object {
         const val MAX_CONTENT_LENGTH = 500
-        const val MAX_PHOTO_COUNT = 5
+        // 건의 API 가 이미지 키를 하나만 받아서 사진도 한 장만 고를 수 있다
+        const val MAX_PHOTO_COUNT = 1
     }
 }
