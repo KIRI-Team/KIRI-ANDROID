@@ -16,8 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -36,11 +34,12 @@ fun OnboardingRoleCard(
     modifier: Modifier = Modifier,
 ) {
     val containerColor = if (selected) KiriColor.Bg.GreenSoft else KiriColor.Bg.Primary
+    // 선택한 역할은 초록, 나머지는 회색 캐릭터를 쓴다 (Figma 10100:28484)
     val character = when (koreanName) {
-        "엄마" -> UiR.drawable.kiri_avatar_mother
-        "아빠" -> UiR.drawable.kiri_avatar_father
-        "아들" -> UiR.drawable.kiri_avatar_son
-        else -> UiR.drawable.kiri_avatar_daughter
+        "엄마" -> if (selected) UiR.drawable.kiri_avatar_mother else UiR.drawable.kiri_avatar_mother_off
+        "아빠" -> if (selected) UiR.drawable.kiri_avatar_father else UiR.drawable.kiri_avatar_father_off
+        "아들" -> if (selected) UiR.drawable.kiri_avatar_son else UiR.drawable.kiri_avatar_son_off
+        else -> if (selected) UiR.drawable.kiri_avatar_daughter else UiR.drawable.kiri_avatar_daughter_off
     }
 
     Box(
@@ -59,8 +58,6 @@ fun OnboardingRoleCard(
                 painterResource(character),
                 contentDescription = null,
                 modifier = Modifier.size(48.dp),
-                // 선택한 역할만 캐릭터 고유 색으로, 나머지는 흑백으로 보여준다
-                colorFilter = if (selected) null else UnselectedCharacterFilter,
             )
             Text(
                 text = koreanName,
@@ -71,8 +68,6 @@ fun OnboardingRoleCard(
         }
     }
 }
-
-private val UnselectedCharacterFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
 
 @Preview(backgroundColor = 0xFF1A1A1A, showBackground = true)
 @Composable
