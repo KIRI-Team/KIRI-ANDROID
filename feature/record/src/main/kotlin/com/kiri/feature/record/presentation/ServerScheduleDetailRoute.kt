@@ -31,6 +31,9 @@ import com.kiri.feature.record.badgeLabel
 import com.kiri.feature.record.displayTitle
 import com.kiri.feature.record.label
 import com.kiri.feature.record.usesNeutralBadge
+import com.kiri.feature.record.presentation.schedule.ScheduleRequestScreen
+import com.kiri.feature.record.presentation.schedule.scheduledPromiseLabel
+import com.kiri.uikit.color.KiriComponentColor
 
 @Composable
 fun ServerScheduleDetailRoute(
@@ -45,8 +48,32 @@ fun ServerScheduleDetailRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     ServerScheduleDetailEffects(viewModel, onBack, onCustom, onEdit, onRecord, onPhotoChange)
     var confirmCancel by remember { mutableStateOf(false) }
+    val cancelling = state.schedule
+    if (confirmCancel && cancelling != null) {
+        // 일정 취소 확인 (Figma 10629:27298). 요청알림 화면을 문구만 바꿔 쓴다. 자세히 보러가기는 상세로 돌아간다
+        ScheduleRequestScreen(
+            savedBy = "",
+            title = state.detail.detail?.title ?: cancelling.displayTitle(),
+            description = "",
+            date = cancelling.date,
+            memberNames = cancelling.participants.map { it.nickname },
+            message = "",
+            onBackClick = { if (!state.detail.saving) confirmCancel = false },
+            onDetailClick = { if (!state.detail.saving) confirmCancel = false },
+            onSendClick = viewModel::cancel,
+            sending = state.detail.saving,
+            error = state.detail.error,
+            topBarTitle = "일정 취소",
+            headline = scheduledPromiseLabel(cancelling.date),
+            dismissText = "돌아가기",
+            confirmText = "일정 취소하기",
+            confirmingText = "취소하는 중…",
+            dismissBackground = KiriComponentColor.Button.FilledNeutral.BgDefault,
+        )
+        return
+    }
     Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f)) { ServerScheduleDetailScreen(state, viewModel::onEvent, viewModel::retryReviews, viewModel::editClicked, viewModel::editReview, viewModel::deleteReview, viewModel::openPhotoChange, fromHome = fromHome) }
+        Box(Modifier.weight(1f)) { ServerScheduleDetailScreen(state, viewModel::onEvent, viewModel::retryReviews, viewModel::editClicked, viewModel::editReview, viewModel::deleteReview, viewModel::openPhotoChange, fromHome = fromHome, onCancelClick = { confirmCancel = true }) }
         state.myResponse?.let { Text("내 응답: $it", Modifier.padding(horizontal = 12.dp), color = KiriColor.Text.Secondary) }
         state.detail.error?.let { Text(it, Modifier.padding(12.dp), color = KiriColor.Status.Error) }
         state.notice?.let { Text(it, Modifier.padding(horizontal = 12.dp), color = KiriColor.Text.Accent) }
@@ -56,13 +83,16 @@ fun ServerScheduleDetailRoute(
         ServerScheduleActions(
             state, viewModel::respond, { confirmCancel = true }, viewModel::openRecord,
             showReview = !confirmedFromHome,
-            showCancel = !confirmedFromHome,
+            // 일정 취소하기 버튼이 활동 정보 아래에 있으면 아래쪽 취소는 숨긴다
+            showCancel = !confirmedFromHome && !state.showsScheduleButtons(fromHome),
         )
     }
-    if (confirmCancel) AlertDialog(onDismissRequest = { confirmCancel = false }, title = { Text("일정을 취소할까요?") },
-        confirmButton = { TextButton({ confirmCancel = false; viewModel.cancel() }) { Text("취소하기") } },
-        dismissButton = { TextButton({ confirmCancel = false }) { Text("돌아가기") } })
 }
+
+// 일정 변경하기·일정 취소하기를 보여줄지. 당일이 아닌(예정·확정) 내 일정이고,
+// 홈에서 들어왔으면 확정된 일정일 때만 보여준다
+internal fun ServerScheduleDetailUiState.showsScheduleButtons(fromHome: Boolean): Boolean =
+    canEdit && (!fromHome || schedule?.status == ScheduleDisplayStatus.CONFIRMED)
 
 @Composable
 fun ServerScheduleActions(state: ServerScheduleDetailUiState, onRespond: (Boolean) -> Unit, onCancel: () -> Unit, onRecord: () -> Unit = {}, showReview: Boolean = true, showCancel: Boolean = true) {
@@ -121,6 +151,8 @@ fun ServerScheduleDetailScreen(
     // 대표 사진의 사진 변경
     onChangePhoto: () -> Unit = {},
     fromHome: Boolean = false,
+    // 일정 취소하기 (일정 취소 확인 화면을 띄운다)
+    onCancelClick: () -> Unit = {},
 ) {
     val schedule = state.schedule
     if (schedule != null && state.showsRecord && !fromHome) {
@@ -171,8 +203,9 @@ fun ServerScheduleDetailScreen(
                     recordEnabled = state.canReview && !state.detail.saving && !state.reviewSaved && state.reviews.none { it.isMine },
                     neutralBadge = it.status.usesNeutralBadge(),
                     collapseParticipants = !todayFromHome && (scheduled || confirmedFromHome || state.canEdit),
-                    // 당일이 아닌(예정·확정) 내 일정이면 활동 정보 아래에 일정 변경하기를 보여준다
-                    onEditSchedule = onEditClick.takeIf { state.canEdit && (!fromHome || confirmedFromHome) },
+                    // 당일이 아닌(예정·확정) 내 일정이면 활동 정보 아래에 일정 변경하기·일정 취소하기를 보여준다
+                    onEditSchedule = onEditClick.takeIf { state.showsScheduleButtons(fromHome) },
+                    onCancelSchedule = onCancelClick.takeIf { state.showsScheduleButtons(fromHome) },
                 )
             },
         suggestionIcon = {

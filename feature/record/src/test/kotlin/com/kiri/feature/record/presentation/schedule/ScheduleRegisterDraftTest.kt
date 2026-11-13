@@ -53,6 +53,10 @@ class ScheduleRegisterDraftTest {
         assertEquals("26.06.23", requestDateLabel(LocalDate.of(2026, 6, 23)))
     }
 
+    @Test fun scheduledPromiseLabelShowsMonthAndDayWithoutLeadingZero() {
+        assertEquals("12월 3일에 예정된 약속이에요!", scheduledPromiseLabel(LocalDate.of(2026, 12, 3)))
+    }
+
     @Test fun shareTextHasScheduleMembersAndOptionalMessage() {
         val date = LocalDate.of(2026, 10, 7)
         assertEquals(

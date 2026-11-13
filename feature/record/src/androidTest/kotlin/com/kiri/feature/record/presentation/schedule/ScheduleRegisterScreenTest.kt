@@ -132,6 +132,48 @@ class ScheduleRegisterScreenTest {
         compose.onNodeWithTag("schedule_request_screen").assertExists()
     }
 
+    // 일정 취소 확인(Figma 10629:27298)은 요청알림 화면을 문구만 바꿔 쓴다
+    @Test fun scheduleCancelConfirmUsesItsOwnLabelsAndSendsEachClick() {
+        var back = 0
+        var detail = 0
+        var confirm = 0
+        var cancelling by mutableStateOf(false)
+        compose.setContent {
+            KiriTheme {
+                ScheduleRequestScreen(
+                    savedBy = "",
+                    title = "한강 뚜벅뚜벅 축제",
+                    description = "",
+                    date = LocalDate.of(2026, 12, 3),
+                    memberNames = listOf("엄마", "아빠", "나"),
+                    message = "",
+                    onBackClick = { back++ },
+                    onDetailClick = { detail++ },
+                    onSendClick = { confirm++ },
+                    sending = cancelling,
+                    topBarTitle = "일정 취소",
+                    headline = "12월 3일에 예정된 약속이에요!",
+                    dismissText = "돌아가기",
+                    confirmText = "일정 취소하기",
+                    confirmingText = "취소하는 중…",
+                )
+            }
+        }
+
+        compose.onNodeWithText("일정 취소").assertExists()
+        compose.onNodeWithText("12월 3일에 예정된 약속이에요!").assertExists()
+        compose.onNodeWithText("엄마, 아빠, 나").assertExists()
+        compose.onNodeWithText("요청 보내기").assertDoesNotExist()
+        compose.onNodeWithText("돌아가기").performClick()
+        compose.onNodeWithTag("schedule_request_detail").performClick()
+        compose.onNodeWithText("일정 취소하기").performClick()
+        assertEquals(listOf(1, 1, 1), listOf(back, detail, confirm))
+
+        cancelling = true
+        compose.onNodeWithText("취소하는 중…").assertIsNotEnabled()
+        compose.onNodeWithTag("schedule_request_cancel").assertIsNotEnabled()
+    }
+
     @Test fun cancelOnRequestReturnsToRegisterKeepingInput() {
         setFlow()
         fillScheduleAndMembers("mom", "dad")

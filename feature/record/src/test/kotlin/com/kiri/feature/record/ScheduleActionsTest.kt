@@ -35,7 +35,10 @@ class ScheduleActionsTest {
         var cancelFails = true
         var accepted: Boolean? = null
         var responseFails = false
-        override suspend fun getMonthlySchedules(month: YearMonth) = Result.success(listOf(CalendarSchedule(7, date, LocalTime.of(10,0), CalendarScheduleStatus.CONFIRMED, mine)))
+        // 월간 일정에 이 일정이 없으면 참여 상태를 몰라 canCancel 이 false 가 된다
+        var listed = true
+        override suspend fun getMonthlySchedules(month: YearMonth) =
+            Result.success(if (listed) listOf(CalendarSchedule(7, date, LocalTime.of(10,0), CalendarScheduleStatus.CONFIRMED, mine)) else emptyList())
         override suspend fun getScheduleDetail(scheduleId: Long) = Result.success(ScheduleDetail(date, LocalTime.of(10,0),
             if (date == LocalDate.parse("2026-11-08")) ScheduleDisplayStatus.TODAY else ScheduleDisplayStatus.CONFIRMED,
             listOf(ScheduleParticipant(proposer, true), ScheduleParticipant("나", mine == MyScheduleStatus.ACCEPTED))))
@@ -62,6 +65,18 @@ class ScheduleActionsTest {
         vm.cancel(); advanceUntilIdle(); assertFalse(schedules.cancelled); assertNotNull(vm.uiState.value.detail.error)
         schedules.cancelFails = false; vm.cancel(); advanceUntilIdle()
         assertTrue(schedules.cancelled); assertEquals(ServerScheduleDetailEffect.Back, vm.effect.first())
+    }
+    // 일정 취소하기 버튼은 일정 변경하기와 같은 조건(canEdit)으로 보이므로, canCancel 을 모를 때도 취소할 수 있어야 한다
+    @Test fun proposerCanCancelFromScheduleButtonsEvenWhenMonthlyStatusIsUnknown() = runTest(dispatcher) {
+        val schedules = Schedules().apply { proposer = "나"; date = LocalDate.parse("2026-11-10"); listed = false; cancelFails = false }
+        val vm = vm(schedules); advanceUntilIdle()
+        assertTrue(vm.uiState.value.canEdit)
+        assertFalse(vm.uiState.value.canCancel)
+
+        vm.cancel(); advanceUntilIdle()
+
+        assertTrue(schedules.cancelled)
+        assertEquals(ServerScheduleDetailEffect.Back, vm.effect.first())
     }
     @Test fun futureInviteChangesOnlyAfterSuccessfulServerResponse() = runTest(dispatcher) {
         val schedules = Schedules().apply { date = LocalDate.parse("2026-11-10"); mine = MyScheduleStatus.PENDING; responseFails = true }

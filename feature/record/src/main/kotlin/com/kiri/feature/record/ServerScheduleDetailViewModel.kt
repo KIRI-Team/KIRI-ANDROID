@@ -430,7 +430,8 @@ constructor(
         load()
     }
     fun cancel() = mutateAction {
-        check(state.value.canCancel) { "취소할 수 있는 약속인지 다시 확인해주세요." }
+        // 일정 취소하기 버튼은 일정 변경하기와 같은 조건(canEdit)으로 보인다. 권한은 서버가 다시 확인한다
+        check(state.value.canCancel || state.value.canEdit) { "취소할 수 있는 약속인지 다시 확인해주세요." }
         requireNotNull(schedules).cancel(requireNotNull(scheduleId)).getOrThrow()
         effects.send(ServerScheduleDetailEffect.Back)
     }

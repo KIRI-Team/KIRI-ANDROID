@@ -240,7 +240,8 @@ class ServerScheduleDetailScreenTest {
             ),
         )
         var clicks = 0
-        compose.setContent { KiriTheme { ServerScheduleDetailScreen(state, {}, onEditClick = { clicks++ }) } }
+        var cancelClicks = 0
+        compose.setContent { KiriTheme { ServerScheduleDetailScreen(state, {}, onEditClick = { clicks++ }, onCancelClick = { cancelClicks++ }) } }
 
         // 상세를 먼저 보여주고, 제안자 화면은 참여자를 "인원확인" 으로 접는다 (Figma 9898:21783)
         compose.onNodeWithText("약속 확정").assertIsDisplayed()
@@ -248,10 +249,15 @@ class ServerScheduleDetailScreenTest {
         compose.onNodeWithText("일정 변경하기").assertIsDisplayed()
         compose.onNodeWithTag("server_schedule_edit").performClick()
         assertEquals(1, clicks)
+        // 일정 취소하기도 같은 조건으로 옆에 보인다 (Figma 10613:17872)
+        compose.onNodeWithText("일정 취소하기").assertIsDisplayed()
+        compose.onNodeWithTag("server_schedule_cancel_button").performClick()
+        assertEquals(1, cancelClicks)
 
         state = state.copy(canEdit = false)
         compose.onNodeWithTag("server_schedule_edit").assertDoesNotExist()
         compose.onNodeWithText("일정 변경하기").assertDoesNotExist()
+        compose.onNodeWithText("일정 취소하기").assertDoesNotExist()
     }
 
     @Test
