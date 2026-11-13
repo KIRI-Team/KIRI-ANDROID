@@ -200,8 +200,12 @@ class RecordCalendarScheduleTest {
 
         assertEquals(RecordCalendarMark.CONFIRMED, marks(listOf(CalendarScheduleStatus.CANCELLED, CalendarScheduleStatus.COMPLETED)))
         assertEquals(RecordCalendarMark.CONFIRMED, marks(listOf(CalendarScheduleStatus.PENDING_RESPONSE, CalendarScheduleStatus.CONFIRMED)))
-        assertEquals(RecordCalendarMark.PLANNED, marks(listOf(CalendarScheduleStatus.CANCELLED, CalendarScheduleStatus.NOT_CONFIRMED)))
+        assertEquals(RecordCalendarMark.PLANNED, marks(listOf(CalendarScheduleStatus.CANCELLED, CalendarScheduleStatus.PENDING_RESPONSE)))
         assertEquals(RecordCalendarMark.CANCELLED, marks(listOf(CalendarScheduleStatus.CANCELLED, CalendarScheduleStatus.CANCELLED)))
+        // 미확정은 열 수 없어 취소처럼 흐린 시계로 보여준다
+        assertEquals(RecordCalendarMark.CANCELLED, marks(listOf(CalendarScheduleStatus.NOT_CONFIRMED)))
+        assertEquals(RecordCalendarMark.CANCELLED, marks(listOf(CalendarScheduleStatus.CANCELLED, CalendarScheduleStatus.NOT_CONFIRMED)))
+        assertEquals(RecordCalendarMark.PLANNED, marks(listOf(CalendarScheduleStatus.NOT_CONFIRMED, CalendarScheduleStatus.PENDING_RESPONSE)))
     }
 
     @Test
@@ -274,6 +278,27 @@ class RecordCalendarScheduleTest {
 
         vm.onEvent(RecordUiEvent.DateSelected(multiple))
         assertEquals(RecordUiEffect.OpenServerSchedule(2, multiple), vm.nextEffect())
+    }
+
+    @Test
+    fun 미확정_일정은_눌러도_열지_않는다() = runTest {
+        val (unconfirmedOnly, mixed) = emptyDays(october)
+        val repo = RecordingCalendarSchedules()
+        repo.results[october] = Result.success(
+            listOf(
+                schedule(1, unconfirmedOnly, CalendarScheduleStatus.NOT_CONFIRMED),
+                // 같은 날 더 이른 미확정 일정이 있어도 열 수 있는 일정으로 간다
+                schedule(2, mixed, CalendarScheduleStatus.NOT_CONFIRMED).copy(time = LocalTime.of(9, 0)),
+                schedule(3, mixed, CalendarScheduleStatus.CONFIRMED).copy(time = LocalTime.of(15, 0)),
+            ),
+        )
+        val vm = viewModel(repo)
+
+        vm.onEvent(RecordUiEvent.DateSelected(unconfirmedOnly))
+        assertNull(vm.nextEffect())
+
+        vm.onEvent(RecordUiEvent.DateSelected(mixed))
+        assertEquals(RecordUiEffect.OpenServerSchedule(3, mixed), vm.nextEffect())
     }
 
     @Test

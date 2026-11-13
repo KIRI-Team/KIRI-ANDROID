@@ -174,6 +174,37 @@ class ScheduleRegisterScreenTest {
         compose.onNodeWithTag("schedule_request_cancel").assertIsNotEnabled()
     }
 
+    // 받은 초대 응답 화면도 요청알림 화면을 쓰고, 거절은 뒤로가기와 따로 전달한다
+    @Test fun responseScreenSeparatesDeclineFromBack() {
+        var back = 0
+        var declined = 0
+        var accepted = 0
+        compose.setContent {
+            KiriTheme {
+                ScheduleRequestScreen(
+                    savedBy = "",
+                    title = "한강 뚜벅뚜벅 축제",
+                    description = "",
+                    date = LocalDate.of(2026, 12, 3),
+                    memberNames = listOf("엄마", "나"),
+                    message = "",
+                    onBackClick = { back++ },
+                    onDetailClick = {},
+                    onSendClick = { accepted++ },
+                    headline = "엄마가 보낸 약속이에요!",
+                    dismissText = "거절",
+                    confirmText = "수락",
+                    onDismissClick = { declined++ },
+                )
+            }
+        }
+
+        compose.onNodeWithText("엄마가 보낸 약속이에요!").assertExists()
+        compose.onNodeWithText("거절").performClick()
+        compose.onNodeWithText("수락").performClick()
+        assertEquals(listOf(0, 1, 1), listOf(back, declined, accepted))
+    }
+
     @Test fun cancelOnRequestReturnsToRegisterKeepingInput() {
         setFlow()
         fillScheduleAndMembers("mom", "dad")

@@ -72,6 +72,27 @@ class ServerScheduleDetailScreenTest {
     }
 
     @Test
+    fun recordTabShowsTheSameReviewActionForAStartedAcceptedSchedule() {
+        var event: DetailUiEvent? = null
+        // 기록 탭(fromHome = false)에서 연 지난 확정 일정도 디자인 버튼으로 기록하러 간다
+        val started = detail.copy(status = ScheduleDisplayStatus.CONFIRMED)
+        compose.setContent {
+            KiriTheme {
+                ServerScheduleDetailScreen(
+                    ServerScheduleDetailUiState(
+                        detail = DetailUiState(loading = false, detail = started.toMissionDetail(7)),
+                        schedule = started,
+                        canReview = true,
+                    ),
+                    onEvent = { event = it },
+                )
+            }
+        }
+        compose.onNodeWithTag("open_memory_editor").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(DetailUiEvent.RecordClicked, event) }
+    }
+
+    @Test
     fun showsDateStatusTimeAndParticipantsFromScheduleDetail() {
         compose.setContent {
             KiriTheme {
@@ -258,6 +279,33 @@ class ServerScheduleDetailScreenTest {
         compose.onNodeWithTag("server_schedule_edit").assertDoesNotExist()
         compose.onNodeWithText("일정 변경하기").assertDoesNotExist()
         compose.onNodeWithText("일정 취소하기").assertDoesNotExist()
+    }
+
+    @Test
+    fun proposerCanEditAndCancelFromHomeEvenBeforeTheScheduleIsConfirmed() {
+        val scheduled = detail.copy(status = ScheduleDisplayStatus.SCHEDULED)
+        var editClicks = 0
+        var cancelClicks = 0
+        compose.setContent {
+            KiriTheme {
+                ServerScheduleDetailScreen(
+                    ServerScheduleDetailUiState(
+                        detail = DetailUiState(loading = false, detail = scheduled.toMissionDetail(7)),
+                        schedule = scheduled,
+                        canEdit = true,
+                    ),
+                    {},
+                    onEditClick = { editClicks++ },
+                    fromHome = true,
+                    onCancelClick = { cancelClicks++ },
+                )
+            }
+        }
+
+        // 응답 대기·미확정(약속 예정)이어도 제안자는 홈에서 변경·취소할 수 있다
+        compose.onNodeWithTag("server_schedule_edit").performClick()
+        compose.onNodeWithTag("server_schedule_cancel_button").performClick()
+        assertEquals(listOf(1, 1), listOf(editClicks, cancelClicks))
     }
 
     @Test

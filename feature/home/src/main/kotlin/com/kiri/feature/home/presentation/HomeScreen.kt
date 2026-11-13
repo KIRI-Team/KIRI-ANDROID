@@ -160,7 +160,8 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
                                     ZoneId.of("Asia/Seoul"),
                                 )
                                 ?.let {
-                                    ScheduleCard(it) { onScheduleClick(it.schedule.id) }
+                                    // 응답이 필요한 일정은 상세 대신 응답 화면으로 연다
+                                    ScheduleCard(it) { onEvent(HomeUiEvent.ScheduleClicked(it.schedule.id, respond = true)) }
                                     Spacer(Modifier.height(18.dp))
                                 }
                             selectHomeSchedule(

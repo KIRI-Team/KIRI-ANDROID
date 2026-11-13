@@ -423,11 +423,23 @@ constructor(
             }) }
     }
 
-    fun respond(accept: Boolean) = mutateAction {
+    // leave: 응답 화면에서 응답했다. 성공하면 상세 대신 이전 화면(홈·기록 탭)으로 돌아간다
+    fun respond(accept: Boolean, leave: Boolean = false) = mutateAction {
         check(state.value.canRespond) { "응답할 수 있는 약속인지 다시 확인해주세요." }
         requireNotNull(schedules).respond(requireNotNull(scheduleId), accept).getOrThrow()
-        state.update { it.copy(notice = if (accept) "수락했어요." else "거절했어요.") }
-        load()
+        if (leave) {
+            effects.send(ServerScheduleDetailEffect.Back)
+        } else {
+            state.update { it.copy(notice = if (accept) "수락했어요." else "거절했어요.") }
+            load()
+        }
+    }
+    // 상세 화면이 작업 결과 안내·오류를 토스트로 띄운 뒤 지운다.
+    // 상세를 불러오지 못한 오류는 화면 안에 다시 시도와 함께 보여주므로 남겨 둔다
+    fun messageShown() {
+        state.update {
+            it.copy(notice = null, detail = if (it.detail.detail != null) it.detail.copy(error = null) else it.detail)
+        }
     }
     fun cancel() = mutateAction {
         // 일정 취소하기 버튼은 일정 변경하기와 같은 조건(canEdit)으로 보인다. 권한은 서버가 다시 확인한다

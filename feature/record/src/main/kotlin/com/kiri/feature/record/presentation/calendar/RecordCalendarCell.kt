@@ -68,7 +68,7 @@ internal fun CalendarCell(
                         when (mark) {
                             RecordCalendarMark.PLANNED -> ", 약속 예정"
                             RecordCalendarMark.CONFIRMED -> ", 약속 확정"
-                            RecordCalendarMark.CANCELLED -> ", 취소된 약속"
+                            RecordCalendarMark.CANCELLED -> ", 취소·미확정 약속"
                             RecordCalendarMark.BUCKET -> ", 버킷 활동"
                             RecordCalendarMark.QUESTION -> ", 가족 질문"
                             RecordCalendarMark.PHOTO_FIRST,
@@ -100,7 +100,7 @@ internal fun CalendarCell(
                         null,
                         Modifier.size(33.6.dp),
                     )
-                // 취소된 약속은 흐리게 보여준다
+                // 취소·미확정 약속은 열 수 없어 흐리게 보여준다
                 RecordCalendarMark.CANCELLED ->
                     Image(
                         painterResource(R.drawable.record_clock_planned),

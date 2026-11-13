@@ -73,7 +73,7 @@ class HomeViewModel @Inject constructor(
                 _effect.trySend(if (existing == null) HomeUiEffect.CreateWeeklySchedule(weekly.id)
                     else HomeUiEffect.OpenSchedule(existing.id))
             }
-            is HomeUiEvent.ScheduleClicked -> _effect.trySend(HomeUiEffect.OpenSchedule(event.id))
+            is HomeUiEvent.ScheduleClicked -> _effect.trySend(HomeUiEffect.OpenSchedule(event.id, event.respond))
             HomeUiEvent.InviteFamilyClicked -> uiState.value.home?.takeUnless { it.browsing }?.let { home ->
                 if (home.serverBacked) _effect.trySend(HomeUiEffect.Navigate(HomeUiDestination.InviteFamily))
                 else home.inviteCode?.let { _effect.trySend(HomeUiEffect.InviteFamily(it)) }

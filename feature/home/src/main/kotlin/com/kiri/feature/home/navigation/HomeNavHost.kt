@@ -32,7 +32,7 @@ private const val START_ROUTE = "home"
 private const val DETAIL_ROUTE = "home_graph/detail"
 
 /** Registers this feature in the main tab back stack. */
-fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: () -> Unit, onSchedule: (String) -> Unit = {}, onTasteSettings: () -> Unit = {}, onFamilyInvite: () -> Unit = {}, onCreateFamily: () -> Unit = {}, onJoinFamily: () -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
+fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: () -> Unit, onSchedule: (String) -> Unit = {}, onRespondSchedule: (String) -> Unit = onSchedule, onTasteSettings: () -> Unit = {}, onFamilyInvite: () -> Unit = {}, onCreateFamily: () -> Unit = {}, onJoinFamily: () -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
     navigation(startDestination = START_ROUTE, route = GRAPH_ROUTE) {
         scheduleDestinations()
         composable("home_graph/recommendation/{missionId}") {
@@ -59,6 +59,7 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
                     navController.navigate(route) { launchSingleTop = true }
                 },
                 onScheduleClick = onSchedule,
+                onRespondSchedule = onRespondSchedule,
                 onWeeklyScheduleClick = { id ->
                     navController.navigate("home_graph/weekly-schedule/${Uri.encode(id)}") { launchSingleTop = true }
                 },

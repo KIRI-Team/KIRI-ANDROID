@@ -56,7 +56,7 @@ import com.kiri.uikit.component.KiriTopBar
 import java.time.LocalDate
 
 // 초대장 만들기를 누르면 보이는 요청알림 미리보기 (Figma 9424:23045). 가족이 받게 될 요청을 보여주고 보낼지 정한다.
-// 일정 취소 확인(Figma 10629:27298)도 같은 구성이라 제목·안내 문구·버튼 문구만 바꿔 쓴다
+// 일정 취소 확인(Figma 10629:27298)과 받은 초대에 응답하는 화면도 같은 구성이라 제목·안내 문구·버튼만 바꿔 쓴다
 @Composable
 fun ScheduleRequestScreen(
     savedBy: String,
@@ -79,6 +79,8 @@ fun ScheduleRequestScreen(
     confirmingText: String = "보내는 중…",
     // 요청알림은 Input 채움 색, 일정 취소는 KIRI/Button Neutral 기본 배경을 쓴다
     dismissBackground: Color = KiriComponentColor.Input.BgFilled,
+    // 왼쪽 버튼. 기본은 뒤로가기와 같고, 응답 화면에서는 거절이다
+    onDismissClick: () -> Unit = onBackClick,
 ) {
     BackHandler(onBack = onBackClick)
     Column(
@@ -150,7 +152,7 @@ fun ScheduleRequestScreen(
             modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ScheduleRequestCancelButton(onBackClick, dismissText, dismissBackground, Modifier.weight(1f), enabled = !sending)
+            ScheduleRequestCancelButton(onDismissClick, dismissText, dismissBackground, Modifier.weight(1f), enabled = !sending)
             KiriButton(
                 onClick = onSendClick,
                 modifier = Modifier.weight(1f),

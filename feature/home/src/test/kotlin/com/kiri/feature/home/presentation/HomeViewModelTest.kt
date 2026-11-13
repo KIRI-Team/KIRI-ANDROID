@@ -189,6 +189,15 @@ class HomeViewModelTest {
         assertTrue(vm.uiState.value.showingMission)
     }
 
+    @Test fun responseRequiredCardOpensTheResponseScreen() = runTest(dispatcher) {
+        val vm = HomeViewModel(TestRepository())
+        advanceUntilIdle()
+        vm.onEvent(HomeUiEvent.ScheduleClicked("120", respond = true))
+        assertEquals(HomeUiEffect.OpenSchedule("120", respond = true), vm.effect.first())
+        vm.onEvent(HomeUiEvent.ScheduleClicked("118"))
+        assertEquals(HomeUiEffect.OpenSchedule("118"), vm.effect.first())
+    }
+
     @Test fun weeklyActionOpensRegistrationOrExistingScheduleAndBlocksCompleted() = runTest(dispatcher) {
         val repo = TestRepository()
         val weekly = WeeklyMission("weekly", "산책", "공원", emptyList(), false, missionId = "mission")

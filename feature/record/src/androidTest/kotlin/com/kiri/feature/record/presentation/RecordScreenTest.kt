@@ -69,7 +69,7 @@ class RecordScreenTest {
             }
         }
         compose.onNodeWithTag("record_cancelled_$date", useUnmergedTree = true).assertExists()
-        compose.onNodeWithContentDescription("2026년 10월 14일, 취소된 약속").assertExists()
+        compose.onNodeWithContentDescription("2026년 10월 14일, 취소·미확정 약속").assertExists()
         // 오늘 날짜만 오늘로 읽어준다 (초록 배경도 오늘에만 쓴다)
         compose.onNodeWithContentDescription("2026년 10월 13일, 오늘").assertExists()
     }

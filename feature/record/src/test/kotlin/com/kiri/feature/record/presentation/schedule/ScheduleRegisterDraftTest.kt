@@ -53,6 +53,11 @@ class ScheduleRegisterDraftTest {
         assertEquals("26.06.23", requestDateLabel(LocalDate.of(2026, 6, 23)))
     }
 
+    @Test fun receivedPromiseLabelNamesTheProposer() {
+        assertEquals("엄마가 보낸 약속이에요!", receivedPromiseLabel("엄마"))
+        assertEquals("지훈이 보낸 약속이에요!", receivedPromiseLabel("지훈"))
+    }
+
     @Test fun scheduledPromiseLabelShowsMonthAndDayWithoutLeadingZero() {
         assertEquals("12월 3일에 예정된 약속이에요!", scheduledPromiseLabel(LocalDate.of(2026, 12, 3)))
     }
