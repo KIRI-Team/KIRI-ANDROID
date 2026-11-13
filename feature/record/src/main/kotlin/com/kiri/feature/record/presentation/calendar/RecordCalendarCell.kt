@@ -10,7 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -35,19 +34,20 @@ internal fun CalendarCell(
     photo: RecordPhoto? = null,
     count: Int = 0,
     today: Boolean = false,
+    // 오늘보다 이전 날짜
+    past: Boolean = false,
 ) {
     val shape = RoundedCornerShape(12.dp)
-    // 초록 배경은 오늘 날짜만 뜻한다. 다른 날은 약속 상태와 관계없이 초록 배경을 쓰지 않는다
+    val schedule = scheduleCellLook(mark, today, past)
+    // 캘린더 요소 정리 (Figma 10693:9281). 오늘은 초록 배경과 초록 테두리, 예정된 약속은 Tertiary, 지난 약속은 Secondary
     val background =
         when {
             today -> KiriColor.Bg.GreenSoft
             mark == RecordCalendarMark.QUESTION ||
                 mark == RecordCalendarMark.PHOTO_FIRST ||
                 mark == RecordCalendarMark.PHOTO_SECOND -> KiriColor.Bg.Base
-            mark == RecordCalendarMark.CANCELLED -> KiriColor.Bg.Secondary.copy(alpha = .4f)
-            mark == RecordCalendarMark.PLANNED ||
-                mark == RecordCalendarMark.CONFIRMED ||
-                mark == RecordCalendarMark.BUCKET -> KiriColor.Bg.Secondary
+            schedule == ScheduleCellLook.UPCOMING -> KiriColor.Bg.Tertiary
+            schedule == ScheduleCellLook.PAST || mark == RecordCalendarMark.BUCKET -> KiriColor.Bg.Secondary
             else -> KiriColor.Bg.Primary
         }
     Box(
@@ -56,7 +56,8 @@ internal fun CalendarCell(
             .clip(shape)
             .background(background)
             .then(
-                if (selected) Modifier.border(1.dp, KiriColor.Primary.Default, shape) else Modifier
+                // 초록 테두리는 오늘만 뜻한다. 고른 날짜는 따로 표시하지 않는다
+                if (today) Modifier.border(1.dp, KiriColor.Primary.Default, shape) else Modifier
             )
             .clickable(role = Role.Button, onClick = onClick)
             .testTag("record_date_$date")
@@ -88,24 +89,23 @@ internal fun CalendarCell(
                         Modifier.fillMaxSize(),
                         contentScale = ContentScale.FillBounds,
                     )
-                RecordCalendarMark.PLANNED ->
-                    Image(
-                        painterResource(R.drawable.record_clock_planned),
-                        null,
-                        Modifier.size(33.6.dp),
-                    )
-                RecordCalendarMark.CONFIRMED ->
-                    Image(
-                        painterResource(R.drawable.record_clock_confirmed),
-                        null,
-                        Modifier.size(33.6.dp),
-                    )
-                // 취소·미확정 약속은 열 수 없어 흐리게 보여준다
+                // 예정된 약속은 밝은 시계, 지난 약속은 어두운 시계, 오늘 약속은 초록 시계 (Figma 10693:9281).
+                // 취소·미확정 약속은 열 수 없으므로 지난 약속처럼 어두운 시계로 보여준다
+                RecordCalendarMark.PLANNED,
+                RecordCalendarMark.CONFIRMED,
                 RecordCalendarMark.CANCELLED ->
                     Image(
-                        painterResource(R.drawable.record_clock_planned),
+                        painterResource(
+                            when (schedule) {
+                                ScheduleCellLook.TODAY -> R.drawable.record_clock_today
+                                ScheduleCellLook.UPCOMING -> R.drawable.record_clock_confirmed
+                                else -> R.drawable.record_clock_planned
+                            }
+                        ),
                         null,
-                        Modifier.size(33.6.dp).alpha(.4f).testTag("record_cancelled_$date"),
+                        Modifier.size(33.6.dp).then(
+                            if (mark == RecordCalendarMark.CANCELLED) Modifier.testTag("record_cancelled_$date") else Modifier
+                        ),
                     )
                 RecordCalendarMark.BUCKET ->
                     Image(painterResource(R.drawable.record_bucket), null, Modifier.size(33.dp))

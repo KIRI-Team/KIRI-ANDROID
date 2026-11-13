@@ -140,6 +140,7 @@ internal fun RecordCalendar(
                                     state.calendarPhotos[date],
                                     state.entries.count { it.date == date },
                                     today = date == state.today,
+                                    past = date < state.today,
                                 )
                         }
                     }
