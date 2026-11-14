@@ -32,8 +32,37 @@ class WeeklyMissionNavigationTest {
     @get:Rule(order = 1) val compose = createAndroidComposeRule<HiltTestActivity>()
     @Inject lateinit var buckets: BucketRepository
     @Inject lateinit var schedules: ScheduleRepository
-    @Inject lateinit var home: HomeRepository
+    private var hasWeeklyMission = true
+    private val homeSource = FakeHomeRepository(Clock.systemUTC(), latencyMillis = 0)
+    private val identity = UUID.randomUUID().toString()
+
+    @BindValue @JvmField
+    val home: HomeRepository = object : HomeRepository by homeSource {
+        override suspend fun load(): FamilyHome {
+            val loaded = homeSource.load()
+            return loaded.copy(
+                familyName = "주간 미션 테스트 $identity",
+                schedules = emptyList(),
+                mission = loaded.mission?.copy(id = identity)?.takeIf { hasWeeklyMission },
+            )
+        }
+
+        override suspend fun family(): FamilyHome = load()
+    }
     @Before fun setup() { hilt.inject() }
+
+    @Test fun emptyMissionLinkOpensPlaceAndKeepsBottomTabsUsable() {
+        hasWeeklyMission = false
+        compose.setContent { KiriTheme { MainScreen() } }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("home_question_card").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithContentDescription("미션 카드로 전환").performScrollTo().performClick()
+        compose.onNodeWithText("공개된 미션을 둘러보세요 →").performScrollTo().performClick()
+        compose.onNodeWithTag("bottom_nav_place").assertIsSelected()
+        compose.onNodeWithTag("place_screen").assertIsDisplayed()
+        compose.onNodeWithTag("bottom_nav_mypage").performClick().assertIsSelected()
+        compose.onNodeWithTag("bottom_nav_home").performClick().assertIsSelected()
+        compose.onNodeWithTag("home_screen").assertIsDisplayed()
+    }
 
     @Test fun homeToExistingFormCreatesBucketOnlyOnFinalSendAndReturnsToHome() {
         compose.setContent { KiriTheme { MainScreen() } }
@@ -77,18 +106,5 @@ class WeeklyMissionNavigationTest {
         @Provides fun clock(): Clock = Clock.systemUTC()
         @Provides fun tutorial(): HomeTutorialRepository = NoHomeTutorial
         @Provides @Singleton fun missions(): MissionRepository = FakeMissionRepository()
-        @Provides @Singleton fun home(clock: Clock): HomeRepository {
-            val source = FakeHomeRepository(clock, latencyMillis = 0)
-            val identity = UUID.randomUUID().toString()
-            return object : HomeRepository by source {
-                override suspend fun load(): FamilyHome {
-                    val loaded = source.load()
-                    return loaded.copy(familyName = "주간 미션 테스트 $identity", schedules = emptyList(),
-                        mission = loaded.mission?.copy(id = identity))
-                }
-                // by source 로 위임하면 family() 가 source 의 load() 로 가서 위에서 바꾼 load() 를 거치지 않는다. 가족 정보도 바꾼 load() 로 준다
-                override suspend fun family(): FamilyHome = load()
-            }
-        }
     }
 }

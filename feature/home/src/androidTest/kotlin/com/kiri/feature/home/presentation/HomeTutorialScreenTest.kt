@@ -84,6 +84,16 @@ class HomeTutorialScreenTest {
         capture("poke-mother-alignment")
     }
 
+    @Test fun unansweredMemberTooltipShowsMemberAndDailyQuestion() {
+        val vm = HomeViewModel(Repository(questionText = "내가 가장 좋아하는 음식은?"))
+        compose.setContent { KiriTheme { HomeRoute(viewModel = vm) } }
+        waitFor("home_member_father")
+        compose.onNodeWithTag("home_member_father").performClick()
+        compose.onNodeWithText("빠빠의 가장 좋아하는 음식은?").assertIsDisplayed()
+        compose.onNodeWithText("답변하지 않았어요").assertIsDisplayed()
+        capture("unanswered-member-tooltip")
+    }
+
     private fun waitFor(tag: String) {
         compose.waitUntil(15_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
         compose.waitForIdle()
@@ -109,8 +119,8 @@ class HomeTutorialScreenTest {
         private var visited = false
         override suspend fun claimFirstVisit(userId: String) = (!visited).also { visited = true }
     }
-    private class Repository : HomeRepository {
-        private val question = DailyQuestion("q", LocalDate.now(), "오늘 가족과 함께하고 싶은 일은?")
+    private class Repository(questionText: String = "오늘 가족과 함께하고 싶은 일은?") : HomeRepository {
+        private val question = DailyQuestion("q", LocalDate.now(), questionText)
         private val home = FamilyHome(question.date, "son", "끼리네 가족",
             listOf(FamilyMember("son", "나", "아들"), FamilyMember("mother", "마마", "엄마"), FamilyMember("father", "빠빠", "아빠"), FamilyMember("daughter", "딸", "딸")),
             question, mapOf("mother" to "따뜻한 국수"), emptySet(),

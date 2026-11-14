@@ -9,6 +9,7 @@ import com.kiri.domain.detail.MissionDetail
 import com.kiri.domain.detail.MissionPreview
 import com.kiri.domain.model.mission.MissionBucketState
 import com.kiri.domain.model.mission.MissionInfo
+import com.kiri.domain.repository.AppEventRepository
 import com.kiri.domain.repository.MissionInfoRepository
 import com.kiri.feature.detail.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -30,6 +31,7 @@ class MissionPreviewViewModel @Inject constructor(
     private val serverMissions: MissionInfoRepository? = null,
     // 둘러보기 사용자는 버킷에 저장할 수 없다 (가족 정보로 확인). 없으면 확인하지 않는다
     private val home: com.kiri.domain.home.HomeRepository? = null,
+    private val appEvents: AppEventRepository? = null,
 ) : ViewModel() {
     private val missionId: String = savedState["missionId"] ?: ""
     private val _uiState = MutableStateFlow(MissionPreviewUiState(reviewsSelected = savedState["reviewsSelected"] ?: false))
@@ -67,6 +69,7 @@ class MissionPreviewViewModel @Inject constructor(
                         saved = mission.bucketState == MissionBucketState.SAVED,
                         previouslyCompleted = mission.bucketState == MissionBucketState.COMPLETED_ONLY,
                     ) }
+                    recordDetailView(serverId)
                     return@launch
                 }
                 val preview = repository.preview(missionId)
@@ -78,6 +81,13 @@ class MissionPreviewViewModel @Inject constructor(
             catch (_: Exception) { _uiState.update { it.copy(loading = false, error = "미션 정보를 불러오지 못했어요.") } }
             finally { loading = false }
         }
+    }
+
+    private fun recordDetailView(missionId: Long) {
+        val events = appEvents ?: return
+        if (savedState.get<Boolean>("detailViewRecorded") == true) return
+        savedState["detailViewRecorded"] = true
+        viewModelScope.launch { events.recordMissionDetailView(missionId) }
     }
 
     private fun save() {

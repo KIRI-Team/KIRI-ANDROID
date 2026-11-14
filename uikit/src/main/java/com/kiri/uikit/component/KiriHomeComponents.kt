@@ -148,6 +148,7 @@ fun KiriTooltip(
     onAction: () -> Unit,
     anchor: IntRect,
     onDismiss: () -> Unit = {},
+    unanswered: Boolean = false,
 ) {
     val density = LocalDensity.current
     val width = (LocalConfiguration.current.screenWidthDp.dp - 36.dp).coerceAtMost(303.dp)
@@ -160,11 +161,11 @@ fun KiriTooltip(
             }
         }
     }
-    val shape = remember(placement, density) {
+    val shape = remember(placement, density, unanswered) {
         GenericShape { size, _ ->
             val radius = with(density) { 16.dp.toPx() }
-            val tipHeight = with(density) { 10.dp.toPx() }
-            val halfTip = with(density) { 7.dp.toPx() }
+            val tipHeight = with(density) { (if (unanswered) 18.dp else 10.dp).toPx() }
+            val halfTip = with(density) { (if (unanswered) 11.dp else 7.dp).toPx() }
             val x = placement.pointerX
             val top = if (placement.below) tipHeight else 0f
             val bottom = if (placement.below) size.height else size.height - tipHeight
@@ -187,15 +188,26 @@ fun KiriTooltip(
             color = KiriColor.Bg.Secondary,
             shape = shape,
         ) {
-            Row(Modifier.padding(start = 21.dp, top = if (placement.below) 28.dp else 18.dp, end = 12.dp, bottom = if (placement.below) 24.dp else 34.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(title, color = KiriColor.Text.Secondary, style = KiriDetailTypography.Title, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(answer, color = if (actionEnabled) KiriColor.Text.Disabled else KiriColor.Text.Strong, style = com.kiri.uikit.KiriTypography.Value, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            val pointerHeight = if (unanswered) 18.dp else 10.dp
+            val verticalTop = if (unanswered) 26.dp else 18.dp
+            val verticalBottom = if (unanswered) 21.dp else 24.dp
+            Row(
+                Modifier.padding(
+                    start = 21.dp,
+                    top = verticalTop + if (placement.below) pointerHeight else 0.dp,
+                    end = if (unanswered) 21.dp else 12.dp,
+                    bottom = verticalBottom + if (placement.below) 0.dp else pointerHeight,
+                ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if (unanswered) 2.dp else 12.dp)) {
+                    Text(title, color = KiriColor.Text.Secondary, style = if (unanswered) com.kiri.uikit.KiriTypography.TitleLarge.copy(letterSpacing = (-0.72).sp) else KiriDetailTypography.Title, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(answer, color = if (unanswered) KiriColor.Text.Disabled else KiriColor.Text.Strong, style = if (unanswered) com.kiri.uikit.KiriTypography.Value.copy(letterSpacing = (-0.8).sp) else com.kiri.uikit.KiriTypography.Value, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
                 Spacer(Modifier.width(12.dp))
                 Box(Modifier.width(1.dp).size(height = 50.dp, width = 1.dp).background(KiriColor.Border.Strong))
                 Spacer(Modifier.width(10.dp))
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(if (unanswered) 5.dp else 0.dp)) {
                     IconButton(onClick = onAction, enabled = actionEnabled, modifier = Modifier.size(30.dp)) {
                         Image(
                             painter = painterResource(R.drawable.kiri_poke),

@@ -15,6 +15,8 @@ import com.kiri.domain.home.HomeRecommendation
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertHasNoClickAction
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -123,7 +125,11 @@ class HomeScreenTest {
                 })
             }
         }
-        compose.onNodeWithTag("home_taste_banner").performClick()
+        compose.onNodeWithTag("home_taste_banner").assertHasNoClickAction().performTouchInput {
+            click(Offset(width * 0.2f, height * 0.5f))
+        }
+        compose.runOnIdle { assertEquals(null, destination) }
+        compose.onNodeWithTag("home_taste_action").performClick()
         compose.runOnIdle { assertEquals(com.kiri.feature.home.model.HomeUiDestination.TasteSettings, destination) }
         capture("home-taste-banner-local")
     }
@@ -146,7 +152,8 @@ class HomeScreenTest {
         compose.onNodeWithTag("home_question_card").assertIsDisplayed()
         compose.onNodeWithContentDescription("미션 카드로 전환").performClick()
         compose.onNodeWithText("이번주 미션이에요!").assertIsDisplayed()
-        compose.onNodeWithText("버킷리스트에서 일정을 확정해보세요!").assertIsDisplayed()
+        compose.onNodeWithText("버킷리스트에서 일정을", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("확정해보세요!", substring = true).assertIsDisplayed()
         compose.onNodeWithText("광장시장에서 시장음식 먹어보기").assertIsDisplayed()
         capture("home-mission")
         compose.onNodeWithContentDescription("질문 카드로 전환").performClick()

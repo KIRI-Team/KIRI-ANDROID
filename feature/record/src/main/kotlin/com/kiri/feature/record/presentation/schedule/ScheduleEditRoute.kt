@@ -33,15 +33,17 @@ import com.kiri.uikit.component.KiriTopBar
 
 // 서버 일정 변경하기. 저장되면 이전 화면(캘린더)으로 돌아간다
 @Composable
-fun ScheduleEditRoute(viewModel: ScheduleEditViewModel, onBackClick: () -> Unit, onSaved: () -> Unit) {
+fun ScheduleEditRoute(viewModel: ScheduleEditViewModel, onBackClick: () -> Unit, onSaved: () -> Unit, onCancelled: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val saved by rememberUpdatedState(onSaved)
+    val cancelled by rememberUpdatedState(onCancelled)
     val lifecycle = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycle) {
         lifecycle.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.effect.collect {
                 when (it) {
                     ScheduleEditEffect.Saved -> saved()
+                    ScheduleEditEffect.Cancelled -> cancelled()
                 }
             }
         }
