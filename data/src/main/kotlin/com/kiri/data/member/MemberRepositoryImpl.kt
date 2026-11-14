@@ -3,6 +3,8 @@ package com.kiri.data.member
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiCommand
 import com.kiri.domain.model.member.FamilyRole
+import com.kiri.domain.model.member.MyInfo
+import com.kiri.data.network.apiResult
 import com.kiri.domain.model.nickname.DuplicateNicknameException
 import com.kiri.domain.repository.MemberRepository
 import javax.inject.Inject
@@ -24,6 +26,17 @@ internal class MemberRepositoryImpl @Inject constructor(
 
     override suspend fun updateFamilyRole(role: FamilyRole): Result<Unit> =
         apiCommand(json) { api.updateFamilyRole(FamilyRoleRequest(role.name)) }.onSuccess { session?.saveRole(role.name) }
+
+    override suspend fun me(): Result<MyInfo> =
+        apiResult(json) { api.me() }.map { response ->
+            MyInfo(
+                memberId = response.memberId,
+                nickname = response.nickname,
+                role = FamilyRole.entries.firstOrNull { it.name == response.familyRole },
+                characterImageUrl = response.characterImageUrl,
+                familyName = response.familyName,
+            )
+        }
 
     private companion object {
         const val DUPLICATE_NICKNAME_CODE = "MEMBER409_1"

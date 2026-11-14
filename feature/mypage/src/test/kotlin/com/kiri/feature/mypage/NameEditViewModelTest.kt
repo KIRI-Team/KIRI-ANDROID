@@ -72,6 +72,19 @@ class NameEditViewModelTest {
     }
 
     @Test
+    fun 가족이_없어도_지금_닉네임을_내_정보에서_불러온다() = runTest(mainDispatcherRule.testDispatcher) {
+        val members = object : com.kiri.domain.repository.MemberRepository {
+            override suspend fun updateNickname(nickname: String): Result<Unit> = Result.success(Unit)
+            override suspend fun updateFamilyRole(role: com.kiri.domain.model.member.FamilyRole): Result<Unit> = Result.success(Unit)
+            override suspend fun me() = Result.success(com.kiri.domain.model.member.MyInfo(5, "둘러보는중", null, null, null))
+        }
+        val nickname = NicknameEditViewModel(members, home = null)
+        advanceUntilIdle()
+
+        assertEquals("둘러보는중", nickname.uiState.value.currentName)
+    }
+
+    @Test
     fun 닉네임을_서버에_저장하고_가족_정보_캐시를_비운_뒤_돌아간다() = runTest(mainDispatcherRule.testDispatcher) {
         val members = Members()
         val home = FamilyHomeRepository()
