@@ -45,6 +45,7 @@ data class ScheduleEditUiState(
 
 sealed interface ScheduleEditEffect {
     data object Saved : ScheduleEditEffect
+    data object Cancelled : ScheduleEditEffect
 }
 
 // 제안자가 기존 서버 일정의 날짜·시간·참여자·한 줄을 바꾸는 화면 (일정 등록 화면의 변경 모드)
@@ -98,7 +99,7 @@ constructor(
         if (state.value.saving || state.value.loading || state.value.loadError != null) return
         state.update { it.copy(saving = true, error = null) }
         viewModelScope.launch {
-            schedules.cancel(id).onSuccess { effects.send(ScheduleEditEffect.Saved) }
+            schedules.cancel(id).onSuccess { effects.send(ScheduleEditEffect.Cancelled) }
                 .onFailure { error -> state.update { it.copy(error = error.message ?: "취소하지 못했어요.") } }
             state.update { it.copy(saving = false) }
         }

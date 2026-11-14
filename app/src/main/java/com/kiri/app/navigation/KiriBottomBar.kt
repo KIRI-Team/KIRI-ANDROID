@@ -56,11 +56,7 @@ fun KiriBottomBar(
                         Column(
                             Modifier.clip(RoundedCornerShape(100.dp)).selectable(selected = selected, role = Role.Tab, onClick = {
                                 if (isBlocked(destination)) return@selectable onBlocked(destination)
-                                navController.navigate(destination.graphRoute) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                                navController.navigateToTab(destination)
                             }).testTag("bottom_nav_${destination.startRoute}").padding(horizontal = 8.dp, vertical = 6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
@@ -84,5 +80,13 @@ fun KiriBottomBar(
                 }
             }
         }
+    }
+}
+
+internal fun NavHostController.navigateToTab(destination: TopLevelDestination) {
+    navigate(destination.graphRoute) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
     }
 }

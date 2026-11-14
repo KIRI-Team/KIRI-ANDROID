@@ -240,6 +240,9 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
                     navController.previousBackStackEntry?.savedStateHandle?.set(SCHEDULE_EDITED_KEY, true)
                     navController.popBackStack()
                 },
+                onCancelled = {
+                    navController.popBackStack(SERVER_SCHEDULE_DETAIL_PATTERN, inclusive = true)
+                },
             )
         }
         // 약속 당일의 컨디션 커스텀. 상세 화면의 ViewModel 을 함께 쓴다. 들어갈 때 지금 적용된 조건을 불러오고,

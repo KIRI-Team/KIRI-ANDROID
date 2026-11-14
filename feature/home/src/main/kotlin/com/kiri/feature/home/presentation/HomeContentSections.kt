@@ -55,8 +55,7 @@ internal fun HomeTasteBanner(name: String, onClick: () -> Unit = {}) {
             .heightIn(min = 84.dp)
             .background(KiriColor.Bg.Primary, RoundedCornerShape(16.dp))
             .padding(horizontal = 21.dp, vertical = 15.dp)
-            .testTag("home_taste_banner")
-            .clickable(onClick = onClick),
+            .testTag("home_taste_banner"),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -67,6 +66,10 @@ internal fun HomeTasteBanner(name: String, onClick: () -> Unit = {}) {
         )
         Text(
             "취향테스트 참여하러가기",
+            modifier = Modifier
+                .testTag("home_taste_action")
+                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
+                .padding(vertical = 10.dp),
             color = KiriColor.Text.Secondary,
             style = com.kiri.uikit.component.KiriDetailTypography.Small,
         )
@@ -288,9 +291,19 @@ internal fun MemberAnswerToast(
 ) {
     val m = home.members.firstOrNull { it.id == memberId } ?: return
     val can = home.canPoke(m.id)
+    val answer = home.answers[m.id]
+    val question = home.question?.text?.trim().orEmpty()
+    val nickname = m.nickname
+    val title = when {
+        answer != null -> "${nickname}의 답변"
+        question.isEmpty() -> "${nickname}의 오늘 질문"
+        question.startsWith("내가 ") -> "${nickname}의 ${question.removePrefix("내가 ")}"
+        question.startsWith("나의 ") -> "${nickname}의 ${question.removePrefix("나의 ")}"
+        else -> "$nickname · $question"
+    }
     KiriTooltip(
-        "${m.nickname}의 답변",
-        home.answers[m.id] ?: "아직 답변하지 않았어요",
+        title,
+        answer ?: "답변하지 않았어요",
         can && !busy,
         onPoke,
         IntRect(
@@ -300,6 +313,7 @@ internal fun MemberAnswerToast(
             bounds.bottom.roundToInt(),
         ),
         onDismiss,
+        unanswered = answer == null,
     )
 }
 

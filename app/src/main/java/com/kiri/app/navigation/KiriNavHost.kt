@@ -22,7 +22,7 @@ fun KiriNavHost(
     NavHost(navController, startDestination = TopLevelDestination.HOME.graphRoute, modifier = modifier) {
         homeNavHost(
             navController,
-            onOpenPlaces = { navController.navigate(TopLevelDestination.PLACE.graphRoute) },
+            onOpenPlaces = { navController.navigateToTab(TopLevelDestination.PLACE) },
             onCreateFamily = onCreateFamily,
             onJoinFamily = onJoinFamily,
             onSchedule = { id ->

@@ -2,6 +2,10 @@ package com.kiri.feature.detail.presentation
 
 import androidx.lifecycle.SavedStateHandle
 import com.kiri.domain.detail.*
+import com.kiri.domain.model.mission.MissionBucketState
+import com.kiri.domain.model.mission.MissionInfo
+import com.kiri.domain.repository.AppEventRepository
+import com.kiri.domain.repository.MissionInfoRepository
 import com.kiri.feature.detail.MissionPreviewViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -124,6 +128,47 @@ class MissionPreviewViewModelTest {
         assertNull(viewModel.uiState.value.error)
         assertNotNull(viewModel.uiState.value.preview)
         assertTrue(viewModel.uiState.value.reviewsSelected)
+    }
+
+    @Test fun recordsOnlyTheFirstSuccessfulServerDetailLoadPerEntry() = runTest(dispatcher) {
+        var missionAvailable = false
+        val missions = object : MissionInfoRepository {
+            override suspend fun getMission(missionId: Long): Result<MissionInfo> {
+                if (!missionAvailable) return Result.failure(IllegalStateException("unavailable"))
+                return Result.success(
+                    MissionInfo(
+                        id = missionId, title = "미션", description = null, category = null,
+                        missionType = null, status = null, indoorOutdoor = null, imageUrl = null,
+                        imageSource = null, startDate = null, endDate = null, openingTime = null,
+                        closingTime = null, price = null, durationMinMinutes = null, durationMaxMinutes = null,
+                        walkingLevel = null, sourceUrl = null, place = null, prepareItems = emptyList(),
+                        steps = emptyList(), bucketState = MissionBucketState.NONE, averageRating = null, reviewCount = 0,
+                    ),
+                )
+            }
+        }
+        val recorded = mutableListOf<Long>()
+        val events = object : AppEventRepository {
+            override suspend fun recordMissionDetailView(missionId: Long): Result<Unit> {
+                recorded += missionId
+                return Result.failure(IllegalStateException("events unavailable"))
+            }
+        }
+        val savedState = SavedStateHandle(mapOf("missionId" to "42"))
+        val vm = MissionPreviewViewModel(Repository(), savedState, serverMissions = missions, appEvents = events)
+        advanceUntilIdle()
+        assertTrue(recorded.isEmpty())
+
+        missionAvailable = true
+        vm.retry()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.error)
+        assertNotNull(vm.uiState.value.preview)
+
+        vm.retry()
+        MissionPreviewViewModel(Repository(), savedState, serverMissions = missions, appEvents = events)
+        advanceUntilIdle()
+        assertEquals(listOf(42L), recorded)
     }
 
     private class Repository : DetailRepository {

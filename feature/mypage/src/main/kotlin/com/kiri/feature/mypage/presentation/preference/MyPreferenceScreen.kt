@@ -176,6 +176,14 @@ fun MyPreferenceScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            if (!state.canSave && !state.isLoading && !state.isSaving) {
+                Text(
+                    text = "선호 활동 1~3개와 활동량을 선택하면 저장할 수 있어요.",
+                    modifier = Modifier.padding(horizontal = 18.dp),
+                    style = labelSmall,
+                    color = KiriColor.Text.Secondary,
+                )
+            }
             KiriButton(
                 onClick = { onEvent(MyPreferenceUiEvent.SaveClicked) },
                 modifier = Modifier.padding(horizontal = 18.dp),

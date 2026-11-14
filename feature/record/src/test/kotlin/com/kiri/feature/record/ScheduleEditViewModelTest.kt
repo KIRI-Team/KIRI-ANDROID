@@ -51,6 +51,8 @@ class ScheduleEditViewModelTest {
         var update: Result<Unit> = Result.success(Unit),
     ) : CalendarScheduleRepository {
         val updates = mutableListOf<Pair<Long, ScheduleUpdate>>()
+        val cancellations = mutableListOf<Long>()
+        var cancelResult: Result<Unit> = Result.success(Unit)
         var monthly: List<CalendarSchedule> = emptyList()
 
         override suspend fun getMonthlySchedules(month: YearMonth): Result<List<CalendarSchedule>> =
@@ -59,6 +61,11 @@ class ScheduleEditViewModelTest {
         override suspend fun getScheduleDetail(scheduleId: Long): Result<ScheduleDetail> = detail
 
         override suspend fun createSchedule(bucketItemId: Long, form: ScheduleUpdate): Result<Long> = Result.success(1)
+
+        override suspend fun cancel(scheduleId: Long): Result<Unit> {
+            cancellations += scheduleId
+            return cancelResult
+        }
 
         override suspend fun updateSchedule(scheduleId: Long, update: ScheduleUpdate): Result<Unit> {
             updates += scheduleId to update
@@ -134,6 +141,22 @@ class ScheduleEditViewModelTest {
         vm.save()
 
         assertTrue(repo.updates.isEmpty())
+    }
+
+    @Test
+    fun 취소에_실패하면_화면에_남고_성공하면_취소_효과를_보낸다() = runTest {
+        val repo = FakeSchedules(Result.success(detail))
+        repo.cancelResult = Result.failure(IOException("연결이 끊겼어요."))
+        val vm = viewModel(repo)
+
+        vm.cancel()
+        assertEquals("연결이 끊겼어요.", vm.uiState.value.error)
+        assertFalse(vm.uiState.value.saving)
+
+        repo.cancelResult = Result.success(Unit)
+        vm.cancel()
+        assertEquals(ScheduleEditEffect.Cancelled, vm.effect.first())
+        assertEquals(listOf(100L, 100L), repo.cancellations)
     }
 
     @Test

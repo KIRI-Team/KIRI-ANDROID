@@ -64,6 +64,18 @@ class CalendarScheduleRepositoryImplTest {
     }
 
     @Test
+    fun 일정_취소는_요청_본문_없이_PATCH로_보낸다() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"SCHEDULE200_3","message":"일정 취소 성공","result":{"scheduleId":100,"status":"CANCELLED","bucketItemId":42}}""")
+
+        assertTrue(repository().cancel(100).isSuccess)
+
+        val request = server.takeRequest()
+        assertEquals("PATCH", request.method)
+        assertEquals("/api/v1/schedules/100/cancel", request.url.encodedPath)
+        assertEquals(0L, request.bodySize)
+    }
+
+    @Test
     fun 일정_수정은_날짜_시간_초대_대상_한_줄을_PATCH_로_보낸다() = runTest {
         enqueue(200, """{"isSuccess":true,"code":"SCHEDULE200_4","message":"일정 수정 성공","result":{"scheduleId":100,"scheduleDate":"2026-11-16","scheduleTime":"15:00","status":"PENDING_RESPONSE","responseDeadline":"2026-11-15T15:00:00","proposerId":1,"participantMemberIds":[2,3]}}""")
 

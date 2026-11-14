@@ -81,6 +81,7 @@ class MyPreferenceScreenTest {
         setContent(MyPreferenceUiState(nickname = "쥬123", categories = setOf(PreferenceCategory.EXHIBITION)))
 
         composeTestRule.onNodeWithTag("kiri_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithText("선호 활동 1~3개와 활동량을 선택하면 저장할 수 있어요.").assertIsDisplayed()
     }
 
     @Test

@@ -12,10 +12,14 @@ import androidx.compose.ui.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.*
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.LineBreak
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
 import com.kiri.domain.home.*
 import com.kiri.feature.home.model.*
+import com.kiri.uikit.KiriTypography
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.KiriCardFlipButton
 import com.kiri.uikit.component.KiriContentCard
@@ -37,17 +41,20 @@ internal fun QuestionMissionSection(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 if (showingMission) "이번주 미션이에요!" else "오늘 나의 질문카드",
-                Modifier.weight(1f, fill = false),
                 color = KiriColor.Text.Strong,
                 style = com.kiri.uikit.component.KiriDetailTypography.Title,
             )
-            Text(
-                if (showingMission) "버킷리스트에서 일정을 확정해보세요!" else "다른 가족들의 답변을 기다려요!",
-                Modifier.weight(1f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.End,
-                color = if (showingMission) KiriColor.Text.Accent else KiriColor.Text.Secondary,
-                style = com.kiri.uikit.KiriTypography.BodyMedium,
-            )
+            if (showingMission) {
+                MissionHeaderCaption(Modifier.weight(1f))
+            } else {
+                Text(
+                    "다른 가족들의 답변을 기다려요!",
+                    Modifier.weight(1f),
+                    textAlign = TextAlign.End,
+                    color = KiriColor.Text.Secondary,
+                    style = KiriTypography.BodyMedium.copy(lineBreak = LineBreak.Heading),
+                )
+            }
         }
         Spacer(Modifier.height(12.dp))
         Box(cardModifier) {
@@ -62,6 +69,25 @@ internal fun QuestionMissionSection(
                 onWeeklyScheduleClick,
             )
         }
+    }
+}
+
+@Composable
+private fun MissionHeaderCaption(modifier: Modifier = Modifier) {
+    val textMeasurer = rememberTextMeasurer()
+    val style = KiriTypography.BodyMedium
+    val firstPhrase = "버킷리스트에서 일정을"
+    val lastPhrase = "확정해보세요!"
+    val singleLine = "$firstPhrase $lastPhrase"
+    BoxWithConstraints(modifier) {
+        val fitsOnOneLine = textMeasurer.measure(singleLine, style, softWrap = false).size.width <= constraints.maxWidth
+        Text(
+            if (fitsOnOneLine) singleLine else "$firstPhrase\n$lastPhrase",
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.End,
+            color = KiriColor.Text.Accent,
+            style = style.copy(lineBreak = LineBreak.Heading),
+        )
     }
 }
 
