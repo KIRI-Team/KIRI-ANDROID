@@ -67,9 +67,9 @@ fun serverScheduleDetailRoute(scheduleId: Long, fromHome: Boolean = false, respo
     "$SERVER_SCHEDULE_ROUTE/$scheduleId" + listOfNotNull("fromHome=true".takeIf { fromHome }, "respond=true".takeIf { respond })
         .joinToString("&").let { if (it.isEmpty()) it else "?$it" }
 
-// 기록 탭(캘린더 날짜, 다가오는 약속 카드)에서 연다. 홈의 응답 필요 카드처럼, 응답할 수 있는 초대면 응답 화면을 먼저 보여준다
+// 기록 탭(캘린더 날짜, 다가오는 약속 카드)에서 일정 상세를 연다. 기록 탭에서는 응답 화면으로 가지 않는다
 internal fun calendarScheduleDetailRoute(scheduleId: Long, date: java.time.LocalDate): String =
-    "$SERVER_SCHEDULE_ROUTE/$scheduleId?${ServerScheduleDetailViewModel.DATE_ARG}=$date&respond=true"
+    "$SERVER_SCHEDULE_ROUTE/$scheduleId?${ServerScheduleDetailViewModel.DATE_ARG}=$date"
 
 /** Registers this feature in the main tab back stack. */
 fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSchedule: (String) -> Unit = {}, onManageSchedule: (String) -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
