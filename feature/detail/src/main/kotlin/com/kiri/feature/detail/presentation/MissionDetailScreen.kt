@@ -463,15 +463,13 @@ private fun DetailHeader(
             Column(
                 Modifier.fillMaxWidth()
                     .background(KiriColor.Bg.Secondary, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 26.dp, vertical = 17.dp),
+                    .padding(start = 26.dp, end = 26.dp, top = 17.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                InfoText("시작 시간   I   ${detail.startTime ?: "미정"}")
+                // KIRI/Activity Detail (Handoff 9898:21885): 장소·예상 걸음수·활동시간을 한 줄씩
                 InfoText("장소   I   ${detail.place ?: "미정"}")
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    InfoText("예상 걸음수 I ${detail.stepsLabel}")
-                    InfoText("활동시간 I ${detail.durationLabel}")
-                }
+                InfoText("예상 걸음수 I ${detail.stepsLabel}")
+                InfoText("활동시간 I ${detail.durationLabel}")
             }
             if (!discovery && calendarHeader?.showRecord == true) {
                 Spacer(Modifier.height(16.dp))

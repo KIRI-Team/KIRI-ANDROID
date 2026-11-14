@@ -65,6 +65,8 @@ data class ScheduleFormMode(
     val submitText: String,
     // null 이면 저장한 사람·주간 미션 문구를 쓴다
     val subtitle: String? = null,
+    // 제목 위 배지를 보여줄지. 일정 변경 화면은 Figma 에 배지가 없다 (Handoff 9898:21204)
+    val showSubtitle: Boolean = true,
     val submitting: Boolean = false,
     val error: String? = null,
 ) {
@@ -73,8 +75,9 @@ data class ScheduleFormMode(
 
         fun edit(subtitle: String, submitting: Boolean, error: String?) = ScheduleFormMode(
             appBarTitle = "일정 변경하기",
-            submitText = if (submitting) "변경 중…" else "변경하기",
+            submitText = if (submitting) "변경 중…" else "일정 변경하기",
             subtitle = subtitle,
+            showSubtitle = false,
             submitting = submitting,
             error = error,
         )
@@ -189,7 +192,7 @@ internal fun ScheduleRegisterContent(
         ) {
             Spacer(Modifier.height(24.dp))
             ScheduleRegisterHeader(
-                mode.subtitle ?: if (weekly) "가족에게 추천된 주간 미션이에요!" else savedByLabel(savedBy),
+                (mode.subtitle ?: if (weekly) "가족에게 추천된 주간 미션이에요!" else savedByLabel(savedBy)).takeIf { mode.showSubtitle },
                 title,
                 description,
             )
@@ -232,11 +235,11 @@ internal fun ScheduleRegisterContent(
 }
 
 @Composable
-private fun ScheduleRegisterHeader(subtitle: String, title: String, description: String) {
+private fun ScheduleRegisterHeader(subtitle: String?, title: String, description: String) {
     Column(verticalArrangement = Arrangement.spacedBy(19.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             // Figma 는 rgba(155,234,81,0.2) 배경. 코드의 Bg.GreenSoft 는 0.1 이라 같은 0.2 값인 Primary.Container 를 쓴다
-            Text(
+            if (subtitle != null) Text(
                 text = subtitle,
                 modifier = Modifier
                     .background(KiriColor.Primary.Container, RoundedCornerShape(5.dp))

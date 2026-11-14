@@ -26,8 +26,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.kiri.feature.mypage.R
 import com.kiri.feature.mypage.model.common.MypageProfile
-import com.kiri.feature.mypage.presentation.family.component.roleAvatar
-import com.kiri.uikit.component.KiriAsyncImage
+import com.kiri.uikit.R as UiR
 import com.kiri.uikit.color.KiriColor
 
 @Composable
@@ -45,7 +44,7 @@ fun MypageProfileRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // 내 캐릭터. 서버 캐릭터 이미지가 있으면 그것을, 없거나 불러오는 중·실패면 역할별 기본 캐릭터를 보여준다.
+            // 내 캐릭터 (Handoff 9901:25866): 지름 48 원(Bg.Tertiary) 안에 역할별 회색 캐릭터를 27.2 크기로 둔다.
             // 역할을 정하지 않았으면 기본 프로필 그림을 둔다
             Box(
                 modifier = Modifier
@@ -54,24 +53,16 @@ fun MypageProfileRow(
                     .testTag("mypage_profile_image"),
                 contentAlignment = Alignment.Center,
             ) {
-                if (profile.imageUrl.isNullOrBlank() && profile.role.isBlank()) {
+                val avatar = profileAvatar(profile.role)
+                if (avatar == null) {
                     Image(painter = painterResource(R.drawable.ic_mypage_profile_default), contentDescription = null)
                 } else {
-                    KiriAsyncImage(
-                        model = profile.imageUrl,
+                    Image(
+                        painter = painterResource(avatar),
                         contentDescription = null,
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(27.2.dp),
                         contentScale = ContentScale.Fit,
-                    ) {
-                        Image(
-                            painter = painterResource(
-                                if (profile.role.isBlank()) R.drawable.ic_mypage_profile_default else roleAvatar(profile.role)
-                            ),
-                            contentDescription = null,
-                            modifier = Modifier.size(36.dp),
-                            contentScale = ContentScale.Fit,
-                        )
-                    }
+                    )
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -107,6 +98,15 @@ fun MypageProfileRow(
             Image(painter = painterResource(R.drawable.ic_mypage_edit), contentDescription = "프로필 수정")
         }
     }
+}
+
+// 마이페이지 프로필의 역할별 회색 캐릭터. 역할을 정하지 않았으면 null
+private fun profileAvatar(role: String): Int? = when (role) {
+    "엄마" -> UiR.drawable.kiri_avatar_mother_off
+    "아빠" -> UiR.drawable.kiri_avatar_father_off
+    "딸" -> UiR.drawable.kiri_avatar_daughter_off
+    "아들" -> UiR.drawable.kiri_avatar_son_off
+    else -> null
 }
 
 @Preview(backgroundColor = 0xFF1A1A1A, showBackground = true)

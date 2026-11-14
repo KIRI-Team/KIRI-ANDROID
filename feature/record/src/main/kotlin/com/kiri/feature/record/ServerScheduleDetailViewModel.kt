@@ -353,6 +353,12 @@ constructor(
         if (!uiState.value.detail.loading) load()
     }
 
+    // 일정 변경 화면에서 저장하고 돌아왔다. 변경 완료를 알리고(Handoff 9898:21827) 바뀐 일정을 다시 불러온다
+    fun edited() {
+        state.update { it.copy(notice = "일정 변경이 되었습니다!") }
+        reload()
+    }
+
     // 기록 모아보기에서 다시 시도를 눌렀다
     fun retryReviews() {
         val id = scheduleId ?: return
