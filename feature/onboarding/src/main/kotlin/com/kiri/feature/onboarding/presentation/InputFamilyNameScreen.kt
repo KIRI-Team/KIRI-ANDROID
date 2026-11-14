@@ -49,7 +49,7 @@ fun InputFamilyNameScreen(
                 title = "끼리에서 사용할\n가족명을 작성해주세요",
                 subtitle = "우리 가족을 뭐라고 불러드릴까요?",
             )
-            Spacer(Modifier.height(50.dp))
+            Spacer(Modifier.height(49.dp))
             // 가족명 규칙은 닉네임 규칙과 동일하다
             OnboardingInputBox(
                 value = familyName,

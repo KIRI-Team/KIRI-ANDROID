@@ -34,7 +34,7 @@ import com.kiri.feature.record.displayTitle
 import com.kiri.feature.record.label
 import com.kiri.feature.record.usesNeutralBadge
 import com.kiri.feature.record.presentation.schedule.ScheduleRequestScreen
-import com.kiri.feature.record.presentation.schedule.receivedPromiseLabel
+import com.kiri.feature.record.presentation.schedule.ScheduleAcceptSheet
 import com.kiri.feature.record.presentation.schedule.scheduledPromiseLabel
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.kiri.uikit.color.KiriComponentColor
@@ -57,27 +57,43 @@ fun ServerScheduleDetailRoute(
     // 응답 화면의 자세히 보러가기를 누르면 상세로 넘어간다
     var showResponse by rememberSaveable { mutableStateOf(respond) }
     val invitation = state.schedule
+    // 약속 확정하기를 누르면 뜨는 확인 시트 (Figma 9898:18722)
+    var confirmAccept by remember { mutableStateOf(false) }
     if (showResponse && invitation != null && state.canRespond) {
-        // 받은 초대에 응답하는 화면. 요청알림 화면을 그대로 쓰고 아래 버튼만 거절·수락으로 바꾼다
+        // 받은 초대에 응답하는 화면 (Figma 요청받았을 때 9898:18682). 요청알림 화면을 그대로 쓴다.
+        // 안내 문구는 Figma 처럼 저장한 사람 기준이지만, 일정 상세 API 에 저장자가 없어 제안자(참여자 맨 앞) 이름을 쓴다
+        val title = state.detail.detail?.title ?: invitation.displayTitle()
+        val members = invitation.participants.map { it.nickname }
         ScheduleRequestScreen(
-            savedBy = "",
-            title = state.detail.detail?.title ?: invitation.displayTitle(),
+            savedBy = invitation.participants.firstOrNull()?.nickname.orEmpty(),
+            title = title,
             description = "",
             date = invitation.date,
-            memberNames = invitation.participants.map { it.nickname },
+            memberNames = members,
+            // TODO: 일정 상세 API 에 요청 메시지(가족에게 한 줄)가 생기면 채운다
             message = "",
             onBackClick = { if (!state.detail.saving) onBack() },
             onDetailClick = { if (!state.detail.saving) { showResponse = false; viewModel.messageShown() } },
-            onSendClick = { viewModel.respond(true, leave = true) },
+            onSendClick = { confirmAccept = true },
             sending = state.detail.saving,
             error = state.detail.error,
-            headline = invitation.participants.firstOrNull()?.nickname?.let(::receivedPromiseLabel),
-            dismissText = "거절",
-            confirmText = "수락",
+            dismissText = "약속 거절하기",
+            confirmText = "약속 확정하기",
             confirmingText = "응답하는 중…",
-            dismissBackground = KiriComponentColor.Button.FilledNeutral.BgDefault,
             onDismissClick = { viewModel.respond(false, leave = true) },
         )
+        if (confirmAccept) {
+            ScheduleAcceptSheet(
+                title = title,
+                date = invitation.date,
+                memberNames = members,
+                onConfirm = {
+                    confirmAccept = false
+                    viewModel.respond(true, leave = true)
+                },
+                onDismiss = { confirmAccept = false },
+            )
+        }
         return
     }
     // 응답 화면에서 자세히 보러가기로 왔으면, 상세의 뒤로가기는 응답 화면으로 돌아간다

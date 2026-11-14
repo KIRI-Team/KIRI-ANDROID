@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.kiri.feature.onboarding.R
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -51,7 +54,7 @@ fun InputNicknameScreen(
                 title = "끼리에서 사용할\n닉네임을 설정해주세요.",
                 subtitle = "가족 안에서의 역할을 선택해주세요!",
             )
-            Spacer(Modifier.height(50.dp))
+            Spacer(Modifier.height(49.dp))
             OnboardingInputBox(
                 value = nickname,
                 onValueChange = onNicknameChange,
@@ -59,6 +62,10 @@ fun InputNicknameScreen(
                 isError = violations.isNotEmpty() || isDuplicated,
                 placeholder = "이름을 입력하세요.",
                 enabled = !isSubmitting,
+                // Figma 닉네임 입력칸 오른쪽 화살표 (Handoff 9817:14123)
+                trailingIcon = {
+                    Image(painter = painterResource(R.drawable.ic_onboarding_arrow_right), contentDescription = null)
+                },
             )
         }
         KiriButton(

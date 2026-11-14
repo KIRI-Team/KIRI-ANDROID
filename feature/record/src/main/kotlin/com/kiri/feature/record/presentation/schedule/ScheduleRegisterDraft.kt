@@ -34,9 +34,6 @@ internal fun requestDateLabel(date: LocalDate): String = date.format(DateFormat)
 // 일정 취소 화면의 안내: 12월 3일에 예정된 약속이에요!
 internal fun scheduledPromiseLabel(date: LocalDate): String = "${date.monthValue}월 ${date.dayOfMonth}일에 예정된 약속이에요!"
 
-// 받은 초대 응답 화면의 안내: 엄마가 보낸 약속이에요!
-internal fun receivedPromiseLabel(proposer: String): String = "${withSubjectParticle(proposer)} 보낸 약속이에요!"
-
 // 아빠가 저장했어요! / 딸이 저장했어요!
 internal fun savedByLabel(name: String): String = "${withSubjectParticle(name)} 저장했어요!"
 

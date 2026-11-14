@@ -58,11 +58,12 @@ fun OnboardingInputBox(
         isFocused = isFocused,
         isEmpty = value.isEmpty(),
     )
-    val shape = RoundedCornerShape(16.dp)
+    // Figma KIRI/Input (Handoff 9817:14153): 모서리 8, 높이 59, 안내 문구까지 12
+    val shape = RoundedCornerShape(8.dp)
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         BasicTextField(
             value = value,
@@ -79,7 +80,7 @@ fun OnboardingInputBox(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .height(59.dp)
                         .background(color = state.background(), shape = shape)
                         .border(width = state.borderWidth(), color = state.borderColor(), shape = shape)
                         .padding(horizontal = 24.dp),
