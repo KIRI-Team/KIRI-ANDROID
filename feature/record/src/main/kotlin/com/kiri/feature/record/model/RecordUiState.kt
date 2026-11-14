@@ -63,10 +63,16 @@ data class RecordUiState(
     fun saverName(id: String) = savers.firstOrNull { it.id == id }?.nickname ?: "탈퇴한 멤버"
 }
 
-// 취소된 일정은 서버가 상세를 돌려주지 않아 상세 화면을 열 수 없다
-val CalendarSchedule.canOpen get() = status != CalendarScheduleStatus.CANCELLED
+// 취소된 일정은 서버가 상세를 돌려주지 않아 상세 화면을 열 수 없다.
+// 미확정(아무도 수락하지 않고 응답 마감이 지남) 일정은 응답·변경·취소 모두 할 수 없어 열지 않는다
+val CalendarSchedule.canOpen
+    get() = status.canOpenStatus
 
-// 서버 일정을 날짜별 표시로 바꾼다. 확정(완료 포함) > 예정 > 취소 순으로 하나만 고른다
+private val CalendarScheduleStatus.canOpenStatus
+    get() = this != CalendarScheduleStatus.CANCELLED && this != CalendarScheduleStatus.NOT_CONFIRMED
+
+// 서버 일정을 날짜별 표시로 바꾼다. 확정(완료 포함) > 예정 > 취소 순으로 하나만 고른다.
+// 미확정 일정은 열 수 없으므로 취소처럼 흐린 시계로 보여준다
 internal fun List<CalendarSchedule>.toCalendarMarks(): Map<LocalDate, RecordCalendarMark> =
     groupBy { it.date }.mapValues { (_, schedules) ->
         val statuses = schedules.map { it.status }
@@ -74,7 +80,7 @@ internal fun List<CalendarSchedule>.toCalendarMarks(): Map<LocalDate, RecordCale
             // 리뷰 대표 이미지가 있는 완료 일정은 사진 기록처럼 날짜 위에 사진을 깐다
             schedules.any { it.reviewImageUrl != null } -> RecordCalendarMark.PHOTO_FIRST
             statuses.any { it == CalendarScheduleStatus.CONFIRMED || it == CalendarScheduleStatus.COMPLETED } -> RecordCalendarMark.CONFIRMED
-            statuses.any { it != CalendarScheduleStatus.CANCELLED } -> RecordCalendarMark.PLANNED
+            statuses.any { it.canOpenStatus } -> RecordCalendarMark.PLANNED
             else -> RecordCalendarMark.CANCELLED
         }
     }

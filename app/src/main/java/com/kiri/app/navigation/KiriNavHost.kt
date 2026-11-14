@@ -30,6 +30,12 @@ fun KiriNavHost(
                     ?: scheduleRoute(id, "home_graph")
                 navController.navigate(route) { launchSingleTop = true }
             },
+            // 응답이 필요한 일정 카드는 응답 화면으로 연다
+            onRespondSchedule = { id ->
+                val route = id.toLongOrNull()?.let { serverScheduleDetailRoute(it, fromHome = true, respond = true) }
+                    ?: scheduleRoute(id, "home_graph")
+                navController.navigate(route) { launchSingleTop = true }
+            },
             onTasteSettings = { navController.navigate("mypage_graph/my_preference") { launchSingleTop = true } },
             onFamilyInvite = { navController.navigate("mypage_graph/invite_link") { launchSingleTop = true } },
             scheduleDestinations = { scheduleGraph(navController, "home_graph") },

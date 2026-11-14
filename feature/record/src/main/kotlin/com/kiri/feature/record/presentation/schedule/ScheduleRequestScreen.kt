@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
@@ -54,7 +55,8 @@ import com.kiri.uikit.component.KiriPretendard
 import com.kiri.uikit.component.KiriTopBar
 import java.time.LocalDate
 
-// 초대장 만들기를 누르면 보이는 요청알림 미리보기 (Figma 9424:23045). 가족이 받게 될 요청을 보여주고 보낼지 정한다
+// 초대장 만들기를 누르면 보이는 요청알림 미리보기 (Figma 9424:23045). 가족이 받게 될 요청을 보여주고 보낼지 정한다.
+// 일정 취소 확인(Figma 10629:27298)과 받은 초대에 응답하는 화면도 같은 구성이라 제목·안내 문구·버튼만 바꿔 쓴다
 @Composable
 fun ScheduleRequestScreen(
     savedBy: String,
@@ -69,6 +71,16 @@ fun ScheduleRequestScreen(
     sending: Boolean = false,
     error: String? = null,
     weekly: Boolean = false,
+    topBarTitle: String = "요청알림",
+    // 카드 위 안내 문구. null 이면 저장한 사람(주간 미션이면 추천) 문구를 쓴다
+    headline: String? = null,
+    dismissText: String = "취소",
+    confirmText: String = "요청 보내기",
+    confirmingText: String = "보내는 중…",
+    // 요청알림은 Input 채움 색, 일정 취소는 KIRI/Button Neutral 기본 배경을 쓴다
+    dismissBackground: Color = KiriComponentColor.Input.BgFilled,
+    // 왼쪽 버튼. 기본은 뒤로가기와 같고, 응답 화면에서는 거절이다
+    onDismissClick: () -> Unit = onBackClick,
 ) {
     BackHandler(onBack = onBackClick)
     Column(
@@ -79,7 +91,7 @@ fun ScheduleRequestScreen(
             .navigationBarsPadding()
             .testTag("schedule_request_screen"),
     ) {
-        KiriTopBar(onBackClick = onBackClick, title = "요청알림")
+        KiriTopBar(onBackClick = onBackClick, title = topBarTitle)
         Column(
             Modifier
                 .fillMaxWidth()
@@ -89,7 +101,7 @@ fun ScheduleRequestScreen(
         ) {
             Spacer(Modifier.height(8.dp))
             Text(
-                text = if (weekly) "가족에게 추천된 주간 미션이에요!" else savedMissionLabel(savedBy),
+                text = headline ?: if (weekly) "가족에게 추천된 주간 미션이에요!" else savedMissionLabel(savedBy),
                 modifier = Modifier.fillMaxWidth(),
                 color = KiriColor.Text.Primary,
                 textAlign = TextAlign.Center,
@@ -140,12 +152,12 @@ fun ScheduleRequestScreen(
             modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ScheduleRequestCancelButton(onBackClick, Modifier.weight(1f), enabled = !sending)
+            ScheduleRequestCancelButton(onDismissClick, dismissText, dismissBackground, Modifier.weight(1f), enabled = !sending)
             KiriButton(
                 onClick = onSendClick,
                 modifier = Modifier.weight(1f),
                 enabled = !sending,
-                text = if (sending) "보내는 중…" else "요청 보내기",
+                text = if (sending) confirmingText else confirmText,
                 tone = KiriButtonTone.Accent,
             )
         }
@@ -219,19 +231,19 @@ private fun ScheduleRequestInfo(icon: Int, text: String, gap: Int) {
     }
 }
 
-// Figma 의 취소 버튼은 KIRI/Button Neutral 에 배경만 Input 채움 색(#2B2B2B)으로 바꿔 쓴다. KiriButton 은 배경을 바꿀 수 없어 따로 그린다
+// Figma 의 취소 버튼은 KIRI/Button Neutral 에 배경만 바꿔 쓴다(요청알림은 Input 채움 색 #2B2B2B). KiriButton 은 배경을 바꿀 수 없어 따로 그린다
 @Composable
-private fun ScheduleRequestCancelButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+private fun ScheduleRequestCancelButton(onClick: () -> Unit, text: String, background: Color, modifier: Modifier = Modifier, enabled: Boolean = true) {
     Box(
         modifier = modifier
             .height(54.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(KiriComponentColor.Input.BgFilled)
+            .background(background)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .testTag("schedule_request_cancel"),
         contentAlignment = Alignment.Center,
     ) {
-        Text("취소", color = KiriComponentColor.Button.FilledNeutral.ContentDefault, style = TitleMedium)
+        Text(text, color = KiriComponentColor.Button.FilledNeutral.ContentDefault, style = TitleMedium)
     }
 }
 

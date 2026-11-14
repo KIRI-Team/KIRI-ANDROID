@@ -13,19 +13,21 @@ class ServerScheduleActionsTest {
     @get:Rule val compose = createComposeRule()
     @Test fun responseButtonsSendOnlyAcceptAndDecline() {
         val answers = mutableListOf<Boolean>()
-        compose.setContent { KiriTheme { ServerScheduleActions(ServerScheduleDetailUiState(canRespond = true), { answers += it }, {}) } }
+        compose.setContent { KiriTheme { ServerScheduleActions(ServerScheduleDetailUiState(canRespond = true), { answers += it }) } }
         compose.onNodeWithTag("server_schedule_accept").performClick()
         compose.onNodeWithTag("server_schedule_decline").performClick()
         assertEquals(listOf(true, false), answers)
     }
-    @Test fun savingDisablesAllServerActions() {
-        compose.setContent { KiriTheme { ServerScheduleActions(ServerScheduleDetailUiState(canRespond = true, canCancel = true, canReview = true, detail = DetailUiState(saving = true)), {}, {}) } }
-        listOf("server_schedule_accept", "server_schedule_decline", "server_schedule_cancel", "server_schedule_review").forEach { compose.onNodeWithTag(it).assertIsNotEnabled() }
+    @Test fun responseButtonsAreHiddenWhenOpenedFromTheRecordTab() {
+        compose.setContent { KiriTheme { ServerScheduleActions(ServerScheduleDetailUiState(canRespond = true), {}, showRespond = false) } }
+        compose.onNodeWithTag("server_schedule_accept").assertDoesNotExist()
+        compose.onNodeWithTag("server_schedule_decline").assertDoesNotExist()
     }
-    @Test fun reviewButtonOpensEditorCallback() {
-        var opened = false
-        compose.setContent { KiriTheme { ServerScheduleActions(ServerScheduleDetailUiState(canReview = true), {}, {}, { opened = true }) } }
-        compose.onNodeWithTag("server_schedule_review").performClick()
-        assertTrue(opened)
+    @Test fun savingDisablesAllServerActions() {
+        compose.setContent { KiriTheme { ServerScheduleActions(ServerScheduleDetailUiState(canRespond = true, canCancel = true, canReview = true, detail = DetailUiState(saving = true)), {}) } }
+        listOf("server_schedule_accept", "server_schedule_decline").forEach { compose.onNodeWithTag(it).assertIsNotEnabled() }
+        // 일정 취소는 일정 취소하기 버튼으로, 기록은 오늘의 추억 기록하러가기로 옮겨 아래쪽 임시 버튼은 없다
+        compose.onNodeWithTag("server_schedule_cancel").assertDoesNotExist()
+        compose.onNodeWithTag("server_schedule_review").assertDoesNotExist()
     }
 }

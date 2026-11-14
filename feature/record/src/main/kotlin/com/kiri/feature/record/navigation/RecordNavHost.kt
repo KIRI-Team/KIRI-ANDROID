@@ -57,13 +57,19 @@ private const val SERVER_SCHEDULE_ROUTE = "record_graph/server-schedule"
 private const val SCHEDULE_EDIT_ROUTE = "record_graph/schedule-edit"
 private const val BUCKET_SCHEDULE_ROUTE = "record_graph/bucket-schedule"
 private const val SERVER_SCHEDULE_DETAIL_PATTERN =
-    "$SERVER_SCHEDULE_ROUTE/{${ServerScheduleDetailViewModel.SCHEDULE_ID_ARG}}?${ServerScheduleDetailViewModel.DATE_ARG}={${ServerScheduleDetailViewModel.DATE_ARG}}&fromHome={fromHome}"
+    "$SERVER_SCHEDULE_ROUTE/{${ServerScheduleDetailViewModel.SCHEDULE_ID_ARG}}?${ServerScheduleDetailViewModel.DATE_ARG}={${ServerScheduleDetailViewModel.DATE_ARG}}&fromHome={fromHome}&respond={respond}"
 private const val SENT_TOAST_KEY = "scheduleSentToast"
 // 일정 변경 화면에서 저장했음을 상세 화면에 알린다
 private const val SCHEDULE_EDITED_KEY = "scheduleEdited"
 
-fun serverScheduleDetailRoute(scheduleId: Long, fromHome: Boolean = false): String =
-    "$SERVER_SCHEDULE_ROUTE/$scheduleId" + if (fromHome) "?fromHome=true" else ""
+// respond: 홈의 응답 필요 카드로 연다. 응답할 수 있으면 상세 대신 응답 화면을 먼저 보여준다
+fun serverScheduleDetailRoute(scheduleId: Long, fromHome: Boolean = false, respond: Boolean = false): String =
+    "$SERVER_SCHEDULE_ROUTE/$scheduleId" + listOfNotNull("fromHome=true".takeIf { fromHome }, "respond=true".takeIf { respond })
+        .joinToString("&").let { if (it.isEmpty()) it else "?$it" }
+
+// 기록 탭(캘린더 날짜, 다가오는 약속 카드)에서 일정 상세를 연다. 기록 탭에서는 응답 화면으로 가지 않는다
+internal fun calendarScheduleDetailRoute(scheduleId: Long, date: java.time.LocalDate): String =
+    "$SERVER_SCHEDULE_ROUTE/$scheduleId?${ServerScheduleDetailViewModel.DATE_ARG}=$date"
 
 /** Registers this feature in the main tab back stack. */
 fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSchedule: (String) -> Unit = {}, onManageSchedule: (String) -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
@@ -86,7 +92,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
                     onEntryClick = { navController.navigate("$DETAIL_ROUTE/${Uri.encode(it)}") { launchSingleTop = true } },
                     viewModel = viewModel,
                     onServerScheduleClick = { id, date ->
-                        navController.navigate("$SERVER_SCHEDULE_ROUTE/$id?${ServerScheduleDetailViewModel.DATE_ARG}=$date") { launchSingleTop = true }
+                        navController.navigate(calendarScheduleDetailRoute(id, date)) { launchSingleTop = true }
                     },
                     onNotice = { notice = it },
                 )
@@ -168,6 +174,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
                 navArgument(ServerScheduleDetailViewModel.SCHEDULE_ID_ARG) { type = NavType.LongType },
                 navArgument(ServerScheduleDetailViewModel.DATE_ARG) { type = NavType.StringType; nullable = true; defaultValue = null },
                 navArgument("fromHome") { type = NavType.BoolType; defaultValue = false },
+                navArgument("respond") { type = NavType.BoolType; defaultValue = false },
             ),
         ) { entry ->
             val id = entry.arguments?.getLong(ServerScheduleDetailViewModel.SCHEDULE_ID_ARG)
@@ -183,6 +190,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
             ServerScheduleDetailRoute(
                 detailViewModel,
                 fromHome = entry.arguments?.getBoolean("fromHome") == true,
+                respond = entry.arguments?.getBoolean("respond") == true,
                 onBack = { navController.popBackStack() },
                 onCustom = { navController.navigate("$SERVER_SCHEDULE_ROUTE/$id/custom") { launchSingleTop = true } },
                 onRecord = { navController.navigate("$SERVER_SCHEDULE_ROUTE/$id/review") { launchSingleTop = true } },
