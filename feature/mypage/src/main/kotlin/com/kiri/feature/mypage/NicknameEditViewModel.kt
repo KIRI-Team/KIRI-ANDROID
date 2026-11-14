@@ -9,7 +9,8 @@ import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
-// 바꾼 닉네임을 서버에 저장한다 (PATCH api/v1/members/nickname). 지금 닉네임은 가족 정보 API 의 내 구성원 정보로 불러온다
+// 바꾼 닉네임을 서버에 저장한다 (PATCH api/v1/members/nickname).
+// 지금 닉네임은 내 정보 조회(GET api/v1/members/me)로 불러오고, 실패하면 가족 정보 API 의 내 구성원 정보로 불러온다
 // 매개변수에 모두 기본값을 주면 Kotlin 이 인자 없는 생성자를 하나 더 만들어 Hilt 가 생성자를 고르지 못한다.
 // 그래서 기본값 없이 받는다 (테스트는 null 을 넘겨 서버 저장·가족 정보 없이 쓸 수 있다)
 @HiltViewModel
@@ -18,11 +19,12 @@ class NicknameEditViewModel @Inject constructor(
     private val home: HomeRepository?,
 ) : NameEditViewModel("") {
     init {
-        home?.let { source ->
+        if (members != null || home != null) {
             viewModelScope.launch {
                 try {
-                    val family = source.family()
-                    family.members.firstOrNull { it.id == family.currentUserId }?.nickname?.let(::updateCurrentName)
+                    val nickname = members?.me()?.getOrNull()?.nickname
+                        ?: home?.family()?.let { family -> family.members.firstOrNull { it.id == family.currentUserId }?.nickname }
+                    nickname?.let(::updateCurrentName)
                 } catch (e: CancellationException) { throw e }
                 catch (_: Exception) { }
             }

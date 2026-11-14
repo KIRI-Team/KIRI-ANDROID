@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -25,6 +26,8 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.kiri.feature.mypage.R
 import com.kiri.feature.mypage.model.common.MypageProfile
+import com.kiri.feature.mypage.presentation.family.component.roleAvatar
+import com.kiri.uikit.component.KiriAsyncImage
 import com.kiri.uikit.color.KiriColor
 
 @Composable
@@ -42,14 +45,34 @@ fun MypageProfileRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // TODO: 프로필 이미지가 생기면 사용자 이미지로 교체 (현재는 기본 프로필 그림)
+            // 내 캐릭터. 서버 캐릭터 이미지가 있으면 그것을, 없거나 불러오는 중·실패면 역할별 기본 캐릭터를 보여준다.
+            // 역할을 정하지 않았으면 기본 프로필 그림을 둔다
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .background(KiriColor.Bg.Tertiary, CircleShape),
+                    .background(KiriColor.Bg.Tertiary, CircleShape)
+                    .testTag("mypage_profile_image"),
                 contentAlignment = Alignment.Center,
             ) {
-                Image(painter = painterResource(R.drawable.ic_mypage_profile_default), contentDescription = null)
+                if (profile.imageUrl.isNullOrBlank() && profile.role.isBlank()) {
+                    Image(painter = painterResource(R.drawable.ic_mypage_profile_default), contentDescription = null)
+                } else {
+                    KiriAsyncImage(
+                        model = profile.imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp),
+                        contentScale = ContentScale.Fit,
+                    ) {
+                        Image(
+                            painter = painterResource(
+                                if (profile.role.isBlank()) R.drawable.ic_mypage_profile_default else roleAvatar(profile.role)
+                            ),
+                            contentDescription = null,
+                            modifier = Modifier.size(36.dp),
+                            contentScale = ContentScale.Fit,
+                        )
+                    }
+                }
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(

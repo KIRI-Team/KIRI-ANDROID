@@ -1,5 +1,7 @@
 package com.kiri.feature.mypage.model.family
 
+import com.kiri.domain.model.member.FamilyRole
+import com.kiri.domain.model.member.MyInfo
 import com.kiri.domain.home.FamilyHome
 
 data class FamilyMember(
@@ -23,6 +25,8 @@ data class FamilySettingUiState(
     val failed: Boolean = false,
     // 방장의 회원 id (모르면 null)
     val ownerId: String? = null,
+    // 내 정보 조회(GET api/v1/members/me). 가족이 없는 둘러보기 회원의 프로필에 쓴다. 불러오지 못하면 null
+    val myInfo: MyInfo? = null,
 ) {
     val me: FamilyMember? get() = members.firstOrNull { it.isMe }
 
@@ -32,6 +36,15 @@ data class FamilySettingUiState(
     // 가족명은 방장만 바꿀 수 있다. 방장을 모르면 막지 않고 서버 판단에 맡긴다
     val canRenameFamily: Boolean get() = familyName != null && (ownerId == null || me?.id == ownerId)
 }
+
+// 마이페이지에 보여줄 역할 이름
+internal val FamilyRole.label: String
+    get() = when (this) {
+        FamilyRole.MOTHER -> "엄마"
+        FamilyRole.FATHER -> "아빠"
+        FamilyRole.DAUGHTER -> "딸"
+        FamilyRole.SON -> "아들"
+    }
 
 // 가족 정보를 화면 상태로 바꾼다. 내 카드를 맨 앞에 두고 나머지는 서버 순서대로 둔다
 internal fun FamilyHome.toFamilySettingUiState(): FamilySettingUiState {

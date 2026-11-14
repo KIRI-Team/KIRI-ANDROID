@@ -119,7 +119,46 @@ class MemberRepositoryImplTest {
         assertTrue(error is IOException)
     }
 
+    @Test
+    fun 내_정보를_GET으로_불러온다() = runTest {
+        enqueue(200, ME_BODY)
+
+        val result = repository().me().getOrThrow()
+
+        val request = server.takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("/api/v1/members/me", request.url.encodedPath)
+        assertEquals(1L, result.memberId)
+        assertEquals("쥬123", result.nickname)
+        assertEquals(FamilyRole.DAUGHTER, result.role)
+        assertEquals("https://cdn.kiri.app/characters/daughter.png", result.characterImageUrl)
+        assertEquals("끼리네 가족", result.familyName)
+    }
+
+    @Test
+    fun 둘러보기_회원은_역할과_가족명이_없다() = runTest {
+        enqueue(200, ME_BROWSING_BODY)
+
+        val result = repository().me().getOrThrow()
+
+        assertEquals("쥬123", result.nickname)
+        assertEquals(null, result.role)
+        assertEquals(null, result.characterImageUrl)
+        assertEquals(null, result.familyName)
+    }
+
+    @Test
+    fun 회원이_없으면_서버_코드로_실패한다() = runTest {
+        enqueue(404, """{"isSuccess":false,"code":"MEMBER404_1","message":"존재하지 않는 회원입니다.","result":null}""")
+
+        val error = repository().me().exceptionOrNull()
+
+        assertEquals("MEMBER404_1", (error as KiriApiException).code)
+    }
+
     private companion object {
+        const val ME_BODY = """{"isSuccess":true,"code":"MEMBER200_4","message":"내 정보 조회에 성공했습니다.","result":{"memberId":1,"nickname":"쥬123","familyRole":"DAUGHTER","characterImageUrl":"https://cdn.kiri.app/characters/daughter.png","familyName":"끼리네 가족"}}"""
+        const val ME_BROWSING_BODY = """{"isSuccess":true,"code":"MEMBER200_4","message":"내 정보 조회에 성공했습니다.","result":{"memberId":1,"nickname":"쥬123","familyRole":null,"characterImageUrl":null,"familyName":null}}"""
         const val ROLE_SUCCESS_BODY = """{"isSuccess":true,"code":"MEMBER200_2","message":"가족 역할이 설정되었습니다.","result":{"familyRole":"FATHER"}}"""
         const val SUCCESS_BODY = """{"isSuccess":true,"code":"MEMBER200_1","message":"닉네임이 설정되었습니다.","result":{"nickname":"재현"}}"""
     }

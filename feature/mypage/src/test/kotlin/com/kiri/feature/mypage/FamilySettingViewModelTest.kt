@@ -4,6 +4,9 @@ import com.kiri.domain.home.DailyQuestion
 import com.kiri.domain.home.FamilyHome
 import com.kiri.domain.home.FamilyMember as HomeMember
 import com.kiri.domain.home.HomeRepository
+import com.kiri.domain.model.member.FamilyRole
+import com.kiri.domain.model.member.MyInfo
+import com.kiri.domain.repository.MemberRepository
 import com.kiri.feature.mypage.model.common.MypageProfile
 import com.kiri.feature.mypage.model.family.FamilyMember
 import java.io.IOException
@@ -111,6 +114,39 @@ class FamilySettingViewModelTest {
 
         assertEquals("새이름", viewModel.uiState.value.familyName)
         assertEquals(2, home.familyCalls)
+    }
+
+    private class Members(var result: Result<MyInfo>) : MemberRepository {
+        override suspend fun updateNickname(nickname: String): Result<Unit> = Result.success(Unit)
+        override suspend fun updateFamilyRole(role: FamilyRole): Result<Unit> = Result.success(Unit)
+        override suspend fun me(): Result<MyInfo> = result
+    }
+
+    @Test
+    fun 가족이_없는_둘러보기_회원은_내_정보로_프로필을_채운다() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = FamilySettingViewModel(
+            Home(Result.success(family(name = null).copy(members = emptyList()))),
+            Members(Result.success(MyInfo(5, "둘러보는중", FamilyRole.SON, "https://cdn.kiri.app/characters/son.png", null))),
+        )
+
+        viewModel.load()
+        advanceUntilIdle()
+
+        // 프로필 이미지도 내 정보의 캐릭터 이미지를 쓴다
+        assertEquals(
+            MypageProfile(nickname = "둘러보는중", familyName = "", role = "아들", imageUrl = "https://cdn.kiri.app/characters/son.png"),
+            viewModel.uiState.value.toProfile(),
+        )
+    }
+
+    @Test
+    fun 가족이_있으면_가족_정보의_내_구성원을_먼저_쓰고_내_정보를_못_불러와도_그대로_보인다() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = FamilySettingViewModel(Home(Result.success(family())), Members(Result.failure(IOException())))
+
+        viewModel.load()
+        advanceUntilIdle()
+
+        assertEquals(MypageProfile(nickname = "쥬123", familyName = "끼리네가족", role = "딸"), viewModel.uiState.value.toProfile())
     }
 
     @Test

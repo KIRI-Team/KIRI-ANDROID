@@ -119,8 +119,8 @@ fun FamilyMemberCard(
     }
 }
 
-// 역할별 기본 캐릭터. 역할을 정하지 않았으면 기본 구성원 그림
-private fun roleAvatar(role: String): Int = when (role) {
+// 역할별 기본 캐릭터. 역할을 정하지 않았으면 기본 구성원 그림. 마이페이지 프로필도 같이 쓴다
+internal fun roleAvatar(role: String): Int = when (role) {
     "엄마" -> UiR.drawable.kiri_avatar_mother
     "아빠" -> UiR.drawable.kiri_avatar_father
     "딸" -> UiR.drawable.kiri_avatar_daughter
