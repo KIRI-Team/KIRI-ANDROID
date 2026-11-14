@@ -122,7 +122,15 @@ fun ServerScheduleDetailRoute(
         viewModel.messageShown()
     }
     Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f)) { ServerScheduleDetailScreen(state, onDetailEvent, viewModel::retryReviews, viewModel::editClicked, viewModel::editReview, viewModel::deleteReview, viewModel::openPhotoChange, fromHome = fromHome, onCancelClick = { confirmCancel = true }) }
+        Box(Modifier.weight(1f)) {
+            ServerScheduleDetailScreen(
+                state, onDetailEvent, viewModel::retryReviews, viewModel::editClicked,
+                viewModel::editReview, viewModel::deleteReview, viewModel::openPhotoChange,
+                fromHome = fromHome,
+                onCancelClick = { confirmCancel = true },
+                onNearbyMission = onNearbyMission,
+            )
+        }
         ServerScheduleActions(
             state, { viewModel.respond(it) },
             // 기록 탭(캘린더·다가오는 약속)에서 연 상세에서는 초대에 응답할 수 없다. 응답은 홈의 응답 필요 카드에서 한다.
@@ -198,6 +206,7 @@ fun ServerScheduleDetailScreen(
     fromHome: Boolean = false,
     // 일정 취소하기 (일정 취소 확인 화면을 띄운다)
     onCancelClick: () -> Unit = {},
+    onNearbyMission: ((Long) -> Unit)? = null,
 ) {
     val schedule = state.schedule
     if (schedule != null && state.showsRecord && !fromHome) {
