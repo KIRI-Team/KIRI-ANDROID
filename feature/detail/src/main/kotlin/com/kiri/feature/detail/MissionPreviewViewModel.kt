@@ -11,6 +11,7 @@ import com.kiri.domain.model.mission.MissionBucketState
 import com.kiri.domain.model.mission.MissionInfo
 import com.kiri.domain.repository.AppEventRepository
 import com.kiri.domain.repository.MissionInfoRepository
+import com.kiri.domain.repository.MissionNearbyRepository
 import com.kiri.feature.detail.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -32,6 +33,7 @@ class MissionPreviewViewModel @Inject constructor(
     // 둘러보기 사용자는 버킷에 저장할 수 없다 (가족 정보로 확인). 없으면 확인하지 않는다
     private val home: com.kiri.domain.home.HomeRepository? = null,
     private val appEvents: AppEventRepository? = null,
+    private val missionNearby: MissionNearbyRepository? = null,
 ) : ViewModel() {
     private val missionId: String = savedState["missionId"] ?: ""
     private val _uiState = MutableStateFlow(MissionPreviewUiState(reviewsSelected = savedState["reviewsSelected"] ?: false))
@@ -70,6 +72,13 @@ class MissionPreviewViewModel @Inject constructor(
                         previouslyCompleted = mission.bucketState == MissionBucketState.COMPLETED_ONLY,
                     ) }
                     recordDetailView(serverId)
+                    missionNearby?.getMissionNearby(serverId)?.onSuccess { places ->
+                        _uiState.update { state ->
+                            state.copy(preview = state.preview?.let { preview ->
+                                preview.copy(detail = preview.detail.copy(nearby = places))
+                            })
+                        }
+                    }
                     return@launch
                 }
                 val preview = repository.preview(missionId)

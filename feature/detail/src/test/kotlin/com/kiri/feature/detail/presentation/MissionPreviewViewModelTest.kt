@@ -6,6 +6,7 @@ import com.kiri.domain.model.mission.MissionBucketState
 import com.kiri.domain.model.mission.MissionInfo
 import com.kiri.domain.repository.AppEventRepository
 import com.kiri.domain.repository.MissionInfoRepository
+import com.kiri.domain.repository.MissionNearbyRepository
 import com.kiri.feature.detail.MissionPreviewViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -155,15 +156,27 @@ class MissionPreviewViewModelTest {
             }
         }
         val savedState = SavedStateHandle(mapOf("missionId" to "42"))
-        val vm = MissionPreviewViewModel(Repository(), savedState, serverMissions = missions, appEvents = events)
+        val nearbyRequests = mutableListOf<Long>()
+        val nearbyPlace = NearbyPlace(id = "nearby", title = "Park", address = "", description = "", missionId = 73L, distance = 150.5)
+        val nearby = object : MissionNearbyRepository {
+            override suspend fun getMissionNearby(missionId: Long): Result<List<NearbyPlace>> {
+                nearbyRequests += missionId
+                return Result.success(listOf(nearbyPlace))
+            }
+        }
+        val vm = MissionPreviewViewModel(
+            Repository(), savedState, serverMissions = missions, appEvents = events, missionNearby = nearby,
+        )
         advanceUntilIdle()
         assertTrue(recorded.isEmpty())
+        assertTrue(nearbyRequests.isEmpty())
 
         missionAvailable = true
         vm.retry()
         advanceUntilIdle()
         assertNull(vm.uiState.value.error)
-        assertNotNull(vm.uiState.value.preview)
+        assertEquals(listOf(42L), nearbyRequests)
+        assertEquals(listOf(nearbyPlace), vm.uiState.value.preview?.detail?.nearby)
 
         vm.retry()
         MissionPreviewViewModel(Repository(), savedState, serverMissions = missions, appEvents = events)

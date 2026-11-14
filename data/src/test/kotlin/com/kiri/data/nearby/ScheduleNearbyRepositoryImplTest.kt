@@ -47,6 +47,23 @@ class ScheduleNearbyRepositoryImplTest {
     private fun success(result: String) =
         """{"isSuccess":true,"code":"SCHEDULE200_8","message":"근처 놀거리 추천 조회 성공","result":$result}"""
 
+    @Test
+    fun missionNearbyUsesTheSameResponseMapping() = runTest {
+        val payload = success("""[{"placeName":"Park","missionId":42,"distance":150.5}]""")
+        enqueue(200, payload)
+        enqueue(200, payload)
+        val repo = repository()
+
+        val schedulePlaces = repo.getNearby(7).getOrThrow()
+        val missionPlaces = repo.getMissionNearby(9).getOrThrow()
+
+        assertEquals(schedulePlaces, missionPlaces)
+        server.takeRequest()
+        val request = server.takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("/api/v1/missions/9/nearby", request.url.encodedPath)
+    }
+
     private fun failure(code: String) = """{"isSuccess":false,"code":"$code","message":"실패","result":null}"""
 
     @Test
@@ -55,7 +72,7 @@ class ScheduleNearbyRepositoryImplTest {
             200,
             success(
                 """[{"placeName":"세빛섬","region":"서울시 서초구","description":"일정 장소에서 가까운 곳이에요",""" +
-                    """"imageUrl":"https://tong.visitkorea.or.kr/cms/resource/00/1234500_image2_1.jpg","price":0},""" +
+                    """"imageUrl":"https://tong.visitkorea.or.kr/cms/resource/00/1234500_image2_1.jpg","price":0,"missionId":42,"distance":150.5},""" +
                     """{"placeName":"반포한강공원","region":"서울시 서초구","description":"잠깐 쉬어가기 좋은 곳이에요",""" +
                     """"imageUrl":null,"price":null}]""",
             ),
@@ -71,6 +88,7 @@ class ScheduleNearbyRepositoryImplTest {
                 NearbyPlace(
                     "nearby-0-세빛섬", "세빛섬", "서울시 서초구", "일정 장소에서 가까운 곳이에요",
                     imageUrl = "https://tong.visitkorea.or.kr/cms/resource/00/1234500_image2_1.jpg", priceWon = 0,
+                    missionId = 42L, distance = 150.5,
                 ),
                 NearbyPlace("nearby-1-반포한강공원", "반포한강공원", "서울시 서초구", "잠깐 쉬어가기 좋은 곳이에요"),
             ),

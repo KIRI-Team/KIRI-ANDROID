@@ -50,6 +50,7 @@ fun ServerScheduleDetailRoute(
     fromHome: Boolean = false,
     // 홈의 응답 필요 카드나 기록 탭에서 들어왔다. 응답할 수 있으면 상세 대신 응답 화면을 먼저 보여준다
     respond: Boolean = false,
+    onNearbyMission: ((Long) -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     ServerScheduleDetailEffects(viewModel, onBack, onCustom, onEdit, onRecord, onPhotoChange)
@@ -258,6 +259,7 @@ fun ServerScheduleDetailScreen(
             Image(painterResource(R.drawable.record_calendar_umbrella), null, Modifier.size(24.dp))
         },
         nearbyImageRes = R.drawable.record_calendar_nearby,
+        onNearbyMission = onNearbyMission,
         placeholderTitle = state.appBarTitle,
         showRetry = state.retryable,
         familyMemories = if (fromHome && (state.canCustomize || state.showsRecord)) {

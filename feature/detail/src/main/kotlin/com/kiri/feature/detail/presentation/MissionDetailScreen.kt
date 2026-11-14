@@ -110,6 +110,7 @@ fun MissionDetailScreen(
     // 다시 불러와도 결과가 같은 오류면 false 로 다시 시도 버튼을 숨긴다
     showRetry: Boolean = true,
     familyMemories: (@Composable () -> Unit)? = null,
+    onNearbyMission: ((Long) -> Unit)? = null,
 ) {
     val onBack = { onEvent(DetailUiEvent.BackClicked) }
     val onCustom = { onEvent(DetailUiEvent.CustomClicked) }
@@ -317,6 +318,14 @@ fun MissionDetailScreen(
                                 detailStyle = true,
                                 imageRes = nearbyImageRes,
                                 imageUrl = place.imageUrl,
+                                modifier = if (place.missionId != null && onNearbyMission != null) {
+                                    val missionId = requireNotNull(place.missionId)
+                                    Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) {
+                                        onNearbyMission(missionId)
+                                    }
+                                } else {
+                                    Modifier
+                                },
                             )
                         }
                     }
