@@ -3,7 +3,9 @@ package com.kiri.feature.detail.presentation
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.positionOnScreen
+import androidx.compose.ui.unit.round
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextDecoration
@@ -14,7 +16,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
-import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -463,15 +464,13 @@ private fun DetailHeader(
             Column(
                 Modifier.fillMaxWidth()
                     .background(KiriColor.Bg.Secondary, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 26.dp, vertical = 17.dp),
+                    .padding(start = 26.dp, end = 26.dp, top = 17.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                InfoText("시작 시간   I   ${detail.startTime ?: "미정"}")
+                // KIRI/Activity Detail (Handoff 9898:21885): 장소·예상 걸음수·활동시간을 한 줄씩
                 InfoText("장소   I   ${detail.place ?: "미정"}")
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    InfoText("예상 걸음수 I ${detail.stepsLabel}")
-                    InfoText("활동시간 I ${detail.durationLabel}")
-                }
+                InfoText("예상 걸음수 I ${detail.stepsLabel}")
+                InfoText("활동시간 I ${detail.durationLabel}")
             }
             if (!discovery && calendarHeader?.showRecord == true) {
                 Spacer(Modifier.height(16.dp))
@@ -541,14 +540,14 @@ private fun DetailHeader(
 @Composable
 private fun ParticipantCheckLine(detail: MissionDetail) {
     var expanded by rememberSaveable { mutableStateOf(false) }
-    var anchor by remember { mutableStateOf(IntOffset.Zero) }
+    // 인원확인 글자의 왼쪽 아래 (화면 기준 좌표)
+    var anchor by remember { mutableStateOf(Offset.Zero) }
     val density = LocalDensity.current
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             "인원확인",
             Modifier.onGloballyPositioned {
-                    val bounds = it.boundsInWindow()
-                    anchor = IntOffset(bounds.left.roundToInt(), bounds.bottom.roundToInt())
+                    anchor = it.positionOnScreen() + Offset(0f, it.size.height.toFloat())
                 }
                 .clickable(onClickLabel = "참여 인원 보기") { expanded = true }
                 .testTag("participant_check"),
@@ -567,8 +566,12 @@ private fun ParticipantCheckLine(detail: MissionDetail) {
             onDismissRequest = { expanded = false },
             properties = PopupProperties(focusable = true),
         ) {
+            // 말풍선은 별도 팝업 창에 그려서, 앱 창(edge-to-edge)과 원점이 상태 표시줄만큼 다를 수 있다.
+            // 그래서 두 위치를 모두 화면 기준 좌표로 받아 그 차이만큼 옮긴다
+            var popupOrigin by remember { mutableStateOf(Offset.Zero) }
             Box(
                 Modifier.fillMaxSize()
+                    .onGloballyPositioned { popupOrigin = it.positionOnScreen() }
                     .background(KiriColor.Bg.Base.copy(alpha = .7f))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -590,7 +593,7 @@ private fun ParticipantCheckLine(detail: MissionDetail) {
                             if (participant.participating) "수락" else "미수락",
                         )
                     },
-                    Modifier.offset { anchor + offset }
+                    Modifier.offset { (anchor - popupOrigin).round() + offset }
                         .widthIn(max = 340.dp)
                         .testTag("participant_check_tooltip"),
                     showStatus = false,

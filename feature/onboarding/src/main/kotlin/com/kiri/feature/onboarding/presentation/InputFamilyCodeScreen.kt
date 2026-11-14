@@ -23,6 +23,7 @@ import com.kiri.feature.onboarding.presentation.component.OnboardingCodeInput
 import com.kiri.uikit.component.KiriButton
 import com.kiri.uikit.component.KiriTitle
 import com.kiri.uikit.component.KiriTopBar
+import com.kiri.uikit.color.KiriComponentColor
 import com.kiri.uikit.color.KiriColor
 
 @Composable
@@ -70,6 +71,8 @@ fun InputFamilyCodeScreen(
                 onClick = onCancelClick,
                 text = "취소",
                 tone = KiriButtonTone.Neutral,
+                // Figma 취소 버튼 배경은 Input 채움 색 (#2C2C2B)
+                defaultContainerColor = KiriComponentColor.Input.BgFilled,
                 modifier = Modifier.weight(1f),
             )
             KiriButton(

@@ -61,6 +61,8 @@ internal fun NameEditScreen(
     subtitle: String,
     placeholder: String,
     testTag: String,
+    // 앱바 제목 (닉네임 = 기본 정보, 가족명 = 가족명 수정)
+    appBarTitle: String? = null,
     modifier: Modifier = Modifier,
     subtitleColor: Color = KiriColor.Text.Primary,
     duplicatedText: String? = null,
@@ -72,7 +74,7 @@ internal fun NameEditScreen(
             .imePadding()
             .testTag(testTag),
     ) {
-        KiriTopBar(onBackClick = { onEvent(NameEditUiEvent.BackClicked) })
+        KiriTopBar(onBackClick = { onEvent(NameEditUiEvent.BackClicked) }, title = appBarTitle)
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -97,6 +99,7 @@ internal fun NameEditScreen(
         KiriButton(
             onClick = { onEvent(NameEditUiEvent.NextClicked) },
             modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 12.dp),
+            text = "저장하기",
         )
     }
 }

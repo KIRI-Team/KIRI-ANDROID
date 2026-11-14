@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Figma KIRI/Icon/Communication/Email (Size=24, 9235:11097). 덮개 그림자는 생략한다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group
+        android:translateX="-1.0046"
+        android:translateY="3.4738">
+        <path
+            android:fillColor="#C2C2C2"
+            android:pathData="M1.68464,1.51617h22.6415v14.0162h-22.6415z" />
+        <path
+            android:fillColor="#8C8C8C"
+            android:pathData="M13.2711,7.98518L1.68464,1.51617H24.3261L13.2711,7.98518Z" />
+    </group>
+</vector>

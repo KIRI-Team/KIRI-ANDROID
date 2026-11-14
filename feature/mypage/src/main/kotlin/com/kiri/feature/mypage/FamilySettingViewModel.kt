@@ -58,5 +58,4 @@ fun FamilySettingUiState.toProfile(): MypageProfile = MypageProfile(
     nickname = me?.nickname ?: myInfo?.nickname.orEmpty(),
     familyName = familyName ?: myInfo?.familyName.orEmpty(),
     role = me?.role ?: myInfo?.role?.label.orEmpty(),
-    imageUrl = me?.imageUrl ?: myInfo?.characterImageUrl,
 )

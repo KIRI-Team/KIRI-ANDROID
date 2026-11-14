@@ -1,6 +1,9 @@
 package com.kiri.feature.record.presentation.schedule
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -35,15 +38,18 @@ class ScheduleEditScreenTest {
         var saves = 0
         compose.setContent { KiriTheme { ScheduleEditScreen(loaded, {}, {}, { saves++ }, {}) } }
 
-        compose.onNodeWithText("일정 변경하기").assertIsDisplayed()
+        // 앱바 제목과 하단 버튼이 모두 "일정 변경하기"다 (Handoff 9898:21204)
+        compose.onAllNodesWithText("일정 변경하기").assertCountEquals(2)
+        compose.onNodeWithTag("kiri_button").assertTextContains("일정 변경하기")
         compose.onNodeWithText("일정 등록하기").assertDoesNotExist()
-        compose.onNodeWithText("약속 확정").assertIsDisplayed()
+        // 일정 변경 화면은 제목 위 배지를 보여주지 않는다
+        compose.onNodeWithText("약속 확정").assertDoesNotExist()
         compose.onNodeWithText("11월 17일 약속").assertIsDisplayed()
         compose.onNodeWithText("26.11.17(화) · 14:50분").assertIsDisplayed()
         compose.onNodeWithText("인원 1명").assertIsDisplayed()
         compose.onNodeWithText("초대장 만들기").assertDoesNotExist()
 
-        compose.onNodeWithText("변경하기").performClick()
+        compose.onNodeWithTag("kiri_button").performClick()
         compose.runOnIdle { assertEquals(1, saves) }
     }
 

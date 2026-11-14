@@ -44,7 +44,7 @@ class RecordScreenTest {
         compose.setContent { KiriTheme { RecordScreen(state.value, { events += it }) } }
 
         compose.onNodeWithTag("record_calendar").performScrollToKey("schedule-118")
-        compose.onNodeWithText("응답 필요").assertExists()
+        compose.onNodeWithText("약속 예정").assertExists()
         compose.onNodeWithText("약속 확정").assertExists()
         compose.onNodeWithText("일시 I 26.11.17 18:00 · D-2").assertExists()
         compose.onNodeWithTag("record_schedule_118").performClick()
@@ -166,7 +166,7 @@ class RecordScreenTest {
         compose.onNodeWithTag("record_bucket_11").assertDoesNotExist()
         compose.onNodeWithTag("record_saver_1").performClick()
         compose.onNodeWithTag("record_bucket_11").assertIsDisplayed()
-        compose.onNodeWithText("완료").assertIsDisplayed()
+        compose.onNodeWithText("종료된 일정").assertIsDisplayed()
         compose.onNodeWithTag("record_bucket_12").assertDoesNotExist()
         compose.onNodeWithTag("record_tab_CALENDAR").performClick()
         compose.onNodeWithTag("record_date_2026-10-22").performScrollTo().assertIsSelected()
