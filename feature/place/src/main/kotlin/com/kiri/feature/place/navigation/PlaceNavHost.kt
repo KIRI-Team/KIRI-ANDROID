@@ -23,7 +23,11 @@ fun NavGraphBuilder.placeNavHost(navController: NavHostController) {
             })
         }
         composable("$DETAIL_ROUTE/{missionId}") {
-            MissionPreviewRoute(onBack = { navController.popBackStack() }, showSaveAction = false)
+            MissionPreviewRoute(
+                onBack = { navController.popBackStack() },
+                showSaveAction = false,
+                onNearbyMission = { id -> navController.navigate("$DETAIL_ROUTE/$id") { launchSingleTop = true } },
+            )
         }
     }
 }

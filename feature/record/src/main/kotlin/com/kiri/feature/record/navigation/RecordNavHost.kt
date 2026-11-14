@@ -72,7 +72,7 @@ internal fun calendarScheduleDetailRoute(scheduleId: Long, date: java.time.Local
     "$SERVER_SCHEDULE_ROUTE/$scheduleId?${ServerScheduleDetailViewModel.DATE_ARG}=$date"
 
 /** Registers this feature in the main tab back stack. */
-fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSchedule: (String) -> Unit = {}, onManageSchedule: (String) -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
+fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSchedule: (String) -> Unit = {}, onManageSchedule: (String) -> Unit = {}, onNearbyMission: ((Long) -> Unit)? = null, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
     navigation(startDestination = START_ROUTE, route = GRAPH_ROUTE) {
         scheduleDestinations()
         composable(START_ROUTE) { entry ->
@@ -189,6 +189,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
             }
             ServerScheduleDetailRoute(
                 detailViewModel,
+                onNearbyMission = onNearbyMission,
                 fromHome = entry.arguments?.getBoolean("fromHome") == true,
                 respond = entry.arguments?.getBoolean("respond") == true,
                 onBack = { navController.popBackStack() },

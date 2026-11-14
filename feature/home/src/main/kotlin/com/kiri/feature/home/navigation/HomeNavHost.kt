@@ -30,13 +30,19 @@ import com.kiri.feature.record.presentation.schedule.ScheduleRegisterRoute
 private const val GRAPH_ROUTE = "home_graph"
 private const val START_ROUTE = "home"
 private const val DETAIL_ROUTE = "home_graph/detail"
+private const val RECOMMENDATION_ROUTE = "home_graph/recommendation"
+
+fun serverMissionDetailRoute(missionId: Long): String = "$RECOMMENDATION_ROUTE/$missionId"
 
 /** Registers this feature in the main tab back stack. */
 fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: () -> Unit, onSchedule: (String) -> Unit = {}, onRespondSchedule: (String) -> Unit = onSchedule, onTasteSettings: () -> Unit = {}, onFamilyInvite: () -> Unit = {}, onCreateFamily: () -> Unit = {}, onJoinFamily: () -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
     navigation(startDestination = START_ROUTE, route = GRAPH_ROUTE) {
         scheduleDestinations()
-        composable("home_graph/recommendation/{missionId}") {
-            MissionPreviewRoute(onBack = { navController.popBackStack() })
+        composable("$RECOMMENDATION_ROUTE/{missionId}") {
+            MissionPreviewRoute(
+                onBack = { navController.popBackStack() },
+                onNearbyMission = { id -> navController.navigate(serverMissionDetailRoute(id)) { launchSingleTop = true } },
+            )
         }
         composable("home_graph/weekly-schedule/{weeklyMissionId}") { entry ->
             val weeklyId = entry.arguments?.getString("weeklyMissionId").orEmpty()
@@ -54,8 +60,8 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
         composable(START_ROUTE) {
             HomeRoute(
                 onMissionClick = { id ->
-                    val route = if (id.toLongOrNull() != null) "home_graph/recommendation/$id"
-                    else "$DETAIL_ROUTE/${Uri.encode(id)}"
+                    val route = id.toLongOrNull()?.let(::serverMissionDetailRoute)
+                        ?: "$DETAIL_ROUTE/${Uri.encode(id)}"
                     navController.navigate(route) { launchSingleTop = true }
                 },
                 onScheduleClick = onSchedule,

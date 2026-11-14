@@ -50,6 +50,7 @@ fun ServerScheduleDetailRoute(
     fromHome: Boolean = false,
     // 홈의 응답 필요 카드나 기록 탭에서 들어왔다. 응답할 수 있으면 상세 대신 응답 화면을 먼저 보여준다
     respond: Boolean = false,
+    onNearbyMission: ((Long) -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     ServerScheduleDetailEffects(viewModel, onBack, onCustom, onEdit, onRecord, onPhotoChange)
@@ -121,7 +122,15 @@ fun ServerScheduleDetailRoute(
         viewModel.messageShown()
     }
     Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f)) { ServerScheduleDetailScreen(state, onDetailEvent, viewModel::retryReviews, viewModel::editClicked, viewModel::editReview, viewModel::deleteReview, viewModel::openPhotoChange, fromHome = fromHome, onCancelClick = { confirmCancel = true }) }
+        Box(Modifier.weight(1f)) {
+            ServerScheduleDetailScreen(
+                state, onDetailEvent, viewModel::retryReviews, viewModel::editClicked,
+                viewModel::editReview, viewModel::deleteReview, viewModel::openPhotoChange,
+                fromHome = fromHome,
+                onCancelClick = { confirmCancel = true },
+                onNearbyMission = onNearbyMission,
+            )
+        }
         ServerScheduleActions(
             state, { viewModel.respond(it) },
             // 기록 탭(캘린더·다가오는 약속)에서 연 상세에서는 초대에 응답할 수 없다. 응답은 홈의 응답 필요 카드에서 한다.
@@ -197,6 +206,7 @@ fun ServerScheduleDetailScreen(
     fromHome: Boolean = false,
     // 일정 취소하기 (일정 취소 확인 화면을 띄운다)
     onCancelClick: () -> Unit = {},
+    onNearbyMission: ((Long) -> Unit)? = null,
 ) {
     val schedule = state.schedule
     if (schedule != null && state.showsRecord && !fromHome) {
@@ -258,6 +268,7 @@ fun ServerScheduleDetailScreen(
             Image(painterResource(R.drawable.record_calendar_umbrella), null, Modifier.size(24.dp))
         },
         nearbyImageRes = R.drawable.record_calendar_nearby,
+        onNearbyMission = onNearbyMission,
         placeholderTitle = state.appBarTitle,
         showRetry = state.retryable,
         familyMemories = if (fromHome && (state.canCustomize || state.showsRecord)) {

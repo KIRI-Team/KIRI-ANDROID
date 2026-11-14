@@ -13,6 +13,9 @@ internal interface ScheduleNearbyApi {
     // TODO: schedule 이 단수인지 서버 명세와 대조할 것
     @GET("api/v1/schedules/{scheduleId}/nearby")
     suspend fun getNearby(@Path("scheduleId") scheduleId: Long): ApiResponse<List<NearbyPlaceResponse>>
+
+    @GET("api/v1/missions/{missionId}/nearby")
+    suspend fun getMissionNearby(@Path("missionId") missionId: Long): ApiResponse<List<NearbyPlaceResponse>>
 }
 
 // region 은 "서울시 서초구" 처럼 시·도와 시·군·구까지만 온다
@@ -23,6 +26,8 @@ internal data class NearbyPlaceResponse(
     val description: String? = null,
     val imageUrl: String? = null,
     val price: Int? = null,
+    val missionId: Long? = null,
+    val distance: Double? = null,
 )
 
 // 서버가 장소 id 를 주지 않아 순서와 이름으로 목록 안에서만 쓰는 id 를 만든다
@@ -33,4 +38,6 @@ internal fun NearbyPlaceResponse.toNearbyPlace(index: Int) = NearbyPlace(
     description = description.orEmpty(),
     imageUrl = imageUrl?.takeIf { it.isNotBlank() },
     priceWon = price,
+    missionId = missionId,
+    distance = distance,
 )

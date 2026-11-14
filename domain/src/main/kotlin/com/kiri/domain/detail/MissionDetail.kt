@@ -20,6 +20,8 @@ data class NearbyPlace(
     val imageUrl: String? = null,
     // 1인 기준 요금(원). 무료면 0, 확인할 수 없으면 null. 표시용이며 앱의 정렬(rankNearby)에는 쓰지 않는다
     val priceWon: Int? = null,
+    val missionId: Long? = null,
+    val distance: Double? = null,
 )
 
 data class MissionDetail(

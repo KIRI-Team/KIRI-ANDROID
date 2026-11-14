@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import com.kiri.feature.home.navigation.homeNavHost
+import com.kiri.feature.home.navigation.serverMissionDetailRoute
 import com.kiri.feature.record.navigation.recordNavHost
 import com.kiri.feature.record.navigation.serverScheduleDetailRoute
 import com.kiri.feature.place.navigation.placeNavHost
@@ -40,7 +41,13 @@ fun KiriNavHost(
             onFamilyInvite = { navController.navigate("mypage_graph/invite_link") { launchSingleTop = true } },
             scheduleDestinations = { scheduleGraph(navController, "home_graph") },
         )
-        recordNavHost(navController, onCreateSchedule = { navController.navigate(scheduleCreateRoute(it, "record_graph")) }, onManageSchedule = { navController.navigate(scheduleRoute(it, "record_graph")) }, scheduleDestinations = { scheduleGraph(navController, "record_graph") })
+        recordNavHost(
+            navController,
+            onCreateSchedule = { navController.navigate(scheduleCreateRoute(it, "record_graph")) },
+            onManageSchedule = { navController.navigate(scheduleRoute(it, "record_graph")) },
+            onNearbyMission = { id -> navController.navigate(serverMissionDetailRoute(id)) { launchSingleTop = true } },
+            scheduleDestinations = { scheduleGraph(navController, "record_graph") },
+        )
         placeNavHost(navController)
         mypageGraph(navController, onNavigateToLogin = onNavigateToLogin)
     }

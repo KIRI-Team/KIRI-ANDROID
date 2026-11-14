@@ -15,7 +15,12 @@ import com.kiri.feature.detail.model.DetailUiState
 import com.kiri.feature.detail.model.DetailUiEvent
 
 @Composable
-fun MissionPreviewRoute(onBack: () -> Unit, viewModel: MissionPreviewViewModel = hiltViewModel(), showSaveAction: Boolean = true) {
+fun MissionPreviewRoute(
+    onBack: () -> Unit,
+    viewModel: MissionPreviewViewModel = hiltViewModel(),
+    showSaveAction: Boolean = true,
+    onNearbyMission: ((Long) -> Unit)? = null,
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentBack by rememberUpdatedState(onBack)
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -39,13 +44,19 @@ fun MissionPreviewRoute(onBack: () -> Unit, viewModel: MissionPreviewViewModel =
         { viewModel.onEvent(MissionPreviewUiEvent.ReviewsSelected(it)) },
         { viewModel.onEvent(MissionPreviewUiEvent.SaveClicked) },
         showSaveAction = showSaveAction,
+        onNearbyMission = onNearbyMission,
     )
 }
 
 @Composable
-fun MissionPreviewScreen(state: MissionPreviewUiState, onBack: () -> Unit, onRetry: () -> Unit, onSelectReviews: (Boolean) -> Unit, onSave: () -> Unit = {}, showSaveAction: Boolean = true) {
+fun MissionPreviewScreen(state: MissionPreviewUiState, onBack: () -> Unit, onRetry: () -> Unit, onSelectReviews: (Boolean) -> Unit, onSave: () -> Unit = {}, showSaveAction: Boolean = true, onNearbyMission: ((Long) -> Unit)? = null) {
     MissionDetailScreen(
-        DetailUiState(loading = state.loading, detail = state.preview?.detail, error = state.error),
+        DetailUiState(
+            loading = state.loading,
+            detail = state.preview?.detail,
+            error = state.error,
+            nearbyRankedByServer = state.preview?.detail?.id?.toLongOrNull() != null,
+        ),
         onEvent = { event ->
             when (event) {
                 DetailUiEvent.BackClicked -> onBack()
@@ -58,5 +69,6 @@ fun MissionPreviewScreen(state: MissionPreviewUiState, onBack: () -> Unit, onRet
         discoverySaveLabel = state.saveLabel.takeIf { showSaveAction },
         discoverySaveEnabled = state.canSave && !state.saved && !state.saving,
         onDiscoverySave = onSave,
+        onNearbyMission = onNearbyMission,
     )
 }
