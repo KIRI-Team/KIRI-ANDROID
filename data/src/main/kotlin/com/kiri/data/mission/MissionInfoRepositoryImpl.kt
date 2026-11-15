@@ -2,6 +2,7 @@ package com.kiri.data.mission
 
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiResult
+import com.kiri.domain.detail.DetailSuggestion
 import com.kiri.domain.model.mission.MissionInfo
 import com.kiri.domain.model.mission.MissionNotFoundException
 import com.kiri.domain.repository.MissionInfoRepository
@@ -22,6 +23,10 @@ internal class MissionInfoRepositoryImpl @Inject constructor(
             .recoverCatching { error ->
                 throw if ((error as? KiriApiException)?.code == NOT_FOUND) MissionNotFoundException() else error
             }
+
+    override suspend fun getEssentials(missionId: Long): Result<List<DetailSuggestion>> =
+        apiResult(json) { api.getEssentials(missionId) }
+            .map { items -> items.map { DetailSuggestion(it.title, it.description.orEmpty()) } }
 
     private companion object {
         const val NOT_FOUND = "MISSION404_1"

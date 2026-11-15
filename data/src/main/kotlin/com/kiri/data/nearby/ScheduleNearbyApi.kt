@@ -9,8 +9,7 @@ import retrofit2.http.Path
 internal interface ScheduleNearbyApi {
     // 로그인 토큰이 필요하다. result 는 정렬된 장소 배열(최대 5개)이며 없으면 빈 배열이다
     // 가족 공간이 없으면 SCHEDULE403_1, 없거나 다른 가족의 일정이면 SCHEDULE404_2 로 거절된다
-    // 전달받은 경로는 schedule/{scheduleId}/nearby 이다. 컨디션 API 와 같이 api/v1/schedules 아래에 둔다
-    // TODO: schedule 이 단수인지 서버 명세와 대조할 것
+    // distance는 일정 또는 미션 장소 기준 km이며 두 nearby API의 응답 형식은 같다.
     @GET("api/v1/schedules/{scheduleId}/nearby")
     suspend fun getNearby(@Path("scheduleId") scheduleId: Long): ApiResponse<List<NearbyPlaceResponse>>
 

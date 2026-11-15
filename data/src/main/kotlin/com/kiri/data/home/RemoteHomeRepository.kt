@@ -6,6 +6,7 @@ import com.kiri.data.family.FamilyApi
 import com.kiri.data.family.FamilyIdStore
 import com.kiri.data.family.FamilyInfoResponse
 import com.kiri.data.mission.MissionApi
+import com.kiri.data.mission.MissionFeedItem
 import com.kiri.data.network.*
 import com.kiri.domain.home.*
 import java.time.Clock
@@ -132,21 +133,48 @@ internal class RemoteHomeRepository(
                 )
             }
         } else null
-        var recommendationsLoadFailed = false
-        val recommendations = if (loadRecommendations) missions?.let { missionApi ->
-            apiResult(json) { missionApi.getFeed(mapOf("size" to "10")) }
-                .onFailure { recommendationsLoadFailed = true }.getOrNull()?.missions.orEmpty().map { item ->
-                HomeRecommendation(id = item.missionId.toString(), title = item.title,
-                    place = item.placeName.orEmpty(), imageUrl = item.imageUrl)
+        val feed = if (loadRecommendations && missions != null) {
+            try {
+                Result.success(loadMissionFeed(missions))
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                Result.failure(error)
             }
-        }.orEmpty() else emptyList()
+        } else Result.success(emptyList())
+        val items = feed.getOrNull().orEmpty()
         return FamilyHome(date, me, if (daily.hasFamily) info?.familyName ?: "우리 가족" else null,
             info?.members() ?: family?.answers.orEmpty().map { FamilyMember(it.memberId.toString(), it.nickname, "") },
             question, answers, poked, mission = weekly, serverBacked = true,
             familyId = info?.familyId?.toString(), ownerId = info?.ownerMemberId?.toString(),
-            recommendations = recommendations,
-            recommendationsLoadFailed = recommendationsLoadFailed).also { snapshot = it }
+            recommendations = items.map { it.toRecommendation() },
+            recommendationsLoadFailed = feed.isFailure,
+            outdoorRecommendations = items.filter { it.category == "OUTDOOR" }.map { it.toRecommendation() },
+        ).also { snapshot = it }
     }
+
+    private suspend fun loadMissionFeed(api: MissionApi): List<MissionFeedItem> {
+        val missions = linkedMapOf<Long, MissionFeedItem>()
+        val seenCursors = mutableSetOf<Long>()
+        var cursor: Long? = null
+        do {
+            val filters = buildMap {
+                put("size", "50")
+                cursor?.let { put("cursor", it.toString()) }
+            }
+            val page = apiResult(json) { api.getFeed(filters) }.getOrThrow()
+            page.missions.forEach { missions.putIfAbsent(it.missionId, it) }
+            if (!page.hasNext) break
+            val next = requireNotNull(page.nextCursor)
+            cursor = next
+            check(seenCursors.add(next)) { "미션 페이지 정보가 반복되어요." }
+        } while (true)
+        return missions.values.toList()
+    }
+
+    private fun MissionFeedItem.toRecommendation() = HomeRecommendation(
+        id = missionId.toString(), title = title, place = placeName.orEmpty(), imageUrl = imageUrl,
+    )
 
     override suspend fun saveAnswer(question: DailyQuestion, answer: String): FamilyHome = mutex.withLock { mapped {
         ensureSession()

@@ -202,10 +202,12 @@ internal fun RecommendationSection(
     onMissionClick: (String) -> Unit = {},
     loadFailed: Boolean = false,
     onRetry: () -> Unit = {},
+    heading: String = "가족과 함께라면 여기!",
+    itemTagPrefix: String = "home_recommendation",
 ) {
     Column(Modifier.padding(top = 48.dp)) {
         Text(
-            "가족과 함께라면 여기!",
+            heading,
             titleModifier,
             color = HomeStrong,
             style = com.kiri.uikit.KiriTypography.TitleLarge,
@@ -215,11 +217,12 @@ internal fun RecommendationSection(
                 Modifier.padding(top = 16.dp), color = HomeSecondary)
             if (loadFailed) TextButton(onClick = onRetry) { Text("다시 시도") }
         }
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()).padding(top = 16.dp),
+        androidx.compose.foundation.lazy.LazyRow(
+            Modifier.fillMaxWidth().padding(top = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            items.forEach { recommendation ->
+            items(items.size, key = { items[it].id }) { index ->
+                val recommendation = items[index]
                 KiriPlaceCard(
                     title = recommendation.title,
                     place = recommendation.place,
@@ -229,7 +232,7 @@ internal fun RecommendationSection(
                         },
                     rating = recommendation.rating,
                     modifier = Modifier.clickable { onMissionClick(recommendation.id) }
-                        .testTag("home_recommendation_${recommendation.id}"),
+                        .testTag("${itemTagPrefix}_${recommendation.id}"),
                     image = { imageModifier ->
                         com.kiri.uikit.component.KiriAsyncImage(
                             recommendation.imageUrl, recommendation.title,

@@ -16,6 +16,8 @@ import com.kiri.feature.detail.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -72,10 +74,14 @@ class MissionPreviewViewModel @Inject constructor(
                         previouslyCompleted = mission.bucketState == MissionBucketState.COMPLETED_ONLY,
                     ) }
                     recordDetailView(serverId)
-                    missionNearby?.getMissionNearby(serverId)?.onSuccess { places ->
+                    coroutineScope {
+                        val essentials = async { serverMissions.getEssentials(serverId).getOrNull() }
+                        val nearby = async { missionNearby?.getMissionNearby(serverId)?.getOrNull() }
+                        val items = essentials.await().orEmpty()
+                        val places = nearby.await().orEmpty()
                         _uiState.update { state ->
                             state.copy(preview = state.preview?.let { preview ->
-                                preview.copy(detail = preview.detail.copy(nearby = places))
+                                preview.copy(detail = preview.detail.copy(essentials = items, nearby = places))
                             })
                         }
                     }
@@ -131,7 +137,7 @@ private fun MissionInfo.toPreview() = MissionPreview(
         date = null, startTime = null, place = place?.name, expectedSteps = null,
         durationMinutes = durationMinMinutes, participants = emptyList(), completed = false,
         activities = steps.map { DetailSuggestion(it.title, it.description.orEmpty()) },
-        essentials = prepareItems.map { DetailSuggestion(it.title, it.description.orEmpty()) },
+        essentials = emptyList(),
         nearby = emptyList(), walkingLevel = walkingLevel?.label, durationMaxMinutes = durationMaxMinutes,
     ),
 )

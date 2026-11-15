@@ -3,6 +3,7 @@ package com.kiri.data.mission
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiBaseUrl
 import com.kiri.data.network.kiriJson
+import com.kiri.domain.detail.DetailSuggestion
 import com.kiri.domain.model.mission.MissionBucketState
 import com.kiri.domain.model.mission.MissionGuide
 import com.kiri.domain.model.mission.MissionNotFoundException
@@ -109,8 +110,20 @@ class MissionInfoRepositoryImplTest {
         assertEquals("COMMON400_1", (repository().getMission(1).exceptionOrNull() as KiriApiException).code)
     }
 
+    @Test
+    fun essentialsUseDedicatedEndpointAndAcceptAnEmptyList() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"MISSION200_5","message":"OK","result":[{"title":"편한 신발","description":"많이 걷는 일정이에요."}]}""")
+        enqueue(200, """{"isSuccess":true,"code":"MISSION200_5","message":"OK","result":[]}""")
+
+        val repository = repository()
+        assertEquals(listOf(DetailSuggestion("편한 신발", "많이 걷는 일정이에요.")), repository.getEssentials(130).getOrThrow())
+        assertTrue(repository.getEssentials(131).getOrThrow().isEmpty())
+        assertEquals("/api/v1/missions/130/essentials", server.takeRequest().url.encodedPath)
+        assertEquals("/api/v1/missions/131/essentials", server.takeRequest().url.encodedPath)
+    }
+
     private companion object {
-        // 명세의 성공 응답 예시
+        // 미션 상세 응답 예시
         const val SUCCESS = """{
   "isSuccess": true,
   "code": "MISSION200_2",

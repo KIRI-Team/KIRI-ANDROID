@@ -44,17 +44,20 @@ class RemoteHomeRepositoryTest {
     @Test fun homeFeedUsesServerIdsAndImagesAndSurvivesAnswerSave() = runTest {
         MockWebServer().use { server ->
             server.start(); server.family(); server.reply("null", status = 503)
-            server.reply("""{"missions":[{"missionId":88,"title":"산책하기","category":"OUTDOOR","placeName":"공원","imageUrl":"https://example.com/park.png"}],"hasNext":false}""")
+            server.reply("""{"missions":[{"missionId":88,"title":"산책하기","category":"OUTDOOR","placeName":"공원","imageUrl":"https://example.com/park.png"}],"hasNext":true,"nextCursor":88}""")
+            server.reply("""{"missions":[{"missionId":75,"title":"전시 관람","category":"EXHIBITION"}],"hasNext":false}""")
             server.reply("null")
             val repo = repository(server, recommendations = true)
             val home = repo.load()
-            assertEquals("88", home.recommendations.single().id)
-            assertEquals("https://example.com/park.png", home.recommendations.single().imageUrl)
+            assertEquals(listOf("88", "75"), home.recommendations.map { it.id })
+            assertEquals("88", home.outdoorRecommendations.single().id)
+            assertEquals("https://example.com/park.png", home.outdoorRecommendations.single().imageUrl)
             assertEquals(home.recommendations, repo.saveAnswer(requireNotNull(home.question), "답변").recommendations)
             repeat(3) { server.takeRequest() }
             val feed = server.takeRequest()
             assertEquals("/api/v1/missions", feed.url.encodedPath)
-            assertEquals("10", feed.url.queryParameter("size"))
+            assertEquals("50", feed.url.queryParameter("size"))
+            assertEquals("88", server.takeRequest().url.queryParameter("cursor"))
             assertEquals("Bearer access", feed.headers["Authorization"])
         }
     }

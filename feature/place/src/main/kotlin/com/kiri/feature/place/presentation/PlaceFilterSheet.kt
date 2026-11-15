@@ -2,6 +2,8 @@ package com.kiri.feature.place.presentation
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -48,14 +50,14 @@ internal fun PlaceFilterSheet(applied: PlaceFilters, onDismiss: () -> Unit, onAp
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp),
         containerColor = KiriColor.Bg.Primary, dragHandle = null, modifier = Modifier.testTag("place_filter_sheet")) {
-        Column(Modifier.fillMaxWidth().fillMaxHeight(.92f)) {
+        Column(Modifier.fillMaxWidth().fillMaxHeight(.90f)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 IconButton(onClick = onDismiss, modifier = Modifier.testTag("place_filter_close").semantics { contentDescription = "필터 닫기" }) {
                     Text("×", style = KiriDetailTypography.Title, color = KiriColor.Text.Secondary)
                 }
             }
-            Row(Modifier.padding(horizontal = 18.dp)) {
-                listOf("날짜·시간", "지역", "거리", "가격").forEachIndexed { index, label ->
+            Row(Modifier.padding(horizontal = 18.dp).widthIn(max = 276.dp)) {
+                listOf("날짜 · 인원", "지역", "거리", "가격").forEachIndexed { index, label ->
                     Column(Modifier.weight(if (index == 0) 1.5f else 1f)) {
                         TextButton(onClick = { selectedSection = index; scope.launch { scroll.animateScrollToItem(index) } },
                             modifier = Modifier.fillMaxWidth().testTag("filter_section_$index")) {
@@ -71,18 +73,18 @@ internal fun PlaceFilterSheet(applied: PlaceFilters, onDismiss: () -> Unit, onAp
                 item {
                     Surface(onClick = { pickingDate = true }, shape = RoundedCornerShape(8.dp),
                         color = KiriColor.Bg.Primary, border = androidx.compose.foundation.BorderStroke(1.dp, KiriColor.Bg.Tertiary),
-                        modifier = Modifier.padding(18.dp).fillMaxWidth().heightIn(min = 48.dp).testTag("filter_date")) {
+                        modifier = Modifier.padding(start = 18.dp, end = 30.dp, top = 16.dp, bottom = 18.dp).fillMaxWidth().heightIn(min = 48.dp).testTag("filter_date")) {
                         Row(Modifier.padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                             Image(painterResource(R.drawable.kiri_filter_calendar), null, Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
                             Text(draft.dateEpochDay?.let { day ->
-                                LocalDate.ofEpochDay(day).format(DateTimeFormatter.ofPattern("M. d (E)", Locale.KOREAN)) +
-                                    " · ${formatFilterTime(draft.minutesOfDay)}"
-                            } ?: "날짜·시간", Modifier.weight(1f), style = KiriDetailTypography.Small, color = KiriColor.Text.Primary)
-                            if (draft.dateEpochDay != null) IconButton(onClick = { draft = draft.copy(dateEpochDay = null) }, modifier = Modifier.testTag("filter_date_clear")) {
+                                LocalDate.ofEpochDay(day).format(DateTimeFormatter.ofPattern("MM. dd (E)", Locale.KOREAN)) +
+                                    " · ${formatFilterTime(draft.minutesOfDay)} · ${draft.people}명"
+                            } ?: "날짜·인원·시간", Modifier.weight(1f), style = KiriDetailTypography.Small, color = KiriColor.Text.Primary)
+                            if (draft.dateEpochDay != null) IconButton(onClick = { draft = draft.copy(dateEpochDay = null, minutesOfDay = 570, people = 2) }, modifier = Modifier.testTag("filter_date_clear")) {
                                 Image(painterResource(R.drawable.kiri_filter_clear), "날짜 선택 해제", Modifier.size(18.dp))
                             } else Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
-                                Image(painterResource(R.drawable.kiri_filter_back), null, Modifier.size(12.dp).rotate(180f))
+                                Image(painterResource(R.drawable.kiri_filter_back), null, Modifier.size(12.dp).rotate(-90f))
                             }
                         }
                     }
@@ -93,10 +95,10 @@ internal fun PlaceFilterSheet(applied: PlaceFilters, onDismiss: () -> Unit, onAp
                         FilterHeading("지역")
                         Spacer(Modifier.height(12.dp))
                         listOf("전체", "서울", "인천", "경기", "대전", "세종", "충청", "대구", "경상", "울산", "부산", "광주", "전라", "강원", "제주").chunked(5).forEach { row ->
-                            Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(Modifier.fillMaxWidth().padding(bottom = 12.dp).widthIn(max = 312.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 row.forEach { region -> FilterChip(region, if (region == "전체") draft.regions.isEmpty() else region in draft.regions, {
                                     draft = draft.copy(regions = if (region == "전체") emptySet() else if (region in draft.regions) draft.regions - region else draft.regions + region)
-                                }, "filter_region_$region", Modifier.weight(1f)) }
+                                }, "filter_region_$region", Modifier.widthIn(min = 56.dp)) }
                             }
                         }
                     }
@@ -105,8 +107,8 @@ internal fun PlaceFilterSheet(applied: PlaceFilters, onDismiss: () -> Unit, onAp
                     Column(Modifier.padding(horizontal = 18.dp).padding(bottom = 48.dp)) {
                         FilterHeading("거리")
                         Spacer(Modifier.height(12.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(1, 3, 10).forEach { km -> FilterChip("${km}km 이내", draft.distanceKm == km,
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(1, 3, 5, 10).forEach { km -> FilterChip("${km}km 이내", draft.distanceKm == km,
                                 { draft = draft.copy(distanceKm = km.takeUnless { draft.distanceKm == km }) }, "filter_distance_${km}km 이내") }
                         }
                     }
