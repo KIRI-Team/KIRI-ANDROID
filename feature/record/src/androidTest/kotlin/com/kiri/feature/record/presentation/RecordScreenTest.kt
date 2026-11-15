@@ -120,6 +120,27 @@ class RecordScreenTest {
         compose.onNodeWithText("오후 약속").assertDoesNotExist()
     }
 
+    // 완료 후 리뷰 사진이 있는 날은 사진 위에 날짜 숫자를 보여준다 (Figma 10693:9281 "완료후 리뷰있는 약속")
+    @Test
+    fun reviewPhotoDayShowsThePhotoWithTheDayNumber() {
+        val date = LocalDate.of(2026, 10, 13)
+        compose.setContent {
+            KiriTheme {
+                RecordScreen(
+                    RecordUiState(
+                        today = date.plusDays(5),
+                        calendarMarks = mapOf(date to RecordCalendarMark.PHOTO_FIRST),
+                        calendarPhotos = mapOf(date to com.kiri.domain.record.RecordPhoto("schedule-1", "demo:group")),
+                    ),
+                    {},
+                )
+            }
+        }
+        compose.onNodeWithTag("record_date_$date").performScrollTo()
+        compose.onNodeWithTag("record_day_photo_$date", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("record_day_number_$date", useUnmergedTree = true).assertTextEquals("13")
+    }
+
     private fun start() {
         val repo =
             FakeRecordRepository(
