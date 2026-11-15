@@ -42,22 +42,23 @@ class PlaceFilterSheetTest {
         compose.onNodeWithTag("filter_reset").performClick()
         compose.onNodeWithTag("filter_region_전체").assertIsSelected()
     }
-    @Test fun dateAndTimeApplyTogetherAndCanBeCleared() {
+    @Test fun dateTimeAndPeopleApplyTogetherAndCanBeCleared() {
         compose.setContent { KiriTheme { Harness() } }
         dismissSystemNotice()
         compose.onNodeWithTag("filter_date").performClick()
         val date = LocalDate.now().withDayOfMonth(15)
         compose.onNodeWithTag("filter_day_$date").performClick()
         compose.onNodeWithTag("filter_time_570").performClick()
-        compose.onNodeWithTag("filter_people_3").assertDoesNotExist()
+        compose.onNodeWithTag("filter_people_3").performClick().assertIsSelected()
         capture("filter-date-time-people")
         compose.onNodeWithTag("date_filter_apply").performClick()
+        compose.onNodeWithText(" · 09:30 · 3명", substring = true).assertIsDisplayed()
         capture("filter-sheet-selected-date")
         compose.onNodeWithTag("filter_date_clear").assertIsDisplayed().performClick()
-        compose.onNode(hasTestTag("filter_date") and hasText("날짜·시간")).assertIsDisplayed()
+        compose.onNode(hasTestTag("filter_date") and hasText("날짜·인원·시간")).assertIsDisplayed()
         compose.onNodeWithTag("filter_date").performClick()
         compose.onNodeWithContentDescription("뒤로").performClick()
-        compose.onNode(hasTestTag("filter_date") and hasText("날짜·시간")).assertIsDisplayed()
+        compose.onNode(hasTestTag("filter_date") and hasText("날짜·인원·시간")).assertIsDisplayed()
     }
     @Test fun openDraftSurvivesRecreationAndSectionAnchorsReachPrice() {
         val restoration = StateRestorationTester(compose)

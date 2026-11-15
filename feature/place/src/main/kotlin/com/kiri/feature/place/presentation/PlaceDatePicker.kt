@@ -83,7 +83,7 @@ internal fun PlaceDatePicker(
                     }
                 }
                 Row(Modifier.fillMaxWidth()) {
-                    listOf("일", "월", "화", "수", "목", "금", "토").forEach { day ->
+                    listOf("월", "화", "수", "목", "금", "토", "일").forEach { day ->
                         Box(
                             Modifier.weight(1f).height(28.dp),
                             contentAlignment = Alignment.Center,
@@ -96,8 +96,9 @@ internal fun PlaceDatePicker(
                         }
                     }
                 }
-                val first = month.atDay(1).minusDays((month.atDay(1).dayOfWeek.value % 7).toLong())
-                val weeks = (month.lengthOfMonth() + month.atDay(1).dayOfWeek.value % 7 + 6) / 7
+                val leadingDays = month.atDay(1).dayOfWeek.value - 1
+                val first = month.atDay(1).minusDays(leadingDays.toLong())
+                val weeks = (month.lengthOfMonth() + leadingDays + 6) / 7
                 repeat(weeks) { week ->
                     Row(Modifier.fillMaxWidth()) {
                         repeat(7) { weekday ->
@@ -113,7 +114,7 @@ internal fun PlaceDatePicker(
                                     },
                                     shape = RoundedCornerShape(8.dp),
                                     color =
-                                        if (selected) KiriColor.Primary.Default
+                                        if (selected) KiriColor.Bg.GreenSoft
                                         else KiriColor.Bg.Base,
                                     modifier =
                                         Modifier.size(36.dp).testTag("filter_day_$date").semantics {
@@ -125,7 +126,7 @@ internal fun PlaceDatePicker(
                                             "${date.dayOfMonth}",
                                             style = KiriDetailTypography.Small,
                                             color =
-                                                if (selected) KiriColor.Text.Inverse
+                                                if (selected) KiriColor.Text.Accent
                                                 else if (YearMonth.from(date) == month)
                                                     KiriColor.Text.Primary
                                                 else KiriColor.Text.Disabled,
@@ -142,7 +143,7 @@ internal fun PlaceDatePicker(
                     Modifier.fillMaxWidth().padding(top = 16.dp).testTag("filter_times"),
                     state =
                         rememberLazyListState(
-                            initialFirstVisibleItemIndex = applied.minutesOfDay / 30
+                            initialFirstVisibleItemIndex = (applied.minutesOfDay / 30 - 1).coerceAtLeast(0)
                         ),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
@@ -153,10 +154,24 @@ internal fun PlaceDatePicker(
                             draft.minutesOfDay == minutes,
                             { draft = draft.copy(minutesOfDay = minutes) },
                             "filter_time_$minutes",
+                            Modifier.width(64.dp).height(39.dp),
                         )
                     }
                 }
                 Spacer(Modifier.height(48.dp))
+                FilterHeading("인원 선택")
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 16.dp).horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    (1..10).forEach { people ->
+                        FilterChip(
+                            "${people}명", draft.people == people,
+                            { draft = draft.copy(people = people) }, "filter_people_$people",
+                        )
+                    }
+                }
+                Spacer(Modifier.height(24.dp))
             }
             FilterActions(
                 { draft = draft.copy(dateEpochDay = null, minutesOfDay = 570, people = 2) },
