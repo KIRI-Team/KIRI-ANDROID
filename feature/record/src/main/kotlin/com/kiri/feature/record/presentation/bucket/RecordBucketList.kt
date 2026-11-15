@@ -17,7 +17,6 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import com.kiri.domain.model.bucket.BucketItem
 import com.kiri.domain.model.bucket.BucketItemStatus
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,8 +66,9 @@ internal fun RecordBucketList(state: RecordUiState, onEvent: (RecordUiEvent) -> 
                     else -> Text("저장한 활동이 없어요", style = KiriDetailTypography.Title, color = KiriColor.Text.Secondary, modifier = Modifier.padding(vertical = 32.dp))
                 }
             }
-            items(state.bucketItems, key = { it.id }) { bucket ->
-                BucketCard(bucket) { onEvent(RecordUiEvent.BucketClicked(bucket.id.toString())) }
+            // 같은 미션을 여러 가족이 저장했으면 한 카드로 합친다
+            items(state.bucketItems.mergedByMission(), key = { it.item.id }) { card ->
+                BucketCard(card) { onEvent(RecordUiEvent.BucketClicked(card.item.id.toString())) }
             }
             if (state.bucketItems.isNotEmpty()) {
                 if (state.bucketLoadingMore) item(key = "bucket-more") {
@@ -102,14 +102,16 @@ private fun SaverChip(label: String, selected: Boolean, onClick: () -> Unit, tag
     }
 }
 
-// 탈퇴한 회원이 저장한 항목은 서버가 닉네임을 "탈퇴한 사용자"로 준다
+// 탈퇴한 회원이 저장한 항목은 서버가 닉네임을 "탈퇴한 사용자"로 준다.
+// 여러 가족이 저장한 미션은 "엄마, 아빠가 저장했어요!" 처럼 이름을 쉼표로 이어 붙인다
 @Composable
-private fun BucketCard(bucket: BucketItem, onOpen: () -> Unit) {
+private fun BucketCard(card: BucketCardUi, onOpen: () -> Unit) {
+    val bucket = card.item
     Surface(onClick = onOpen, color = KiriColor.Bg.Primary, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().testTag("record_bucket_${bucket.id}")) {
         Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (bucket.status == BucketItemStatus.COMPLETED) BucketBadge("종료된 일정")
-                BucketBadge("${withSubjectParticle(bucket.saverNickname)} 저장했어요!")
+                BucketBadge("${withSubjectParticle(card.saverLabel)} 저장했어요!")
             }
             Column {
                 Text(bucket.title, style = KiriDetailTypography.Title.copy(fontSize = 20.sp, lineHeight = 30.sp, letterSpacing = (-.8).sp), color = KiriColor.Text.Strong)
