@@ -28,7 +28,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kiri.feature.record.R
@@ -36,8 +35,8 @@ import com.kiri.uikit.KiriTheme
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.KiriPretendard
 
-// 요청 보내기를 누르면 뜨는 초대장 발송 방법 시트 (Figma 8286:69116).
-// 줄 모양은 앱으로 보내기 8450:21439, 카카오톡으로 보내기 8450:21440 을 따른다
+// 요청 보내기를 누르면 뜨는 초대장 발송 방법 시트 (Handoff 9898:18768).
+// 두 줄 모두 KIRI/Card/Action Row (앱으로 보내기 = Email, 카카오톡 = Send 아이콘)
 @Composable
 fun RecordSendMethodSheet(
     onAppClick: () -> Unit,
@@ -56,7 +55,7 @@ internal fun RecordSendMethodSheetContent(
     onCloseClick: () -> Unit,
 ) {
     Box(Modifier.fillMaxWidth().height(SheetHeight)) {
-        Column(Modifier.padding(horizontal = 33.dp)) {
+        Column(Modifier.padding(horizontal = 31.5.dp)) {
             Spacer(Modifier.height(48.dp))
             Text(
                 text = "초대장 발송 방법을 선택해주세요",
@@ -65,31 +64,27 @@ internal fun RecordSendMethodSheetContent(
             )
             Spacer(Modifier.height(33.dp))
             Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                // KIRI/Invite Option (8450:21439)
                 RecordSendMethodRow(
-                    icon = R.drawable.ic_record_send,
+                    icon = R.drawable.ic_record_email,
                     onClick = onAppClick,
                     testTag = "record_send_app",
                     texts = {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("앱으로 보내기", color = KiriColor.Text.Strong, style = AppTitleStyle)
-                            Text("앱 내에서 푸시 알람이 발송돼요!", color = KiriColor.Text.Tertiary, style = AppSubtitleStyle)
+                            Text("앱으로 보내기", color = KiriColor.Text.Strong, style = RowTitleStyle)
+                            Text("앱 내에서 푸시 알람이 발송돼요!", color = KiriColor.Text.Tertiary, style = RowSubtitleStyle)
                         }
                     },
-                    arrow = { RecordSendArrow(R.drawable.ic_record_invite_arrow, boxSize = 48.dp) },
                 )
-                // 8450:21440
                 RecordSendMethodRow(
-                    icon = R.drawable.ic_record_message,
+                    icon = R.drawable.ic_record_send,
                     onClick = onKakaoClick,
                     testTag = "record_send_kakao",
                     texts = {
-                        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                            Text("카카오톡으로 보내기", color = KiriColor.Text.Strong, style = KakaoTitleStyle)
-                            Text("카카오톡으로 초대 링크를 발송해요", color = KiriColor.Text.Tertiary, style = KakaoSubtitleStyle)
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("카카오톡으로 보내기", color = KiriColor.Text.Strong, style = RowTitleStyle)
+                            Text("카카오톡으로 초대 링크를 발송해요", color = KiriColor.Text.Tertiary, style = RowSubtitleStyle)
                         }
                     },
-                    arrow = { RecordSendArrow(R.drawable.ic_record_invite_arrow_small, boxSize = 24.dp) },
                 )
             }
         }
@@ -110,53 +105,46 @@ internal fun RecordSendMethodSheetContent(
     }
 }
 
-// Figma 390 폭에서 324 x 87(좌우 33). 화면 폭이 달라도 좌우 여백이 같도록 가로를 채우고 안쪽은 좌우 24 를 둔다
+// KIRI/Card/Action Row: 390 폭에서 327 x 87(좌우 31.5), 배경 Bg.Secondary, 아이콘 원 Bg.Primary, 안쪽 여백 18
 @Composable
 private fun RecordSendMethodRow(
     icon: Int,
     onClick: () -> Unit,
     testTag: String,
     texts: @Composable () -> Unit,
-    arrow: @Composable () -> Unit,
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(87.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(KiriColor.Bg.Tertiary)
+            .background(KiriColor.Bg.Secondary)
             .clickable(role = Role.Button, onClick = onClick)
             .testTag(testTag),
         contentAlignment = Alignment.Center,
     ) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(48.dp).background(KiriColor.Bg.Secondary, CircleShape), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(48.dp).background(KiriColor.Bg.Primary, CircleShape), contentAlignment = Alignment.Center) {
                     Image(painterResource(icon), contentDescription = null, modifier = Modifier.size(24.dp))
                 }
                 texts()
             }
-            arrow()
+            // KIRI/Icon/Navigation/Back(24)을 좌우로 뒤집은 오른쪽 화살표
+            Image(
+                painterResource(R.drawable.ic_record_invite_arrow),
+                contentDescription = null,
+                modifier = Modifier.size(24.dp).scale(scaleX = -1f, scaleY = 1f),
+            )
         }
-    }
-}
-
-@Composable
-private fun RecordSendArrow(icon: Int, boxSize: Dp) {
-    Box(Modifier.size(boxSize), contentAlignment = Alignment.Center) {
-        Image(painterResource(icon), contentDescription = null, modifier = Modifier.scale(scaleX = -1f, scaleY = 1f))
     }
 }
 
 private val SheetHeight = 388.dp
 
-// KIRI/Title/Large, KIRI/Label/Small
-private val AppTitleStyle = TextStyle(fontFamily = KiriPretendard, fontWeight = FontWeight.Medium, fontSize = 18.sp, lineHeight = 27.sp, letterSpacing = (-0.72).sp)
-private val AppSubtitleStyle = TextStyle(fontFamily = KiriPretendard, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 17.sp, letterSpacing = (-0.48).sp)
-
-// 8450:21440 은 글자 스타일 없이 자간 -2% 로 직접 지정돼 있다
-private val KakaoTitleStyle = TextStyle(fontFamily = KiriPretendard, fontWeight = FontWeight.Medium, fontSize = 18.sp, letterSpacing = (-0.36).sp)
-private val KakaoSubtitleStyle = TextStyle(fontFamily = KiriPretendard, fontSize = 12.sp, letterSpacing = (-0.24).sp)
+// KIRI/Body/Large2, KIRI/Body/Small
+private val RowTitleStyle = TextStyle(fontFamily = KiriPretendard, fontWeight = FontWeight.Medium, fontSize = 18.sp, lineHeight = 27.sp, letterSpacing = (-0.72).sp)
+private val RowSubtitleStyle = TextStyle(fontFamily = KiriPretendard, fontSize = 12.sp, lineHeight = 18.sp, letterSpacing = (-0.48).sp)
 
 @Preview(backgroundColor = 0xFF1A1A1A, showBackground = true, widthDp = 390)
 @Composable

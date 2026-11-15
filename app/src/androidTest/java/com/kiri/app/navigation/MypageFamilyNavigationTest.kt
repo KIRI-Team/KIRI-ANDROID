@@ -62,7 +62,7 @@ class MypageFamilyNavigationTest {
 
         compose.onNodeWithTag("family_name_edit").performClick()
         compose.onNodeWithTag("family_name_edit_screen").assertIsDisplayed()
-        compose.onNodeWithText("지금 가족명: 끼리네가족").assertIsDisplayed()
+        compose.onNodeWithText("현재 가족 이름: 끼리네가족").assertIsDisplayed()
 
         compose.onNodeWithTag("kiri_back_button").performClick()
         compose.onNodeWithTag("family_setting_screen").assertIsDisplayed()

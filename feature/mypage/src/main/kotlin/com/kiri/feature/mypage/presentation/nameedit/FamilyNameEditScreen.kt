@@ -37,11 +37,13 @@ fun FamilyNameEditScreen(
     NameEditScreen(
         state = state,
         onEvent = onEvent,
-        title = "가족명을 다시 입력해주세요.",
+        // Handoff 10298:38300
+        title = "가족명을 수정해요",
         subtitle = "가족명은 월 1회 수정 가능합니다",
         subtitleColor = KiriColor.Text.Tertiary,
-        placeholder = "지금 가족명: ${state.currentName}",
+        placeholder = "현재 가족 이름: ${state.currentName}",
         testTag = "family_name_edit_screen",
+        appBarTitle = "가족명 수정",
         duplicatedText = "이미 존재하는 가족 이름입니다.",
         modifier = modifier,
     )

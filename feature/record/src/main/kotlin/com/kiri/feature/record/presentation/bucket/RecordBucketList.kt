@@ -108,10 +108,21 @@ private fun BucketCard(bucket: BucketItem, onOpen: () -> Unit) {
     Surface(onClick = onOpen, color = KiriColor.Bg.Primary, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().testTag("record_bucket_${bucket.id}")) {
         Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (bucket.status == BucketItemStatus.COMPLETED) BucketBadge("완료")
+                if (bucket.status == BucketItemStatus.COMPLETED) BucketBadge("종료된 일정")
                 BucketBadge("${withSubjectParticle(bucket.saverNickname)} 저장했어요!")
             }
-            Text(bucket.title, style = KiriDetailTypography.Title.copy(fontSize = 20.sp, lineHeight = 30.sp, letterSpacing = (-.8).sp), color = KiriColor.Text.Strong)
+            Column {
+                Text(bucket.title, style = KiriDetailTypography.Title.copy(fontSize = 20.sp, lineHeight = 30.sp, letterSpacing = (-.8).sp), color = KiriColor.Text.Strong)
+                // 일정이 잡힌 버킷은 일시를 보여준다 (Figma 9898:18983)
+                bucket.scheduledDate?.let { date ->
+                    Text(
+                        "일시 I ${date.format(java.time.format.DateTimeFormatter.ofPattern("yy.MM.dd"))}",
+                        style = KiriDetailTypography.Small,
+                        color = KiriColor.Text.Secondary,
+                        modifier = Modifier.testTag("record_bucket_date_${bucket.id}"),
+                    )
+                }
+            }
         }
     }
 }

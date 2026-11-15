@@ -52,7 +52,10 @@ fun AuthAgreementRow(
     val shape = RoundedCornerShape(8.dp)
     val containerModifier = when {
         type == AuthAgreementRowType.All -> Modifier.background(KiriComponentColor.Input.BgFilled, shape)
-        checked -> Modifier.border(1.dp, KiriComponentColor.Input.BorderFilled, shape)
+        // 동의한 개별 약관 (Handoff 9817:14056): 배경 Input.BgDefault + 테두리 BorderFilled
+        checked -> Modifier
+            .background(KiriComponentColor.Input.BgDefault, shape)
+            .border(1.dp, KiriComponentColor.Input.BorderFilled, shape)
         // 동의하지 않은 개별 약관 (Figma 8441:7328)
         else -> Modifier
             .background(KiriComponentColor.Input.BgDefault, shape)
@@ -94,7 +97,7 @@ fun AuthAgreementRow(
                 Modifier.width(
                     when (type) {
                         AuthAgreementRowType.All -> 8.dp
-                        AuthAgreementRowType.Required -> 6.dp
+                        AuthAgreementRowType.Required -> 12.dp
                     },
                 ),
             )

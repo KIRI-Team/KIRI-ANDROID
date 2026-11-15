@@ -95,7 +95,7 @@ fun InviteLinkRoute(
     InviteLinkScreen(modifier = modifier, state = state, onEvent = viewModel::onEvent)
 }
 
-// 공용 초대 링크. 링크코드·초대링크를 복사하거나 공유하고, 리셋하기로 새 초대를 발급한다
+// 공용 초대 링크. 링크코드·초대링크를 복사하거나 공유하고, 재생성하기로 새 초대를 발급한다
 @Composable
 fun InviteLinkScreen(
     state: InviteLinkUiState,
@@ -138,7 +138,7 @@ fun InviteLinkScreen(
                 if (state.isReissueFailed) {
                     // TODO: 재발급 실패 화면 디자인이 나오면 교체 (지금은 코드·링크 자리에 임시 문구를 보여준다)
                     Text(
-                        text = "코드 재발급에 실패했어요.\n리셋하기를 눌러 다시 발급해주세요.",
+                        text = "코드 재발급에 실패했어요.\n재생성하기를 눌러 다시 발급해주세요.",
                         textAlign = TextAlign.Center,
                         style = captionStyle,
                         modifier = Modifier.testTag("invite_link_reissue_error"),
@@ -154,7 +154,7 @@ fun InviteLinkScreen(
                         .testTag("invite_link_reset"),
                 ) {
                     Text(
-                        text = "리셋하기",
+                        text = "재생성하기",
                         textAlign = TextAlign.Center,
                         style = captionStyle.copy(textDecoration = TextDecoration.Underline),
                     )

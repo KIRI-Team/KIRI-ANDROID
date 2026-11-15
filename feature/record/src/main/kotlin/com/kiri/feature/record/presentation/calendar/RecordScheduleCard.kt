@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.*
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kiri.domain.model.schedule.UpcomingSchedule
@@ -20,8 +21,8 @@ import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.KiriDetailTypography
 import java.time.format.DateTimeFormatter
 
-// 다가오는 약속 카드. 응답이 필요한 일정은 회색 "응답 필요", 확정 일정은 초록 "약속 확정" 배지를 단다
-// 일시 줄에는 날짜·시간과 남은 날(D-n, 당일은 D-Day)을 함께 보여준다
+// 다가오는 약속 카드 (Figma KIRI/Card/Calendar). 응답이 필요한 일정은 회색 "약속 예정", 확정 일정은 초록 "약속 확정" 배지를 단다
+// 일시 줄은 Figma 처럼 날짜만 보여준다
 @Composable
 internal fun ScheduleCard(schedule: UpcomingSchedule, onOpen: () -> Unit) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -45,11 +46,11 @@ internal fun ScheduleCard(schedule: UpcomingSchedule, onOpen: () -> Unit) {
                     shape = RoundedCornerShape(5.dp),
                 ) {
                     Text(
-                        if (confirmed) "약속 확정" else "응답 필요",
+                        if (confirmed) "약속 확정" else "약속 예정",
+                        // 약속 예정은 KIRI/Label/Medium(굵기 Medium), 약속 확정은 Body/Medium
                         style =
-                            KiriDetailTypography.Small.copy(
-                                lineHeight = if (confirmed) 21.sp else 17.sp
-                            ),
+                            if (confirmed) KiriDetailTypography.Small.copy(lineHeight = 21.sp)
+                            else KiriDetailTypography.Small.copy(fontWeight = FontWeight.Medium, lineHeight = 17.sp),
                         color = if (confirmed) KiriColor.Text.Accent else KiriColor.Text.Secondary,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
                     )
@@ -95,9 +96,6 @@ internal fun ScheduleCard(schedule: UpcomingSchedule, onOpen: () -> Unit) {
     }
 }
 
-// "일시 I 26.11.17 14:50 · D-2". 시간을 모르면 날짜만, 당일이면 D-Day 로 쓴다
-internal fun UpcomingSchedule.whenLabel(): String {
-    val time = time?.let { " ${it.format(DateTimeFormatter.ofPattern("HH:mm"))}" }.orEmpty()
-    val dDay = if (type == UpcomingScheduleType.TODAY || dDay <= 0) "D-Day" else "D-$dDay"
-    return "일시 I ${date.format(DateTimeFormatter.ofPattern("yy.MM.dd"))}$time · $dDay"
-}
+// "일시 I 26.11.17"
+internal fun UpcomingSchedule.whenLabel(): String =
+    "일시 I ${date.format(DateTimeFormatter.ofPattern("yy.MM.dd"))}"

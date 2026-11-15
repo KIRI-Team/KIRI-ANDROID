@@ -118,9 +118,11 @@ class FamilySettingScreenTest {
             }
         }
 
-        composeTestRule.onNodeWithText("가족명을 다시 입력해주세요.").assertIsDisplayed()
+        composeTestRule.onNodeWithText("가족명 수정").assertIsDisplayed()
+        composeTestRule.onNodeWithText("가족명을 수정해요").assertIsDisplayed()
         composeTestRule.onNodeWithText("가족명은 월 1회 수정 가능합니다").assertIsDisplayed()
-        composeTestRule.onNodeWithText("지금 가족명: 끼리네가족").assertIsDisplayed()
+        composeTestRule.onNodeWithText("현재 가족 이름: 끼리네가족").assertIsDisplayed()
+        composeTestRule.onNodeWithText("저장하기").assertIsDisplayed()
         composeTestRule.onNodeWithTag("kiri_button").performClick()
 
         assertEquals(listOf(NameEditUiEvent.NextClicked), events)

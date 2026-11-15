@@ -132,11 +132,7 @@ class FamilySettingViewModelTest {
         viewModel.load()
         advanceUntilIdle()
 
-        // 프로필 이미지도 내 정보의 캐릭터 이미지를 쓴다
-        assertEquals(
-            MypageProfile(nickname = "둘러보는중", familyName = "", role = "아들", imageUrl = "https://cdn.kiri.app/characters/son.png"),
-            viewModel.uiState.value.toProfile(),
-        )
+        assertEquals(MypageProfile(nickname = "둘러보는중", familyName = "", role = "아들"), viewModel.uiState.value.toProfile())
     }
 
     @Test

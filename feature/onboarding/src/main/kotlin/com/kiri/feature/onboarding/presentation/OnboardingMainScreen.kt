@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kiri.uikit.color.KiriColor
+import com.kiri.feature.onboarding.R
 import com.kiri.feature.onboarding.presentation.component.OnboardingMenuCard
 import com.kiri.uikit.component.KiriTitle
 import com.kiri.uikit.component.KiriTopBar
@@ -40,24 +41,28 @@ fun OnboardingMainScreen(
             subtitle = "관심가지고 있는 분야에 대해 알려주세요!",
             modifier = Modifier.padding(horizontal = 18.dp),
         )
-        Spacer(Modifier.height(58.dp))
+        // Figma 가족공간 선택 (Handoff 9817:14183): 카드 폭 327, 간격 18
+        Spacer(Modifier.height(57.dp))
         Column(
-            modifier = Modifier.padding(horizontal = 36.dp),
-            verticalArrangement = Arrangement.spacedBy(15.dp),
+            modifier = Modifier.padding(horizontal = 31.5.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             OnboardingMenuCard(
                 title = "가족공간 만들러 가기",
                 description = "지금 바로 가족들을 초대해주세요!",
+                icon = R.drawable.ic_onboarding_send,
                 onClick = onCreateFamilyClick,
             )
             OnboardingMenuCard(
                 title = "가족코드 입력하기",
                 description = "전달받은 가족코드를 입력해주세요!",
+                icon = R.drawable.ic_onboarding_message,
                 onClick = onInputFamilyCodeClick,
             )
             OnboardingMenuCard(
                 title = "먼저 둘러보러가기",
                 description = "할 수 있는 미션을 먼저 살펴봐요!",
+                icon = R.drawable.ic_onboarding_home,
                 onClick = onBrowseClick,
             )
         }

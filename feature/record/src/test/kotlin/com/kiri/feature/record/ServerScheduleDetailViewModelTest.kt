@@ -473,6 +473,18 @@ class ServerScheduleDetailViewModelTest {
     }
 
     @Test
+    fun 변경하고_돌아오면_변경_완료를_알리고_다시_불러온다() = runTest {
+        val repo = FakeSchedules(Result.success(detail.copy(status = ScheduleDisplayStatus.CONFIRMED)))
+        val vm = viewModel(repo, home = FakeFamily("엄마"))
+
+        vm.edited()
+
+        // Handoff 9898:21827 토스트 문구
+        assertEquals("일정 변경이 되었습니다!", vm.uiState.value.notice)
+        assertEquals(listOf(7L, 7L), repo.requested)
+    }
+
+    @Test
     fun 열면_해당_일정의_상세를_불러와_날짜_시간_참여자를_채운다() {
         val repo = FakeSchedules(Result.success(detail))
 

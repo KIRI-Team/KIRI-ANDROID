@@ -74,6 +74,8 @@ fun KiriButton(
     trailingIcon: (@Composable () -> Unit)? = null,
     // 기본 상태의 글자색을 바꾼다. 예) 일정 변경하기 버튼은 kiri-text-secondary (Figma 9898:21808)
     defaultContentColor: Color? = null,
+    // 기본 상태의 배경색을 바꾼다. 예) 온보딩 취소 버튼은 kiri-input-bg-filled (Handoff 9817:14253)
+    defaultContainerColor: Color? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -85,8 +87,13 @@ fun KiriButton(
         }
     } else kiriButtonColors(tone, enabled, pressed)
     // 기본 상태에서만 글자색을 바꾸고, 눌림·비활성 색은 그대로 둔다
-    val (containerColor, textColor) =
-        if (defaultContentColor != null && enabled && !pressed) baseColors.copy(content = defaultContentColor) else baseColors
+    val (containerColor, textColor) = when {
+        !enabled || pressed -> baseColors
+        else -> baseColors.copy(
+            container = defaultContainerColor ?: baseColors.container,
+            content = defaultContentColor ?: baseColors.content,
+        )
+    }
     // KIRI/Button 컴포넌트는 톤과 관계없이 같은 글자 스타일(Title/Medium)을 쓴다
     val textStyle = when (layout) {
         KiriButtonLayout.Full -> KiriTypography.TitleMedium

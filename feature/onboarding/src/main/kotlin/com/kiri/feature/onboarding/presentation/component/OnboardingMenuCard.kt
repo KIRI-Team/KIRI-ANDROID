@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -37,6 +36,8 @@ import com.kiri.uikit.color.KiriColor
 fun OnboardingMenuCard(
     title: String,
     description: String,
+    // 왼쪽 원 안의 아이콘 (만들기=Send, 코드 입력=Message, 둘러보기=Home)
+    icon: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -51,27 +52,22 @@ fun OnboardingMenuCard(
             .background(onboardingCardBackground(pressed))
             // 눌림 피드백은 Pressed 배경색으로 표현해서 기본 리플은 끈다
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
                 .size(48.dp)
-                .background(KiriColor.Bg.Secondary, CircleShape),
+                .background(KiriColor.Bg.Primary, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            Image(
-                painter = painterResource(R.drawable.ic_onboarding_envelope),
-                contentDescription = null,
-                // Figma에서 봉투 아이콘은 원의 중심보다 약간 위에 배치되어 있다
-                modifier = Modifier.offset(y = (-1.4).dp),
-            )
+            Image(painter = painterResource(icon), contentDescription = null, modifier = Modifier.size(24.dp))
         }
         Column(
             modifier = Modifier
                 .weight(1f)
                 .padding(start = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(7.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
                 text = title,
@@ -79,7 +75,8 @@ fun OnboardingMenuCard(
                     color = KiriColor.Text.Strong,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
-                    letterSpacing = (-0.02).em,
+                    lineHeight = 27.sp,
+                    letterSpacing = (-0.04).em,
                 ),
             )
             Text(
@@ -88,7 +85,8 @@ fun OnboardingMenuCard(
                     color = KiriColor.Text.Tertiary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Normal,
-                    letterSpacing = (-0.02).em,
+                    lineHeight = 18.sp,
+                    letterSpacing = (-0.04).em,
                 ),
             )
         }
@@ -105,6 +103,7 @@ private fun OnboardingMenuCardPreview() {
     OnboardingMenuCard(
         title = "가족공간 만들러 가기",
         description = "지금 바로 가족들을 초대해주세요!",
+        icon = R.drawable.ic_onboarding_send,
         onClick = {},
     )
 }

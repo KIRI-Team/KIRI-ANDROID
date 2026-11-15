@@ -111,7 +111,8 @@ class ServerScheduleDetailScreenTest {
         compose.onNodeWithText("엄마").assertIsDisplayed()
         compose.onNodeWithText("첫째").assertIsDisplayed()
         compose.onNodeWithText("미참여").assertIsDisplayed()
-        compose.onNodeWithText("시작 시간   I   오후 2시 50분").assertIsDisplayed()
+        // 활동 정보 상자는 장소·걸음수·활동시간만 보여준다 (Handoff 9898:21885)
+        compose.onNodeWithText("시작 시간", substring = true).assertDoesNotExist()
         compose.onNodeWithText("장소   I   미정").assertIsDisplayed()
     }
 

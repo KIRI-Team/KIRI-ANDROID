@@ -184,7 +184,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
             LaunchedEffect(edited) {
                 if (edited) {
                     entry.savedStateHandle[SCHEDULE_EDITED_KEY] = false
-                    detailViewModel.reload()
+                    detailViewModel.edited()
                 }
             }
             ServerScheduleDetailRoute(
