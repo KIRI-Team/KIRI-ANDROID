@@ -25,6 +25,7 @@ import com.kiri.domain.model.family.NoFamilyException
 import com.kiri.domain.model.schedule.CancelledScheduleException
 import com.kiri.domain.usecase.schedule.GetScheduleEditAccessUseCase
 import com.kiri.domain.model.schedule.ScheduleDetail
+import com.kiri.domain.model.schedule.MyScheduleStatus
 import com.kiri.domain.model.schedule.ScheduleDisplayStatus
 import com.kiri.domain.model.schedule.ScheduleNotFoundException
 import com.kiri.feature.detail.model.DetailUiEvent
@@ -52,6 +53,7 @@ data class ServerScheduleDetailUiState(
     val requestedDate: LocalDate? = null,
     // 취소·없음·가족 없음처럼 다시 불러와도 결과가 같은 오류면 false
     val retryable: Boolean = true,
+    // 상세 API 의 canRespond·canCancel. 서버가 제안자 여부·일정 상태·응답 마감·시작 여부까지 판단한다
     val canRespond: Boolean = false,
     val canCancel: Boolean = false,
     val canReview: Boolean = false,
@@ -74,7 +76,7 @@ data class ServerScheduleDetailUiState(
     val reviewsFailed: Boolean = false,
     // 기록 화면의 "OO 기록", "OO님의 기록 모아보기" 에 쓴다. 불러오지 못하면 null
     val familyName: String? = null,
-    // 당일이 아닌(예정·확정) 내 일정이면 상세 아래에 수정하기 버튼을 보여준다
+    // 상세 API 의 canEdit. 일정 변경하기 버튼을 보여준다
     val canEdit: Boolean = false,
     // 컨디션 커스텀 화면 정보를 불러오는 중이다
     val customLoading: Boolean = false,
@@ -219,8 +221,7 @@ constructor(
         loadJob = viewModelScope.launch {
             editAccess(id)
                 .onSuccess { access ->
-                    // 당일이 아닌 내 일정이면 상세 아래에 수정하기를 보여준다.
-                    // 가족 정보를 불러오지 못하면 제안자인지 알 수 없으므로 수정하기를 숨긴다
+                    // 일정 변경하기는 서버가 판단한 canEdit 일 때만 보여준다
                     val schedule = access.detail
                     state.update {
                         it.copy(
@@ -229,7 +230,7 @@ constructor(
                             detail = it.detail.copy(loading = false, detail = schedule.toMissionDetail(id)),
                         )
                     }
-                    loadActions(id, schedule, access)
+                    loadActions(schedule, access)
                     if (schedule.status == ScheduleDisplayStatus.COMPLETED || (fromHome && schedule.status == ScheduleDisplayStatus.TODAY)) {
                         loadReviews(id)
                         loadFamilyName()
@@ -400,31 +401,25 @@ constructor(
         }
     }
 
-    private suspend fun loadActions(id: Long, detail: ScheduleDetail, access: com.kiri.domain.usecase.schedule.ScheduleEditAccess) {
-        if (schedules == null) return
-        val family = access.family ?: try { home?.family() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { null }
+    // 수락·거절, 일정 취소 버튼과 내 응답 상태는 상세 API 가 준 값(canRespond·canCancel·myStatus)을 그대로 쓴다.
+    // 기록 작성 가능 여부는 서버 값이 없어, 내가 수락했고 시작 시각이 지난 일정인지로 정한다
+    private suspend fun loadActions(detail: ScheduleDetail, access: com.kiri.domain.usecase.schedule.ScheduleEditAccess) {
+        val family = access.family ?: try { home?.family() } catch (e: CancellationException) { throw e } catch (_: Exception) { null }
         val me = family?.members?.find { it.id == family.currentUserId }
         val start = detail.time?.let { detail.date.atTime(it).atZone(java.time.ZoneId.of("Asia/Seoul")).toInstant() }
-        val calendarResult = schedules?.getMonthlySchedules(java.time.YearMonth.from(detail.date))
-        calendarResult?.onFailure { state.update { it.copy(detail = it.detail.copy(error = "내 참여 상태를 불러오지 못했어요. 다시 시도해주세요.")) } }
-        val calendar = calendarResult?.getOrNull()?.find { it.id == id }
-        val status = calendar?.myStatus
-        val isMine = me != null && detail.participants.firstOrNull()?.nickname == me.nickname
-        val active = calendar?.status in setOf(com.kiri.domain.model.schedule.CalendarScheduleStatus.PENDING_RESPONSE, com.kiri.domain.model.schedule.CalendarScheduleStatus.CONFIRMED)
+        val status = detail.myStatus
         state.update { it.copy(
             author = me?.nickname ?: "나",
-            canRespond = start?.isAfter(clock.instant()) == true && active && !isMine && (me != null || status != com.kiri.domain.model.schedule.MyScheduleStatus.ACCEPTED) && status in setOf(
-                com.kiri.domain.model.schedule.MyScheduleStatus.PENDING, com.kiri.domain.model.schedule.MyScheduleStatus.ACCEPTED,
-                com.kiri.domain.model.schedule.MyScheduleStatus.DECLINED, com.kiri.domain.model.schedule.MyScheduleStatus.RECONFIRM_REQUIRED),
-            canCancel = isMine && active,
-            canReview = status == com.kiri.domain.model.schedule.MyScheduleStatus.ACCEPTED && start != null && !start.isAfter(clock.instant()) &&
+            canRespond = detail.canRespond,
+            canCancel = detail.canCancel,
+            canReview = status == MyScheduleStatus.ACCEPTED && start != null && !start.isAfter(clock.instant()) &&
                 detail.status in setOf(ScheduleDisplayStatus.TODAY, ScheduleDisplayStatus.COMPLETED, ScheduleDisplayStatus.CONFIRMED),
             myResponse = when (status) {
-                com.kiri.domain.model.schedule.MyScheduleStatus.PENDING -> "미응답"
-                com.kiri.domain.model.schedule.MyScheduleStatus.ACCEPTED -> "수락"
-                com.kiri.domain.model.schedule.MyScheduleStatus.DECLINED -> "거절"
-                com.kiri.domain.model.schedule.MyScheduleStatus.RECONFIRM_REQUIRED -> "재확인 필요"
-                com.kiri.domain.model.schedule.MyScheduleStatus.NOT_INVITED -> "초대받지 않은 가족 일정"
+                MyScheduleStatus.PENDING -> "미응답"
+                MyScheduleStatus.ACCEPTED -> "수락"
+                MyScheduleStatus.DECLINED -> "거절"
+                MyScheduleStatus.RECONFIRM_REQUIRED -> "재확인 필요"
+                MyScheduleStatus.NOT_INVITED -> "초대받지 않은 가족 일정"
                 null -> null
             }) }
     }
@@ -448,8 +443,8 @@ constructor(
         }
     }
     fun cancel() = mutateAction {
-        // 일정 취소하기 버튼은 일정 변경하기와 같은 조건(canEdit)으로 보인다. 권한은 서버가 다시 확인한다
-        check(state.value.canCancel || state.value.canEdit) { "취소할 수 있는 약속인지 다시 확인해주세요." }
+        // 일정 취소하기 버튼은 서버가 판단한 canCancel 일 때만 보인다
+        check(state.value.canCancel) { "취소할 수 있는 약속인지 다시 확인해주세요." }
         requireNotNull(schedules).cancel(requireNotNull(scheduleId)).getOrThrow()
         effects.send(ServerScheduleDetailEffect.Back)
     }
@@ -674,11 +669,11 @@ constructor(
     }
 }
 
-// 일정 상세 API 에는 제목이 없어 "11월 17일 약속" 처럼 날짜로 만든다. 일정 상세·수정 화면의 본문 제목에 쓴다
-internal fun ScheduleDetail.displayTitle() = "${date.monthValue}월 ${date.dayOfMonth}일 약속"
+// 일정 상세의 미션명. 오지 않으면 "11월 17일 약속" 처럼 날짜로 만든다. 일정 상세·수정·응답·취소 화면의 본문 제목에 쓴다
+internal fun ScheduleDetail.displayTitle() = missionTitle ?: "${date.monthValue}월 ${date.dayOfMonth}일 약속"
 
-// 날짜·시간·참여자·상태는 일정에서, 제목·장소·걷기량·활동시간·필수 활동(단계)·준비물은 미션에서 가져온다.
-// 미션이 없으면 제목은 날짜로 만들고 나머지는 비워 둔다. 주변 장소는 아직 API 가 없다
+// 날짜·시간·참여자·상태·미션명은 일정에서, 장소·걷기량·활동시간·필수 활동(단계)·준비물은 미션에서 가져온다.
+// 미션을 불러오지 못하면(행사 취소·숨김으로 404 등) 일정의 미션명을 쓰고, 그것도 없으면 날짜로 만든다. 나머지는 비워 둔다
 internal fun ScheduleDetail.toMissionDetail(scheduleId: Long, mission: MissionInfo? = null) = MissionDetail(
     id = scheduleId.toString(),
     title = mission?.title ?: displayTitle(),
@@ -688,7 +683,7 @@ internal fun ScheduleDetail.toMissionDetail(scheduleId: Long, mission: MissionIn
     place = mission?.place?.name,
     expectedSteps = null,
     durationMinutes = mission?.durationMinMinutes,
-    participants = participants.map { DetailParticipant(it.nickname, it.accepted) },
+    participants = participants.map { DetailParticipant(it.nickname, it.accepted, it.characterImageUrl) },
     completed = status == ScheduleDisplayStatus.COMPLETED,
     activities = mission?.steps.orEmpty().map { it.toSuggestion() },
     essentials = mission?.prepareItems.orEmpty().map { it.toSuggestion() },

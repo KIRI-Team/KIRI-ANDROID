@@ -32,7 +32,9 @@ import com.kiri.domain.model.schedule.CancelledScheduleException
 import com.kiri.domain.model.schedule.ScheduleNotFoundException
 import com.kiri.domain.model.schedule.ScheduleDetail
 import com.kiri.domain.model.schedule.ScheduleDisplayStatus
+import com.kiri.domain.model.schedule.MyScheduleStatus
 import com.kiri.domain.model.schedule.ScheduleParticipant
+import com.kiri.domain.model.schedule.ScheduleProposer
 import com.kiri.domain.repository.CalendarScheduleRepository
 import com.kiri.feature.detail.model.DetailUiEvent
 import java.io.IOException
@@ -128,7 +130,10 @@ class ServerScheduleDetailViewModelTest {
         date = LocalDate.of(2026, 11, 17),
         time = LocalTime.of(14, 50),
         status = ScheduleDisplayStatus.TODAY,
-        participants = listOf(ScheduleParticipant("엄마", true), ScheduleParticipant("첫째", false)),
+        participants = listOf(
+            ScheduleParticipant("엄마", MyScheduleStatus.ACCEPTED, "https://cdn/mother.png"),
+            ScheduleParticipant("첫째", MyScheduleStatus.PENDING),
+        ),
         missionId = 42,
     )
 
@@ -426,14 +431,16 @@ class ServerScheduleDetailViewModelTest {
     }
 
     @Test
-    fun 당일이_아닌_일정을_제안자가_열면_상세를_먼저_보여주고_수정하기를_눌러야_변경_화면으로_간다() = runTest {
+    fun 서버가_변경할_수_있다고_하면_상세를_먼저_보여주고_수정하기를_눌러야_변경_화면으로_간다() = runTest {
         listOf(ScheduleDisplayStatus.SCHEDULED, ScheduleDisplayStatus.CONFIRMED).forEach { status ->
-            val vm = viewModel(FakeSchedules(Result.success(detail.copy(status = status))), home = FakeFamily("엄마"))
+            val schedule = detail.copy(status = status, canEdit = true)
+            // 가족 정보를 불러오지 못해도 서버 판단을 따른다
+            val vm = viewModel(FakeSchedules(Result.success(schedule)), home = FakeFamily(null))
 
             // 열자마자 변경 화면으로 보내지 않는다
             assertNull(withTimeoutOrNull(100) { vm.effect.first() })
             assertFalse(vm.uiState.value.detail.loading)
-            assertEquals(detail.copy(status = status), vm.uiState.value.schedule)
+            assertEquals(schedule, vm.uiState.value.schedule)
             assertTrue(vm.uiState.value.canEdit)
 
             vm.editClicked()
@@ -442,13 +449,11 @@ class ServerScheduleDetailViewModelTest {
     }
 
     @Test
-    fun 당일이거나_완료됐거나_제안자가_아니면_수정하기를_보여주지_않고_눌러도_가지_않는다() = runTest {
+    fun 서버가_변경할_수_없다고_하면_내가_제안했어도_수정하기를_보여주지_않고_눌러도_가지_않는다() = runTest {
         listOf(
             detail to FakeFamily("엄마"),
             detail.copy(status = ScheduleDisplayStatus.COMPLETED) to FakeFamily("엄마"),
-            detail.copy(status = ScheduleDisplayStatus.CONFIRMED) to FakeFamily("첫째"),
-            // 가족 정보를 불러오지 못하면 제안자인지 알 수 없어 수정하기를 숨긴다
-            detail.copy(status = ScheduleDisplayStatus.CONFIRMED) to FakeFamily(null),
+            detail.copy(status = ScheduleDisplayStatus.CONFIRMED, proposer = ScheduleProposer(1, "엄마", null)) to FakeFamily("엄마"),
         ).forEach { (schedule, family) ->
             val vm = viewModel(FakeSchedules(Result.success(schedule)), home = family)
 
@@ -498,11 +503,21 @@ class ServerScheduleDetailViewModelTest {
         assertEquals("11월 17일 약속", filled.title)
         assertEquals(LocalDate.of(2026, 11, 17), filled.date)
         assertEquals("오후 2시 50분", filled.startTime)
-        assertEquals(listOf(DetailParticipant("엄마", true), DetailParticipant("첫째", false)), filled.participants)
+        assertEquals(listOf(DetailParticipant("엄마", true, "https://cdn/mother.png"), DetailParticipant("첫째", false)), filled.participants)
         // 일정 API 가 주지 않는 정보는 지어내지 않는다
         assertNull(filled.place)
         assertTrue(filled.activities.isEmpty())
         assertTrue(filled.nearby.isEmpty())
+    }
+
+    @Test
+    fun 미션을_불러오지_못하면_일정_상세의_미션명을_제목으로_쓴다() {
+        val schedule = detail.copy(missionTitle = "한강 뚜벅뚜벅 축제 가보기")
+
+        val state = viewModel(FakeSchedules(Result.success(schedule)), missions = FakeMissions(Result.failure(MissionNotFoundException()))).uiState.value
+
+        assertEquals("한강 뚜벅뚜벅 축제 가보기", state.detail.detail!!.title)
+        assertEquals("한강 뚜벅뚜벅 축제 가보기", schedule.displayTitle())
     }
 
     @Test
@@ -520,7 +535,7 @@ class ServerScheduleDetailViewModelTest {
         assertEquals(listOf(DetailSuggestion("사전 예약", "")), filled.essentials)
         // 날짜·시간·참여자는 일정 값 그대로다
         assertEquals("오후 2시 50분", filled.startTime)
-        assertEquals(listOf(DetailParticipant("엄마", true), DetailParticipant("첫째", false)), filled.participants)
+        assertEquals(listOf(DetailParticipant("엄마", true, "https://cdn/mother.png"), DetailParticipant("첫째", false)), filled.participants)
     }
 
     @Test

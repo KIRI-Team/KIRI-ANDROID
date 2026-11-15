@@ -4,7 +4,8 @@ import java.time.LocalDate
 import com.kiri.domain.mission.MissionReview
 
 enum class Condition { LESS_WALKING, MORE_REST, LOWER_BUDGET, AVOID_CROWDS }
-data class DetailParticipant(val name: String, val participating: Boolean)
+// imageUrl: 초대 수락 현황에 보여줄 역할별 캐릭터 이미지. 없으면 수락·대기 아이콘을 쓴다
+data class DetailParticipant(val name: String, val participating: Boolean, val imageUrl: String? = null)
 data class DetailSuggestion(val title: String, val description: String)
 data class NearbyPlace(
     val id: String,

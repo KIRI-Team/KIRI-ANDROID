@@ -27,21 +27,28 @@ class ScheduleActionsTest {
         override suspend fun saveAnswer(question: DailyQuestion, answer: String): FamilyHome = error("unused")
         override suspend fun poke(question: DailyQuestion, memberId: String): FamilyHome = error("unused")
     }
+    // 버튼 여부(canRespond·canEdit·canCancel)와 내 응답 상태는 상세 API 가 주는 값이다
     private class Schedules : CalendarScheduleRepository {
         var mine = MyScheduleStatus.ACCEPTED
         var date = LocalDate.parse("2026-11-08")
         var proposer = "엄마"
+        var canRespond = false
+        var canEdit = false
+        var canCancel = false
         var cancelled = false
         var cancelFails = true
         var accepted: Boolean? = null
         var responseFails = false
-        // 월간 일정에 이 일정이 없으면 참여 상태를 몰라 canCancel 이 false 가 된다
-        var listed = true
-        override suspend fun getMonthlySchedules(month: YearMonth) =
-            Result.success(if (listed) listOf(CalendarSchedule(7, date, LocalTime.of(10,0), CalendarScheduleStatus.CONFIRMED, mine)) else emptyList())
+        var monthlyLoads = 0
+        override suspend fun getMonthlySchedules(month: YearMonth): Result<List<CalendarSchedule>> {
+            monthlyLoads++
+            return Result.success(emptyList())
+        }
         override suspend fun getScheduleDetail(scheduleId: Long) = Result.success(ScheduleDetail(date, LocalTime.of(10,0),
             if (date == LocalDate.parse("2026-11-08")) ScheduleDisplayStatus.TODAY else ScheduleDisplayStatus.CONFIRMED,
-            listOf(ScheduleParticipant(proposer, true), ScheduleParticipant("나", mine == MyScheduleStatus.ACCEPTED))))
+            listOf(ScheduleParticipant(proposer, MyScheduleStatus.ACCEPTED), ScheduleParticipant("나", mine)),
+            proposer = ScheduleProposer(if (proposer == "나") 1 else 2, proposer, null),
+            myStatus = mine, canRespond = canRespond, canEdit = canEdit, canCancel = canCancel))
         override suspend fun updateSchedule(scheduleId: Long, update: ScheduleUpdate) = Result.success(Unit)
         override suspend fun createSchedule(bucketItemId: Long, form: ScheduleUpdate) = Result.success(8L)
         override suspend fun cancel(scheduleId: Long): Result<Unit> {
@@ -51,6 +58,7 @@ class ScheduleActionsTest {
         override suspend fun respond(scheduleId: Long, accept: Boolean): Result<Unit> {
             if (responseFails) return Result.failure(Exception("응답 실패"))
             accepted = accept; mine = if (accept) MyScheduleStatus.ACCEPTED else MyScheduleStatus.DECLINED
+            canRespond = false
             return Result.success(Unit)
         }
     }
@@ -59,35 +67,51 @@ class ScheduleActionsTest {
         val missions = object : MissionInfoRepository { override suspend fun getMission(missionId: Long): Result<MissionInfo> = Result.failure(Exception("none")) }
         return ServerScheduleDetailViewModel(SavedStateHandle(mapOf("scheduleId" to 7L)), GetScheduleEditAccessUseCase(schedules, home), missions, home = home, schedules = schedules, clock = clock)
     }
-    @Test fun proposerCanCancelActiveScheduleAfterStartAndFailureDoesNotNavigateAway() = runTest(dispatcher) {
-        val schedules = Schedules().apply { proposer = "나" }; val vm = vm(schedules); advanceUntilIdle()
+    @Test fun cancelFollowsServerCanCancelAndFailureDoesNotNavigateAway() = runTest(dispatcher) {
+        val schedules = Schedules().apply { proposer = "나"; canCancel = true }; val vm = vm(schedules); advanceUntilIdle()
         assertTrue(vm.uiState.value.canCancel)
         vm.cancel(); advanceUntilIdle(); assertFalse(schedules.cancelled); assertNotNull(vm.uiState.value.detail.error)
         schedules.cancelFails = false; vm.cancel(); advanceUntilIdle()
         assertTrue(schedules.cancelled); assertEquals(ServerScheduleDetailEffect.Back, vm.effect.first())
     }
-    // 일정 취소하기 버튼은 일정 변경하기와 같은 조건(canEdit)으로 보이므로, canCancel 을 모를 때도 취소할 수 있어야 한다
-    @Test fun proposerCanCancelFromScheduleButtonsEvenWhenMonthlyStatusIsUnknown() = runTest(dispatcher) {
-        val schedules = Schedules().apply { proposer = "나"; date = LocalDate.parse("2026-11-10"); listed = false; cancelFails = false }
+    // 내가 제안했고 변경은 되더라도, 서버가 취소를 막으면(canCancel=false) 취소하지 않는다
+    @Test fun cancelIsBlockedWhenServerDoesNotAllowIt() = runTest(dispatcher) {
+        val schedules = Schedules().apply { proposer = "나"; date = LocalDate.parse("2026-11-10"); canEdit = true; cancelFails = false }
         val vm = vm(schedules); advanceUntilIdle()
         assertTrue(vm.uiState.value.canEdit)
         assertFalse(vm.uiState.value.canCancel)
 
         vm.cancel(); advanceUntilIdle()
 
-        assertTrue(schedules.cancelled)
-        assertEquals(ServerScheduleDetailEffect.Back, vm.effect.first())
+        assertFalse(schedules.cancelled)
+        assertNotNull(vm.uiState.value.detail.error)
+    }
+    // 응답 가능 여부와 내 응답 상태는 상세 API 값을 쓰고, 월간 조회로 따로 확인하지 않는다
+    @Test fun respondButtonsAndMyStatusComeFromTheDetailApi() = runTest(dispatcher) {
+        val pending = Schedules().apply { date = LocalDate.parse("2026-11-10"); mine = MyScheduleStatus.PENDING }
+        val blocked = vm(pending); advanceUntilIdle()
+        // 미응답이어도 서버가 막으면(응답 마감 등) 응답할 수 없다
+        assertFalse(blocked.uiState.value.canRespond)
+        assertEquals("미응답", blocked.uiState.value.myResponse)
+
+        val reconfirm = Schedules().apply { date = LocalDate.parse("2026-11-10"); mine = MyScheduleStatus.RECONFIRM_REQUIRED; canRespond = true }
+        val vm = vm(reconfirm); advanceUntilIdle()
+        assertTrue(vm.uiState.value.canRespond)
+        assertEquals("재확인 필요", vm.uiState.value.myResponse)
+        assertEquals(0, pending.monthlyLoads + reconfirm.monthlyLoads)
     }
     @Test fun futureInviteChangesOnlyAfterSuccessfulServerResponse() = runTest(dispatcher) {
-        val schedules = Schedules().apply { date = LocalDate.parse("2026-11-10"); mine = MyScheduleStatus.PENDING; responseFails = true }
+        val schedules = Schedules().apply { date = LocalDate.parse("2026-11-10"); mine = MyScheduleStatus.PENDING; canRespond = true; responseFails = true }
         val vm = vm(schedules); advanceUntilIdle()
         assertTrue(vm.uiState.value.canRespond)
         vm.respond(true); advanceUntilIdle(); assertNull(schedules.accepted); assertEquals("미응답", vm.uiState.value.myResponse)
         schedules.responseFails = false; vm.respond(true); advanceUntilIdle()
         assertEquals(true, schedules.accepted); assertEquals("수락", vm.uiState.value.myResponse)
+        // 다시 불러온 상세의 canRespond 를 따른다
+        assertFalse(vm.uiState.value.canRespond)
     }
     @Test fun messagesAreClearedAfterTheScreenShowsThem() = runTest(dispatcher) {
-        val schedules = Schedules().apply { date = LocalDate.parse("2026-11-10"); mine = MyScheduleStatus.PENDING; responseFails = true }
+        val schedules = Schedules().apply { date = LocalDate.parse("2026-11-10"); mine = MyScheduleStatus.PENDING; canRespond = true; responseFails = true }
         val vm = vm(schedules); advanceUntilIdle()
 
         // 작업 실패 오류는 토스트로 띄운 뒤 지운다
@@ -104,7 +128,7 @@ class ScheduleActionsTest {
         assertNull(vm.uiState.value.notice)
     }
     @Test fun respondingFromTheResponseScreenGoesBackOnlyAfterSuccess() = runTest(dispatcher) {
-        val schedules = Schedules().apply { date = LocalDate.parse("2026-11-10"); mine = MyScheduleStatus.PENDING; responseFails = true }
+        val schedules = Schedules().apply { date = LocalDate.parse("2026-11-10"); mine = MyScheduleStatus.PENDING; canRespond = true; responseFails = true }
         val vm = vm(schedules); advanceUntilIdle()
 
         // 실패하면 응답 화면에 남아 오류를 보여준다

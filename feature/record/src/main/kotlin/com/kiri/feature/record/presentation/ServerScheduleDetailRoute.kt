@@ -36,6 +36,7 @@ import com.kiri.feature.record.usesNeutralBadge
 import com.kiri.feature.record.presentation.schedule.ScheduleRequestScreen
 import com.kiri.feature.record.presentation.schedule.ScheduleAcceptSheet
 import com.kiri.feature.record.presentation.schedule.scheduledPromiseLabel
+import com.kiri.feature.record.presentation.schedule.scheduleChangedLabel
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.kiri.uikit.color.KiriComponentColor
 
@@ -61,17 +62,24 @@ fun ServerScheduleDetailRoute(
     var confirmAccept by remember { mutableStateOf(false) }
     if (showResponse && invitation != null && state.canRespond) {
         // 받은 초대에 응답하는 화면 (Figma 요청받았을 때 9898:18682). 요청알림 화면을 그대로 쓴다.
-        // 안내 문구는 Figma 처럼 저장한 사람 기준이지만, 일정 상세 API 에 저장자가 없어 제안자(참여자 맨 앞) 이름을 쓴다
-        val title = state.detail.detail?.title ?: invitation.displayTitle()
+        // 처음 받은 초대(PENDING)는 요청알림, 일정이 바뀌어 다시 응답해야 하면(RECONFIRM_REQUIRED) 변경알림으로 보여주고
+        // 바뀐 항목(changedFields) 옆에 "변경되었어요!" 배지를 단다.
+        // 안내 문구는 Figma 처럼 저장한 사람 기준이지만, 일정 상세 API 에 저장자가 없어 제안자 이름을 쓴다
+        val title = invitation.displayTitle()
         val members = invitation.participants.map { it.nickname }
+        val proposerName = invitation.proposer?.nickname ?: invitation.participants.firstOrNull()?.nickname.orEmpty()
+        val reconfirm = invitation.needsReconfirm
         ScheduleRequestScreen(
-            savedBy = invitation.participants.firstOrNull()?.nickname.orEmpty(),
+            savedBy = proposerName,
             title = title,
-            description = "",
+            description = invitation.missionDescription.orEmpty(),
             date = invitation.date,
             memberNames = members,
-            // TODO: 일정 상세 API 에 요청 메시지(가족에게 한 줄)가 생기면 채운다
-            message = "",
+            message = invitation.requestMessage.orEmpty(),
+            topBarTitle = if (reconfirm) "변경알림" else "요청알림",
+            headline = if (reconfirm) scheduleChangedLabel(proposerName) else null,
+            changedFields = if (reconfirm) invitation.changedFields else emptySet(),
+            time = invitation.time,
             onBackClick = { if (!state.detail.saving) onBack() },
             onDetailClick = { if (!state.detail.saving) { showResponse = false; viewModel.messageShown() } },
             onSendClick = { confirmAccept = true },
@@ -107,11 +115,11 @@ fun ServerScheduleDetailRoute(
         // 일정 취소 확인 (Figma 10629:27298). 요청알림 화면을 문구만 바꿔 쓴다. 자세히 보러가기는 상세로 돌아간다
         ScheduleRequestScreen(
             savedBy = "",
-            title = state.detail.detail?.title ?: cancelling.displayTitle(),
-            description = "",
+            title = cancelling.displayTitle(),
+            description = cancelling.missionDescription.orEmpty(),
             date = cancelling.date,
             memberNames = cancelling.participants.map { it.nickname },
-            message = "",
+            message = cancelling.requestMessage.orEmpty(),
             // 취소 화면은 오류를 화면 안에 보여주므로, 닫을 때 지워 상세에서 다시 토스트로 띄우지 않는다
             onBackClick = { if (!state.detail.saving) { confirmCancel = false; viewModel.messageShown() } },
             onDetailClick = { if (!state.detail.saving) { confirmCancel = false; viewModel.messageShown() } },
@@ -147,14 +155,13 @@ fun ServerScheduleDetailRoute(
     }
 }
 
-// 일정 변경하기를 보여줄지. 당일이 아닌(예정·확정) 내 일정이면 어디서 들어왔든 보여준다.
-// 상세 API 는 응답 대기와 미확정(아무도 수락하지 않고 마감)을 모두 예정(SCHEDULED)으로 주므로 둘을 구분하지 않는다
+// 일정 변경하기를 보여줄지. 상세 API 의 canEdit 를 그대로 따른다 (어디서 들어왔든 같다)
 internal val ServerScheduleDetailUiState.showsEditButton: Boolean
     get() = canEdit
 
-// 일정 취소하기를 보여줄지. 내가 제안한 취소 전 일정이면 어디서 들어왔든(확정 전이어도) 보여준다
+// 일정 취소하기를 보여줄지. 상세 API 의 canCancel 을 그대로 따른다 (어디서 들어왔든 같다)
 internal val ServerScheduleDetailUiState.showsCancelButton: Boolean
-    get() = canEdit || canCancel
+    get() = canCancel
 
 @Composable
 fun ServerScheduleActions(state: ServerScheduleDetailUiState, onRespond: (Boolean) -> Unit, showRespond: Boolean = true) {

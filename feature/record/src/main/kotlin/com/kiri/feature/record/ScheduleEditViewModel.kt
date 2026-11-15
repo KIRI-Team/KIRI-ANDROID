@@ -8,7 +8,6 @@ import com.kiri.domain.model.schedule.NotScheduleProposerException
 import com.kiri.domain.model.schedule.ScheduleNotEditableException
 import com.kiri.domain.model.schedule.ScheduleNotFoundException
 import com.kiri.domain.model.schedule.ScheduleUpdate
-import com.kiri.domain.model.schedule.canBeEditedBeforeTheDay
 import com.kiri.domain.usecase.schedule.GetScheduleEditAccessUseCase
 import com.kiri.domain.repository.CalendarScheduleRepository
 import com.kiri.domain.time.kiriNow
@@ -148,9 +147,9 @@ constructor(
                 return@launch
             }
             val problem = when {
-                !access.detail.canBeEditedBeforeTheDay -> "지금은 변경할 수 없는 약속이에요."
+                // 제안자 여부·일정 상태·시작 여부는 서버가 canEdit 로 판단해 준다
+                !access.canEdit -> "지금은 변경할 수 없는 약속이에요."
                 access.family == null -> "가족 정보를 불러오지 못했어요."
-                !access.isMine -> "일정 제안자만 수정할 수 있어요."
                 else -> null
             }
             if (problem != null) {
@@ -159,7 +158,7 @@ constructor(
             }
             val detail = access.detail
             val members = access.invitableMembers.map { RecordMember(it.id, it.nickname) }
-            // 맨 앞의 제안자(나)를 뺀 참여자를 미리 고른다
+            // 제안자(나)를 뺀 참여자를 미리 고른다
             val invited = access.invitedMemberIds
             state.update {
                 it.copy(
@@ -167,8 +166,9 @@ constructor(
                     title = detail.displayTitle(),
                     subtitle = detail.status.badgeLabel(),
                     members = members,
-                    // 기존 한 줄은 상세 응답에 없어 비워 둔다
-                    draft = ScheduleRegisterDraft(date = detail.date, time = detail.time, memberIds = invited),
+                    // 기존 가족에게 한 줄도 채운다 (없으면 비워 둔다)
+                    draft = ScheduleRegisterDraft(date = detail.date, time = detail.time, memberIds = invited)
+                        .withMessage(detail.requestMessage.orEmpty()),
                 )
             }
         }

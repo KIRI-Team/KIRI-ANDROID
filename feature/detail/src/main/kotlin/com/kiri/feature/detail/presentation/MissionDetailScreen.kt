@@ -591,6 +591,7 @@ private fun ParticipantCheckLine(detail: MissionDetail) {
                             participant.name,
                             participant.participating,
                             if (participant.participating) "수락" else "미수락",
+                            participant.imageUrl,
                         )
                     },
                     Modifier.offset { (anchor - popupOrigin).round() + offset }

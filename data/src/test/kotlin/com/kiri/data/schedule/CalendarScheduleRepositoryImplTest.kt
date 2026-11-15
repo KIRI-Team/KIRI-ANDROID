@@ -12,6 +12,9 @@ import com.kiri.domain.model.schedule.ScheduleDetail
 import com.kiri.domain.model.schedule.ScheduleDisplayStatus
 import com.kiri.domain.model.schedule.ScheduleNotFoundException
 import com.kiri.domain.model.schedule.ScheduleParticipant
+import com.kiri.domain.model.schedule.ScheduleProposer
+import com.kiri.domain.model.schedule.ScheduleChangedField
+import com.kiri.domain.model.member.FamilyRole
 import com.kiri.domain.model.schedule.ScheduleUpdate
 import com.kiri.domain.model.schedule.NotScheduleProposerException
 import com.kiri.domain.model.schedule.ScheduleNotEditableException
@@ -32,6 +35,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -245,7 +249,7 @@ class CalendarScheduleRepositoryImplTest {
     }
 
     @Test
-    fun 일정_상세를_scheduleId_경로로_GET_요청하고_참여자를_순서대로_돌려준다() = runTest {
+    fun 일정_상세를_scheduleId_경로로_GET_요청하고_새_필드까지_읽어_돌려준다() = runTest {
         enqueue(200, detailBody("CONFIRMED"))
 
         val detail = repository().getScheduleDetail(100).getOrThrow()
@@ -259,14 +263,46 @@ class CalendarScheduleRepositoryImplTest {
                 time = LocalTime.of(14, 50),
                 status = ScheduleDisplayStatus.CONFIRMED,
                 participants = listOf(
-                    ScheduleParticipant("엄마", accepted = true),
-                    ScheduleParticipant("탈퇴한 사용자", accepted = true),
-                    ScheduleParticipant("첫째", accepted = false),
+                    ScheduleParticipant("엄마", MyScheduleStatus.ACCEPTED, "https://cdn/mother.png"),
+                    ScheduleParticipant("탈퇴한 사용자", MyScheduleStatus.ACCEPTED, null),
+                    ScheduleParticipant("첫째", MyScheduleStatus.RECONFIRM_REQUIRED, null),
                 ),
                 missionId = 42,
+                missionTitle = "한강 뚜벅뚜벅 축제 가보기",
+                missionDescription = "잠수교를 걸어요",
+                proposer = ScheduleProposer(7, "엄마", FamilyRole.MOTHER),
+                requestMessage = "같이 가요",
+                myStatus = MyScheduleStatus.RECONFIRM_REQUIRED,
+                changedFields = setOf(ScheduleChangedField.DATE, ScheduleChangedField.PARTICIPANTS),
+                canRespond = true,
+                canEdit = false,
+                canCancel = false,
             ),
             detail,
         )
+    }
+
+    @Test
+    fun 상세의_빈_값과_모르는_값은_없는_것으로_본다() = runTest {
+        enqueue(
+            200,
+            """{"isSuccess":true,"code":"SCHEDULE200_9","message":"일정 상세 조회 성공",""" +
+                """"result":{"date":"2026-11-17","missionTitle":"","requestMessage":" ","myStatus":"WAITING",""" +
+                """"proposer":{"memberId":3,"nickname":"아빠","familyRole":"GRANDPA"},"changedFields":["DATE","PLACE"],""" +
+                """"participants":[{"nickname":"아빠","status":"MAYBE","characterImageUrl":""}]}}""",
+        )
+
+        val detail = repository().getScheduleDetail(1).getOrThrow()
+
+        assertNull(detail.missionTitle)
+        assertNull(detail.missionDescription)
+        assertNull(detail.requestMessage)
+        assertNull(detail.myStatus)
+        assertEquals(ScheduleProposer(3, "아빠", null), detail.proposer)
+        assertEquals(setOf(ScheduleChangedField.DATE), detail.changedFields)
+        assertEquals(ScheduleParticipant("아빠", null, null), detail.participants.single())
+        // 버튼 여부가 오지 않으면 보여주지 않는다
+        assertFalse(detail.canRespond || detail.canEdit || detail.canCancel)
     }
 
     @Test
@@ -310,9 +346,15 @@ class CalendarScheduleRepositoryImplTest {
 
     private fun detailBody(status: String, missionId: Long? = 42) =
         """{"isSuccess":true,"code":"SCHEDULE200_9","message":"일정 상세 조회 성공",""" +
-            """"result":{""" + (missionId?.let { """"missionId":$it,""" } ?: "") + """"date":"2026-11-17","time":"14:50","status":"$status","participants":[""" +
-            """{"nickname":"엄마","accepted":true},{"nickname":"탈퇴한 사용자","accepted":true},""" +
-            """{"nickname":"첫째","accepted":false}]}}"""
+            """"result":{""" + (missionId?.let { """"missionId":$it,""" } ?: "") +
+            """"missionTitle":"한강 뚜벅뚜벅 축제 가보기","missionDescription":"잠수교를 걸어요",""" +
+            """"date":"2026-11-17","time":"14:50","status":"$status",""" +
+            """"proposer":{"memberId":7,"nickname":"엄마","familyRole":"MOTHER"},"requestMessage":"같이 가요",""" +
+            """"myStatus":"RECONFIRM_REQUIRED","changedFields":["DATE","PARTICIPANTS"],""" +
+            """"canRespond":true,"canEdit":false,"canCancel":false,"participants":[""" +
+            """{"nickname":"엄마","status":"ACCEPTED","characterImageUrl":"https://cdn/mother.png"},""" +
+            """{"nickname":"탈퇴한 사용자","status":"ACCEPTED","characterImageUrl":null},""" +
+            """{"nickname":"첫째","status":"RECONFIRM_REQUIRED"}]}}"""
 
     private fun body(schedules: String) =
         """{"isSuccess":true,"code":"SCHEDULE200_1","message":"캘린더 월간 일정 조회 성공",""" +

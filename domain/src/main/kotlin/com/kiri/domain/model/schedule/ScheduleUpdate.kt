@@ -24,11 +24,3 @@ class ScheduleNotEditableException : Exception("수정할 수 없는 일정입�
 
 // 날짜·시간 누락, 지난 시각, 운영 기간 밖, 초대 대상 오류처럼 입력값이 잘못됐다
 class InvalidScheduleUpdateException(message: String) : Exception(message)
-
-// 상세의 참여자는 제안자가 맨 앞이다. 닉네임은 회원 사이에 겹치지 않으므로 닉네임으로 제안자를 확인한다
-fun ScheduleDetail.isProposedBy(nickname: String): Boolean =
-    nickname.isNotBlank() && participants.firstOrNull()?.nickname == nickname
-
-// 제안자가 고칠 수 있는 상태. 당일(TODAY)은 상세 화면에서 컨디션 조정을 하고, 완료된 일정은 서버가 수정을 막는다
-val ScheduleDetail.canBeEditedBeforeTheDay: Boolean
-    get() = status == ScheduleDisplayStatus.SCHEDULED || status == ScheduleDisplayStatus.CONFIRMED

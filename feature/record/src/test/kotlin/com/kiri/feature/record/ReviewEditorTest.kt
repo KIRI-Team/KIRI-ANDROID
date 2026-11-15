@@ -39,7 +39,8 @@ class ReviewEditorTest {
         override suspend fun getMonthlySchedules(month: YearMonth) = Result.success(listOf(CalendarSchedule(7, date, LocalTime.of(10,0), CalendarScheduleStatus.CONFIRMED, mine)))
         override suspend fun getScheduleDetail(scheduleId: Long) = Result.success(ScheduleDetail(date, LocalTime.of(10,0),
             if (completed) ScheduleDisplayStatus.COMPLETED else if (date == LocalDate.parse("2026-11-08")) ScheduleDisplayStatus.TODAY else ScheduleDisplayStatus.CONFIRMED,
-            listOf(ScheduleParticipant(proposer, true), ScheduleParticipant("나", mine == MyScheduleStatus.ACCEPTED))))
+            listOf(ScheduleParticipant(proposer, MyScheduleStatus.ACCEPTED), ScheduleParticipant("나", mine)),
+            myStatus = mine))
         override suspend fun updateSchedule(scheduleId: Long, update: ScheduleUpdate) = Result.success(Unit)
         override suspend fun createSchedule(bucketItemId: Long, form: ScheduleUpdate) = Result.success(8L)
         override suspend fun cancel(scheduleId: Long): Result<Unit> {
