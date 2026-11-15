@@ -8,7 +8,9 @@ import com.kiri.domain.model.schedule.NotScheduleProposerException
 import com.kiri.domain.model.schedule.ScheduleDetail
 import com.kiri.domain.model.schedule.ScheduleDisplayStatus
 import com.kiri.domain.model.schedule.ScheduleNotEditableException
+import com.kiri.domain.model.schedule.MyScheduleStatus
 import com.kiri.domain.model.schedule.ScheduleParticipant
+import com.kiri.domain.model.schedule.ScheduleProposer
 import com.kiri.domain.model.schedule.ScheduleUpdate
 import com.kiri.domain.repository.CalendarScheduleRepository
 import com.kiri.domain.usecase.schedule.GetScheduleEditAccessUseCase
@@ -78,8 +80,13 @@ class ScheduleEditViewModelTest {
         date = LocalDate.of(2026, 11, 17),
         time = LocalTime.of(14, 50),
         status = ScheduleDisplayStatus.CONFIRMED,
-        participants = listOf(ScheduleParticipant("엄마", true), ScheduleParticipant("첫째", false)),
+        participants = listOf(
+            ScheduleParticipant("엄마", MyScheduleStatus.ACCEPTED),
+            ScheduleParticipant("첫째", MyScheduleStatus.PENDING),
+        ),
         missionId = 42,
+        proposer = ScheduleProposer(1, "엄마", null),
+        canEdit = true,
     )
 
     private val family = FakeFamily("엄마", listOf("2" to "첫째", "3" to "아빠"))
@@ -105,6 +112,16 @@ class ScheduleEditViewModelTest {
         assertEquals(LocalTime.of(14, 50), state.draft.time)
         assertEquals(setOf("2"), state.draft.memberIds)
         assertEquals("", state.draft.message)
+    }
+
+    @Test
+    fun 상세의_미션명과_가족에게_한_줄을_채운다() {
+        val withMessage = detail.copy(missionTitle = "한강 축제 가보기", requestMessage = "같이 가요")
+
+        val state = viewModel(FakeSchedules(Result.success(withMessage))).uiState.value
+
+        assertEquals("한강 축제 가보기", state.title)
+        assertEquals("같이 가요", state.draft.message)
     }
 
     @Test
@@ -203,15 +220,15 @@ class ScheduleEditViewModelTest {
     }
 
     @Test
-    fun 당일_완료된_일정이나_내가_제안하지_않은_일정은_변경할_수_없다고_보여준다() {
+    fun 서버가_변경할_수_없다고_한_일정은_변경할_수_없다고_보여준다() {
+        // 제안자 여부·당일·완료·시작 여부는 서버가 canEdit 로 판단한다. 확정 상태여도 canEdit 가 false 면 막는다
         listOf(
-            detail.copy(status = ScheduleDisplayStatus.TODAY) to "지금은 변경할 수 없는 약속이에요.",
-            detail.copy(status = ScheduleDisplayStatus.COMPLETED) to "지금은 변경할 수 없는 약속이에요.",
-            detail.copy(participants = detail.participants.reversed()) to "일정 제안자만 수정할 수 있어요.",
-        ).forEach { (schedule, message) ->
+            detail.copy(canEdit = false),
+            detail.copy(status = ScheduleDisplayStatus.TODAY, canEdit = false),
+        ).forEach { schedule ->
             val vm = viewModel(FakeSchedules(Result.success(schedule)))
 
-            assertEquals(message, vm.uiState.value.loadError)
+            assertEquals("지금은 변경할 수 없는 약속이에요.", vm.uiState.value.loadError)
         }
     }
 

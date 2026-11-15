@@ -21,6 +21,7 @@ import com.kiri.feature.record.R
 import com.kiri.feature.record.model.*
 import com.kiri.feature.record.presentation.RecordPhotoImage
 import com.kiri.uikit.color.KiriColor
+import com.kiri.uikit.component.KiriAsyncImage
 import com.kiri.uikit.component.KiriDetailTypography
 import java.time.LocalDate
 
@@ -37,8 +38,11 @@ internal fun CalendarCell(
     // 오늘보다 이전 날짜
     past: Boolean = false,
 ) {
-    val shape = RoundedCornerShape(12.dp)
+    // 사진(완료 후 리뷰·활동 기록)이 있는 날은 퍼즐 조각 모양으로 자른다 (Figma 10693:9281 "완료후 리뷰있는 약속")
+    val shape = if (photo != null) ReviewPuzzleShape else RoundedCornerShape(12.dp)
     val schedule = scheduleCellLook(mark, today, past)
+    // 사진 가운데가 밝으면 검정 숫자(추억기록날짜_black), 어두우면 흰 숫자(추억기록날짜_white). 불러오기 전에는 흰 숫자
+    var darkNumber by remember(photo?.source) { mutableStateOf(false) }
     // 캘린더 요소 정리 (Figma 10693:9281). 오늘은 초록 배경과 초록 테두리, 예정된 약속은 Tertiary, 지난 약속은 Secondary
     val background =
         when {
@@ -79,7 +83,7 @@ internal fun CalendarCell(
             },
         contentAlignment = Alignment.Center,
     ) {
-        if (photo != null) RecordPhotoImage(photo, Modifier.fillMaxSize())
+        if (photo != null) CalendarPhoto(photo, date) { darkNumber = it }
         else
             when (mark) {
                 RecordCalendarMark.QUESTION ->
@@ -114,16 +118,22 @@ internal fun CalendarCell(
                 null -> Unit
             }
         if (
-            mark == null ||
+            photo != null ||
+                mark == null ||
                 mark == RecordCalendarMark.QUESTION ||
                 mark == RecordCalendarMark.PHOTO_FIRST ||
                 mark == RecordCalendarMark.PHOTO_SECOND
         ) {
             Text(
                 date.dayOfMonth.toString(),
+                Modifier.testTag("record_day_number_$date"),
                 color =
-                    if (mark == RecordCalendarMark.PHOTO_SECOND) KiriColor.Text.Strong
-                    else KiriColor.Text.Primary,
+                    when {
+                        photo != null && darkNumber -> KiriColor.Text.Inverse
+                        photo != null -> KiriColor.Text.Primary
+                        mark == RecordCalendarMark.PHOTO_SECOND -> KiriColor.Text.Strong
+                        else -> KiriColor.Text.Primary
+                    },
                 style = KiriDetailTypography.Body,
             )
         }
@@ -138,4 +148,22 @@ internal fun CalendarCell(
                 style = KiriDetailTypography.Small,
             )
     }
+}
+
+// 날짜 칸을 채우는 사진. 서버·기기 사진은 불러온 뒤 가운데 밝기를 재서 숫자 색을 정하게 알려준다.
+// 미리보기용 기본 사진은 밝기를 재지 않고 흰 숫자로 둔다
+@Composable
+private fun CalendarPhoto(photo: RecordPhoto, date: LocalDate, onDarkNumber: (Boolean) -> Unit) {
+    val modifier = Modifier.fillMaxSize().testTag("record_day_photo_$date")
+    if (photo.source.startsWith("demo:")) {
+        RecordPhotoImage(photo, modifier)
+        return
+    }
+    val report by rememberUpdatedState(onDarkNumber)
+    KiriAsyncImage(
+        photo.source,
+        "활동 사진",
+        modifier.background(KiriColor.Bg.Tertiary),
+        onBitmap = { bitmap -> report(prefersDarkDayNumber(bitmap.centerLuminance())) },
+    )
 }

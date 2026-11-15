@@ -16,6 +16,7 @@ import com.kiri.uikit.KiriTheme
 import java.io.File
 import java.time.Clock
 import java.time.Instant
+import com.kiri.domain.model.bucket.BucketItemStatus
 import java.time.LocalDate
 import java.time.ZoneOffset
 import org.junit.Rule
@@ -120,6 +121,27 @@ class RecordScreenTest {
         compose.onNodeWithText("오후 약속").assertDoesNotExist()
     }
 
+    // 완료 후 리뷰 사진이 있는 날은 사진 위에 날짜 숫자를 보여준다 (Figma 10693:9281 "완료후 리뷰있는 약속")
+    @Test
+    fun reviewPhotoDayShowsThePhotoWithTheDayNumber() {
+        val date = LocalDate.of(2026, 10, 13)
+        compose.setContent {
+            KiriTheme {
+                RecordScreen(
+                    RecordUiState(
+                        today = date.plusDays(5),
+                        calendarMarks = mapOf(date to RecordCalendarMark.PHOTO_FIRST),
+                        calendarPhotos = mapOf(date to com.kiri.domain.record.RecordPhoto("schedule-1", "demo:group")),
+                    ),
+                    {},
+                )
+            }
+        }
+        compose.onNodeWithTag("record_date_$date").performScrollTo()
+        compose.onNodeWithTag("record_day_photo_$date", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("record_day_number_$date", useUnmergedTree = true).assertTextEquals("13")
+    }
+
     private fun start() {
         val repo =
             FakeRecordRepository(
@@ -172,6 +194,27 @@ class RecordScreenTest {
         compose.onNodeWithTag("record_date_2026-10-22").performScrollTo().assertIsSelected()
         compose.onNodeWithTag("record_tab_BUCKET").performClick()
         compose.onNodeWithTag("record_saver_1").assertIsSelected()
+    }
+
+    // 같은 미션을 여러 가족이 저장하면 카드 한 장에 "엄마, 아빠가 저장했어요!" 로 합쳐 보여준다
+    @Test
+    fun sameMissionSavedByTwoMembersShowsOneCardWithBothNames() {
+        val fake = com.kiri.data.bucket.FakeBucketItemRepository
+        val mom = fake.item(1, 1, "엄마", title = "한강 축제 가보기").copy(missionId = 100)
+        val dad = fake.item(2, 2, "아빠", title = "한강 축제 가보기", deletable = true).copy(missionId = 100)
+        val events = mutableListOf<RecordUiEvent>()
+        compose.setContent {
+            KiriTheme {
+                RecordScreen(RecordUiState(today = LocalDate.of(2026, 10, 13), tab = RecordTab.BUCKET, bucketItems = listOf(dad, mom)), { events += it })
+            }
+        }
+
+        compose.onNodeWithText("엄마, 아빠가 저장했어요!").assertIsDisplayed()
+        compose.onNodeWithText("엄마가 저장했어요!").assertDoesNotExist()
+        compose.onNodeWithTag("record_bucket_1").assertDoesNotExist()
+        // 대표는 내가 저장한(지울 수 있는) 아빠 항목이다
+        compose.onNodeWithTag("record_bucket_2").performClick()
+        compose.runOnIdle { org.junit.Assert.assertEquals(listOf<RecordUiEvent>(RecordUiEvent.BucketClicked("2")), events) }
     }
 
     @Test

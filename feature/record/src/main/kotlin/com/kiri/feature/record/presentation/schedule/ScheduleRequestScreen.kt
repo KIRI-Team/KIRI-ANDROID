@@ -53,7 +53,9 @@ import com.kiri.uikit.component.KiriButtonTone
 import com.kiri.uikit.component.KiriDetailTypography
 import com.kiri.uikit.component.KiriPretendard
 import com.kiri.uikit.component.KiriTopBar
+import com.kiri.domain.model.schedule.ScheduleChangedField
 import java.time.LocalDate
+import java.time.LocalTime
 
 // 초대장 만들기를 누르면 보이는 요청알림 미리보기 (Figma 9424:23045). 가족이 받게 될 요청을 보여주고 보낼지 정한다.
 // 일정 취소 확인(Figma 10629:27298)과 받은 초대에 응답하는 화면도 같은 구성이라 제목·안내 문구·버튼만 바꿔 쓴다
@@ -81,6 +83,10 @@ fun ScheduleRequestScreen(
     dismissBackground: Color = KiriComponentColor.Input.BgFilled,
     // 왼쪽 버튼. 기본은 뒤로가기와 같고, 응답 화면에서는 거절이다
     onDismissClick: () -> Unit = onBackClick,
+    // 일정 변경알림에서 바뀐 항목. 날짜·시간이 바뀌면 일시 옆에, 참여자가 바뀌면 함께할 가족 옆에 "변경되었어요!" 배지를 단다
+    changedFields: Set<ScheduleChangedField> = emptySet(),
+    // 시간이 바뀌었을 때 일시에 함께 보여줄 시간
+    time: LocalTime? = null,
 ) {
     BackHandler(onBack = onBackClick)
     Column(
@@ -108,7 +114,7 @@ fun ScheduleRequestScreen(
                 style = TextStyle(fontFamily = KiriPretendard, fontWeight = FontWeight.Medium, fontSize = 16.sp, lineHeight = 20.sp, letterSpacing = (-0.64).sp),
             )
             Spacer(Modifier.height(36.dp))
-            ScheduleRequestCard(title, date, memberNames)
+            ScheduleRequestCard(title, date, memberNames, changedFields, time)
             Spacer(Modifier.height(18.dp))
             Box(
                 modifier = Modifier
@@ -166,7 +172,13 @@ fun ScheduleRequestScreen(
 
 // 편지봉투 배경 위에 활동명, 날짜, 함께할 가족을 가운데 정렬로 올린다 (9424:23066 ~ 9424:23078)
 @Composable
-private fun ScheduleRequestCard(title: String, date: LocalDate, memberNames: List<String>) {
+private fun ScheduleRequestCard(
+    title: String,
+    date: LocalDate,
+    memberNames: List<String>,
+    changedFields: Set<ScheduleChangedField> = emptySet(),
+    time: LocalTime? = null,
+) {
     Box(Modifier.fillMaxWidth().height(181.dp), contentAlignment = Alignment.TopCenter) {
         RequestEnvelope(Modifier.matchParentSize())
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -187,8 +199,13 @@ private fun ScheduleRequestCard(title: String, date: LocalDate, memberNames: Lis
             )
             Spacer(Modifier.height(26.dp))
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                ScheduleRequestInfo(R.drawable.ic_record_clock, requestDateLabel(date), gap = 4)
-                ScheduleRequestInfo(R.drawable.ic_record_person, memberNames.joinToString(", "), gap = 5)
+                val dateChanged = ScheduleChangedField.DATE in changedFields || ScheduleChangedField.TIME in changedFields
+                val dateText = if (ScheduleChangedField.TIME in changedFields) changedDateLabel(date, time) else requestDateLabel(date)
+                ScheduleRequestInfo(R.drawable.ic_record_clock, dateText, gap = 4, changed = dateChanged, changedTag = "schedule_request_changed_date")
+                ScheduleRequestInfo(
+                    R.drawable.ic_record_person, memberNames.joinToString(", "), gap = 5,
+                    changed = ScheduleChangedField.PARTICIPANTS in changedFields, changedTag = "schedule_request_changed_participants",
+                )
             }
         }
     }
@@ -220,7 +237,7 @@ private fun RequestEnvelope(modifier: Modifier) {
 private val EnvelopeFlapDepth = 77.5.dp
 
 @Composable
-private fun ScheduleRequestInfo(icon: Int, text: String, gap: Int) {
+private fun ScheduleRequestInfo(icon: Int, text: String, gap: Int, changed: Boolean = false, changedTag: String = "") {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(gap.dp)) {
         Image(painterResource(icon), contentDescription = null, modifier = Modifier.size(24.dp))
         Text(
@@ -228,7 +245,22 @@ private fun ScheduleRequestInfo(icon: Int, text: String, gap: Int) {
             color = KiriColor.Text.Secondary,
             style = TextStyle(fontFamily = KiriPretendard, fontSize = 14.sp, letterSpacing = (-0.7).sp),
         )
+        if (changed) ScheduleChangedBadge(Modifier.padding(start = 2.dp).testTag(changedTag))
     }
+}
+
+// 일정 변경알림에서 바뀐 항목 옆에 다는 배지
+@Composable
+private fun ScheduleChangedBadge(modifier: Modifier = Modifier) {
+    Text(
+        text = "변경되었어요!",
+        modifier = modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(KiriColor.Bg.Tertiary)
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+        color = KiriColor.Text.Accent,
+        style = TextStyle(fontFamily = KiriPretendard, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = (-0.48).sp),
+    )
 }
 
 // Figma 의 취소 버튼은 KIRI/Button Neutral 에 배경만 바꿔 쓴다(요청알림은 Input 채움 색 #2B2B2B). KiriButton 은 배경을 바꿀 수 없어 따로 그린다

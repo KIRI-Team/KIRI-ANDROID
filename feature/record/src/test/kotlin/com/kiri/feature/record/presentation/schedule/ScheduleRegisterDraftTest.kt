@@ -53,6 +53,16 @@ class ScheduleRegisterDraftTest {
         assertEquals("26.06.23", requestDateLabel(LocalDate.of(2026, 6, 23)))
     }
 
+    @Test fun scheduleChangedLabelNamesTheProposerOrFallsBack() {
+        assertEquals("엄마가 일정을 변경했어요!", scheduleChangedLabel("엄마"))
+        assertEquals("일정이 변경되었어요!", scheduleChangedLabel(""))
+    }
+
+    @Test fun changedDateLabelAddsTimeOnlyWhenGiven() {
+        assertEquals("26.06.23 15:00", changedDateLabel(LocalDate.of(2026, 6, 23), java.time.LocalTime.of(15, 0)))
+        assertEquals("26.06.23", changedDateLabel(LocalDate.of(2026, 6, 23), null))
+    }
+
     @Test fun scheduledPromiseLabelShowsMonthAndDayWithoutLeadingZero() {
         assertEquals("12월 3일에 예정된 약속이에요!", scheduledPromiseLabel(LocalDate.of(2026, 12, 3)))
     }

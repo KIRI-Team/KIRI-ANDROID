@@ -1,5 +1,6 @@
 package com.kiri.feature.record.navigation
 
+import com.kiri.feature.record.presentation.bucket.saverLabelOf
 import android.net.Uri
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -110,9 +111,11 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
             // 서버 버킷: 저장 상태면 일정 등록 화면으로, 일정이 잡힌 버킷은 연결된 일정 상세로 간다. 삭제는 확인 창을 거친다
             state.bucketItems.find { it.id.toString() == optionBucketId }?.let { bucket ->
                 val options = bucket.options()
+                // 같은 미션을 여러 가족이 저장했으면 "엄마, 아빠가 저장했어요!" 처럼 함께 보여준다
+                val savers = state.bucketItems.saverLabelOf(bucket)
                 RecordItemOptionSheet(
                     title = bucket.title,
-                    subtitle = savedByLabel(bucket.saverNickname),
+                    subtitle = savedByLabel(savers),
                     scheduleLabel = options.scheduleLabel,
                     scheduleEnabled = options.scheduleEnabled,
                     deleteEnabled = options.deleteEnabled,
@@ -125,7 +128,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
                         } else {
                             val args = BucketScheduleCreateViewModel
                             navController.navigate(
-                                "$BUCKET_SCHEDULE_ROUTE/${bucket.id}?${args.TITLE_ARG}=${Uri.encode(bucket.title)}&${args.SAVER_ARG}=${Uri.encode(bucket.saverNickname)}",
+                                "$BUCKET_SCHEDULE_ROUTE/${bucket.id}?${args.TITLE_ARG}=${Uri.encode(bucket.title)}&${args.SAVER_ARG}=${Uri.encode(savers)}",
                             ) { launchSingleTop = true }
                         }
                     },

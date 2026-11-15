@@ -40,6 +40,14 @@ internal fun savedByLabel(name: String): String = "${withSubjectParticle(name)} 
 // 아빠가 저장한 미션이에요! / 딸이 저장한 미션이에요!
 internal fun savedMissionLabel(name: String): String = "${withSubjectParticle(name)} 저장한 미션이에요!"
 
+// 일정 변경알림의 안내: 엄마가 일정을 변경했어요! / 이름을 모르면 일정이 변경되었어요!
+internal fun scheduleChangedLabel(name: String): String =
+    if (name.isBlank()) "일정이 변경되었어요!" else "${withSubjectParticle(name)} 일정을 변경했어요!"
+
+// 일정 변경알림 카드의 일시. 시간이 바뀌었으면 날짜 뒤에 시간을 붙인다: 26.06.23 15:00
+internal fun changedDateLabel(date: LocalDate, time: LocalTime?): String =
+    time?.let { "${requestDateLabel(date)} ${it.format(DateTimeFormatter.ofPattern("HH:mm"))}" } ?: requestDateLabel(date)
+
 // 카카오톡 등 공유 시트로 보낼 요청 문구. 초대 링크가 생기기 전까지는 요청 내용만 글로 보낸다
 internal fun scheduleRequestShareText(
     title: String,

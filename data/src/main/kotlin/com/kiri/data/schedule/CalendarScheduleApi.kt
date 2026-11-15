@@ -1,12 +1,15 @@
 package com.kiri.data.schedule
 
 import com.kiri.data.network.ApiResponse
+import com.kiri.domain.model.member.FamilyRole
 import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.model.schedule.CalendarScheduleStatus
 import com.kiri.domain.model.schedule.MyScheduleStatus
+import com.kiri.domain.model.schedule.ScheduleChangedField
 import com.kiri.domain.model.schedule.ScheduleDetail
 import com.kiri.domain.model.schedule.ScheduleDisplayStatus
 import com.kiri.domain.model.schedule.ScheduleParticipant
+import com.kiri.domain.model.schedule.ScheduleProposer
 import com.kiri.domain.model.schedule.ScheduleUpdate
 import com.kiri.domain.model.schedule.UpcomingSchedule
 import com.kiri.domain.model.schedule.UpcomingScheduleType
@@ -38,15 +41,14 @@ internal interface CalendarScheduleApi {
         @Query("month") month: Int,
     ): ApiResponse<MonthlySchedulesResponse>
 
-    // 로그인 토큰이 필요하다. 가족 공간이 없으면 SCHEDULE403_1, 없거나 다른 가족의 일정이면 SCHEDULE404_2,
-    // 취소된 일정이면 SCHEDULE409_7 로 거절된다
-    // TODO: 명세에 경로가 없어 추정한 경로다. 서버 명세와 대조할 것
     // 로그인 토큰이 필요하다. 파라미터 없이 현재 회원·가족 기준으로 응답 필요 1건, 다가오는 1건을 돌려준다
     // 가족 공간이 없으면 SCHEDULE403_1 로 거절된다
     // TODO: 명세에 경로가 없어 추정한 경로다. 서버 명세와 대조할 것
     @GET("api/v1/schedules/upcoming")
     suspend fun getUpcomingSchedules(): ApiResponse<UpcomingSchedulesResponse>
 
+    // 일정 상세 조회 (Swagger "일정 상세 조회 API"). 로그인 토큰이 필요하다.
+    // 가족 공간이 없으면 SCHEDULE403_1, 없거나 다른 가족의 일정이면 SCHEDULE404_2, 취소된 일정이면 SCHEDULE409_7 로 거절된다
     @GET("api/v1/schedules/{scheduleId}")
     suspend fun getScheduleDetail(@Path("scheduleId") scheduleId: Long): ApiResponse<ScheduleDetailResponse>
 
@@ -127,29 +129,70 @@ internal fun CalendarScheduleResponse.toCalendarSchedule(): CalendarSchedule? {
 }
 
 // date 는 "2026-11-17", time 은 "14:50" 처럼 온다
+// 상태 값은 앱이 모르는 값이 와도 나머지를 보여줄 수 있도록 문자열로 받는다
 @Serializable
 internal data class ScheduleDetailResponse(
     val missionId: Long? = null,
+    val missionTitle: String? = null,
+    val missionDescription: String? = null,
     val date: String,
     val time: String? = null,
     val status: String? = null,
+    val proposer: ScheduleProposerResponse? = null,
+    val requestMessage: String? = null,
+    val myStatus: String? = null,
+    // 재확인이 필요할 때 바뀐 항목 ("DATE", "TIME", "PARTICIPANTS"). 그 외에는 빈 배열
+    val changedFields: List<String> = emptyList(),
+    val canRespond: Boolean = false,
+    val canEdit: Boolean = false,
+    val canCancel: Boolean = false,
     val participants: List<ScheduleParticipantResponse> = emptyList(),
 )
 
 @Serializable
+internal data class ScheduleProposerResponse(
+    val memberId: Long,
+    val nickname: String,
+    val familyRole: String? = null,
+)
+
+// status 는 myStatus 와 같은 값이다 (PENDING, ACCEPTED, DECLINED, RECONFIRM_REQUIRED ...)
+@Serializable
 internal data class ScheduleParticipantResponse(
     val nickname: String,
-    val accepted: Boolean,
+    val status: String? = null,
+    // 역할이 없거나 탈퇴했으면 null
+    val characterImageUrl: String? = null,
 )
 
 // 날짜를 읽지 못하면 상세를 보여줄 수 없으니 실패로 본다. 시간·상태는 읽지 못해도 나머지는 보여준다
+// 빈 문자열은 없는 값으로 보고, 모르는 바뀐 항목은 버린다
 internal fun ScheduleDetailResponse.toScheduleDetail() = ScheduleDetail(
     date = LocalDate.parse(date),
     time = time?.let { runCatching { LocalTime.parse(it) }.getOrNull() },
     status = ScheduleDisplayStatus.entries.firstOrNull { it.name == status },
-    participants = participants.map { ScheduleParticipant(it.nickname, it.accepted) },
+    participants = participants.map {
+        ScheduleParticipant(
+            nickname = it.nickname,
+            status = it.status.toMyScheduleStatus(),
+            characterImageUrl = it.characterImageUrl?.takeIf(String::isNotBlank),
+        )
+    },
     missionId = missionId,
+    missionTitle = missionTitle?.takeIf(String::isNotBlank),
+    missionDescription = missionDescription?.takeIf(String::isNotBlank),
+    proposer = proposer?.let {
+        ScheduleProposer(it.memberId, it.nickname, FamilyRole.entries.firstOrNull { role -> role.name == it.familyRole })
+    },
+    requestMessage = requestMessage?.takeIf(String::isNotBlank),
+    myStatus = myStatus.toMyScheduleStatus(),
+    changedFields = changedFields.mapNotNull { field -> ScheduleChangedField.entries.firstOrNull { it.name == field } }.toSet(),
+    canRespond = canRespond,
+    canEdit = canEdit,
+    canCancel = canCancel,
 )
+
+private fun String?.toMyScheduleStatus() = MyScheduleStatus.entries.firstOrNull { it.name == this }
 
 @Serializable
 internal data class UpcomingSchedulesResponse(

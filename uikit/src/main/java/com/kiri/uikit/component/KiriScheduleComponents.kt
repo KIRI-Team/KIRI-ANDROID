@@ -10,7 +10,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.BlendMode
@@ -58,7 +61,8 @@ fun KiriFamilySelectionCard(name: String, selected: Boolean, onClick: () -> Unit
     }
 }
 
-data class KiriParticipantStatus(val id: String, val name: String, val accepted: Boolean, val status: String)
+// imageUrl: 역할별 캐릭터 이미지. 없으면(역할 없음·탈퇴) 수락·대기 아이콘을 그린다
+data class KiriParticipantStatus(val id: String, val name: String, val accepted: Boolean, val status: String, val imageUrl: String? = null)
 
 /** Horizontal scrolling keeps long nicknames and large families readable.
  * showStatus 가 false 면 이름 아래 상태 문구를 숨기고 (Figma 8450:21841), 상태는 접근성 설명으로만 읽어준다. */
@@ -71,7 +75,16 @@ fun KiriParticipantTooltip(participants: List<KiriParticipantStatus>, modifier: 
         participants.forEach { participant ->
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.semantics(mergeDescendants = true) { stateDescription = participant.status }) {
-                Image(painterResource(if (participant.accepted) R.drawable.kiri_participant_accepted else R.drawable.kiri_participant_pending), null, Modifier.size(24.dp))
+                val icon = if (participant.accepted) R.drawable.kiri_participant_accepted else R.drawable.kiri_participant_pending
+                val imageUrl = participant.imageUrl
+                if (imageUrl == null) {
+                    Image(painterResource(icon), null, Modifier.size(24.dp))
+                } else {
+                    // 캐릭터를 불러오는 동안·실패하면 수락·대기 아이콘을 보여준다. 수락하지 않았으면 흐리게 그린다
+                    KiriAsyncImage(imageUrl, null, Modifier.size(24.dp).alpha(if (participant.accepted) 1f else 0.4f).testTag("participant_character_${participant.id}"), ContentScale.Fit) {
+                        Image(painterResource(icon), null, Modifier.size(24.dp))
+                    }
+                }
                 Text(participant.name, style = KiriTypography.TitleMedium, color = if (participant.accepted) KiriColor.Text.Primary else KiriColor.Text.Disabled)
                 if (showStatus) Text(participant.status, style = KiriTypography.BodySmall, color = KiriColor.Text.Secondary)
             }

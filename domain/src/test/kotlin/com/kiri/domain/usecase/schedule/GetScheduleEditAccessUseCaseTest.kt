@@ -8,7 +8,9 @@ import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.model.schedule.ScheduleDetail
 import com.kiri.domain.model.schedule.ScheduleDisplayStatus
 import com.kiri.domain.model.schedule.ScheduleNotFoundException
+import com.kiri.domain.model.schedule.MyScheduleStatus
 import com.kiri.domain.model.schedule.ScheduleParticipant
+import com.kiri.domain.model.schedule.ScheduleProposer
 import com.kiri.domain.model.schedule.ScheduleUpdate
 import com.kiri.domain.repository.CalendarScheduleRepository
 import java.io.IOException
@@ -22,7 +24,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-// 일정 상세와 "내가 바꿀 수 있는 일정인지" 판단을 확인한다
+// 일정 상세와, 서버가 판단한 변경 가능 여부에 따라 가족 정보를 채우는지 확인한다
 class GetScheduleEditAccessUseCaseTest {
 
     private class Schedules(private val detail: Result<ScheduleDetail>) : CalendarScheduleRepository {
@@ -58,58 +60,55 @@ class GetScheduleEditAccessUseCaseTest {
         override suspend fun poke(question: DailyQuestion, memberId: String) = load()
     }
 
-    private fun detail(status: ScheduleDisplayStatus?, vararg names: String) = ScheduleDetail(
+    // 맨 앞 이름이 제안자다. canEdit 는 서버가 판단해 주는 값이다
+    private fun detail(canEdit: Boolean, vararg names: String) = ScheduleDetail(
         date = LocalDate.of(2026, 11, 17),
         time = LocalTime.of(14, 50),
-        status = status,
-        participants = names.map { ScheduleParticipant(it, true) },
+        status = ScheduleDisplayStatus.CONFIRMED,
+        participants = names.map { ScheduleParticipant(it, MyScheduleStatus.ACCEPTED) },
+        proposer = names.firstOrNull()?.let { ScheduleProposer(1, it, null) },
+        canEdit = canEdit,
     )
 
     private fun access(detail: ScheduleDetail, home: HomeRepository = Home()) =
         runBlocking { GetScheduleEditAccessUseCase(Schedules(Result.success(detail)), home)(1).getOrThrow() }
 
     @Test
-    fun 예정이나_확정된_내_일정은_바꿀_수_있고_초대된_가족을_회원_id로_알려준다() {
-        listOf(ScheduleDisplayStatus.SCHEDULED, ScheduleDisplayStatus.CONFIRMED).forEach { status ->
-            val access = access(detail(status, "엄마", "아빠", "모르는 사람"))
+    fun 서버가_바꿀_수_있다고_하면_가족을_불러와_초대된_가족을_회원_id로_알려준다() {
+        val access = access(detail(canEdit = true, "엄마", "아빠", "모르는 사람"))
 
-            assertTrue(access.isMine)
-            assertTrue(access.canEdit)
-            assertEquals("1", access.me?.id)
-            // 나와 탈퇴한 가족은 초대할 수 없다
-            assertEquals(listOf("2", "3"), access.invitableMembers.map { it.id })
-            // 닉네임이 가족에 없는 참여자는 뺀다
-            assertEquals(setOf("3"), access.invitedMemberIds)
-        }
+        assertTrue(access.canEdit)
+        assertEquals("1", access.me?.id)
+        // 나와 탈퇴한 가족은 초대할 수 없다
+        assertEquals(listOf("2", "3"), access.invitableMembers.map { it.id })
+        // 제안자와 닉네임이 가족에 없는 참여자는 뺀다
+        assertEquals(setOf("3"), access.invitedMemberIds)
     }
 
     @Test
-    fun 다른_가족이_제안한_일정은_바꿀_수_없다() {
-        val access = access(detail(ScheduleDisplayStatus.CONFIRMED, "아빠", "엄마"))
+    fun 제안자가_참여자_맨_앞이_아니어도_제안자를_빼고_초대된_가족을_고른다() {
+        val detail = detail(canEdit = true, "아빠", "첫째").copy(proposer = ScheduleProposer(1, "첫째", null))
 
-        assertFalse(access.isMine)
+        assertEquals(setOf("3"), access(detail).invitedMemberIds)
+    }
+
+    @Test
+    fun 서버가_바꿀_수_없다고_하면_가족을_불러오지_않는다() {
+        val home = Home()
+        // 내가 제안한 일정이어도 서버 판단(당일·시작·마감 등)을 따른다
+        val access = access(detail(canEdit = false, "엄마", "아빠"), home)
+
         assertFalse(access.canEdit)
+        assertNull(access.family)
+        assertEquals(0, home.loads)
     }
 
     @Test
-    fun 당일_완료_모르는_상태는_가족을_불러오지_않고_바꿀_수_없다() {
-        listOf(ScheduleDisplayStatus.TODAY, ScheduleDisplayStatus.COMPLETED, null).forEach { status ->
-            val home = Home()
-            val access = access(detail(status, "엄마", "아빠"), home)
-
-            assertFalse(access.canEdit)
-            assertNull(access.family)
-            assertEquals(0, home.loads)
-        }
-    }
-
-    @Test
-    fun 가족을_불러오지_못하면_상세는_돌려주고_바꿀_수_없다고_본다() {
-        val access = access(detail(ScheduleDisplayStatus.CONFIRMED, "엄마"), Home(fail = true))
+    fun 가족을_불러오지_못하면_상세는_돌려주고_가족은_비워_둔다() {
+        val access = access(detail(canEdit = true, "엄마"), Home(fail = true))
 
         assertNull(access.family)
-        assertFalse(access.isMine)
-        assertFalse(access.canEdit)
+        assertNull(access.me)
         assertTrue(access.invitableMembers.isEmpty())
     }
 

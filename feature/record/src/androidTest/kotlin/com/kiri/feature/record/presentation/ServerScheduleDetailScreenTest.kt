@@ -23,6 +23,7 @@ import com.kiri.domain.model.mission.MissionPlace
 import com.kiri.domain.model.mission.WalkingLevel
 import com.kiri.domain.model.schedule.ScheduleDetail
 import com.kiri.domain.model.schedule.ScheduleDisplayStatus
+import com.kiri.domain.model.schedule.MyScheduleStatus
 import com.kiri.domain.model.schedule.ScheduleParticipant
 import com.kiri.feature.detail.model.DetailUiEvent
 import com.kiri.feature.detail.model.DetailUiState
@@ -46,7 +47,7 @@ class ServerScheduleDetailScreenTest {
         date = LocalDate.of(2026, 11, 17),
         time = LocalTime.of(14, 50),
         status = ScheduleDisplayStatus.TODAY,
-        participants = listOf(ScheduleParticipant("엄마", true), ScheduleParticipant("첫째", false)),
+        participants = listOf(ScheduleParticipant("엄마", MyScheduleStatus.ACCEPTED), ScheduleParticipant("첫째", MyScheduleStatus.PENDING)),
         missionId = 42,
     )
 
@@ -252,13 +253,14 @@ class ServerScheduleDetailScreenTest {
     }
 
     @Test
-    fun editButtonShowsOnlyWhenTheProposerCanEditAndSendsTheClick() {
+    fun editAndCancelButtonsFollowTheServerFlagsAndSendTheClick() {
         val confirmed = detail.copy(status = ScheduleDisplayStatus.CONFIRMED)
         var state by mutableStateOf(
             ServerScheduleDetailUiState(
                 detail = DetailUiState(loading = false, detail = confirmed.toMissionDetail(7)),
                 schedule = confirmed,
                 canEdit = true,
+                canCancel = true,
             ),
         )
         var clicks = 0
@@ -271,14 +273,18 @@ class ServerScheduleDetailScreenTest {
         compose.onNodeWithText("일정 변경하기").assertIsDisplayed()
         compose.onNodeWithTag("server_schedule_edit").performClick()
         assertEquals(1, clicks)
-        // 일정 취소하기도 같은 조건으로 옆에 보인다 (Figma 10613:17872)
+        // 일정 취소하기는 canCancel 로 옆에 보인다 (Figma 10613:17872)
         compose.onNodeWithText("일정 취소하기").assertIsDisplayed()
         compose.onNodeWithTag("server_schedule_cancel_button").performClick()
         assertEquals(1, cancelClicks)
 
+        // 변경은 막혀도 취소는 서버가 허용하면 남는다
         state = state.copy(canEdit = false)
         compose.onNodeWithTag("server_schedule_edit").assertDoesNotExist()
         compose.onNodeWithText("일정 변경하기").assertDoesNotExist()
+        compose.onNodeWithText("일정 취소하기").assertIsDisplayed()
+
+        state = state.copy(canCancel = false)
         compose.onNodeWithText("일정 취소하기").assertDoesNotExist()
     }
 
@@ -294,6 +300,7 @@ class ServerScheduleDetailScreenTest {
                         detail = DetailUiState(loading = false, detail = scheduled.toMissionDetail(7)),
                         schedule = scheduled,
                         canEdit = true,
+                        canCancel = true,
                     ),
                     {},
                     onEditClick = { editClicks++ },

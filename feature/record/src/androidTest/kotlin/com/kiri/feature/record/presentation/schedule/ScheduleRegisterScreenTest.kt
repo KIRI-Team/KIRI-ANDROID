@@ -205,6 +205,41 @@ class ScheduleRegisterScreenTest {
         assertEquals(listOf(0, 1, 1), listOf(back, declined, accepted))
     }
 
+    // 일정 변경알림: 바뀐 항목(changedFields) 옆에만 "변경되었어요!" 배지를 달고, 시간이 바뀌면 일시에 시간을 붙인다
+    @Test fun changeAlertShowsBadgesNextToChangedFieldsOnly() {
+        var changed by mutableStateOf(setOf(com.kiri.domain.model.schedule.ScheduleChangedField.TIME))
+        compose.setContent {
+            KiriTheme {
+                ScheduleRequestScreen(
+                    savedBy = "엄마",
+                    title = "한강 뚜벅뚜벅 축제",
+                    description = "잠수교를 걸어요",
+                    date = LocalDate.of(2026, 12, 3),
+                    memberNames = listOf("엄마", "나"),
+                    message = "같이 가요",
+                    onBackClick = {},
+                    onDetailClick = {},
+                    onSendClick = {},
+                    topBarTitle = "변경알림",
+                    headline = "엄마가 일정을 변경했어요!",
+                    changedFields = changed,
+                    time = java.time.LocalTime.of(15, 0),
+                )
+            }
+        }
+
+        compose.onNodeWithText("26.12.03 15:00").assertExists()
+        compose.onNodeWithTag("schedule_request_changed_date").assertExists()
+        compose.onNodeWithTag("schedule_request_changed_participants").assertDoesNotExist()
+        compose.onNodeWithText("잠수교를 걸어요").assertExists()
+        compose.onNodeWithText("같이 가요").assertExists()
+
+        changed = setOf(com.kiri.domain.model.schedule.ScheduleChangedField.PARTICIPANTS)
+        compose.onNodeWithText("26.12.03").assertExists()
+        compose.onNodeWithTag("schedule_request_changed_date").assertDoesNotExist()
+        compose.onNodeWithTag("schedule_request_changed_participants").assertExists()
+    }
+
     @Test fun cancelOnRequestReturnsToRegisterKeepingInput() {
         setFlow()
         fillScheduleAndMembers("mom", "dad")
