@@ -158,6 +158,7 @@ class ServerScheduleDetailViewModelTest {
         reviews: ScheduleReviewRepository = FakeReviews(),
         conditions: ScheduleConditionRepository? = null,
         nearby: ScheduleNearbyRepository = FakeNearby(),
+        scheduleRepository: CalendarScheduleRepository? = null,
     ) =
         ServerScheduleDetailViewModel(
             SavedStateHandle(
@@ -172,6 +173,7 @@ class ServerScheduleDetailViewModelTest {
             home,
             conditions ?: FakeConditions(Result.failure(IOException())),
             nearby,
+            schedules = scheduleRepository,
         )
 
     // 정해 둔 근처 놀거리를 돌려주고, 요청한 일정 id 를 기록한다
@@ -528,7 +530,8 @@ class ServerScheduleDetailViewModelTest {
     fun 일정의_미션을_불러와_제목_장소_걷기량_활동시간_활동_준비물을_채운다() {
         val missions = FakeMissions()
 
-        val filled = viewModel(FakeSchedules(Result.success(detail)), missions = missions).uiState.value.detail.detail!!
+        val schedules = FakeSchedules(Result.success(detail))
+        val filled = viewModel(schedules, missions = missions, scheduleRepository = schedules).uiState.value.detail.detail!!
 
         assertEquals(listOf(42L), missions.requested)
         assertEquals("국립현대미술관 서울 관람하기", filled.title)
