@@ -1,5 +1,6 @@
 package com.kiri.data.schedule
 
+import com.kiri.data.mission.MissionGuideResponse
 import com.kiri.data.network.ApiResponse
 import com.kiri.domain.model.member.FamilyRole
 import com.kiri.domain.model.schedule.CalendarSchedule
@@ -51,6 +52,9 @@ internal interface CalendarScheduleApi {
     // 가족 공간이 없으면 SCHEDULE403_1, 없거나 다른 가족의 일정이면 SCHEDULE404_2, 취소된 일정이면 SCHEDULE409_7 로 거절된다
     @GET("api/v1/schedules/{scheduleId}")
     suspend fun getScheduleDetail(@Path("scheduleId") scheduleId: Long): ApiResponse<ScheduleDetailResponse>
+
+    @GET("api/v1/schedules/{scheduleId}/essentials")
+    suspend fun getScheduleEssentials(@Path("scheduleId") scheduleId: Long): ApiResponse<List<MissionGuideResponse>>
 
     // 제안자만 대기·확정 일정을 바꿀 수 있다. 제안자가 아니면 SCHEDULE403_4, 없는 일정이면 SCHEDULE404_2,
     // 바꿀 수 없는 상태면 SCHEDULE409_4, 입력값이 잘못되면 COMMON400_1 로 거절된다

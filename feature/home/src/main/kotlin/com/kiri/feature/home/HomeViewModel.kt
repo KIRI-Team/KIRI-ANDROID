@@ -99,7 +99,9 @@ class HomeViewModel @Inject constructor(
                     draftQuestionId = question.id,
                 ) }
             }
-            is HomeUiEvent.AnswerChanged -> if (!uiState.value.busy) _uiState.update { it.copy(draft = event.text, error = null) }
+            is HomeUiEvent.AnswerChanged -> if (!uiState.value.busy) _uiState.update {
+                it.copy(draft = event.text, error = null)
+            }
             HomeUiEvent.AnswerSaveClicked -> save()
             HomeUiEvent.PokeClicked -> poke()
             HomeUiEvent.CardFlipped -> if (uiState.value.home?.browsing == false && !uiState.value.busy)

@@ -209,6 +209,16 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
                             )
                         }
                     }
+                    if (home != null && !state.loading && !state.loadError) {
+                        RecommendationSection(
+                            home.outdoorRecommendations,
+                            onMissionClick = onMissionClick,
+                            loadFailed = home.recommendationsLoadFailed,
+                            onRetry = { onEvent(HomeUiEvent.RetryClicked) },
+                            title = "오늘 가을분위기를 느끼고 싶다면",
+                            cardTagPrefix = "home_outdoor_recommendation",
+                        )
+                    }
                     Spacer(Modifier.height(28.dp))
                 }
             }

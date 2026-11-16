@@ -31,6 +31,7 @@ fun HomeRoute(
     // 응답이 필요한 일정 카드. 따로 정하지 않으면 일정 상세로 연다
     onRespondSchedule: (String) -> Unit = onScheduleClick,
     viewModel: HomeViewModel = hiltViewModel(),
+    onAnswerEditingChanged: (Boolean) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentDestination by rememberUpdatedState(onDestination)
@@ -56,5 +57,10 @@ fun HomeRoute(
     }
     // 약관 화면에서 알림 권한을 거절했거나 묻지 못했으면 홈에서 한 번 더 묻는다
     NotificationPermissionPrompt(NotificationPermissionMoment.HOME)
+    val reportEditing by rememberUpdatedState(onAnswerEditingChanged)
+    DisposableEffect(state.editing) {
+        reportEditing(state.editing)
+        onDispose { reportEditing(false) }
+    }
     HomeScreen(state, viewModel::onEvent)
 }

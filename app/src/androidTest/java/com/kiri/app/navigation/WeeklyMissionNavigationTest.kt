@@ -51,6 +51,17 @@ class WeeklyMissionNavigationTest {
     }
     @Before fun setup() { hilt.inject() }
 
+    @Test fun answerEditorHidesBottomNavigationAndBackRestoresIt() {
+        compose.setContent { KiriTheme { MainScreen() } }
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithTag("home_question_card").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("home_question_card").performScrollTo().performClick()
+        compose.onNodeWithTag("bottom_nav_home").assertDoesNotExist()
+        compose.onNodeWithContentDescription("뒤로").performClick()
+        compose.onNodeWithTag("bottom_nav_home").assertIsSelected()
+    }
+
     @Test fun emptyMissionLinkOpensPlaceAndKeepsBottomTabsUsable() {
         hasWeeklyMission = false
         compose.setContent { KiriTheme { MainScreen() } }

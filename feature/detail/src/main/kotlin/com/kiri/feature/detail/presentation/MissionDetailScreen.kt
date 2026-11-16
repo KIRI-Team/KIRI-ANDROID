@@ -251,7 +251,12 @@ fun MissionDetailScreen(
                         if (discovery || calendarHeader != null) "의 맞춤템" else "의 필수템",
                     )
                     Spacer(Modifier.height(16.dp))
-                    if (detail.essentials.isEmpty()) EmptyInfo("일정에 맞는 준비물 정보가 아직 없어요.")
+                    if (state.essentialsFailed) {
+                        EmptyInfo("준비물을 불러오지 못했어요.")
+                        TextButton(onClick = { onEvent(DetailUiEvent.RetryClicked) }) { Text("다시 시도") }
+                    } else if (detail.essentials.isEmpty()) {
+                        EmptyInfo("아직 추천 준비물이 없어요.")
+                    }
                     detail.essentials.chunked(2).forEach { row ->
                         Row(
                             Modifier.fillMaxWidth(),
@@ -301,9 +306,14 @@ fun MissionDetailScreen(
                 }
             }
             if (if (discovery) !reviewsSelected else !state.memoriesSelected) {
-                if (state.nearby.isEmpty())
-                    Box(Modifier.padding(horizontal = 18.dp)) { EmptyInfo("주변 추천 정보가 아직 없어요.") }
-                else
+                if (state.nearbyFailed || state.nearby.isEmpty()) {
+                    Column(Modifier.padding(horizontal = 18.dp)) {
+                        EmptyInfo(if (state.nearbyFailed) "근처 놀거리를 불러오지 못했어요." else "주변 추천 정보가 아직 없어요.")
+                        if (state.nearbyFailed) {
+                            TextButton(onClick = { onEvent(DetailUiEvent.RetryClicked) }) { Text("다시 시도") }
+                        }
+                    }
+                } else
                     Row(
                         Modifier.horizontalScroll(rememberScrollState())
                             .padding(horizontal = 18.dp),

@@ -19,6 +19,7 @@ fun KiriNavHost(
     onNavigateToLogin: () -> Unit = {},
     onCreateFamily: () -> Unit = {},
     onJoinFamily: () -> Unit = {},
+    onHomeAnswerEditingChanged: (Boolean) -> Unit = {},
 ) {
     NavHost(navController, startDestination = TopLevelDestination.HOME.graphRoute, modifier = modifier) {
         homeNavHost(
@@ -26,6 +27,7 @@ fun KiriNavHost(
             onOpenPlaces = { navController.navigateToTab(TopLevelDestination.PLACE) },
             onCreateFamily = onCreateFamily,
             onJoinFamily = onJoinFamily,
+            onAnswerEditingChanged = onHomeAnswerEditingChanged,
             onSchedule = { id ->
                 val route = id.toLongOrNull()?.let { serverScheduleDetailRoute(it, fromHome = true) }
                     ?: scheduleRoute(id, "home_graph")

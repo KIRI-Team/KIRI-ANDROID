@@ -142,7 +142,7 @@ class MissionPreviewViewModelTest {
                         missionType = null, status = null, indoorOutdoor = null, imageUrl = null,
                         imageSource = null, startDate = null, endDate = null, openingTime = null,
                         closingTime = null, price = null, durationMinMinutes = null, durationMaxMinutes = null,
-                        walkingLevel = null, sourceUrl = null, place = null, prepareItems = emptyList(),
+                        walkingLevel = null, sourceUrl = null, place = null,
                         steps = emptyList(), bucketState = MissionBucketState.NONE, averageRating = null, reviewCount = 0,
                     ),
                 )

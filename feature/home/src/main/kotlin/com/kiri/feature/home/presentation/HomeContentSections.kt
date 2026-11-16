@@ -2,6 +2,8 @@ package com.kiri.feature.home.presentation
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -202,10 +204,12 @@ internal fun RecommendationSection(
     onMissionClick: (String) -> Unit = {},
     loadFailed: Boolean = false,
     onRetry: () -> Unit = {},
+    title: String = "가족과 함께라면 여기!",
+    cardTagPrefix: String = "home_recommendation",
 ) {
     Column(Modifier.padding(top = 48.dp)) {
         Text(
-            "가족과 함께라면 여기!",
+            title,
             titleModifier,
             color = HomeStrong,
             style = com.kiri.uikit.KiriTypography.TitleLarge,
@@ -215,11 +219,11 @@ internal fun RecommendationSection(
                 Modifier.padding(top = 16.dp), color = HomeSecondary)
             if (loadFailed) TextButton(onClick = onRetry) { Text("다시 시도") }
         }
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()).padding(top = 16.dp),
+        LazyRow(
+            Modifier.padding(top = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            items.forEach { recommendation ->
+            items(items, key = { it.id }) { recommendation ->
                 KiriPlaceCard(
                     title = recommendation.title,
                     place = recommendation.place,
@@ -229,7 +233,7 @@ internal fun RecommendationSection(
                         },
                     rating = recommendation.rating,
                     modifier = Modifier.clickable { onMissionClick(recommendation.id) }
-                        .testTag("home_recommendation_${recommendation.id}"),
+                        .testTag("${cardTagPrefix}_${recommendation.id}"),
                     image = { imageModifier ->
                         com.kiri.uikit.component.KiriAsyncImage(
                             recommendation.imageUrl, recommendation.title,
