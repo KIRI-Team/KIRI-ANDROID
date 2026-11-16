@@ -70,4 +70,37 @@ class NotificationSettingViewModelTest {
         assertEquals("오후 12시", text(12))
         assertEquals("오후 3시 30분", text(15, 30))
     }
+
+    @Test
+    fun 발송_시각을_누르면_시간_설정_팝업이_뜨고_저장하면_시각이_바뀌고_닫힌다() {
+        viewModel.onEvent(NotificationSettingUiEvent.RegularTimeClicked)
+        assertTrue(state.timeDialogVisible)
+
+        viewModel.onEvent(NotificationSettingUiEvent.RegularTimeSaved(LocalTime.of(21, 30, 15)))
+
+        assertFalse(state.timeDialogVisible)
+        assertEquals(LocalTime.of(21, 30), state.regularTime)
+        assertEquals("오후 9시 30분", state.regularTimeText)
+    }
+
+    @Test
+    fun 팝업을_닫으면_발송_시각은_그대로다() {
+        viewModel.onEvent(NotificationSettingUiEvent.RegularTimeClicked)
+        viewModel.onEvent(NotificationSettingUiEvent.TimeDialogDismissed)
+
+        assertFalse(state.timeDialogVisible)
+        assertEquals(LocalTime.of(9, 0), state.regularTime)
+    }
+
+    @Test
+    fun 정기_알림이_꺼져_있으면_시간_설정_팝업이_뜨지_않는다() {
+        viewModel.onEvent(NotificationSettingUiEvent.RegularToggled)
+        viewModel.onEvent(NotificationSettingUiEvent.RegularTimeClicked)
+        assertFalse(state.timeDialogVisible)
+
+        viewModel.onEvent(NotificationSettingUiEvent.RegularToggled)
+        viewModel.onEvent(NotificationSettingUiEvent.AllToggled)
+        viewModel.onEvent(NotificationSettingUiEvent.RegularTimeClicked)
+        assertFalse(state.timeDialogVisible)
+    }
 }

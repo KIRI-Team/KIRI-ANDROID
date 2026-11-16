@@ -72,12 +72,21 @@ class MissionPreviewViewModel @Inject constructor(
                         previouslyCompleted = mission.bucketState == MissionBucketState.COMPLETED_ONLY,
                     ) }
                     recordDetailView(serverId)
-                    missionNearby?.getMissionNearby(serverId)?.onSuccess { places ->
-                        _uiState.update { state ->
-                            state.copy(preview = state.preview?.let { preview ->
-                                preview.copy(detail = preview.detail.copy(nearby = places))
-                            })
-                        }
+                    val essentials = serverMissions.getMissionEssentials(serverId)
+                    essentials.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+                    _uiState.update { state ->
+                        state.copy(essentialsFailed = essentials.isFailure, preview = state.preview?.let { preview ->
+                            preview.copy(detail = preview.detail.copy(essentials = essentials.getOrNull().orEmpty().map {
+                                DetailSuggestion(it.title, it.description.orEmpty())
+                            }))
+                        })
+                    }
+                    val nearby = missionNearby?.getMissionNearby(serverId)
+                    nearby?.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+                    _uiState.update { state ->
+                        state.copy(nearbyFailed = nearby?.isFailure == true, preview = state.preview?.let { preview ->
+                            preview.copy(detail = preview.detail.copy(nearby = nearby?.getOrNull().orEmpty()))
+                        })
                     }
                     return@launch
                 }
@@ -131,7 +140,7 @@ private fun MissionInfo.toPreview() = MissionPreview(
         date = null, startTime = null, place = place?.name, expectedSteps = null,
         durationMinutes = durationMinMinutes, participants = emptyList(), completed = false,
         activities = steps.map { DetailSuggestion(it.title, it.description.orEmpty()) },
-        essentials = prepareItems.map { DetailSuggestion(it.title, it.description.orEmpty()) },
+        essentials = emptyList(),
         nearby = emptyList(), walkingLevel = walkingLevel?.label, durationMaxMinutes = durationMaxMinutes,
     ),
 )

@@ -31,7 +31,6 @@ data class MissionInfo(
     val walkingLevel: WalkingLevel?,
     val sourceUrl: String?,
     val place: MissionPlace?,
-    val prepareItems: List<MissionGuide>,
     val steps: List<MissionGuide>,
     // 로그인한 본인의 버킷 저장 상태. 가족이 없으면 NONE
     val bucketState: MissionBucketState,

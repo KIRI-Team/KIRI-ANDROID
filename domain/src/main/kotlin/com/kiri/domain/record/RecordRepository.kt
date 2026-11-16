@@ -42,7 +42,7 @@ data class ScheduleRequest(
 )
 
 data class RecordPhoto(val id: String, val source: String)
-data class RecordedQuestion(val date: LocalDate, val text: String, val answers: Map<String, String>, val memberNames: Map<String, String>, val everyoneAnswered: Boolean)
+data class RecordedQuestion(val date: LocalDate, val text: String, val answers: Map<String, String>, val memberNames: Map<String, String>, val everyoneAnswered: Boolean, val questionId: String? = null)
 data class FamilyMemory(
     val id: String,
     val entryId: String,
@@ -72,6 +72,7 @@ data class RecordCollection(
 interface RecordRepository {
     val records: StateFlow<RecordCollection>
     suspend fun refresh()
+    suspend fun refreshQuestion(date: LocalDate) {}
     suspend fun detail(entryId: String): MissionDetail
     suspend fun applyConditions(entryId: String, conditions: Set<Condition>): MissionDetail
     suspend fun changeRepresentativePhoto(entryId: String, photoId: String)

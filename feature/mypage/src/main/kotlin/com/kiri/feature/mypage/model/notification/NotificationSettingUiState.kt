@@ -7,6 +7,8 @@ data class NotificationSettingUiState(
     // 전체 알림을 꺼도 값은 그대로 두었다가 다시 켜면 되살린다
     val regularEnabled: Boolean = true,
     val regularTime: LocalTime = LocalTime.of(9, 0),
+    // 발송 시각을 고르는 팝업이 떠 있는지
+    val timeDialogVisible: Boolean = false,
 ) {
     // 전체 알림이 꺼져 있으면 정기 알림 설정은 바꿀 수 없다
     val canChangeRegular: Boolean

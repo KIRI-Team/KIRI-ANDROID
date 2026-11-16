@@ -1,10 +1,13 @@
 package com.kiri.data.auth
 
+import com.kiri.data.device.DeviceApi
+import com.kiri.data.device.PushDeviceRepositoryImpl
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiBaseUrl
 import com.kiri.data.network.kiriJson
 import com.kiri.domain.model.auth.LoginResult
 import com.kiri.domain.model.auth.SocialProvider
+import com.kiri.domain.repository.PushDeviceRepository
 import java.io.IOException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -36,14 +39,23 @@ class AuthRepositoryImplTest {
     @After
     fun tearDown() = server.close()
 
-    private fun repository(): AuthRepositoryImpl {
-        val api = Retrofit.Builder()
-            .baseUrl(apiBaseUrl(server.url("/").toString()))
-            .client(OkHttpClient())
-            .addConverterFactory(kiriJson.asConverterFactory("application/json".toMediaType()))
-            .build()
-            .create(AuthApi::class.java)
-        return AuthRepositoryImpl(api, tokenStore, kiriJson)
+    private val retrofit get() = Retrofit.Builder()
+        .baseUrl(apiBaseUrl(server.url("/").toString()))
+        .client(OkHttpClient())
+        .addConverterFactory(kiriJson.asConverterFactory("application/json".toMediaType()))
+        .build()
+
+    // 기기 등록 삭제는 따로 확인하는 테스트 말고는 서버에 보내지 않는 가짜를 쓴다
+    private fun repository(devices: PushDeviceRepository = NoDevices): AuthRepositoryImpl =
+        AuthRepositoryImpl(retrofit.create(AuthApi::class.java), tokenStore, kiriJson, devices)
+
+    // 실제 기기 저장소를 같은 서버에 붙인다
+    private fun repositoryWithDevices(): AuthRepositoryImpl =
+        repository(PushDeviceRepositoryImpl(retrofit.create(DeviceApi::class.java), { "device-1" }, kiriJson))
+
+    private object NoDevices : PushDeviceRepository {
+        override suspend fun register(fcmToken: String) = Result.success(Unit)
+        override suspend fun unregister() = Result.success(Unit)
     }
 
     private fun enqueue(code: Int, body: String) {
@@ -201,7 +213,55 @@ class AuthRepositoryImplTest {
         assertEquals(AuthTokens("access-1", "refresh-1"), tokenStore.saved)
     }
 
+    @Test
+    fun 로그아웃하면_로그인_토큰이_있을_때_기기_등록을_먼저_지운다() = runTest {
+        tokenStore.save(AuthTokens("access-1", "refresh-1"))
+        enqueue(200, DEVICE_DELETE_BODY)
+        enqueue(200, LOGOUT_BODY)
+
+        val result = repositoryWithDevices().logout()
+
+        val device = server.takeRequest()
+        assertEquals("DELETE", device.method)
+        assertEquals("/api/v1/members/devices", device.url.encodedPath)
+        assertEquals("device-1", device.url.queryParameter("deviceIdentifier"))
+        assertEquals("/api/v1/auth/logout", server.takeRequest().url.encodedPath)
+        assertTrue(result.isSuccess)
+        assertNull(tokenStore.saved)
+    }
+
+    @Test
+    fun 기기_등록_삭제가_실패해도_로그아웃한다() = runTest {
+        tokenStore.save(AuthTokens("access-1", "refresh-1"))
+        enqueue(404, """{"isSuccess":false,"code":"MEMBER_DEVICE404_1","message":"등록된 기기를 찾을 수 없습니다.","result":null}""")
+        enqueue(200, LOGOUT_BODY)
+
+        val result = repositoryWithDevices().logout()
+
+        server.takeRequest()
+        assertEquals("/api/v1/auth/logout", server.takeRequest().url.encodedPath)
+        assertTrue(result.isSuccess)
+        assertNull(tokenStore.saved)
+    }
+
+    @Test
+    fun 탈퇴하면_기기_등록을_먼저_지운다() = runTest {
+        tokenStore.save(AuthTokens("access-1", "refresh-1"))
+        enqueue(200, DEVICE_DELETE_BODY)
+        enqueue(200, WITHDRAW_BODY)
+
+        val result = repositoryWithDevices().withdraw()
+
+        assertEquals("/api/v1/members/devices", server.takeRequest().url.encodedPath)
+        val withdraw = server.takeRequest()
+        assertEquals("DELETE", withdraw.method)
+        assertEquals("/api/v1/members/me", withdraw.url.encodedPath)
+        assertTrue(result.isSuccess)
+        assertNull(tokenStore.saved)
+    }
+
     private companion object {
+        const val DEVICE_DELETE_BODY = """{"isSuccess":true,"code":"MEMBER_DEVICE200_2","message":"기기가 성공적으로 삭제되었습니다.","result":null}"""
         const val WITHDRAW_BODY = """{"isSuccess":true,"code":"MEMBER200_2","message":"회원 탈퇴가 완료되었습니다.","result":null}"""
         const val LOGOUT_BODY = """{"isSuccess":true,"code":"AUTH200_3","message":"로그아웃 성공","result":null}"""
 

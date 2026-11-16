@@ -44,6 +44,8 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.core)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
+    // 푸시 알림(FCM) 토큰을 받아 서버에 기기를 등록한다
+    implementation(libs.firebase.messaging)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)

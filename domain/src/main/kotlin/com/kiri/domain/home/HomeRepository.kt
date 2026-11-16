@@ -62,6 +62,7 @@ data class FamilyHome(
     // 가족 공간을 만든 방장의 회원 id. 가족명은 방장만 바꿀 수 있다. 모르면 null
     val ownerId: String? = null,
     val recommendationsLoadFailed: Boolean = false,
+    val outdoorRecommendations: List<HomeRecommendation> = emptyList(),
 ) {
     val browsing: Boolean
         get() = familyName == null
@@ -174,6 +175,8 @@ interface HomeRepository {
 
     // 가족명·구성원이 바뀌었을 때 재사용하던 가족 정보를 버린다. 다음 family() 는 새로 불러온다
     suspend fun invalidateFamily() {}
+
+    suspend fun loadRecordedQuestion(date: LocalDate, questionId: String? = null): com.kiri.domain.record.RecordedQuestion? = null
 
     suspend fun saveAnswer(question: DailyQuestion, answer: String): FamilyHome
 

@@ -35,7 +35,7 @@ private const val RECOMMENDATION_ROUTE = "home_graph/recommendation"
 fun serverMissionDetailRoute(missionId: Long): String = "$RECOMMENDATION_ROUTE/$missionId"
 
 /** Registers this feature in the main tab back stack. */
-fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: () -> Unit, onSchedule: (String) -> Unit = {}, onRespondSchedule: (String) -> Unit = onSchedule, onTasteSettings: () -> Unit = {}, onFamilyInvite: () -> Unit = {}, onCreateFamily: () -> Unit = {}, onJoinFamily: () -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
+fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: () -> Unit, onSchedule: (String) -> Unit = {}, onRespondSchedule: (String) -> Unit = onSchedule, onTasteSettings: () -> Unit = {}, onFamilyInvite: () -> Unit = {}, onCreateFamily: () -> Unit = {}, onJoinFamily: () -> Unit = {}, onAnswerEditingChanged: (Boolean) -> Unit = {}, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
     navigation(startDestination = START_ROUTE, route = GRAPH_ROUTE) {
         scheduleDestinations()
         composable("$RECOMMENDATION_ROUTE/{missionId}") {
@@ -59,6 +59,7 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
         }
         composable(START_ROUTE) {
             HomeRoute(
+                onAnswerEditingChanged = onAnswerEditingChanged,
                 onMissionClick = { id ->
                     val route = id.toLongOrNull()?.let(::serverMissionDetailRoute)
                         ?: "$DETAIL_ROUTE/${Uri.encode(id)}"

@@ -104,7 +104,13 @@ fun MypageDialog(
     }
 }
 
-enum class MypageDialogButtonTone { Neutral, Accent }
+enum class MypageDialogButtonTone {
+    Neutral,
+
+    // 바탕이 Bg.Primary 인 팝업(알림 시간 설정)에서 Neutral 버튼이 바탕에 묻히지 않도록 한 단계 밝게 쓴다
+    NeutralOnPrimary,
+    Accent,
+}
 
 // KIRI/Button Layout=Sheet. 팝업 안에서 나란히 놓이는 54dp 높이 버튼
 @Composable
@@ -120,6 +126,9 @@ fun RowScope.MypageDialogButton(
         // Sheet 레이아웃의 Neutral 은 일반 버튼(Neutral700)보다 어두운 바탕을 쓴다
         MypageDialogButtonTone.Neutral ->
             (if (pressed) KiriComponentColor.Button.FilledNeutral.BgPressed else KiriColor.Bg.Primary) to
+                KiriComponentColor.Button.FilledNeutral.ContentDefault
+        MypageDialogButtonTone.NeutralOnPrimary ->
+            (if (pressed) KiriComponentColor.Button.FilledNeutral.BgPressed else KiriColor.Bg.Secondary) to
                 KiriComponentColor.Button.FilledNeutral.ContentDefault
         MypageDialogButtonTone.Accent -> with(KiriComponentColor.Button.FilledAccent) {
             (if (pressed) BgPressed else BgDefault) to ContentDefault

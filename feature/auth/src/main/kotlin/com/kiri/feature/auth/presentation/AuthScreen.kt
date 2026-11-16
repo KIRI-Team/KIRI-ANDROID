@@ -30,6 +30,9 @@ import dagger.hilt.android.EntryPointAccessors
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.launch
 
+import com.kiri.uikit.permission.NotificationPermissionMoment
+import com.kiri.uikit.permission.NotificationPermissionPrompt
+
 private const val TAG = "AuthRoute"
 
 @Composable
@@ -77,6 +80,11 @@ fun AuthRoute(
                 }
             }
         }
+    }
+
+    // 알림 권한은 약관 동의 화면에 처음 들어올 때 묻는다
+    if (state.currentStep == AuthStep.TERMS_AGREEMENT) {
+        NotificationPermissionPrompt(NotificationPermissionMoment.TERMS)
     }
 
     AuthScreen(

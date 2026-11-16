@@ -18,6 +18,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.kiri.domain.home.hasValidQuestionAnswerLength
+import com.kiri.domain.home.limitQuestionAnswerLength
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.color.KiriComponentColor
 import com.kiri.uikit.component.KiriAnswerPopup
@@ -52,7 +54,7 @@ internal fun AnswerEditor(
             Text("오늘의 질문에 답변해주세요!", color = HomeSecondary, fontSize = 16.sp)
             Spacer(Modifier.height(36.dp))
             TextField(
-                value = draft, onValueChange = { onChange(it.take(500)) }, enabled = !busy,
+                value = draft, onValueChange = { onChange(it.limitQuestionAnswerLength()) }, enabled = !busy,
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "오늘의 질문 답변" },
                 placeholder = { Text("답변을 입력하세요.") },
                 shape = RoundedCornerShape(18.dp),
@@ -70,7 +72,7 @@ internal fun AnswerEditor(
             Spacer(Modifier.height(24.dp))
         }
         Button(
-            onClick = onSave, enabled = draft.isNotBlank() && !busy,
+            onClick = onSave, enabled = draft.isNotBlank() && draft.hasValidQuestionAnswerLength() && !busy,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp).heightIn(min = 54.dp),
             shape = RoundedCornerShape(30.dp),
             colors = ButtonDefaults.buttonColors(containerColor = HomeAccent, contentColor = HomeBackground,
