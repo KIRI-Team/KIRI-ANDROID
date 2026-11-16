@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 앱 테마. 화면을 그리기 전 창 바탕을 앱 배경색으로 칠해 흰 화면이 번쩍이지 않게 한다 -->
+    <style name="Theme.Kiri" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/kiri_splash_background</item>
+    </style>
+</resources>

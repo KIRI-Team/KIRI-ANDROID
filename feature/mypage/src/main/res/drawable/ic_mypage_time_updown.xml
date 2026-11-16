@@ -1,0 +1,22 @@
+<!-- 알림 시간 설정 칸의 위·아래 화살표. Figma 11013:72811 (좌우 화살표를 -90도 돌려 위·아래로 쓴다) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  <group
+      android:pivotX="12"
+      android:pivotY="12"
+      android:rotation="-90">
+    <group
+        android:translateX="5"
+        android:translateY="7">
+      <path
+          android:pathData="M5.26966,8.88764C4.9656,9.19171 4.47261,9.19171 4.16854,8.88764L0,4.7191L4.16854,0.550562C4.47261,0.246495 4.9656,0.246495 5.26966,0.550562C5.57373,0.854629 5.57373,1.34762 5.26966,1.65169L2.20225,4.7191L5.26966,7.78652C5.57373,8.09058 5.57373,8.58357 5.26966,8.88764Z"
+          android:fillColor="#404140"/>
+      <path
+          android:pathData="M10.3708,0.550562C10.6749,0.246495 11.1678,0.246495 11.4719,0.550562L15.6404,4.7191L11.4719,8.88764C11.1678,9.19171 10.6749,9.19171 10.3708,8.88764C10.0667,8.58357 10.0667,8.09058 10.3708,7.78652L13.4382,4.7191L10.3708,1.65169C10.0667,1.34762 10.0667,0.854629 10.3708,0.550562Z"
+          android:fillColor="#404140"/>
+    </group>
+  </group>
+</vector>

@@ -31,8 +31,15 @@ class NotificationSettingViewModel @Inject constructor() : ViewModel() {
                 if (!_uiState.value.canChangeRegular) return
                 _uiState.update { it.copy(regularEnabled = !it.regularEnabled) }
             }
-            // TODO: 시간 선택 디자인이 정해지면 시간을 고르고 regularTime 을 바꾼다
-            NotificationSettingUiEvent.RegularTimeClicked -> Unit
+            NotificationSettingUiEvent.RegularTimeClicked -> {
+                if (!_uiState.value.canChangeRegularTime) return
+                _uiState.update { it.copy(timeDialogVisible = true) }
+            }
+            is NotificationSettingUiEvent.RegularTimeSaved -> _uiState.update {
+                // 초 단위는 고를 수 없으니 분까지만 남긴다
+                it.copy(regularTime = event.time.withSecond(0).withNano(0), timeDialogVisible = false)
+            }
+            NotificationSettingUiEvent.TimeDialogDismissed -> _uiState.update { it.copy(timeDialogVisible = false) }
             NotificationSettingUiEvent.BackClicked -> _effect.trySend(NotificationSettingUiEffect.NavigateBack)
         }
     }

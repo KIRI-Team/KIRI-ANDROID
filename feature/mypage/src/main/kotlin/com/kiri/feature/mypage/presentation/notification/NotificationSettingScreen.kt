@@ -122,6 +122,15 @@ fun NotificationSettingScreen(
             )
         }
     }
+
+    if (state.timeDialogVisible) {
+        NotificationTimeDialog(
+            currentTime = state.regularTime,
+            currentTimeText = state.regularTimeText,
+            onSave = { onEvent(NotificationSettingUiEvent.RegularTimeSaved(it)) },
+            onDismiss = { onEvent(NotificationSettingUiEvent.TimeDialogDismissed) },
+        )
+    }
 }
 
 @Composable

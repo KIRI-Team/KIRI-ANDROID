@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12 이상은 앱을 켤 때 시스템 스플래시(배경 + 앱 아이콘)를 항상 보여준다.
+         배경을 앱 배경색으로, 아이콘을 투명하게 해서 앱 자체 화면 전에 단색 화면만 잠깐 지나가게 한다.
+         시스템 스플래시는 첫 화면이 그려지면 바로 사라진다 (따로 붙잡아 두지 않는다) -->
+    <style name="Theme.Kiri" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/kiri_splash_background</item>
+        <item name="android:windowSplashScreenBackground">@color/kiri_splash_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/kiri_splash_blank_icon</item>
+    </style>
+</resources>

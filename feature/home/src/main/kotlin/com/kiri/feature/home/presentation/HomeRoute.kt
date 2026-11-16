@@ -18,6 +18,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.kiri.domain.home.*
 import com.kiri.feature.home.HomeViewModel
 import com.kiri.feature.home.model.*
+import com.kiri.uikit.permission.NotificationPermissionMoment
+import com.kiri.uikit.permission.NotificationPermissionPrompt
 
 @Composable
 fun HomeRoute(
@@ -53,6 +55,8 @@ fun HomeRoute(
             }
         }
     }
+    // 약관 화면에서 알림 권한을 거절했거나 묻지 못했으면 홈에서 한 번 더 묻는다
+    NotificationPermissionPrompt(NotificationPermissionMoment.HOME)
     val reportEditing by rememberUpdatedState(onAnswerEditingChanged)
     DisposableEffect(state.editing) {
         reportEditing(state.editing)
