@@ -9,10 +9,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import com.kiri.app.navigation.KiriApp
+import com.kiri.app.push.NotificationPermissionPromptEnabled
 import com.kiri.domain.model.invite.InviteLink
 import com.kiri.domain.repository.AuthRepository
 import com.kiri.domain.repository.PendingInviteRepository
 import com.kiri.uikit.KiriTheme
+import com.kiri.uikit.permission.LocalNotificationPermissionPromptEnabled
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.NonCancellable
@@ -28,6 +30,11 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var authRepository: AuthRepository
 
+    @JvmField
+    @Inject
+    @NotificationPermissionPromptEnabled
+    var notificationPermissionPromptEnabled: Boolean = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // 화면 배경이 상태바/내비게이션 바 뒤까지 이어지도록 하고, 어두운 배경에 맞춰 바 아이콘은 밝게 표시한다
         enableEdgeToEdge(
@@ -37,7 +44,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             androidx.compose.runtime.CompositionLocalProvider(
-                com.kiri.uikit.LocalKiriClock provides clock
+                com.kiri.uikit.LocalKiriClock provides clock,
+                LocalNotificationPermissionPromptEnabled provides notificationPermissionPromptEnabled,
             ) {
                 KiriTheme { com.kiri.app.navigation.SessionStartup(isLoggedIn = authRepository.isLoggedIn) }
             }

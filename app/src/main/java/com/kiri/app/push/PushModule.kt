@@ -32,6 +32,19 @@ object PushModule {
     fun providePushScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 }
 
+// 알림 권한 창을 띄울지. UI 테스트에서는 시스템 권한 창이 화면을 가리지 않도록 false 로 바꾼다
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class NotificationPermissionPromptEnabled
+
+@Module
+@InstallIn(SingletonComponent::class)
+object NotificationPermissionPromptModule {
+    @Provides
+    @NotificationPermissionPromptEnabled
+    fun provideNotificationPermissionPromptEnabled(): Boolean = true
+}
+
 // Firebase 에서 이 기기의 FCM 토큰을 받는다. 실패하거나 취소되면 null
 private object FirebasePushTokenProvider : PushTokenProvider {
     override suspend fun token(): String? = suspendCancellableCoroutine { continuation ->
