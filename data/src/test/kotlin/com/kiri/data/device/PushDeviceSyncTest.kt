@@ -9,8 +9,8 @@ import com.kiri.domain.repository.PushDeviceRepository
 import java.io.IOException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -80,7 +80,7 @@ class PushDeviceSyncTest {
         assertEquals(3, devices.registered.size)
 
         // 성공한 뒤에는 더 보내지 않는다
-        advanceUntilIdle()
+        runAllRetries()
         assertEquals(3, devices.registered.size)
     }
 
@@ -94,7 +94,7 @@ class PushDeviceSyncTest {
         tokens.save(AuthTokens("access-1", "refresh-1"))
 
         backgroundScope.launch { sync().run() }
-        advanceUntilIdle()
+        runAllRetries()
 
         assertEquals(3, devices.registered.size)
     }
@@ -105,7 +105,7 @@ class PushDeviceSyncTest {
         tokens.save(AuthTokens("access-1", "refresh-1"))
 
         backgroundScope.launch { sync().run() }
-        advanceUntilIdle()
+        runAllRetries()
 
         assertEquals(MAX_ATTEMPTS, devices.registered.size)
     }
@@ -118,7 +118,7 @@ class PushDeviceSyncTest {
         backgroundScope.launch { sync().run() }
         runCurrent()
         tokens.clear()
-        advanceUntilIdle()
+        runAllRetries()
 
         assertEquals(1, devices.registered.size)
     }
@@ -136,7 +136,7 @@ class PushDeviceSyncTest {
         tokens.save(AuthTokens("access-1", "refresh-1"))
 
         backgroundScope.launch { sync(flaky).run() }
-        advanceUntilIdle()
+        runAllRetries()
 
         assertEquals(3, attempt)
         assertEquals(listOf("fcm-2"), devices.registered)
@@ -162,6 +162,12 @@ class PushDeviceSyncTest {
         sync().onNewToken("fcm-new")
 
         assertEquals(listOf("fcm-new", "fcm-new"), devices.registered)
+    }
+
+    // advanceUntilIdle 은 backgroundScope 의 작업을 진행시키지 않아, 모든 재시도 간격(약 5분)보다 길게 시간을 넘긴다
+    private fun TestScope.runAllRetries() {
+        advanceTimeBy(60 * 60_000L)
+        runCurrent()
     }
 
     // results 에 넣은 순서대로 돌려주고, 다 쓰면 성공한다
