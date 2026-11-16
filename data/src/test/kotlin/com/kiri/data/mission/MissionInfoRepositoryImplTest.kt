@@ -50,7 +50,7 @@ class MissionInfoRepositoryImplTest {
     }
 
     @Test
-    fun 미션_id_경로로_GET_요청하고_미션_장소_준비물_단계를_돌려준다() = runTest {
+    fun 미션_id_경로로_GET_요청하고_미션_장소_단계를_돌려준다() = runTest {
         enqueue(200, SUCCESS)
 
         val mission = repository().getMission(130).getOrThrow()
@@ -71,7 +71,6 @@ class MissionInfoRepositoryImplTest {
         assertEquals(120, mission.durationMaxMinutes)
         assertEquals(WalkingLevel.MEDIUM, mission.walkingLevel)
         assertEquals(MissionPlace(52, "국립현대미술관 서울", "서울특별시 종로구 삼청로 30", 37.5786, 126.98), mission.place)
-        assertEquals(listOf(MissionGuide("사전 예약", "일부 전시 예약 필요")), mission.prepareItems)
         assertEquals(listOf(MissionGuide("상설 전시 관람하기", "마음에 드는 작품 고르기")), mission.steps)
         assertEquals(MissionBucketState.NONE, mission.bucketState)
         assertNull(mission.averageRating)
@@ -109,6 +108,20 @@ class MissionInfoRepositoryImplTest {
         assertEquals("COMMON400_1", (repository().getMission(1).exceptionOrNull() as KiriApiException).code)
     }
 
+    @Test
+    fun 맞춤템은_별도_경로에서_조회하고_빈_배열도_성공으로_처리한다() = runTest {
+        enqueue(200, """{"isSuccess":true,"code":"MISSION200_5","message":"성공","result":[{"title":"신분증","description":"공식 준비물이에요."}]}""")
+        enqueue(200, """{"isSuccess":true,"code":"MISSION200_5","message":"성공","result":[]}""")
+        val repository = repository()
+
+        assertEquals(listOf(MissionGuide("신분증", "공식 준비물이에요.")), repository.getMissionEssentials(130).getOrThrow())
+        val request = server.takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("/api/v1/missions/130/essentials", request.url.encodedPath)
+        assertTrue(repository.getMissionEssentials(131).getOrThrow().isEmpty())
+        assertEquals("/api/v1/missions/131/essentials", server.takeRequest().url.encodedPath)
+    }
+
     private companion object {
         // 명세의 성공 응답 예시
         const val SUCCESS = """{
@@ -141,9 +154,6 @@ class MissionInfoRepositoryImplTest {
       "latitude": 37.5786,
       "longitude": 126.98
     },
-    "prepareItems": [
-      { "title": "사전 예약", "description": "일부 전시 예약 필요" }
-    ],
     "steps": [
       { "title": "상설 전시 관람하기", "description": "마음에 드는 작품 고르기" }
     ],

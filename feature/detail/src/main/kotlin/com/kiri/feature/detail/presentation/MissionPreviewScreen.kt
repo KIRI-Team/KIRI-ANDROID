@@ -56,6 +56,8 @@ fun MissionPreviewScreen(state: MissionPreviewUiState, onBack: () -> Unit, onRet
             detail = state.preview?.detail,
             error = state.error,
             nearbyRankedByServer = state.preview?.detail?.id?.toLongOrNull() != null,
+            nearbyFailed = state.nearbyFailed,
+            essentialsFailed = state.essentialsFailed,
         ),
         onEvent = { event ->
             when (event) {

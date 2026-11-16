@@ -244,6 +244,14 @@ constructor(
                             it.copy(detail = it.detail.copy(detail = schedule.toMissionDetail(id, mission)))
                         }
                     }
+                    val essentials = schedules?.getScheduleEssentials(id) ?: Result.success(emptyList())
+                    essentials.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+                    state.update {
+                        it.copy(detail = it.detail.copy(
+                            detail = it.detail.detail?.copy(essentials = essentials.getOrNull().orEmpty().map { guide -> guide.toSuggestion() }),
+                            essentialsFailed = essentials.isFailure,
+                        ))
+                    }
                 }
                 .onFailure { error ->
                     state.update {
@@ -256,15 +264,15 @@ constructor(
         }
     }
 
-    // 근처 놀거리를 불러온다. 실패하면 비워 두고 화면의 "주변 추천 정보가 아직 없어요" 로 둔다
+    // 근처 놀거리 조회 실패와 결과 없음은 화면에서 구분한다.
     private fun loadNearby(scheduleId: Long) {
         nearbyJob?.cancel()
         nearbyJob = viewModelScope.launch {
             nearbyPlaces.getNearby(scheduleId)
-                .onSuccess { places -> state.update { it.copy(nearby = places) } }
+                .onSuccess { places -> state.update { it.copy(nearby = places, detail = it.detail.copy(nearbyFailed = false)) } }
                 .onFailure { error ->
                     if (error is CancellationException) throw error
-                    state.update { it.copy(nearby = emptyList()) }
+                    state.update { it.copy(nearby = emptyList(), detail = it.detail.copy(nearbyFailed = true)) }
                 }
         }
     }
@@ -504,10 +512,7 @@ constructor(
         state.update { it.copy(detail = it.detail.copy(saving = true, error = null)) }
         viewModelScope.launch {
             try {
-                val keys = draft.photos.map { uri ->
-                    val checkpoint = "uploaded:$uri"
-                    savedState.get<String>(checkpoint) ?: requireNotNull(photos).upload(uri).getOrThrow().also { savedState[checkpoint] = it }
-                }
+                val keys = draft.photos.mapIndexed { index, uri -> uploadReviewPhoto(uri, index) }
                 val id = requireNotNull(scheduleId)
                 val result = reviews.writeReview(id, ScheduleReviewForm(draft.rating, draft.text, requireNotNull(draft.repeatActivity), keys))
                 if (result.isFailure) {
@@ -529,7 +534,8 @@ constructor(
                 onSaved()
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
-                state.update { it.copy(detail = it.detail.copy(error = "기록을 등록하지 못했어요. 입력은 유지됐으니 다시 시도해주세요.")) }
+                val message = if (e is ReviewPhotoUploadException) e.message else "기록을 등록하지 못했어요. 입력은 유지됐으니 다시 시도해주세요."
+                state.update { it.copy(detail = it.detail.copy(error = message)) }
             } finally { state.update { it.copy(detail = it.detail.copy(saving = false)) } }
         }
     }
@@ -542,12 +548,11 @@ constructor(
         state.update { it.copy(detail = it.detail.copy(saving = true, error = null)) }
         viewModelScope.launch {
             try {
-                val keys = draft.photos.map { photo ->
+                val keys = draft.photos.mapIndexed { index, photo ->
                     current.editingPhotoKeys[photo] ?: run {
                         // 서버 주소인데 Key 를 모르면 그대로 보낼 수 없다 (다시 고르게 한다)
                         if (photo.startsWith("http://") || photo.startsWith("https://")) throw MissingPhotoKeyException()
-                        val checkpoint = "uploaded:$photo"
-                        savedState.get<String>(checkpoint) ?: requireNotNull(photos).upload(photo).getOrThrow().also { savedState[checkpoint] = it }
+                        uploadReviewPhoto(photo, index)
                     }
                 }
                 val id = requireNotNull(scheduleId)
@@ -559,6 +564,7 @@ constructor(
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
                 val message = when (e) {
+                    is ReviewPhotoUploadException -> e.message
                     is MissingPhotoKeyException -> "기존 사진 정보를 찾지 못했어요. 사진을 지우고 다시 골라주세요."
                     is com.kiri.domain.model.review.ReviewNotFoundException -> "기록을 찾을 수 없어요. 화면을 새로고침해주세요."
                     is com.kiri.domain.model.review.ReviewAccessDeniedException -> "내가 쓴 기록만 수정할 수 있어요."
@@ -569,6 +575,21 @@ constructor(
             } finally { state.update { it.copy(detail = it.detail.copy(saving = false)) } }
         }
     }
+
+    private suspend fun uploadReviewPhoto(uri: String, index: Int): String {
+        val checkpoint = "uploaded:$uri"
+        savedState.get<String>(checkpoint)?.let { return it }
+        return try {
+            requireNotNull(photos).upload(uri).getOrThrow().also { savedState[checkpoint] = it }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            throw ReviewPhotoUploadException(index + 1, error)
+        }
+    }
+
+    private class ReviewPhotoUploadException(position: Int, cause: Throwable) :
+        Exception("$position" + "번째 사진을 올리지 못했어요. 다시 시도해주세요.", cause)
 
     private class MissingPhotoKeyException : Exception()
 
@@ -686,7 +707,7 @@ internal fun ScheduleDetail.toMissionDetail(scheduleId: Long, mission: MissionIn
     participants = participants.map { DetailParticipant(it.nickname, it.accepted, it.characterImageUrl) },
     completed = status == ScheduleDisplayStatus.COMPLETED,
     activities = mission?.steps.orEmpty().map { it.toSuggestion() },
-    essentials = mission?.prepareItems.orEmpty().map { it.toSuggestion() },
+    essentials = emptyList(),
     nearby = emptyList(),
     walkingLevel = mission?.walkingLevel?.label,
     durationMaxMinutes = mission?.durationMaxMinutes,

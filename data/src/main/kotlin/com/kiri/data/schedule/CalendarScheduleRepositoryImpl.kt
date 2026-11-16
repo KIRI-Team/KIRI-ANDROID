@@ -1,5 +1,7 @@
 package com.kiri.data.schedule
 
+import com.kiri.data.mission.MissionGuideResponse
+import com.kiri.data.mission.toMissionGuide
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiCommand
 import com.kiri.data.network.apiResult
@@ -38,6 +40,10 @@ internal class CalendarScheduleRepositoryImpl @Inject constructor(
             .recoverCatching { error ->
                 if (error is KiriApiException && error.code == NO_FAMILY) emptyList() else throw error
             }
+
+    override suspend fun getScheduleEssentials(scheduleId: Long) =
+        apiResult(json) { api.getScheduleEssentials(scheduleId) }
+            .map { items -> items.map(MissionGuideResponse::toMissionGuide) }
 
     override suspend fun getScheduleDetail(scheduleId: Long): Result<ScheduleDetail> =
         apiResult(json) { api.getScheduleDetail(scheduleId) }

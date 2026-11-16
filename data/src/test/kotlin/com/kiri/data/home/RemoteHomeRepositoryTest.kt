@@ -41,20 +41,43 @@ class RemoteHomeRepositoryTest {
             retrofit.create(MissionApi::class.java).takeIf { weekly || recommendations }, loadRecommendations = recommendations)
     }
 
+    @Test fun knownPastQuestionRefreshesAnswersWithoutRequestingTodaysAssignment() = runTest {
+        MockWebServer().use { server ->
+            server.start()
+            server.reply("""{"question":"지난 질문","answers":[{"isMe":true,"memberId":1,"nickname":"나","isAnswered":true,"answer":"답변"},{"isMe":false,"memberId":2,"nickname":"엄마","isAnswered":false,"answer":null}]}""")
+            val repo = repository(server)
+            val date = java.time.LocalDate.of(2026, 10, 1)
+            assertNull(repo.loadRecordedQuestion(date, null))
+            val past = requireNotNull(repo.loadRecordedQuestion(date, "12"))
+            assertEquals(date, past.date)
+            assertEquals("12", past.questionId)
+            assertEquals(mapOf("1" to "답변"), past.answers)
+            assertEquals("엄마", past.memberNames["2"])
+            assertTrue(!past.everyoneAnswered)
+            assertEquals("/api/v1/questions/12/answers", requireNotNull(server.takeRequest().url).encodedPath)
+            assertEquals(1, server.requestCount)
+        }
+    }
+
     @Test fun homeFeedUsesServerIdsAndImagesAndSurvivesAnswerSave() = runTest {
         MockWebServer().use { server ->
             server.start(); server.family(); server.reply("null", status = 503)
+            server.reply("""{"missions":[{"missionId":90,"title":"전시","category":"EXHIBITION"}],"nextCursor":90,"hasNext":true}""")
             server.reply("""{"missions":[{"missionId":88,"title":"산책하기","category":"OUTDOOR","placeName":"공원","imageUrl":"https://example.com/park.png"}],"hasNext":false}""")
             server.reply("null")
             val repo = repository(server, recommendations = true)
             val home = repo.load()
-            assertEquals("88", home.recommendations.single().id)
-            assertEquals("https://example.com/park.png", home.recommendations.single().imageUrl)
+            assertEquals(listOf("90", "88"), home.recommendations.map { it.id })
+            assertEquals("88", home.outdoorRecommendations.single().id)
+            assertEquals("https://example.com/park.png", home.outdoorRecommendations.single().imageUrl)
             assertEquals(home.recommendations, repo.saveAnswer(requireNotNull(home.question), "답변").recommendations)
             repeat(3) { server.takeRequest() }
             val feed = server.takeRequest()
             assertEquals("/api/v1/missions", feed.url.encodedPath)
-            assertEquals("10", feed.url.queryParameter("size"))
+            assertEquals("50", feed.url.queryParameter("size"))
+            val next = server.takeRequest()
+            assertEquals("90", next.url.queryParameter("cursor"))
+            assertNull(next.url.queryParameter("category"))
             assertEquals("Bearer access", feed.headers["Authorization"])
         }
     }
