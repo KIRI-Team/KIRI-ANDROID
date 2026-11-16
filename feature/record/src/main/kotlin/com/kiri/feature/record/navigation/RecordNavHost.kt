@@ -225,6 +225,11 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
             val parent = remember(entry) { navController.getBackStackEntry(SERVER_SCHEDULE_DETAIL_PATTERN) }
             val viewModel: ServerScheduleDetailViewModel = hiltViewModel(parent)
             val state by viewModel.uiState.collectAsStateWithLifecycle()
+            val context = androidx.compose.ui.platform.LocalContext.current
+            androidx.compose.runtime.LaunchedEffect(state.detail.error) {
+                val error = state.detail.error ?: return@LaunchedEffect
+                android.widget.Toast.makeText(context, error, android.widget.Toast.LENGTH_SHORT).show()
+            }
             MemoryEditorScreen(state.detail.memoryDraft, state.author,
                 onChange = viewModel::updateDraft,
                 onBack = { navController.popBackStack() },

@@ -84,6 +84,15 @@ open class LocalRecordRepository(
         }
     }
 
+    override suspend fun refreshQuestion(date: java.time.LocalDate) = mutex.withLock {
+        val family = family()
+        if (family.browsing || scope == null) return@withLock
+        val existing = state.value.questions[date]
+        if (date != clock.kiriToday() && existing?.questionId == null) return@withLock
+        val fresh = home.loadRecordedQuestion(date, existing?.questionId) ?: return@withLock
+        if (fresh != existing) publish(state.value.copy(questions = state.value.questions + (date to fresh)))
+    }
+
     override suspend fun refresh() = mutex.withLock {
         val family = family()
         if (family.browsing || scope == null) {
@@ -105,6 +114,7 @@ open class LocalRecordRepository(
                         member.id to if (member.accessible) member.nickname else "탈퇴한 멤버"
                     },
                     members.isNotEmpty() && members.all { member -> member.id in family.answers },
+                    it.id,
                 )
             }
         val questions =

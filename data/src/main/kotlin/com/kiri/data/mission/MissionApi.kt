@@ -25,9 +25,11 @@ internal interface MissionApi {
     suspend fun getWeeklyRecommendation(): ApiResponse<WeeklyRecommendationResponse>
 
     // 로그인 토큰이 필요하다. 없거나 노출할 수 없는 미션이면 MISSION404_1, id 형식이 틀리면 COMMON400_1 로 거절된다
-    // TODO: 받은 경로는 mission/{missionId} 였다. 다른 API 와 같이 api/v1 과 복수형을 붙였으니 서버 명세와 대조할 것
     @GET("api/v1/missions/{missionId}")
     suspend fun getMission(@Path("missionId") missionId: Long): ApiResponse<MissionResponse>
+
+    @GET("api/v1/missions/{missionId}/essentials")
+    suspend fun getMissionEssentials(@Path("missionId") missionId: Long): ApiResponse<List<MissionGuideResponse>>
 }
 
 @Serializable
@@ -81,7 +83,6 @@ internal data class MissionResponse(
     val walkingLevel: String? = null,
     val sourceUrl: String? = null,
     val place: MissionPlaceResponse? = null,
-    val prepareItems: List<MissionGuideResponse> = emptyList(),
     val steps: List<MissionGuideResponse> = emptyList(),
     val bucketState: String? = null,
     val averageRating: Double? = null,
@@ -102,6 +103,8 @@ internal data class MissionGuideResponse(
     val title: String,
     val description: String? = null,
 )
+
+internal fun MissionGuideResponse.toMissionGuide() = MissionGuide(title, description)
 
 // 날짜·시간을 읽지 못하면 그 값만 비우고 나머지는 보여준다
 internal fun MissionResponse.toMissionInfo() = MissionInfo(
@@ -124,8 +127,7 @@ internal fun MissionResponse.toMissionInfo() = MissionInfo(
     walkingLevel = WalkingLevel.entries.firstOrNull { it.name == walkingLevel },
     sourceUrl = sourceUrl,
     place = place?.let { MissionPlace(it.placeId, it.name, it.address, it.latitude, it.longitude) },
-    prepareItems = prepareItems.map { MissionGuide(it.title, it.description) },
-    steps = steps.map { MissionGuide(it.title, it.description) },
+    steps = steps.map(MissionGuideResponse::toMissionGuide),
     bucketState = MissionBucketState.entries.firstOrNull { it.name == bucketState } ?: MissionBucketState.NONE,
     averageRating = averageRating,
     reviewCount = reviewCount,

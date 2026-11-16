@@ -154,6 +154,7 @@ constructor(
         try {
             repository.refresh()
             _uiState.update { it.copy(loading = false) }
+            refreshQuestion(uiState.value.selectedDate)
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
@@ -172,6 +173,7 @@ constructor(
                 if (YearMonth.from(event.date) == uiState.value.month) {
                     update { it.copy(selectedDate = event.date) }
                     openSelectedDay()
+                    refreshQuestion(event.date)
                 }
             is RecordUiEvent.SaverSelected -> {
                 val state = uiState.value
@@ -239,6 +241,20 @@ constructor(
     // 고른 날의 활동(기기에 저장된 활동과 열 수 있는 서버 일정) 중 가장 이른 것 하나의 상세 화면으로 간다
     // 날짜 아래에 그날 활동 목록을 따로 보여주지 않으므로, 여러 개가 겹치면 시간이 가장 이른 것을 연다
     // 시간을 모르는 활동은 뒤로 미루고, 시간이 같으면 기기에 저장된 활동을 먼저 연다. 취소·미확정 일정만 있으면 이동하지 않는다
+    private fun refreshQuestion(date: LocalDate) {
+        viewModelScope.launch {
+            try {
+                repository.refreshQuestion(date)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                if (uiState.value.selectedDate == date) {
+                    _uiState.update { it.copy(error = "가족 답변을 새로 불러오지 못했어요.") }
+                }
+            }
+        }
+    }
+
     private fun openSelectedDay() {
         val state = uiState.value
         val candidates: List<Pair<java.time.LocalTime?, RecordUiEffect>> =

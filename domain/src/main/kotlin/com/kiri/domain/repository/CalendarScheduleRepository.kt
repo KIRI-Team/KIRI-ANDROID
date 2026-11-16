@@ -1,5 +1,6 @@
 package com.kiri.domain.repository
 
+import com.kiri.domain.model.mission.MissionGuide
 import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.model.schedule.ScheduleDetail
 import com.kiri.domain.model.schedule.ScheduleUpdate
@@ -18,6 +19,8 @@ interface CalendarScheduleRepository {
     // 가족 공간이 없으면 NoFamilyException, 없거나 다른 가족의 일정이면 ScheduleNotFoundException,
     // 취소된 일정이면 CancelledScheduleException 으로 실패한다
     suspend fun getScheduleDetail(scheduleId: Long): Result<ScheduleDetail>
+
+    suspend fun getScheduleEssentials(scheduleId: Long): Result<List<MissionGuide>> = Result.success(emptyList())
 
     // 제안자가 일정의 날짜·시간·참여자·한 줄을 바꾼다. 바뀌면 기존 수락자는 다시 응답해야 한다
     // 제안자가 아니면 NotScheduleProposerException, 없는 일정이면 ScheduleNotFoundException,

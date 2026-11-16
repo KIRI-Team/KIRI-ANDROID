@@ -29,6 +29,7 @@ fun HomeRoute(
     // 응답이 필요한 일정 카드. 따로 정하지 않으면 일정 상세로 연다
     onRespondSchedule: (String) -> Unit = onScheduleClick,
     viewModel: HomeViewModel = hiltViewModel(),
+    onAnswerEditingChanged: (Boolean) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentDestination by rememberUpdatedState(onDestination)
@@ -51,6 +52,11 @@ fun HomeRoute(
                 }
             }
         }
+    }
+    val reportEditing by rememberUpdatedState(onAnswerEditingChanged)
+    DisposableEffect(state.editing) {
+        reportEditing(state.editing)
+        onDispose { reportEditing(false) }
     }
     HomeScreen(state, viewModel::onEvent)
 }

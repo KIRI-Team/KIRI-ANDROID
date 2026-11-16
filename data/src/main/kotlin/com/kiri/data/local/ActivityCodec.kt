@@ -211,6 +211,7 @@ internal object ActivityCodec {
                             it.answers,
                             it.memberNames,
                             it.everyoneAnswered,
+                            it.questionId,
                         )
                     },
             )
@@ -268,6 +269,7 @@ internal object ActivityCodec {
                                 it.answers,
                                 it.names,
                                 it.everyoneAnswered,
+                                it.questionId,
                             )
                     },
                 )
@@ -395,6 +397,7 @@ private data class StoredQuestion(
     val answers: Map<String, String>,
     val names: Map<String, String>,
     val everyoneAnswered: Boolean,
+    val questionId: String? = null,
 )
 
 @Serializable
