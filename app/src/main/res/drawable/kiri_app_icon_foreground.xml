@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 적응형 아이콘 앞면 108dp 중 가운데 48dp 에 로고를 둔다 (30dp 씩 여백).
+     기기가 잘라내도 안전한 영역(지름 66dp 원) 안에 로고 모양이 모두 들어간다 -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/kiri_app_icon_logo"
+    android:inset="30dp" />
