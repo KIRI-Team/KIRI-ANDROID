@@ -100,8 +100,7 @@ class HomeViewModel @Inject constructor(
                 ) }
             }
             is HomeUiEvent.AnswerChanged -> if (!uiState.value.busy) _uiState.update {
-                if (event.text.hasValidQuestionAnswerLength()) it.copy(draft = event.text, error = null)
-                else it.copy(error = "답변은 500자까지 입력할 수 있어요.")
+                it.copy(draft = event.text, error = null)
             }
             HomeUiEvent.AnswerSaveClicked -> save()
             HomeUiEvent.PokeClicked -> poke()
