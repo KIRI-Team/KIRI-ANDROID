@@ -54,7 +54,7 @@ class RemoteHomeRepositoryTest {
             assertEquals(mapOf("1" to "답변"), past.answers)
             assertEquals("엄마", past.memberNames["2"])
             assertTrue(!past.everyoneAnswered)
-            assertEquals("/api/v1/questions/12/answers", server.takeRequest().path)
+            assertEquals("/api/v1/questions/12/answers", requireNotNull(server.takeRequest().url).encodedPath)
             assertEquals(1, server.requestCount)
         }
     }
