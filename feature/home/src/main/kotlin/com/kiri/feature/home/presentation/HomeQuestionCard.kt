@@ -12,9 +12,9 @@ import androidx.compose.ui.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.*
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
 import com.kiri.domain.home.*
@@ -44,9 +44,7 @@ internal fun QuestionMissionSection(
                 color = KiriColor.Text.Strong,
                 style = com.kiri.uikit.component.KiriDetailTypography.Title,
             )
-            if (showingMission) {
-                MissionHeaderCaption(Modifier.weight(1f))
-            } else {
+            if (!showingMission) {
                 Text(
                     "다른 가족들의 답변을 기다려요!",
                     Modifier.weight(1f),
@@ -55,6 +53,17 @@ internal fun QuestionMissionSection(
                     style = KiriTypography.BodyMedium.copy(lineBreak = LineBreak.Heading),
                 )
             }
+        }
+        if (showingMission) {
+            Text(
+                "버킷리스트에서 일정을 확정해보세요!",
+                modifier = Modifier.fillMaxWidth(),
+                color = KiriColor.Text.Accent,
+                style = KiriTypography.BodyMedium,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
         Spacer(Modifier.height(12.dp))
         Box(cardModifier) {
@@ -66,28 +75,18 @@ internal fun QuestionMissionSection(
                 onEdit,
                 onMissionClick,
                 flipIconModifier,
-                onWeeklyScheduleClick,
             )
         }
-    }
-}
-
-@Composable
-private fun MissionHeaderCaption(modifier: Modifier = Modifier) {
-    val textMeasurer = rememberTextMeasurer()
-    val style = KiriTypography.BodyMedium
-    val firstPhrase = "버킷리스트에서 일정을"
-    val lastPhrase = "확정해보세요!"
-    val singleLine = "$firstPhrase $lastPhrase"
-    BoxWithConstraints(modifier) {
-        val fitsOnOneLine = textMeasurer.measure(singleLine, style, softWrap = false).size.width <= constraints.maxWidth
-        Text(
-            if (fitsOnOneLine) singleLine else "$firstPhrase\n$lastPhrase",
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.End,
-            color = KiriColor.Text.Accent,
-            style = style.copy(lineBreak = LineBreak.Heading),
-        )
+        val mission = home.mission
+        if (showingMission && !home.browsing && mission != null &&
+            !mission.recommendationOnly && !mission.unavailable && !mission.completed) {
+            val hasSchedule = home.schedules.any {
+                it.weeklyMissionId == mission.id && it.status != ScheduleStatus.CANCELLED
+            }
+            TextButton(onClick = onWeeklyScheduleClick, modifier = Modifier.align(Alignment.End)) {
+                Text(if (hasSchedule) "일정 보기" else "일정 잡기")
+            }
+        }
     }
 }
 
@@ -100,7 +99,6 @@ private fun QuestionMissionCard(
     onEdit: () -> Unit,
     onMissionClick: (String) -> Unit,
     flipIconModifier: Modifier = Modifier,
-    onWeeklyScheduleClick: () -> Unit = {},
 ) {
     val modifier =
         Modifier.fillMaxWidth()
@@ -131,10 +129,6 @@ private fun QuestionMissionCard(
                     },
                     onFlip = { onFlip() },
                     flipIconModifier = flipIconModifier,
-                    onScheduleClick = if (home.browsing || mission?.recommendationOnly == true) null else onWeeklyScheduleClick,
-                    scheduleLabel = if (home.schedules.any {
-                        it.weeklyMissionId == mission?.id && it.status != ScheduleStatus.CANCELLED
-                    }) "일정 보기" else "일정 잡기",
                 )
             } else QuestionCardContent(home, onFlip, flipIconModifier)
         }

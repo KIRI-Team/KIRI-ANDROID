@@ -278,10 +278,10 @@ fun KiriMissionCard(
                 horizontalArrangement = Arrangement.spacedBy(9.dp),
                 verticalAlignment = Alignment.Top,
             ) {
-                Column(Modifier.weight(1f).heightIn(min = 96.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.weight(1f).heightIn(min = 96.dp), verticalArrangement = Arrangement.SpaceBetween) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(title, color = KiriColor.Text.Strong, style = KiriDetailTypography.Title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(place.orEmpty(), color = KiriColor.Text.Secondary, style = KiriDetailTypography.Small, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(place.orEmpty(), color = KiriColor.Text.Secondary, style = com.kiri.uikit.KiriTypography.BodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         keywords.take(2).forEach { label ->
@@ -294,7 +294,7 @@ fun KiriMissionCard(
                         Button(onClick = action) { Text(scheduleLabel) }
                     }
                 }
-                Spacer(Modifier.width(24.dp))
+                Spacer(Modifier.width(18.dp))
             }
         }
         KiriCardFlipButton("질문 카드로 전환", onFlip, Modifier.align(Alignment.TopEnd).padding(end = 15.dp, top = 18.dp), flipIconModifier)

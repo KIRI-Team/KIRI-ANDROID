@@ -78,7 +78,6 @@ private val mission = MissionInfo(
     walkingLevel = WalkingLevel.MEDIUM,
     sourceUrl = null,
     place = MissionPlace(52, "국립현대미술관 서울", "서울특별시 종로구 삼청로 30", null, null),
-    prepareItems = listOf(MissionGuide("사전 예약", null)),
     steps = listOf(MissionGuide("상설 전시 관람하기", "마음에 드는 작품 고르기")),
     bucketState = MissionBucketState.NONE,
     averageRating = null,
@@ -116,6 +115,9 @@ class ServerScheduleDetailViewModelTest {
         override suspend fun getMonthlySchedules(month: YearMonth): Result<List<CalendarSchedule>> =
             Result.success(emptyList())
 
+        override suspend fun getScheduleEssentials(scheduleId: Long): Result<List<MissionGuide>> =
+            Result.success(listOf(MissionGuide("사전 예약", null)))
+
         override suspend fun getScheduleDetail(scheduleId: Long): Result<ScheduleDetail> {
             requested += scheduleId
             return result
@@ -139,6 +141,7 @@ class ServerScheduleDetailViewModelTest {
 
     private class FakeMissions(var result: Result<MissionInfo> = Result.success(mission)) : MissionInfoRepository {
         val requested = mutableListOf<Long>()
+
 
         override suspend fun getMission(missionId: Long): Result<MissionInfo> {
             requested += missionId
@@ -207,6 +210,7 @@ class ServerScheduleDetailViewModelTest {
 
         val failed = viewModel(FakeSchedules(Result.success(detail)), nearby = FakeNearby(Result.failure(IOException())))
         assertTrue(failed.uiState.value.nearby.isEmpty())
+        assertTrue(failed.uiState.value.screenDetail.nearbyFailed)
         // 근처 놀거리 실패는 상세 화면 오류로 보지 않는다
         assertNull(failed.uiState.value.detail.error)
     }

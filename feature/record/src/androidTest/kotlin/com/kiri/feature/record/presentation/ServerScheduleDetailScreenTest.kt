@@ -125,7 +125,6 @@ class ServerScheduleDetailScreenTest {
             openingTime = null, closingTime = null, price = 0, durationMinMinutes = 60, durationMaxMinutes = 120,
             walkingLevel = WalkingLevel.MEDIUM, sourceUrl = null,
             place = MissionPlace(52, "국립현대미술관 서울", null, null, null),
-            prepareItems = listOf(MissionGuide("사전 예약", "일부 전시 예약 필요")),
             steps = listOf(MissionGuide("상설 전시 관람하기", "마음에 드는 작품 고르기")),
             bucketState = MissionBucketState.NONE, averageRating = null, reviewCount = 0,
         )
@@ -133,7 +132,12 @@ class ServerScheduleDetailScreenTest {
             KiriTheme {
                 ServerScheduleDetailScreen(
                     ServerScheduleDetailUiState(
-                        detail = DetailUiState(loading = false, detail = detail.toMissionDetail(7, mission)),
+                        detail = DetailUiState(
+                            loading = false,
+                            detail = detail.toMissionDetail(7, mission).copy(
+                                essentials = listOf(com.kiri.domain.detail.DetailSuggestion("사전 예약", "")),
+                            ),
+                        ),
                         schedule = detail,
                     ),
                     {},

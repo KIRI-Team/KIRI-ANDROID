@@ -22,7 +22,7 @@ data class HomeUiState(
 ) {
     val loadError: Boolean get() = loadFailure != null
 
-    val canSave: Boolean get() = editing && draft.isNotBlank() && draft.length <= 500 && !busy && home?.question != null
+    val canSave: Boolean get() = editing && draft.isNotBlank() && draft.hasValidQuestionAnswerLength() && !busy && home?.question != null
 }
 
 // 홈 오류 화면에 보여줄 안내. 연결 문제·서버 오류·로그인 만료를 구분한다
