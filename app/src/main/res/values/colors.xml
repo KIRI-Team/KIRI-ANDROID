@@ -4,4 +4,6 @@
     <color name="kiri_notification_color">#FF9BEA51</color>
     <!-- 앱 아이콘 배경. 기기가 아이콘을 잘라내는 모양 안을 채우며, 로고의 투명한 모서리·오른쪽 홈에 보인다 -->
     <color name="kiri_app_icon_background">#FFFFFFFF</color>
+    <!-- 시스템 스플래시·창 바탕색. 앱 첫 화면(로그인 인트로, 로그인 확인 중 화면) 배경인 KiriColor.Bg.Base 와 같은 값 -->
+    <color name="kiri_splash_background">#FF1A1A1A</color>
 </resources>

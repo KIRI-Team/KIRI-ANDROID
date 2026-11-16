@@ -30,8 +30,9 @@ internal class DataStoreDeviceIdStore @Inject constructor(
     // edit 는 한 번에 하나씩 실행되므로 동시에 불려도 식별자는 하나만 만들어진다
     override suspend fun get(): String {
         dataStore.data.first()[DEVICE_ID]?.let { return it }
-        return dataStore.edit { if (it[DEVICE_ID] == null) it[DEVICE_ID] = UUID.randomUUID().toString() }
-            .getValue(DEVICE_ID)
+        val saved = dataStore.edit { if (it[DEVICE_ID] == null) it[DEVICE_ID] = UUID.randomUUID().toString() }
+        // 바로 위 edit 에서 비어 있으면 채웠으므로 항상 값이 있다
+        return checkNotNull(saved[DEVICE_ID])
     }
 
     private companion object {
