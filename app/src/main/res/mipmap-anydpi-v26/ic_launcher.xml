@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 앱 아이콘 (Figma 10100:28495 "logo_최종 1"). minSdk 26 이라 모든 기기가 이 적응형 아이콘을 쓴다.
-     런처가 원·둥근 사각형 등 기기 모양으로 잘라내므로, 로고 전체가 잘리지 않도록 가운데 48dp 에 둔다 -->
+     런처가 원·둥근 사각형 등 기기 모양으로 잘라내므로, 로고 모서리가 잘리지 않는 한도에서 가장 크게 가운데 56dp 에 둔다 -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/kiri_app_icon_background" />
     <foreground android:drawable="@drawable/kiri_app_icon_foreground" />
