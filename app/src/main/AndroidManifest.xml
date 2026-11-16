@@ -15,5 +15,11 @@
                 <data android:scheme="https" android:host="kiri.app" android:pathPrefix="/invite/" />
             </intent-filter>
         </activity>
+        <!-- FCM 토큰이 바뀌면 서버의 기기 등록을 새 토큰으로 바꾼다 -->
+        <service android:name=".push.KiriMessagingService" android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>
