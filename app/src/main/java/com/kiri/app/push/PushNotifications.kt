@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.BitmapFactory
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.kiri.app.MainActivity
@@ -51,8 +50,6 @@ internal fun showPushNotification(context: Context, content: PushContent, notifi
     val notification = NotificationCompat.Builder(context, GENERAL_CHANNEL_ID)
         .setSmallIcon(R.drawable.ic_notification)
         .setColor(context.getColor(R.color.kiri_notification_color))
-        // KIRI 캐릭터 얼굴 (Figma 10992:12904). 배경이 꽉 찬 이미지라 상태바 아이콘이 아닌 알림 오른쪽 큰 아이콘으로 쓴다
-        .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.kiri_notification_large))
         .setContentTitle(content.title ?: context.getString(R.string.app_name))
         .setContentText(content.body)
         .setStyle(NotificationCompat.BigTextStyle().bigText(content.body))
