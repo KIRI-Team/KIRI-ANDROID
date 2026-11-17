@@ -94,6 +94,29 @@ class ServerScheduleDetailScreenTest {
     }
 
     @Test
+    fun todayScheduleWithoutReviewPermissionHidesReviewAction() {
+        // 당일 일정이어도 수락하지 않았거나 시작 전이면(canReview = false) 기록하러가기를 보여주지 않는다
+        var fromHome by mutableStateOf(true)
+        compose.setContent {
+            KiriTheme {
+                ServerScheduleDetailScreen(
+                    ServerScheduleDetailUiState(
+                        detail = DetailUiState(loading = false, detail = detail.toMissionDetail(7)),
+                        schedule = detail,
+                        canReview = false,
+                    ),
+                    onEvent = {},
+                    fromHome = fromHome,
+                )
+            }
+        }
+        compose.onNodeWithTag("open_memory_editor").assertDoesNotExist()
+
+        fromHome = false
+        compose.onNodeWithTag("open_memory_editor").assertDoesNotExist()
+    }
+
+    @Test
     fun showsDateStatusTimeAndParticipantsFromScheduleDetail() {
         compose.setContent {
             KiriTheme {

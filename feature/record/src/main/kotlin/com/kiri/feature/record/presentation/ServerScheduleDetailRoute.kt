@@ -291,9 +291,9 @@ fun ServerScheduleDetailScreen(
                     title = state.appBarTitle,
                     badge = it.status.badgeLabel(),
                     showCustom = state.canCustomize && !todayFromHome,
-                    // 오늘의 추억 기록하러가기. 당일이거나 기록을 남길 수 있는 일정(수락한 시작된 일정)이면 홈·기록 탭 모두 보여준다.
+                    // 오늘의 추억 기록하러가기. 기록을 남길 수 있는 일정(내가 수락했고 시작 시각이 지난 일정)일 때만 홈·기록 탭 모두 보여준다.
                     // 기록 탭의 완료 일정은 위의 기록 화면으로 보여준다
-                    showRecord = it.status == ScheduleDisplayStatus.TODAY || state.canReview || (fromHome && state.showsRecord),
+                    showRecord = state.canReview,
                     showConditionsInNearby = todayFromHome,
                     recordEnabled = state.canReview && !state.detail.saving && !state.reviewSaved && state.reviews.none { it.isMine },
                     neutralBadge = it.status.usesNeutralBadge(),
