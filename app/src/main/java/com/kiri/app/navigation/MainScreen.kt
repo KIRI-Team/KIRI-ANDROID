@@ -23,6 +23,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.navigation.compose.rememberNavController
 import com.kiri.uikit.color.KiriColor
+import com.kiri.uikit.component.LocalKiriBottomBarInset
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.currentBackStackEntryAsState
+
+private val TAB_START_ROUTES = TopLevelDestination.entries.map { it.startRoute }.toSet()
 
 // onNavigateToLogin: 로그아웃·회원탈퇴 뒤 로그인 화면으로 간다
 @Composable
@@ -50,10 +57,17 @@ fun MainScreen(onNavigateToLogin: () -> Unit = {}, accessViewModel: FamilyAccess
             )
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).testTag("main_content")) {
-            KiriNavHost(navController, Modifier.fillMaxSize(), onNavigateToLogin = onNavigateToLogin,
-                onCreateFamily = onCreateFamily, onJoinFamily = onJoinFamily,
-                onHomeAnswerEditingChanged = { editingHomeAnswer = it })
+        // 탭 첫 화면은 콘텐츠를 떠 있는 바 뒤까지 그리고, 가려지는 높이는 스크롤 끝 여백으로 넘긴다.
+        // 하단 버튼이 있는 상세 화면은 지금처럼 바 위에서 끝낸다
+        val route = navController.currentBackStackEntryAsState().value?.destination?.route
+        val overlayBar = route in TAB_START_ROUTES
+        val contentPadding = if (overlayBar) PaddingValues(top = padding.calculateTopPadding()) else padding
+        CompositionLocalProvider(LocalKiriBottomBarInset provides if (overlayBar) padding.calculateBottomPadding() else 0.dp) {
+            Box(Modifier.fillMaxSize().padding(contentPadding).consumeWindowInsets(padding).testTag("main_content")) {
+                KiriNavHost(navController, Modifier.fillMaxSize(), onNavigateToLogin = onNavigateToLogin,
+                    onCreateFamily = onCreateFamily, onJoinFamily = onJoinFamily,
+                    onHomeAnswerEditingChanged = { editingHomeAnswer = it })
+            }
         }
     }
 }

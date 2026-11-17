@@ -7,9 +7,9 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.platform.app.InstrumentationRegistry
-import com.kiri.data.home.FakeHomeRepository
-import com.kiri.data.mission.FakeMissionRepository
-import com.kiri.data.record.FakeRecordRepository
+import com.kiri.domain.record.QuestionHistoryRepository
+import com.kiri.domain.record.RecordedQuestion
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.kiri.feature.record.RecordViewModel
 import com.kiri.feature.record.model.*
 import com.kiri.uikit.KiriTheme
@@ -78,42 +78,18 @@ class RecordScreenTest {
     @Test
     fun tappingADateOnlySelectsItAndDoesNotListThatDaysActivities() {
         val date = LocalDate.of(2026, 10, 13)
-        val entries =
-            listOf(
-                com.kiri.domain.record.CalendarEntry(
-                    "photo",
-                    "river",
-                    date,
-                    com.kiri.domain.record.CalendarEntryKind.MEMORY,
-                    "오전 활동",
-                    java.time.LocalTime.of(10, 0),
-                ),
-                com.kiri.domain.record.CalendarEntry(
-                    "schedule",
-                    "river",
-                    date,
-                    com.kiri.domain.record.CalendarEntryKind.SCHEDULE,
-                    "오후 약속",
-                    java.time.LocalTime.of(15, 0),
-                ),
-            )
         val events = mutableListOf<RecordUiEvent>()
         compose.setContent {
             KiriTheme {
                 RecordScreen(
                     RecordUiState(
                         today = date,
-                        entries = entries,
                         calendarMarks = mapOf(date to RecordCalendarMark.PHOTO_FIRST),
                     ),
                     { events += it },
                 )
             }
         }
-        compose
-            .onNodeWithTag("record_day_count_$date", useUnmergedTree = true)
-            .assertIsDisplayed()
-            .assertTextEquals("+1")
         compose.onNodeWithTag("record_date_$date").performScrollTo().performClick()
         // 어느 활동을 열지는 ViewModel 이 정하므로 화면은 날짜 선택만 알린다
         compose.runOnIdle { org.junit.Assert.assertEquals(listOf(RecordUiEvent.DateSelected(date)), events) }
@@ -143,15 +119,11 @@ class RecordScreenTest {
     }
 
     private fun start() {
-        val repo =
-            FakeRecordRepository(
-                FakeHomeRepository(
-                    Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC),
-                    latencyMillis = 0,
-                ),
-                FakeMissionRepository(),
-                clock = Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC),
-            )
+        // 모아 둔 지난 질문이 없는 기록
+        val repo = object : QuestionHistoryRepository {
+            override val questions = MutableStateFlow<Map<LocalDate, RecordedQuestion>>(emptyMap())
+            override suspend fun refresh() {}
+        }
         val vm =
             RecordViewModel(
                 SavedStateHandle(),

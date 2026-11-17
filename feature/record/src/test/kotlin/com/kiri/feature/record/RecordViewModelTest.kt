@@ -1,9 +1,7 @@
 package com.kiri.feature.record
 
 import androidx.lifecycle.SavedStateHandle
-import com.kiri.data.home.FakeHomeRepository
-import com.kiri.data.mission.FakeMissionRepository
-import com.kiri.data.record.FakeRecordRepository
+import com.kiri.domain.record.RecordedQuestion
 import com.kiri.feature.record.model.*
 import com.kiri.feature.record.presentation.sheet.recordCalendarWeeks
 import java.time.Clock
@@ -46,12 +44,7 @@ class RecordViewModelTest {
 
                 override fun withZone(zone: java.time.ZoneId): Clock = Clock.fixed(instant, zone)
             }
-        val repo =
-            FakeRecordRepository(
-                FakeHomeRepository(clock, latencyMillis = 0),
-                FakeMissionRepository(),
-                clock = clock,
-            )
+        val repo = FakeQuestionHistory()
         // An older saved seed must not freeze the device's definition of today.
         val vm =
             RecordViewModel(SavedStateHandle(mapOf("recordSeedDate" to "2020-01-01")), repo, clock)
@@ -67,15 +60,7 @@ class RecordViewModelTest {
         assertEquals(LocalDate.of(2026, 10, 10), vm.uiState.value.selectedDate)
     }
 
-    private fun repository() =
-        FakeRecordRepository(
-            FakeHomeRepository(
-                Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC),
-                latencyMillis = 0,
-            ),
-            FakeMissionRepository(),
-            clock = Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC),
-        )
+    private fun repository() = FakeQuestionHistory()
 
     private fun testClock(handle: SavedStateHandle): Clock =
         Clock.fixed(
@@ -138,44 +123,37 @@ class RecordViewModelTest {
     }
 
     @Test
-    fun requestedScheduleKeepsPlannedCalendarMarkerButIsExcludedFromConfirmedAppointments() =
-        runTest {
-            val repo = repository()
-            val vm = RecordViewModel(handle(), repo, testClock(handle()))
-            val date = LocalDate.of(2026, 10, 20)
-            repo.requestSchedule(
-                com.kiri.domain.record.ScheduleRequest(
-                    "record-bucket",
-                    date,
-                    java.time.LocalTime.of(14, 0),
-                    setOf("mother"),
-                    "",
-                    com.kiri.domain.record.ScheduleRequestChannel.APP,
-                )
-            )
+    fun 가족_모두_답한_지난_질문만_캘린더에_질문으로_표시한다() {
+        fun question(date: LocalDate, everyone: Boolean) =
+            RecordedQuestion(date, "질문", mapOf("1" to "답"), mapOf("1" to "엄마"), everyone, "q-$date")
+        val answered = LocalDate.of(2026, 10, 5)
+        val partial = LocalDate.of(2026, 10, 6)
+        val history = FakeQuestionHistory(mapOf(answered to question(answered, true), partial to question(partial, false)))
 
-            val state = vm.uiState.value
-            assertTrue(state.buckets.none { it.id == "record-bucket" })
-            assertTrue(state.schedules.none { it.date == date })
-            assertEquals(RecordCalendarMark.PLANNED, state.calendarMarks[date])
-            // 원래 있던 확정 일정은 그대로 확정이다
-            assertTrue(
-                state.schedules
-                    .filter { it.date != date }
-                    .all { it.status == RecordScheduleStatus.CONFIRMED }
-            )
-        }
+        val vm = RecordViewModel(handle(), history, testClock(handle()))
+
+        assertEquals(RecordCalendarMark.QUESTION, vm.uiState.value.calendarMarks[answered])
+        assertNull(vm.uiState.value.calendarMarks[partial])
+        assertEquals(setOf(answered, partial), vm.uiState.value.questions.keys)
+    }
+
+    @Test
+    fun 새로_고치면_질문_기록도_새로_받는다() {
+        val history = FakeQuestionHistory()
+        val vm = RecordViewModel(handle(), history, testClock(handle()))
+        val before = history.refreshCount
+
+        vm.onEvent(RecordUiEvent.RetryClicked)
+
+        assertEquals(before + 1, history.refreshCount)
+    }
 
     @Test
     fun cardEffectsCarryTheirItemIdsAndDoNotMutateTheFixtures() = runTest {
         val vm = RecordViewModel(handle(), repository(), testClock(handle()), bucketItems = com.kiri.data.bucket.FakeBucketItemRepository())
         val original = vm.uiState.value
-        vm.onEvent(RecordUiEvent.ScheduleClicked("schedule-demo"))
-        assertEquals(RecordUiEffect.OpenSchedule("schedule-demo"), vm.effect.first())
         vm.onEvent(RecordUiEvent.BucketClicked("12"))
         assertEquals(RecordUiEffect.OpenBucket("12"), vm.effect.first())
-        vm.onEvent(RecordUiEvent.CalendarEntryClicked("record-memory-1"))
-        assertEquals(RecordUiEffect.OpenEntry("record-memory-1"), vm.effect.first())
         assertEquals(original, vm.uiState.value)
     }
 }

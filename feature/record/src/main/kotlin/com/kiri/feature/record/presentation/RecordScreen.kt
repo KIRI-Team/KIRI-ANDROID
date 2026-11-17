@@ -33,18 +33,14 @@ import com.kiri.uikit.component.KiriDetailTypography
 
 @Composable
 fun RecordRoute(
-    onScheduleClick: (String) -> Unit = {},
     onBucketClick: (String) -> Unit = {},
-    onEntryClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     onServerScheduleClick: (scheduleId: Long, date: java.time.LocalDate) -> Unit = { _, _ -> },
     onNotice: (String) -> Unit = {},
     viewModel: RecordViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val currentScheduleClick by rememberUpdatedState(onScheduleClick)
     val currentBucketClick by rememberUpdatedState(onBucketClick)
-    val currentEntryClick by rememberUpdatedState(onEntryClick)
     val currentServerScheduleClick by rememberUpdatedState(onServerScheduleClick)
     val currentNotice by rememberUpdatedState(onNotice)
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -53,9 +49,7 @@ fun RecordRoute(
             viewModel.onEvent(RecordUiEvent.RetryClicked)
             viewModel.effect.collect { effect ->
                 when (effect) {
-                    is RecordUiEffect.OpenSchedule -> currentScheduleClick(effect.id)
                     is RecordUiEffect.OpenBucket -> currentBucketClick(effect.id)
-                    is RecordUiEffect.OpenEntry -> currentEntryClick(effect.id)
                     is RecordUiEffect.OpenServerSchedule -> currentServerScheduleClick(effect.scheduleId, effect.date)
                     is RecordUiEffect.ShowNotice -> currentNotice(effect.message)
                 }

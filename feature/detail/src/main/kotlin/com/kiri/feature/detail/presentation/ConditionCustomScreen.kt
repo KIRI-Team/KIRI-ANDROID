@@ -1,6 +1,5 @@
 package com.kiri.feature.detail.presentation
 
-import com.kiri.feature.detail.DetailViewModel
 import com.kiri.feature.detail.model.*
 
 import androidx.activity.compose.BackHandler
@@ -15,32 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.repeatOnLifecycle
 import com.kiri.domain.detail.Condition
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.*
-
-@Composable
-fun ConditionCustomRoute(viewModel: DetailViewModel, onBack: () -> Unit) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val currentBack by rememberUpdatedState(onBack)
-    val lifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(viewModel, lifecycleOwner) {
-        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            viewModel.effect.collect { effect ->
-                when (effect) {
-                    DetailUiEffect.NavigateBack -> currentBack()
-                    DetailUiEffect.OpenCustom -> Unit
-                    DetailUiEffect.OpenRecord -> Unit
-                }
-            }
-        }
-    }
-    ConditionCustomScreen(state, viewModel::onEvent)
-}
 
 // applyEnabled 가 false 면 조건은 고를 수 있지만 적용하기는 누를 수 없다 (적용 API 가 아직 없는 화면용)
 @Composable

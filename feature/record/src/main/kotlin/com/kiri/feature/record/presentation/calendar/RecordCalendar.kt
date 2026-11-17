@@ -1,5 +1,6 @@
 package com.kiri.feature.record.presentation.calendar
 
+import com.kiri.uikit.component.LocalKiriBottomBarInset
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -30,7 +31,7 @@ internal fun RecordCalendar(
 ) {
     LazyColumn(
         modifier.fillMaxWidth().testTag("record_calendar"),
-        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 28.dp, bottom = 24.dp),
+        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 28.dp, bottom = 24.dp + LocalKiriBottomBarInset.current),
     ) {
         item(key = "month") {
             Row(
@@ -138,7 +139,6 @@ internal fun RecordCalendar(
                                     { onEvent(RecordUiEvent.DateSelected(date)) },
                                     Modifier.weight(1f),
                                     state.calendarPhotos[date],
-                                    state.entries.count { it.date == date },
                                     today = date == state.today,
                                     past = date < state.today,
                                 )

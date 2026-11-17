@@ -1,9 +1,6 @@
 package com.kiri.feature.record
 
 import androidx.lifecycle.SavedStateHandle
-import com.kiri.data.home.FakeHomeRepository
-import com.kiri.data.mission.FakeMissionRepository
-import com.kiri.data.record.FakeRecordRepository
 import com.kiri.domain.model.schedule.CalendarScheduleStatus
 import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.model.schedule.MyScheduleStatus
@@ -82,16 +79,12 @@ class RecordCalendarScheduleTest {
             Result.failure(ScheduleNotFoundException())
     }
 
-    private fun records() = FakeRecordRepository(
-        FakeHomeRepository(clock, latencyMillis = 0),
-        FakeMissionRepository(),
-        clock = clock,
-    )
+    private fun records() = FakeQuestionHistory()
 
     private fun viewModel(schedules: CalendarScheduleRepository) =
         RecordViewModel(SavedStateHandle(), records(), clock, schedules)
 
-    // 기기에 저장된 활동이 없는 날을 골라 서버 일정 표시만 보이도록 한다
+    // 다른 표시가 없는 날을 골라 서버 일정 표시만 보이도록 한다
     private fun emptyDays(month: YearMonth): List<LocalDate> {
         val vm = viewModel(RecordingCalendarSchedules())
         repeat(month.monthValue - october.monthValue) { vm.onEvent(RecordUiEvent.NextMonth) }
@@ -299,20 +292,6 @@ class RecordCalendarScheduleTest {
 
         vm.onEvent(RecordUiEvent.DateSelected(mixed))
         assertEquals(RecordUiEffect.OpenServerSchedule(3, mixed), vm.nextEffect())
-    }
-
-    @Test
-    fun 기기에_저장된_활동이_있는_날은_시간이_더_이른_활동을_연다() = runTest {
-        val vm0 = viewModel(RecordingCalendarSchedules())
-        val busy = vm0.uiState.value.entries.first { YearMonth.from(it.date) == october }.date
-        val repo = RecordingCalendarSchedules()
-        // 시간을 모르는 서버 일정은 기기에 저장된 활동보다 뒤로 미룬다
-        repo.results[october] = Result.success(listOf(schedule(1, busy, CalendarScheduleStatus.CONFIRMED).copy(time = null)))
-        val vm = viewModel(repo)
-
-        vm.onEvent(RecordUiEvent.DateSelected(busy))
-
-        assertEquals(RecordUiEffect.OpenEntry(vm.uiState.value.selectedEntries.first().id), vm.nextEffect())
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.kiri.feature.record.presentation.bucket
 
+import com.kiri.uikit.component.LocalKiriBottomBarInset
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
@@ -56,7 +57,7 @@ internal fun RecordBucketList(state: RecordUiState, onEvent: (RecordUiEvent) -> 
                     { onEvent(RecordUiEvent.SaverSelected(id)) }, "record_saver_$id")
             }
         }
-        LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("record_bucket_cards"), state = listState, contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 28.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+        LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("record_bucket_cards"), state = listState, contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 28.dp, bottom = 24.dp + LocalKiriBottomBarInset.current), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             if (state.bucketItems.isEmpty()) item(key = "bucket-empty") {
                 when {
                     state.bucketLoading -> Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {

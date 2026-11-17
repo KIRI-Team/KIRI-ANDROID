@@ -21,12 +21,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.navigation
-import com.kiri.feature.detail.presentation.DetailScreen
 import com.kiri.feature.record.presentation.RecordRoute
 import com.kiri.feature.record.presentation.*
-import com.kiri.feature.record.RecordDetailViewModel
 import com.kiri.feature.record.RecordViewModel
-import com.kiri.feature.record.ScheduleRegisterViewModel
 import com.kiri.feature.record.ServerScheduleDetailViewModel
 import com.kiri.feature.record.BucketScheduleCreateViewModel
 import com.kiri.feature.record.presentation.schedule.BucketScheduleCreateRoute
@@ -43,17 +40,13 @@ import com.kiri.feature.record.ScheduleEditViewModel
 import com.kiri.feature.record.presentation.schedule.ScheduleEditRoute
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
-import com.kiri.feature.record.presentation.schedule.ScheduleRegisterRoute
 import com.kiri.feature.record.presentation.schedule.ScheduleSentToast
 import com.kiri.feature.record.presentation.schedule.savedByLabel
 import com.kiri.feature.record.presentation.sheet.RecordItemOptionSheet
 import com.kiri.feature.detail.presentation.ConditionCustomScreen
-import com.kiri.feature.detail.model.DetailUiEvent
 
 private const val GRAPH_ROUTE = "record_graph"
 private const val START_ROUTE = "record"
-private const val DETAIL_ROUTE = "record_graph/detail"
-private const val SCHEDULE_ROUTE = "record_graph/schedule"
 private const val SERVER_SCHEDULE_ROUTE = "record_graph/server-schedule"
 private const val SCHEDULE_EDIT_ROUTE = "record_graph/schedule-edit"
 private const val BUCKET_SCHEDULE_ROUTE = "record_graph/bucket-schedule"
@@ -73,9 +66,8 @@ internal fun calendarScheduleDetailRoute(scheduleId: Long, date: java.time.Local
     "$SERVER_SCHEDULE_ROUTE/$scheduleId?${ServerScheduleDetailViewModel.DATE_ARG}=$date"
 
 /** Registers this feature in the main tab back stack. */
-fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSchedule: (String) -> Unit = {}, onManageSchedule: (String) -> Unit = {}, onNearbyMission: ((Long) -> Unit)? = null, scheduleDestinations: NavGraphBuilder.() -> Unit = {}) {
+fun NavGraphBuilder.recordNavHost(navController: NavHostController, onNearbyMission: ((Long) -> Unit)? = null) {
     navigation(startDestination = START_ROUTE, route = GRAPH_ROUTE) {
-        scheduleDestinations()
         composable(START_ROUTE) { entry ->
             val viewModel: RecordViewModel = hiltViewModel()
             val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -88,9 +80,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
             val showSentToast by entry.savedStateHandle.getStateFlow(SENT_TOAST_KEY, false).collectAsStateWithLifecycle()
             Box(Modifier.fillMaxSize()) {
                 RecordRoute(
-                    onScheduleClick = onManageSchedule,
                     onBucketClick = { optionBucketId = it },
-                    onEntryClick = { navController.navigate("$DETAIL_ROUTE/${Uri.encode(it)}") { launchSingleTop = true } },
                     viewModel = viewModel,
                     onServerScheduleClick = { id, date ->
                         navController.navigate(calendarScheduleDetailRoute(id, date)) { launchSingleTop = true }
@@ -152,23 +142,6 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
                     dismissButton = { TextButton({ confirmDeleteId = null }) { Text("취소") } },
                 )
             }
-        }
-        composable("$SCHEDULE_ROUTE/{entryId}") { entry ->
-            val viewModel: ScheduleRegisterViewModel = hiltViewModel(entry)
-            val id = entry.arguments?.getString("entryId").orEmpty()
-            ScheduleRegisterRoute(
-                viewModel = viewModel,
-                onBackClick = { navController.popBackStack() },
-                onDetailClick = { navController.navigate("$DETAIL_ROUTE/${Uri.encode(id)}") { launchSingleTop = true } },
-                // 이 화면 위에 다른 화면이 쌓여 있어도 이 화면까지 한 번만 걷어낸다
-                onBucketMissing = { navController.popBackStack("$SCHEDULE_ROUTE/{entryId}", inclusive = true) },
-                // 요청이 끝나면 버킷이 빠진 기록 탭으로 돌아간다. 앱으로 보냈을 때만 발송 완료 알림을 띄운다
-                onSentByApp = {
-                    navController.getBackStackEntry(START_ROUTE).savedStateHandle[SENT_TOAST_KEY] = true
-                    navController.popBackStack(START_ROUTE, inclusive = false)
-                },
-                onSentByKakao = { navController.popBackStack(START_ROUTE, inclusive = false) },
-            )
         }
         // 캘린더에서 고른 서버 일정의 상세. 내용은 일정 상세 API 로 채운다
         composable(
@@ -292,41 +265,6 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onCreateSche
                 },
                 onSentByKakao = { navController.popBackStack(START_ROUTE, inclusive = false) },
             )
-        }
-        composable(DETAIL_ROUTE) {
-            DetailScreen(title = "기록 상세", onBackClick = navController::popBackStack)
-        }
-        composable("$DETAIL_ROUTE/{entryId}") { entry ->
-            val viewModel: RecordDetailViewModel = hiltViewModel(entry)
-            val id = Uri.encode(entry.arguments?.getString("entryId").orEmpty())
-            RecordDetailRoute(viewModel, onBack = { navController.popBackStack() },
-                onCustom = { navController.navigate("$DETAIL_ROUTE/$id/custom") { launchSingleTop = true } },
-                onPhoto = { navController.navigate("$DETAIL_ROUTE/$id/photos") { launchSingleTop = true } },
-                onEdit = { navController.navigate("$DETAIL_ROUTE/$id/edit") { launchSingleTop = true } },
-                onCreateSchedule = { navController.navigate("$SCHEDULE_ROUTE/${Uri.encode(it)}") { launchSingleTop = true } }, onManageSchedule = onManageSchedule)
-        }
-        composable("$DETAIL_ROUTE/{entryId}/custom") { entry ->
-            val parent = remember(entry) { navController.getBackStackEntry("$DETAIL_ROUTE/{entryId}") }
-            val viewModel: RecordDetailViewModel = hiltViewModel(parent)
-            val state by viewModel.uiState.collectAsStateWithLifecycle()
-            RecordDetailEffects(viewModel, onBack = { navController.popBackStack() }, returnToDetail = true)
-            ConditionCustomScreen(state.detail, viewModel::onDetailEvent, Modifier.padding(bottom = 110.dp))
-        }
-        dialog("$DETAIL_ROUTE/{entryId}/photos", dialogProperties = DialogProperties(usePlatformDefaultWidth = false)) { entry ->
-            val parent = remember(entry) { navController.getBackStackEntry("$DETAIL_ROUTE/{entryId}") }
-            val viewModel: RecordDetailViewModel = hiltViewModel(parent)
-            val state by viewModel.uiState.collectAsStateWithLifecycle()
-            RecordDetailEffects(viewModel, onBack = { navController.popBackStack() }, returnToDetail = true)
-            RecordPhotoSelectionScreen(state, onBack = { navController.popBackStack() }, viewModel::selectPhoto, viewModel::savePhoto)
-        }
-        composable("$DETAIL_ROUTE/{entryId}/edit") { entry ->
-            val parent = remember(entry) { navController.getBackStackEntry("$DETAIL_ROUTE/{entryId}") }
-            val viewModel: RecordDetailViewModel = hiltViewModel(parent)
-            val state by viewModel.uiState.collectAsStateWithLifecycle()
-            RecordDetailEffects(viewModel, onBack = { navController.popBackStack() }, returnToDetail = true)
-            MemoryEditorScreen(state.memoryDraft, state.collection.memories.find { it.id == state.editingMemoryId }?.authorName.orEmpty(),
-                onChange = viewModel::updateDraft, onBack = { navController.popBackStack() }, onSubmit = viewModel::saveMemory,
-                editing = true, saving = state.detail.saving, error = state.detail.error)
         }
     }
 }
