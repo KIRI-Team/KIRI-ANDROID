@@ -34,6 +34,11 @@ internal class FamilyRepositoryImpl @Inject constructor(
         catch (error: Exception) { Result.failure(error) }
     }
 
+    // 기억해 둔 가족 ID 가 오래돼 거절되면 가족 ID 를 다시 받아 한 번 더 시도한다 (withFamilyId)
+    override suspend fun getAddress(): Result<com.kiri.domain.model.family.FamilyAddress?> =
+        familyIdStore.withFamilyId(api, json) { familyId -> apiResult(json) { api.getAddress(familyId) } }
+            .map { it.toFamilyAddressOrNull() }
+
     override suspend fun saveAddress(address: com.kiri.domain.model.family.FamilyAddress): Result<Unit> {
         try { address.validate() } catch (e: IllegalArgumentException) { return Result.failure(e) }
         return getFamilyId().fold(onSuccess = { id -> com.kiri.data.network.apiCommand(json) {
