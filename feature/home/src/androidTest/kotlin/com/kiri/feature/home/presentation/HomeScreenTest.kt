@@ -93,6 +93,38 @@ class HomeScreenTest {
         capture("home-recommendations-local")
     }
 
+    @Test fun autumnSectionRemainsVisibleWhenHomeLoadFails() {
+        compose.setContent {
+            KiriTheme {
+                HomeScreen(
+                    com.kiri.feature.home.model.HomeUiState(
+                        loading = false,
+                        loadFailure = com.kiri.feature.home.model.HomeLoadFailure.NETWORK,
+                    ),
+                    onEvent = {},
+                )
+            }
+        }
+        compose.onNodeWithText("오늘 가을분위기를 느끼고 싶다면").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("추천을 불러오지 못했어요.").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun autumnRecommendationOpensOutdoorMission() {
+        var missionId: String? = null
+        val home = ScreenRepository().home.copy(
+            outdoorRecommendations = listOf(HomeRecommendation("outdoor", "가을 산책", "공원")),
+        )
+        compose.setContent {
+            KiriTheme {
+                HomeScreen(com.kiri.feature.home.model.HomeUiState(loading = false, home = home), onEvent = { event ->
+                    if (event is com.kiri.feature.home.model.HomeUiEvent.MissionClicked) missionId = event.id
+                })
+            }
+        }
+        compose.onNodeWithTag("home_outdoor_recommendation_outdoor").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals("outdoor", missionId) }
+    }
+
     @Test fun browsingHomeOffersFamilyCreationAndJoining() {
         val destinations = mutableListOf<com.kiri.feature.home.model.HomeUiDestination>()
         val home = ScreenRepository().home.copy(familyName = null)
@@ -152,8 +184,8 @@ class HomeScreenTest {
         compose.onNodeWithTag("home_question_card").assertIsDisplayed()
         compose.onNodeWithContentDescription("미션 카드로 전환").performClick()
         compose.onNodeWithText("이번주 미션이에요!").assertIsDisplayed()
-        compose.onNodeWithText("버킷리스트에서 일정을", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("확정해보세요!", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("home_mission_card").assertHeightIsEqualTo(136.dp)
+        compose.onNodeWithText("광장시장 · 종로구").assertIsDisplayed()
         compose.onNodeWithText("광장시장에서 시장음식 먹어보기").assertIsDisplayed()
         capture("home-mission")
         compose.onNodeWithContentDescription("질문 카드로 전환").performClick()

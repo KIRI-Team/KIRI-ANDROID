@@ -206,6 +206,7 @@ internal fun RecommendationSection(
     onRetry: () -> Unit = {},
     title: String = "가족과 함께라면 여기!",
     cardTagPrefix: String = "home_recommendation",
+    loading: Boolean = false,
 ) {
     Column(Modifier.padding(top = 48.dp)) {
         Text(
@@ -215,9 +216,13 @@ internal fun RecommendationSection(
             style = com.kiri.uikit.KiriTypography.TitleLarge,
         )
         if (items.isEmpty()) {
-            Text(if (loadFailed) "추천을 불러오지 못했어요." else "아직 공개된 추천이 없어요.",
-                Modifier.padding(top = 16.dp), color = HomeSecondary)
-            if (loadFailed) TextButton(onClick = onRetry) { Text("다시 시도") }
+            val message = when {
+                loading -> "추천을 불러오는 중이에요."
+                loadFailed -> "추천을 불러오지 못했어요."
+                else -> "아직 공개된 추천이 없어요."
+            }
+            Text(message, Modifier.padding(top = 16.dp), color = HomeSecondary)
+            if (loadFailed && !loading) TextButton(onClick = onRetry) { Text("다시 시도") }
         }
         LazyRow(
             Modifier.padding(top = 16.dp),
