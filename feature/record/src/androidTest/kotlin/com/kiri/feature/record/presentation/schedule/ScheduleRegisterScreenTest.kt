@@ -7,6 +7,9 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.semantics.SemanticsProperties
+import com.kiri.uikit.component.KiriParticipantStatus
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -217,6 +220,40 @@ class ScheduleRegisterScreenTest {
         compose.onNodeWithText("거절").performClick()
         compose.onNodeWithText("수락").performClick()
         assertEquals(listOf(0, 1, 1), listOf(back, declined, accepted))
+    }
+
+    // 받은 요청알림(Figma 10298:38588)은 위쪽에 초대 수락 현황을 보여주고, 카드 위 안내 문구는 없다
+    @Test fun receivedRequestShowsAcceptanceStatusInsteadOfHeadline() {
+        compose.setContent {
+            KiriTheme {
+                ScheduleRequestScreen(
+                    savedBy = "엄마",
+                    title = "한강 뚜벅뚜벅 축제",
+                    description = "잠수교를 걸어요",
+                    date = LocalDate.of(2026, 12, 3),
+                    memberNames = listOf("엄마", "아빠"),
+                    message = "",
+                    onBackClick = {},
+                    onDetailClick = {},
+                    onSendClick = {},
+                    topBarTitle = "요청알림",
+                    dismissText = "약속 거절하기",
+                    confirmText = "약속 확정하기",
+                    acceptance = listOf(
+                        KiriParticipantStatus("0", "엄마", true, "수락"),
+                        KiriParticipantStatus("1", "아빠", false, "미수락"),
+                    ),
+                )
+            }
+        }
+
+        compose.onNodeWithText("초대 수락 현황").assertExists()
+        compose.onNodeWithTag("schedule_request_acceptance_0").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "수락"))
+        compose.onNodeWithTag("schedule_request_acceptance_1").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "미수락"))
+        compose.onNodeWithText("엄마가 저장한 미션이에요!").assertDoesNotExist()
+        compose.onNodeWithText("행사설명").assertExists()
+        compose.onNodeWithText("약속 거절하기").assertExists()
+        compose.onNodeWithText("약속 확정하기").assertExists()
     }
 
     // 일정 변경알림: 바뀐 항목(changedFields) 옆에만 "변경되었어요!" 배지를 달고, 시간이 바뀌면 일시에 시간을 붙인다

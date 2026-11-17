@@ -63,6 +63,37 @@ class RemoteNotificationRepositoryTest {
         }
     }
 
+    // 요청알림(SCHEDULE_INVITATION)과 일정 변경알림(SCHEDULE_CHANGED·재확인 알림)은 응답 화면으로, 그 밖의 일정 알림은 상세로 연다
+    @Test
+    fun scheduleChangeNotificationsOpenTheResponseScreen() = runTest {
+        MockWebServer().use { server ->
+            server.start()
+            val items = listOf(
+                notification(1, "SCHEDULE_CHANGED", "SCHEDULE"),
+                notification(2, "SCHEDULE_RECONFIRM_REMINDER", null),
+                notification(3, "SCHEDULE_CONFIRMED_UNKNOWN", "SCHEDULE"),
+                notification(4, "SCHEDULE_D1_REMINDER", null),
+            ).joinToString(",")
+            server.enqueue(page(true, items))
+            val targets = repository(server).load().map { it.target }
+
+            assertEquals(
+                listOf(
+                    NotificationTarget.SCHEDULE_INVITATION,
+                    NotificationTarget.SCHEDULE_INVITATION,
+                    NotificationTarget.SCHEDULE,
+                    NotificationTarget.SCHEDULE,
+                ),
+                targets,
+            )
+        }
+    }
+
+    private fun notification(id: Int, type: String, targetType: String?) =
+        "{\"notificationId\":$id,\"title\":\"일정\",\"body\":\"알림\",\"notificationType\":\"$type\"," +
+            (targetType?.let { "\"targetType\":\"$it\"," } ?: "") +
+            "\"isRead\":false,\"referenceId\":10,\"createdAt\":\"2026-11-15T21:00:00\"}"
+
     private fun repository(server: MockWebServer): RemoteNotificationRepository {
         val retrofit = Retrofit.Builder()
             .baseUrl(server.url("/"))

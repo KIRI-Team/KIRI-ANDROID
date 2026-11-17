@@ -69,6 +69,9 @@ private fun NotificationResponse.toDomain(): FamilyNotification {
         "SCHEDULE" -> NotificationTarget.SCHEDULE
         "SCHEDULE_RECORD", "REVIEW_WRITE" -> NotificationTarget.MEMORY
         else -> NotificationTarget.UNSUPPORTED
+    }.let {
+        // 일정 변경알림은 일정 상세가 아니라 응답 화면(변경알림)으로 연다. 응답할 수 없는 일정이면 그 화면이 상세를 보여준다
+        if (it == NotificationTarget.SCHEDULE && type in RESPOND_SCHEDULE_TYPES) NotificationTarget.SCHEDULE_INVITATION else it
     }
     val timestamp = DateTimeFormatter.ISO_DATE_TIME.parse(createdAt)
     val localTime = LocalDateTime.from(timestamp)
@@ -87,6 +90,8 @@ private fun NotificationResponse.toDomain(): FamilyNotification {
         targetAccessible = referenceId != null && target != NotificationTarget.UNSUPPORTED,
     )
 }
+
+private val RESPOND_SCHEDULE_TYPES = setOf(InboxType.SCHEDULE_CHANGED, InboxType.SCHEDULE_RECONFIRM_REMINDER)
 
 private enum class InboxType(val category: NotificationCategory, val target: NotificationTarget) {
     QUESTION_REMINDER(NotificationCategory.QUESTION, NotificationTarget.QUESTION),

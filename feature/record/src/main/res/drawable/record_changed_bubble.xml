@@ -1,0 +1,4 @@
+<!-- 일정 변경알림의 "변경되었어요!" 말풍선 (Figma 10298:38584 Union). 꼬리가 오른쪽 날짜·인원 아이콘을 가리킨다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="98.75dp" android:height="34dp" android:viewportWidth="98.75" android:viewportHeight="34">
+    <path android:fillColor="#339BEA51" android:pathData="M76 0C83.638 0 90.0238 5.35241 91.6162 12.5107L98.75 16.6289L91.7793 20.6533C90.5151 28.227 83.9326 34 76 34H16C7.16344 34 0 26.8366 0 18V16C0 7.16344 7.16344 0 16 0H76Z" />
+</vector>
