@@ -77,8 +77,15 @@ fun ServerScheduleDetailRoute(
             date = invitation.date,
             memberNames = members,
             message = invitation.requestMessage.orEmpty(),
-            topBarTitle = if (reconfirm) "변경알림" else "요청알림",
+            topBarTitle = if (reconfirm) "일정 변경알림" else "요청알림",
             headline = if (reconfirm) scheduleChangedLabel(proposerName) else null,
+            // 초대 수락 현황 (Figma 10298:38588, 10298:38540). 수락한 가족만 초록 테두리로 보여준다
+            acceptance = invitation.participants.mapIndexed { index, participant ->
+                com.kiri.uikit.component.KiriParticipantStatus(
+                    index.toString(), participant.nickname, participant.accepted,
+                    if (participant.accepted) "수락" else "미수락", participant.characterImageUrl,
+                )
+            },
             changedFields = if (reconfirm) invitation.changedFields else emptySet(),
             time = invitation.time,
             onBackClick = { if (!state.detail.saving) onBack() },
@@ -133,6 +140,7 @@ fun ServerScheduleDetailRoute(
             confirmText = "일정 취소하기",
             confirmingText = "취소하는 중…",
             dismissBackground = KiriComponentColor.Button.FilledNeutral.BgDefault,
+            descriptionTopGap = 30.dp,
         )
         return
     }
@@ -145,40 +153,15 @@ fun ServerScheduleDetailRoute(
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         viewModel.messageShown()
     }
-    Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f)) {
-            ServerScheduleDetailScreen(
-                state, onDetailEvent, viewModel::retryReviews, viewModel::editClicked,
-                viewModel::editReview, viewModel::deleteReview, viewModel::openPhotoChange,
-                fromHome = fromHome,
-                onCancelClick = { confirmCancel = true },
-                onNearbyMission = onNearbyMission,
-            )
-        }
-        ServerScheduleActions(
-            state, { viewModel.respond(it) },
-            // 기록 탭(캘린더·다가오는 약속)에서 연 상세에서는 초대에 응답할 수 없다. 응답은 홈의 응답 필요 카드에서 한다.
-            // 응답 화면에서 자세히 보러가기로 온 상세도 뒤로가기로 응답 화면에 돌아가 응답하므로 숨긴다
-            showRespond = fromHome && !respond,
-        )
-    }
+    // 초대 응답(거절·수락)은 요청알림·변경알림 화면에서만 한다. 상세 아래의 임시 거절·수락 버튼은 없앴다
+    ServerScheduleDetailScreen(
+        state, onDetailEvent, viewModel::retryReviews, viewModel::editClicked,
+        viewModel::editReview, viewModel::deleteReview, viewModel::openPhotoChange,
+        fromHome = fromHome,
+        onCancelClick = { confirmCancel = true },
+        onNearbyMission = onNearbyMission,
+    )
 }
-
-// 상세 아래 거절·수락을 보여줄지. 확정(당일·완료 포함)된 약속은 서버가 canRespond 를 줘도 보여주지 않는다.
-// 확정된 약속이 바뀌어 다시 확인해야 할 때(재확인 필요)는 응답해야 하므로 보여준다
-internal val ServerScheduleDetailUiState.showsRespondButtons: Boolean
-    get() {
-        if (!canRespond) return false
-        val schedule = schedule ?: return true
-        if (schedule.myStatus == com.kiri.domain.model.schedule.MyScheduleStatus.RECONFIRM_REQUIRED) return true
-        return schedule.status !in CONFIRMED_SCHEDULE_STATUSES
-    }
-
-private val CONFIRMED_SCHEDULE_STATUSES = setOf(
-    com.kiri.domain.model.schedule.ScheduleDisplayStatus.CONFIRMED,
-    com.kiri.domain.model.schedule.ScheduleDisplayStatus.TODAY,
-    com.kiri.domain.model.schedule.ScheduleDisplayStatus.COMPLETED,
-)
 
 // 일정 변경하기를 보여줄지. 상세 API 의 canEdit 를 그대로 따른다 (어디서 들어왔든 같다)
 internal val ServerScheduleDetailUiState.showsEditButton: Boolean
@@ -187,16 +170,6 @@ internal val ServerScheduleDetailUiState.showsEditButton: Boolean
 // 일정 취소하기를 보여줄지. 상세 API 의 canCancel 을 그대로 따른다 (어디서 들어왔든 같다)
 internal val ServerScheduleDetailUiState.showsCancelButton: Boolean
     get() = canCancel
-
-@Composable
-fun ServerScheduleActions(state: ServerScheduleDetailUiState, onRespond: (Boolean) -> Unit, showRespond: Boolean = true) {
-    Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (showRespond && state.showsRespondButtons) {
-            Button({ onRespond(false) }, enabled = !state.detail.saving, modifier = Modifier.testTag("server_schedule_decline")) { Text("거절") }
-            Button({ onRespond(true) }, enabled = !state.detail.saving, modifier = Modifier.testTag("server_schedule_accept")) { Text("수락") }
-        }
-    }
-}
 
 // 상세 화면과 컨디션 커스텀 화면이 같은 ViewModel 을 쓰므로, 앞에 보이는(RESUMED) 화면만 효과를 받는다
 @Composable
