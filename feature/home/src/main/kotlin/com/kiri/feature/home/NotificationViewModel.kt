@@ -47,15 +47,34 @@ class NotificationViewModel @Inject constructor(private val repository: Notifica
         }
     }
     fun readAll() = mutate {
-        repository.markAllRead()
+        try {
+            repository.markAllRead()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Legacy servers can accept some of the individual requests before one fails.
+            try {
+                val items = repository.load().sortedByDescending { it.createdAt }
+                _state.update { it.copy(items = items) }
+            } catch (refreshError: CancellationException) {
+                throw refreshError
+            } catch (_: Exception) {
+                // Keep the existing list if the refresh also fails.
+            }
+            throw e
+        }
         _state.update { it.copy(items = it.items.map { item -> item.copy(read = true) }) }
     }
     fun open(notification: FamilyNotification) = mutate {
-        repository.markRead(notification.id)
+        if (!notification.read) repository.markRead(notification.id)
         _state.update { it.copy(items = it.items.map { item -> if (item.id == notification.id) item.copy(read = true) else item }) }
-        if (!repository.canOpen(notification)) _state.update { it.copy(notice = "더 이상 확인할 수 없는 내용이에요") }
+        if (!repository.canOpen(notification)) showUnavailableTarget()
         else _target.send(notification)
     }
+    fun showUnavailableTarget() {
+        _state.update { it.copy(notice = "더 이상 확인할 수 없는 내용이에요") }
+    }
+
     private fun mutate(operation: suspend () -> Unit) {
         if (_state.value.busy || _state.value.loading) return
         _state.update { it.copy(busy = true, notice = null) }

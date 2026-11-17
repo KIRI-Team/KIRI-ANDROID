@@ -72,6 +72,22 @@ class PlaceFilterSheetTest {
         compose.onNodeWithTag("filter_price_max").assertTextEquals("1,000,000원")
         compose.onNodeWithTag("filter_apply").assertIsDisplayed()
     }
+    @Test fun repeatedScrollsAtPriceKeepTheFooterInPlace() {
+        compose.setContent { KiriTheme { Harness() } }
+        dismissSystemNotice()
+        compose.onNodeWithTag("filter_section_3").performClick()
+        compose.onNodeWithTag("filter_price_min").assertIsDisplayed()
+
+        val footer = compose.onNodeWithTag("filter_apply")
+        val initialBounds = footer.fetchSemanticsNode().boundsInRoot
+        repeat(3) {
+            compose.onNodeWithTag("place_filter_content").performTouchInput { swipeUp() }
+            org.junit.Assert.assertEquals(initialBounds, footer.fetchSemanticsNode().boundsInRoot)
+        }
+        footer.performClick()
+        compose.onNodeWithTag("place_filter_sheet").assertDoesNotExist()
+    }
+
     private fun dismissSystemNotice() {
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         automation.rootInActiveWindow?.takeIf { it.packageName?.toString() == "android" }

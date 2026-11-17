@@ -46,6 +46,7 @@ internal fun PlaceFilterSheet(applied: PlaceFilters, onDismiss: () -> Unit, onAp
     val scope = rememberCoroutineScope()
     ModalBottomSheet(onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetGesturesEnabled = false,
         shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp),
         containerColor = KiriColor.Bg.Primary, dragHandle = null, modifier = Modifier.testTag("place_filter_sheet")) {
         Column(Modifier.fillMaxWidth().fillMaxHeight(.92f)) {
