@@ -280,11 +280,13 @@ fun KiriMissionCard(
             ) {
                 Column(Modifier.weight(1f).heightIn(min = 96.dp), verticalArrangement = Arrangement.SpaceBetween) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(title, color = KiriColor.Text.Strong, style = KiriDetailTypography.Title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(place.orEmpty(), color = KiriColor.Text.Secondary, style = com.kiri.uikit.KiriTypography.BodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(title, color = KiriColor.Text.Strong, style = com.kiri.uikit.KiriTypography.TitleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (!place.isNullOrBlank()) {
+                            Text(place, color = KiriColor.Text.Secondary, style = com.kiri.uikit.KiriTypography.BodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        keywords.take(2).forEach { label ->
+                        keywords.filter { it.isNotBlank() }.take(2).forEach { label ->
                             Surface(modifier = Modifier.weight(1f, fill = false), color = KiriColor.Bg.Elevated, shape = RoundedCornerShape(5.dp)) {
                                 Text(label, Modifier.padding(horizontal = 8.dp, vertical = 6.dp), color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Small.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 17.sp, letterSpacing = (-0.48).sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }

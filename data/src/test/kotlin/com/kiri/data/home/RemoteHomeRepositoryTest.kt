@@ -61,13 +61,15 @@ class RemoteHomeRepositoryTest {
 
     @Test fun homeFeedUsesServerIdsAndImagesAndSurvivesAnswerSave() = runTest {
         MockWebServer().use { server ->
-            server.start(); server.family(); server.reply("null", status = 503)
+            server.start(); server.family()
+            server.reply("""{"missionId":88,"title":"산책하기","description":"주간 미션 설명"}""")
             server.reply("""{"missions":[{"missionId":90,"title":"전시","category":"EXHIBITION"}],"nextCursor":90,"hasNext":true}""")
             server.reply("""{"missions":[{"missionId":88,"title":"산책하기","category":"OUTDOOR","placeName":"공원","imageUrl":"https://example.com/park.png"}],"hasNext":false}""")
             server.reply("null")
             val repo = repository(server, recommendations = true)
             val home = repo.load()
             assertEquals(listOf("90", "88"), home.recommendations.map { it.id })
+            assertEquals("공원", home.mission?.place)
             assertEquals("88", home.outdoorRecommendations.single().id)
             assertEquals("https://example.com/park.png", home.outdoorRecommendations.single().imageUrl)
             assertEquals(home.recommendations, repo.saveAnswer(requireNotNull(home.question), "답변").recommendations)

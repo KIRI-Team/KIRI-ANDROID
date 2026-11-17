@@ -145,7 +145,9 @@ internal class RemoteHomeRepository(
         val items = feed?.getOrNull().orEmpty()
         return FamilyHome(date, me, if (daily.hasFamily) info?.familyName ?: "우리 가족" else null,
             info?.members() ?: family?.answers.orEmpty().map { FamilyMember(it.memberId.toString(), it.nickname, "") },
-            question, answers, poked, mission = weekly, serverBacked = true,
+            question, answers, poked,
+            mission = weekly?.copy(place = items.firstOrNull { it.missionId.toString() == weekly.id }?.placeName),
+            serverBacked = true,
             familyId = info?.familyId?.toString(), ownerId = info?.ownerMemberId?.toString(),
             recommendations = items.map { it.toHomeRecommendation() },
             recommendationsLoadFailed = feed?.isFailure == true,
