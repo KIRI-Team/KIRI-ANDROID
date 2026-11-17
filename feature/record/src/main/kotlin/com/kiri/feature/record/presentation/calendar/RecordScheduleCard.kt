@@ -25,7 +25,6 @@ import java.time.format.DateTimeFormatter
 // 일시 줄은 Figma 처럼 날짜만 보여준다
 @Composable
 internal fun ScheduleCard(schedule: UpcomingSchedule, onOpen: () -> Unit) {
-    var menuExpanded by remember { mutableStateOf(false) }
     val confirmed = schedule.type != UpcomingScheduleType.RESPONSE_REQUIRED
     Surface(
         onClick = onOpen,
@@ -68,29 +67,9 @@ internal fun ScheduleCard(schedule: UpcomingSchedule, onOpen: () -> Unit) {
                     )
                 }
             }
-            Box(Modifier.size(24.dp)) {
-                IconButton(
-                    onClick = { menuExpanded = true },
-                    modifier =
-                        Modifier.requiredSize(48.dp)
-                            .align(Alignment.Center)
-                            .testTag("record_schedule_menu_${schedule.id}"),
-                ) {
-                    Image(
-                        painterResource(R.drawable.record_more),
-                        "약속 메뉴",
-                        Modifier.size(10.dp, 2.dp),
-                    )
-                }
-                DropdownMenu(menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    DropdownMenuItem(
-                        text = { Text("약속 보기") },
-                        onClick = {
-                            menuExpanded = false
-                            onOpen()
-                        },
-                    )
-                }
+            // 점 세 개는 디자인 요소다. 누르는 동작은 없고, 카드 어디를 눌러도 약속 상세가 열린다
+            Box(Modifier.size(24.dp).testTag("record_schedule_more_${schedule.id}"), contentAlignment = Alignment.Center) {
+                Image(painterResource(R.drawable.record_more), null, Modifier.size(10.dp, 2.dp))
             }
         }
     }

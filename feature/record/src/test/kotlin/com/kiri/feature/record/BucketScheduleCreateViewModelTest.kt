@@ -78,6 +78,59 @@ class BucketScheduleCreateViewModelTest {
             clock,
         )
 
+    private fun missionWithDescription(description: String?) = com.kiri.domain.model.mission.MissionInfo(
+        id = 420, title = "광장시장에서 시장음식 먹어보기", description = description, category = null, missionType = null,
+        status = null, indoorOutdoor = null, imageUrl = null, imageSource = null, startDate = null, endDate = null,
+        openingTime = null, closingTime = null, price = null, durationMinMinutes = null, durationMaxMinutes = null,
+        walkingLevel = null, sourceUrl = null, place = null, steps = emptyList(),
+        bucketState = com.kiri.domain.model.mission.MissionBucketState.NONE, averageRating = null, reviewCount = 0,
+    )
+
+    private fun missions(result: Result<com.kiri.domain.model.mission.MissionInfo>, requested: MutableList<Long> = mutableListOf()) =
+        object : com.kiri.domain.repository.MissionInfoRepository {
+            override suspend fun getMission(missionId: Long): Result<com.kiri.domain.model.mission.MissionInfo> {
+                requested += missionId
+                return result
+            }
+        }
+
+    private fun viewModelWithMission(missions: com.kiri.domain.repository.MissionInfoRepository, missionId: Long? = 420L) =
+        BucketScheduleCreateViewModel(
+            SavedStateHandle(
+                buildMap<String, Any> {
+                    put(BucketScheduleCreateViewModel.BUCKET_ITEM_ID_ARG, 42L)
+                    put(BucketScheduleCreateViewModel.TITLE_ARG, "광장시장에서 시장음식 먹어보기")
+                    put(BucketScheduleCreateViewModel.SAVER_ARG, "아빠")
+                    missionId?.let { put(BucketScheduleCreateViewModel.MISSION_ID_ARG, it) }
+                },
+            ),
+            FakeSchedules(),
+            family,
+            clock,
+            missions,
+        )
+
+    @Test
+    fun 버킷의_미션_id로_행사_설명을_불러온다() {
+        val requested = mutableListOf<Long>()
+        val vm = viewModelWithMission(missions(Result.success(missionWithDescription("  전통시장 먹거리를 맛보는 미션  ")), requested))
+
+        assertEquals(listOf(420L), requested)
+        assertEquals("전통시장 먹거리를 맛보는 미션", vm.uiState.value.description)
+    }
+
+    @Test
+    fun 행사_설명을_불러오지_못하거나_없으면_비워_둔다() {
+        assertEquals("", viewModelWithMission(missions(Result.failure(IOException()))).uiState.value.description)
+        assertEquals("", viewModelWithMission(missions(Result.success(missionWithDescription(null)))).uiState.value.description)
+
+        // 미션 id 를 모르면 요청하지 않는다
+        val requested = mutableListOf<Long>()
+        val unknown = viewModelWithMission(missions(Result.success(missionWithDescription("설명")), requested), missionId = -1L)
+        assertTrue(requested.isEmpty())
+        assertEquals("", unknown.uiState.value.description)
+    }
+
     private fun BucketScheduleCreateViewModel.fill(members: Set<String> = setOf("2", "3"), message: String = "같이 가요") =
         onDraftChange(
             uiState.value.draft.copy(

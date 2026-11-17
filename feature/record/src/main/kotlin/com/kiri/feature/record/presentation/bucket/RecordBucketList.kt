@@ -110,7 +110,8 @@ private fun BucketCard(card: BucketCardUi, onOpen: () -> Unit) {
     Surface(onClick = onOpen, color = KiriColor.Bg.Primary, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().testTag("record_bucket_${bucket.id}")) {
         Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (bucket.status == BucketItemStatus.COMPLETED) BucketBadge("종료된 일정")
+                // 완료된 일정 / 종료된 미션 / 지난 약속 (BucketOptions.statusBadges)
+                bucket.statusBadges().forEach { BucketBadge(it) }
                 BucketBadge("${withSubjectParticle(card.saverLabel)} 저장했어요!")
             }
             Column {

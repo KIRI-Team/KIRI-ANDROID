@@ -9,6 +9,7 @@ import com.kiri.domain.model.bucket.BucketItemStatus
 import com.kiri.feature.record.model.RecordUiEffect
 import com.kiri.feature.record.model.RecordUiEvent
 import com.kiri.feature.record.presentation.bucket.options
+import com.kiri.feature.record.presentation.bucket.statusBadges
 import java.io.IOException
 import java.time.Clock
 import java.time.Instant
@@ -252,4 +253,42 @@ class RecordBucketListTest {
         assertEquals("완료한 활동", completed.scheduleLabel)
         assertFalse(completed.scheduleEnabled)
     }
+
+    @Test
+    fun 미션이_종료됐거나_연결된_약속이_없으면_연결된_약속_보기를_비활성화한다() {
+        fun item(status: BucketItemStatus, missionStatus: String = "ACTIVE", scheduleId: Long? = null) =
+            FakeBucketItemRepository.item(1, 1, "엄마", status, schedulable = false, deletable = true, scheduleId = scheduleId)
+                .copy(missionStatus = missionStatus)
+
+        // 약속을 잡았어도 미션이 종료됐으면 열 수 없다
+        val ended = item(BucketItemStatus.SCHEDULED, "ENDED", scheduleId = 5).options()
+        assertEquals("연결된 약속 보기", ended.scheduleLabel)
+        assertFalse(ended.scheduleEnabled)
+        assertNull(ended.linkedScheduleId)
+        assertTrue(ended.deleteEnabled)
+
+        // 약속이 끝나 연결된 활성 일정이 없어도 비활성이다
+        val past = item(BucketItemStatus.SCHEDULED).options()
+        assertEquals("연결된 약속 보기", past.scheduleLabel)
+        assertFalse(past.scheduleEnabled)
+
+        // 미션이 종료된 저장 버킷은 일정 잡기를 누를 수 없다
+        assertFalse(item(BucketItemStatus.SAVED, "ENDED").options().scheduleEnabled)
+    }
+
+    @Test
+    fun 완료한_버킷은_완료된_일정_종료된_미션은_종료된_미션_배지를_단다() {
+        fun item(status: BucketItemStatus, missionStatus: String = "ACTIVE") =
+            FakeBucketItemRepository.item(1, 1, "엄마", status).copy(missionStatus = missionStatus)
+
+        assertEquals(listOf("완료된 일정"), item(BucketItemStatus.COMPLETED).statusBadges())
+        // 완료한 버킷은 미션이 종료돼도 완료 기록으로 보여준다
+        assertEquals(listOf("완료된 일정"), item(BucketItemStatus.COMPLETED, "ENDED").statusBadges())
+        listOf("ENDED", "CANCELLED", "PRIVATE").forEach {
+            assertEquals(listOf("종료된 미션"), item(BucketItemStatus.SAVED, it).statusBadges())
+        }
+        assertTrue(item(BucketItemStatus.SAVED).statusBadges().isEmpty())
+        assertTrue(item(BucketItemStatus.SCHEDULED).statusBadges().isEmpty())
+    }
+
 }
