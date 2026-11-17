@@ -18,6 +18,15 @@ android {
         // hiltViewModel()을 쓰는 화면을 UI 테스트에서 띄울 수 있도록 Hilt 테스트용 Application으로 실행한다
         testInstrumentationRunner = "com.kiri.app.HiltTestRunner"
     }
+    buildTypes {
+        release {
+            // R8 로 코드를 줄이고 난독화·최적화하며, 쓰지 않는 리소스를 지운다.
+            // 라이브러리가 챙기지 않는 규칙은 proguard-rules.pro 에 둔다. 크래시 해석용 mapping.txt 는 빌드마다 보관한다
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
