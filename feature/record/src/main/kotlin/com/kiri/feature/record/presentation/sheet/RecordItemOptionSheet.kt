@@ -36,6 +36,8 @@ import com.kiri.feature.record.R
 import com.kiri.uikit.KiriTheme
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.KiriDetailTypography
+import com.kiri.uikit.component.KiriAsyncImage
+import androidx.compose.ui.draw.clip
 
 // 저장한 기록 하나에 대한 일정 잡기·삭제하기 시트 (Figma 8103:74427)
 @Composable
@@ -48,9 +50,11 @@ fun RecordItemOptionSheet(
     scheduleLabel: String = "일정 잡기",
     scheduleEnabled: Boolean = true,
     deleteEnabled: Boolean = true,
+    // 버킷의 미션 이미지. 없거나 불러오지 못하면 빈 썸네일 자리를 보여준다
+    imageUrl: String? = null,
 ) {
     RecordModalSheet(onDismiss = onDismiss, testTag = "record_item_option_sheet", containerColor = KiriColor.Bg.Primary) {
-        RecordItemOptionSheetContent(title, subtitle, onScheduleClick, onDeleteClick, onDismiss, scheduleLabel, scheduleEnabled, deleteEnabled)
+        RecordItemOptionSheetContent(title, subtitle, onScheduleClick, onDeleteClick, onDismiss, scheduleLabel, scheduleEnabled, deleteEnabled, imageUrl)
     }
 }
 
@@ -64,12 +68,21 @@ internal fun RecordItemOptionSheetContent(
     scheduleLabel: String = "일정 잡기",
     scheduleEnabled: Boolean = true,
     deleteEnabled: Boolean = true,
+    imageUrl: String? = null,
 ) {
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(start = 30.dp, end = 30.dp, top = 44.dp, bottom = 44.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                // TODO: 기록 사진이 연결되면 이미지로 교체 (Figma 에서도 빈 썸네일 자리)
-                Box(Modifier.size(87.dp).background(KiriColor.Bg.Tertiary, RoundedCornerShape(9.56.dp)))
+                // 버킷의 미션 이미지. 주소가 없거나 불러오는 중·실패하면 Figma 의 빈 썸네일 자리(Bg.Tertiary)를 보여준다
+                KiriAsyncImage(
+                    imageUrl,
+                    contentDescription = "$title 사진",
+                    modifier = Modifier
+                        .size(87.dp)
+                        .clip(ThumbnailShape)
+                        .background(KiriColor.Bg.Tertiary)
+                        .testTag("record_option_thumbnail"),
+                )
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(title, color = KiriColor.Text.Strong, style = KiriDetailTypography.Title)
                     Text(subtitle, color = KiriColor.Text.Secondary, style = KiriDetailTypography.Small)
@@ -113,6 +126,8 @@ internal fun RecordItemOptionSheetContent(
         }
     }
 }
+
+private val ThumbnailShape = RoundedCornerShape(9.56.dp)
 
 @Composable
 private fun RecordOptionRow(

@@ -109,6 +109,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onNearbyMiss
                     scheduleLabel = options.scheduleLabel,
                     scheduleEnabled = options.scheduleEnabled,
                     deleteEnabled = options.deleteEnabled,
+                    imageUrl = bucket.imageUrl,
                     onScheduleClick = {
                         optionBucketId = null
                         val scheduleId = options.linkedScheduleId
