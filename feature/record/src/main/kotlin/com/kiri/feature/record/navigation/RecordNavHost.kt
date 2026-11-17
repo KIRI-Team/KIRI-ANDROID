@@ -109,6 +109,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onNearbyMiss
                     scheduleLabel = options.scheduleLabel,
                     scheduleEnabled = options.scheduleEnabled,
                     deleteEnabled = options.deleteEnabled,
+                    imageUrl = bucket.imageUrl,
                     onScheduleClick = {
                         optionBucketId = null
                         val scheduleId = options.linkedScheduleId
@@ -268,6 +269,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onNearbyMiss
                     navController.popBackStack(START_ROUTE, inclusive = false)
                 },
                 onSentByKakao = { navController.popBackStack(START_ROUTE, inclusive = false) },
+                onMissionDetail = { id -> onNearbyMission?.invoke(id) },
             )
         }
     }

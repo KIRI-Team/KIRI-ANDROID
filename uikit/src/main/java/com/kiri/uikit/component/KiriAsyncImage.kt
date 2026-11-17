@@ -36,6 +36,8 @@ fun KiriAsyncImage(
     // 불러온 사진의 픽셀이 필요할 때(예: 밝기에 따라 글자색 고르기) 넘긴다.
     // 넘기면 픽셀을 읽을 수 있도록 하드웨어 비트맵을 쓰지 않고 디코딩한다
     onBitmap: ((Bitmap) -> Unit)? = null,
+    // 불러온 이미지에 입힐 색 필터 (예: 흑백으로 흐리게)
+    colorFilter: androidx.compose.ui.graphics.ColorFilter? = null,
     placeholder: @Composable BoxScope.() -> Unit = {},
 ) {
     val url = model?.takeIf { it.isNotBlank() }
@@ -50,6 +52,7 @@ fun KiriAsyncImage(
                 contentDescription = contentDescription,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = contentScale,
+                colorFilter = colorFilter,
                 onState = { state ->
                     loaded = state is AsyncImagePainter.State.Success
                     if (state is AsyncImagePainter.State.Success) {

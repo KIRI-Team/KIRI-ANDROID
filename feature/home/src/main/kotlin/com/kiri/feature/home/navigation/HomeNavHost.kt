@@ -37,7 +37,8 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
         composable("home_graph/weekly-schedule/{weeklyMissionId}") { entry ->
             val viewModel: com.kiri.feature.record.BucketScheduleCreateViewModel = hiltViewModel(entry)
             com.kiri.feature.record.presentation.schedule.BucketScheduleCreateRoute(viewModel,
-                onBackClick = { navController.popBackStack() }, onSentByApp = { navController.popBackStack() }, onSentByKakao = { navController.popBackStack() })
+                onBackClick = { navController.popBackStack() }, onSentByApp = { navController.popBackStack() }, onSentByKakao = { navController.popBackStack() },
+                onMissionDetail = { id -> navController.navigate(serverMissionDetailRoute(id)) { launchSingleTop = true } })
         }
         composable(START_ROUTE) {
             HomeRoute(

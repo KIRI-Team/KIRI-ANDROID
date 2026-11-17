@@ -131,6 +131,14 @@ class BucketScheduleCreateViewModelTest {
         assertEquals("", unknown.uiState.value.description)
     }
 
+    // 요청 미리보기의 자세히 보러가기는 버킷의 미션 상세를 연다. 미션 id 를 모르면 null
+    @Test
+    fun 자세히_보러가기로_열_미션_id를_상태에_담는다() {
+        val result = Result.success(missionWithDescription("설명"))
+        assertEquals(420L, viewModelWithMission(missions(result)).uiState.value.missionId)
+        assertEquals(null, viewModelWithMission(missions(result), missionId = -1L).uiState.value.missionId)
+    }
+
     private fun BucketScheduleCreateViewModel.fill(members: Set<String> = setOf("2", "3"), message: String = "같이 가요") =
         onDraftChange(
             uiState.value.draft.copy(

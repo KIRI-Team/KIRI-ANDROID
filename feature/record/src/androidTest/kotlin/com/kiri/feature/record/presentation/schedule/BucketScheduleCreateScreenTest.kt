@@ -41,6 +41,19 @@ class BucketScheduleCreateScreenTest {
         compose.onNodeWithText("초대장 만들기").assertIsEnabled()
     }
 
+    // 초대장 만들기로 연 요청 미리보기의 자세히 보러가기를 누르면 미션 상세를 열도록 알린다
+    @Test
+    fun requestPreviewDetailButtonOpensMissionDetail() {
+        var details = 0
+        compose.setContent {
+            KiriTheme { BucketScheduleCreateScreen(loaded.copy(missionId = 420), {}, {}, {}, {}, onDetailClick = { details++ }) }
+        }
+
+        compose.onNodeWithText("초대장 만들기").performClick()
+        compose.onNodeWithTag("schedule_request_detail").performClick()
+        compose.runOnIdle { assertEquals(1, details) }
+    }
+
     @Test
     fun familyLoadFailureShowsRetry() {
         var retries = 0
