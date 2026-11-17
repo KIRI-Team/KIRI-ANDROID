@@ -26,7 +26,7 @@ class AddressServerFailureTest {
         }
     }
     @Test fun failedSaveKeepsInputAndRetriesWithRealRegionAndCoordinates() = runTest(main.testDispatcher) {
-        val family = FamilyFake(); val vm = HomeAddressViewModel(family)
+        val family = FamilyFake(); val vm = HomeAddressViewModel(family); advanceUntilIdle()
         vm.onEvent(FindZipCodeClicked); vm.onEvent(AddressSelected("06134", "서울 서초구 강남대로 143", "1165010800")); advanceUntilIdle()
         vm.onEvent(DetailAddressChanged("810호")); vm.onEvent(RegisterClicked); advanceUntilIdle()
         assertEquals(HomeAddressStep.REGISTER, vm.uiState.value.currentStep)
@@ -36,7 +36,7 @@ class AddressServerFailureTest {
         assertEquals("1165010800", family.saved!!.regionCode); assertEquals(37.5, family.saved!!.latitude, 0.0)
     }
     @Test fun geocodeFailureDoesNotShowSelectedAddressAsReadyToSave() = runTest(main.testDispatcher) {
-        val family = FamilyFake().apply { resolveFails = true }; val vm = HomeAddressViewModel(family)
+        val family = FamilyFake().apply { resolveFails = true }; val vm = HomeAddressViewModel(family); advanceUntilIdle()
         vm.onEvent(FindZipCodeClicked); vm.onEvent(AddressSelected("06134", "주소", "1165010800")); advanceUntilIdle()
         assertEquals(HomeAddressStep.SEARCH, vm.uiState.value.currentStep); assertFalse(vm.uiState.value.canRegister); assertNull(family.saved)
     }

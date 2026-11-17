@@ -25,7 +25,8 @@ class HomeAddressViewModelTest {
         // 아직 주소를 등록하지 않은 가족
         override suspend fun getAddress(): Result<com.kiri.domain.model.family.FamilyAddress?> = Result.success(null)
     }
-    private val viewModel = HomeAddressViewModel(family)
+    // 만들자마자 등록한 주소를 불러오므로(viewModelScope), 테스트용 Main 디스패처를 바꾼 뒤에 만든다
+    private val viewModel by lazy { HomeAddressViewModel(family) }
 
     private fun familyWithAddress(result: Result<com.kiri.domain.model.family.FamilyAddress?>) =
         object : com.kiri.domain.repository.FamilyRepository by family {
