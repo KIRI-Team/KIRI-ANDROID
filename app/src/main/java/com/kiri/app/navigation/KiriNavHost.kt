@@ -10,7 +10,6 @@ import com.kiri.feature.record.navigation.recordNavHost
 import com.kiri.feature.record.navigation.serverScheduleDetailRoute
 import com.kiri.feature.place.navigation.placeNavHost
 import com.kiri.feature.mypage.navigation.mypageGraph
-import com.kiri.feature.schedule.*
 
 @Composable
 fun KiriNavHost(
@@ -28,27 +27,22 @@ fun KiriNavHost(
             onCreateFamily = onCreateFamily,
             onJoinFamily = onJoinFamily,
             onAnswerEditingChanged = onHomeAnswerEditingChanged,
+            // 서버 일정 id 가 아니면 열 화면이 없다
             onSchedule = { id ->
-                val route = id.toLongOrNull()?.let { serverScheduleDetailRoute(it, fromHome = true) }
-                    ?: scheduleRoute(id, "home_graph")
-                navController.navigate(route) { launchSingleTop = true }
+                id.toLongOrNull()?.let { navController.navigate(serverScheduleDetailRoute(it, fromHome = true)) { launchSingleTop = true } }
             },
             // 응답이 필요한 일정 카드는 응답 화면으로 연다
             onRespondSchedule = { id ->
-                val route = id.toLongOrNull()?.let { serverScheduleDetailRoute(it, fromHome = true, respond = true) }
-                    ?: scheduleRoute(id, "home_graph")
-                navController.navigate(route) { launchSingleTop = true }
+                id.toLongOrNull()?.let {
+                    navController.navigate(serverScheduleDetailRoute(it, fromHome = true, respond = true)) { launchSingleTop = true }
+                }
             },
             onTasteSettings = { navController.navigate("mypage_graph/my_preference") { launchSingleTop = true } },
             onFamilyInvite = { navController.navigate("mypage_graph/invite_link") { launchSingleTop = true } },
-            scheduleDestinations = { scheduleGraph(navController, "home_graph") },
         )
         recordNavHost(
             navController,
-            onCreateSchedule = { navController.navigate(scheduleCreateRoute(it, "record_graph")) },
-            onManageSchedule = { navController.navigate(scheduleRoute(it, "record_graph")) },
             onNearbyMission = { id -> navController.navigate(serverMissionDetailRoute(id)) { launchSingleTop = true } },
-            scheduleDestinations = { scheduleGraph(navController, "record_graph") },
         )
         placeNavHost(navController)
         mypageGraph(navController, onNavigateToLogin = onNavigateToLogin)

@@ -9,16 +9,11 @@ import com.kiri.domain.model.bucket.BucketSaver
 import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.model.schedule.UpcomingSchedule
 import com.kiri.domain.model.schedule.UpcomingScheduleType
-import com.kiri.domain.record.CalendarEntry
 import com.kiri.domain.record.RecordPhoto
 
 enum class RecordTab(val label: String) { CALENDAR("캘린더"), BUCKET("버킷리스트") }
 // CANCELLED 는 취소된 약속만 있는 날로, 흐리게 그린다
 enum class RecordCalendarMark { QUESTION, PLANNED, CONFIRMED, CANCELLED, BUCKET, PHOTO_FIRST, PHOTO_SECOND }
-enum class RecordScheduleStatus(val label: String) { PLANNED("약속 예정"), CONFIRMED("약속 확정") }
-data class RecordSaver(val id: String, val nickname: String)
-data class RecordBucketItem(val id: String, val title: String, val saverId: String, val completed: Boolean = false)
-data class RecordSchedule(val id: String, val title: String, val date: LocalDate, val status: RecordScheduleStatus)
 
 data class RecordUiState(
     val today: LocalDate,
@@ -27,12 +22,7 @@ data class RecordUiState(
     val tab: RecordTab = RecordTab.CALENDAR,
     // 버킷리스트에서 고른 구성원의 서버 회원 id. null 이면 전체
     val selectedSaverId: String? = null,
-    val currentUserId: String = "",
-    val savers: List<RecordSaver> = emptyList(),
-    val buckets: List<RecordBucketItem> = emptyList(),
-    val schedules: List<RecordSchedule> = emptyList(),
     val calendarMarks: Map<LocalDate, RecordCalendarMark> = emptyMap(),
-    val entries: List<CalendarEntry> = emptyList(),
     val calendarPhotos: Map<LocalDate, RecordPhoto> = emptyMap(),
     val loading: Boolean = false,
     val error: String? = null,
@@ -58,9 +48,6 @@ data class RecordUiState(
     val selectedSchedules
         get() = monthSchedules.filter { it.date == selectedDate }
             .sortedWith(compareBy({ it.time ?: java.time.LocalTime.MAX }, { it.id }))
-
-    val selectedEntries get() = entries.filter { it.date == selectedDate }.sortedWith(compareBy({ it.startTime ?: java.time.LocalTime.MAX }, { it.id }))
-    fun saverName(id: String) = savers.firstOrNull { it.id == id }?.nickname ?: "탈퇴한 멤버"
 }
 
 // 취소된 일정은 서버가 상세를 돌려주지 않아 상세 화면을 열 수 없다.
@@ -92,7 +79,7 @@ internal fun List<CalendarSchedule>.toCalendarPhotos(): Map<LocalDate, RecordPho
         .groupBy { it.date }
         .mapValues { (_, schedules) -> schedules.first().let { RecordPhoto("schedule-${it.id}", requireNotNull(it.reviewImageUrl)) } }
 
-// 기기에 저장된 활동 표시와 서버 일정 표시를 합친다. 사진 기록이 있는 날은 사진을 그대로 보여주고,
+// 가족 질문 표시와 서버 일정 표시를 합친다. 사진이 있는 날은 사진을 그대로 보여주고,
 // 나머지는 확정 > 예정 > 버킷 > 가족 질문 > 취소 순으로 하나만 고른다
 internal fun mergeCalendarMarks(
     local: Map<LocalDate, RecordCalendarMark>,
@@ -117,18 +104,6 @@ object RecordPreviewData {
         val month = YearMonth.from(today)
         return RecordUiState(
             today = today,
-            savers = listOf(RecordSaver("mother", "엄마"), RecordSaver("father", "아빠"), RecordSaver("daughter", "딸")),
-            buckets = listOf(
-                RecordBucketItem("bucket-1", "광장시장에서 시장음식 먹어보기", "father", completed = true),
-                RecordBucketItem("bucket-2", "광장시장에서 시장음식 먹어보기", "father"),
-                RecordBucketItem("bucket-3", "광장시장에서 시장음식 먹어보기", "mother"),
-                RecordBucketItem("bucket-4", "광장시장에서 시장음식 먹어보기", "daughter"),
-            ),
-            schedules = listOf(
-                RecordSchedule("schedule-1", "한강 뚜벅뚜벅 축제 가보기", today.plusDays(3), RecordScheduleStatus.PLANNED),
-                RecordSchedule("schedule-2", "한강 뚜벅뚜벅 축제 가보기", today.plusDays(6), RecordScheduleStatus.CONFIRMED),
-                RecordSchedule("schedule-3", "한강 뚜벅뚜벅 축제 가보기", today.plusDays(10), RecordScheduleStatus.CONFIRMED),
-            ),
             upcomingSchedules = listOf(
                 UpcomingSchedule(1, today.plusDays(3), java.time.LocalTime.of(18, 0), UpcomingScheduleType.RESPONSE_REQUIRED, 3, "한강 뚜벅뚜벅 축제 가보기", null),
                 UpcomingSchedule(2, today.plusDays(1), java.time.LocalTime.of(14, 50), UpcomingScheduleType.UPCOMING, 1, "광장시장에서 시장음식 먹어보기", null),

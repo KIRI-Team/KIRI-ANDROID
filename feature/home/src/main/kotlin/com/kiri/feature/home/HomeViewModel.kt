@@ -24,7 +24,6 @@ class HomeViewModel @Inject constructor(
     private val clock: Clock = Clock.systemUTC(),
     private val tutorialRepository: HomeTutorialRepository = NoHomeTutorial,
     private val savedState: SavedStateHandle = SavedStateHandle(),
-    private val scheduleRepository: com.kiri.domain.schedule.ScheduleRepository? = null,
     private val tasteRepository: com.kiri.domain.repository.TasteRepository? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState(
@@ -37,25 +36,9 @@ class HomeViewModel @Inject constructor(
     private var loadingInProgress = false
     init {
         load()
-        scheduleRepository?.let { schedules -> viewModelScope.launch { schedules.schedules.collect {
-            if (!loadingInProgress) _uiState.update { state -> state.copy(home = state.home?.withSchedules()) }
-        } } }
     }
 
     fun refreshOnResume() { if (!uiState.value.editing && !uiState.value.busy) load() }
-
-    private fun FamilyHome.withSchedules(): FamilyHome {
-        val shared = scheduleRepository?.schedules?.value ?: return this
-        if (browsing) return this
-        return copy(schedules = (if (serverBacked) schedules.filter { old -> shared.none { it.id == old.id } } else emptyList()) + shared.map { schedule ->
-            val status = schedule.status(clock.instant())
-            val response = schedule.responses[currentUserId]
-            HomeSchedule(schedule.id, schedule.title, schedule.startsAt,
-                if (schedule.canRespond(currentUserId, clock.instant()) && response == com.kiri.domain.schedule.MemberResponse.RECONFIRM_REQUIRED) ScheduleStatus.RECONFIRM_REQUIRED
-                else if (schedule.canRespond(currentUserId, clock.instant()) && response == com.kiri.domain.schedule.MemberResponse.PENDING) ScheduleStatus.PENDING_RESPONSE else status,
-                currentUserId in schedule.acceptedIds, schedule.responseDeadline, schedule.missionId, schedule.weeklyMissionId)
-        }, mission = mission?.let { weekly -> weekly.copy(completed = weekly.completed || shared.any { it.weeklyMissionId == weekly.id && it.completed }) })
-    }
 
     fun onEvent(event: HomeUiEvent) {
         when (event) {
@@ -141,8 +124,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val loaded = repository.load()
-                scheduleRepository?.refresh()
-                val home = loaded.withSchedules()
+                val home = loaded
                 val taste = if (!home.browsing) tasteRepository?.getMyTaste()?.getOrNull() else null
                 if (!home.browsing && savedState.get<Boolean>("homeTutorialChecked") != true) {
                     // Mark the visit before showing it: returning home or restarting cannot replay it.
@@ -184,7 +166,7 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             try {
-                val home = repository.saveAnswer(question, s.draft).withSchedules()
+                val home = repository.saveAnswer(question, s.draft)
                 _uiState.update { it.copy(home = home, busy = false, editing = true, answerSaved = true) }
             } catch (error: CancellationException) { throw error }
             catch (error: Exception) { failed(error) }
@@ -200,7 +182,7 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             try {
-                val updated = repository.poke(question, member).withSchedules()
+                val updated = repository.poke(question, member)
                 val nickname = home.members.firstOrNull { it.id == member }?.nickname ?: "가족"
                 _uiState.update { it.copy(
                     home = updated, busy = false, selectedMemberId = null,

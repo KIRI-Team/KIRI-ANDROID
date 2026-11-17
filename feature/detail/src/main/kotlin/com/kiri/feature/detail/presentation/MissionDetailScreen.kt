@@ -29,15 +29,9 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.repeatOnLifecycle
 import com.kiri.domain.detail.MissionDetail
 import com.kiri.domain.mission.MissionReview
 import com.kiri.domain.time.kiriToday
-import com.kiri.feature.detail.DetailViewModel
 import com.kiri.feature.detail.R as DetailR
 import com.kiri.feature.detail.model.*
 import com.kiri.uikit.R as UiR
@@ -61,32 +55,6 @@ data class CalendarDetailHeader(
     val showConditionsInNearby: Boolean = false,
     val recordEnabled: Boolean = false,
 )
-
-@Composable
-fun MissionDetailRoute(
-    onBack: () -> Unit,
-    onCustom: () -> Unit,
-    viewModel: DetailViewModel = hiltViewModel(),
-    onRecord: () -> Unit = {},
-) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val currentBack by rememberUpdatedState(onBack)
-    val currentCustom by rememberUpdatedState(onCustom)
-    val currentRecord by rememberUpdatedState(onRecord)
-    val lifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(viewModel, lifecycleOwner) {
-        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            viewModel.effect.collect { effect ->
-                when (effect) {
-                    DetailUiEffect.NavigateBack -> currentBack()
-                    DetailUiEffect.OpenCustom -> currentCustom()
-                    DetailUiEffect.OpenRecord -> currentRecord()
-                }
-            }
-        }
-    }
-    MissionDetailScreen(state, viewModel::onEvent)
-}
 
 @Composable
 fun MissionDetailScreen(

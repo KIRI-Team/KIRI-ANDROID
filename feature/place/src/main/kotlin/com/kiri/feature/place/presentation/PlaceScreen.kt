@@ -1,5 +1,6 @@
 package com.kiri.feature.place.presentation
 
+import com.kiri.uikit.component.LocalKiriBottomBarInset
 import com.kiri.feature.place.PlaceViewModel
 import com.kiri.feature.place.model.*
 
@@ -125,7 +126,7 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
                     Text(if (state.showingSaved) "마음에 드는 활동을 저장해보세요" else "다른 검색어나 카테고리로 둘러보세요", style = KiriDetailTypography.Small, color = KiriColor.Text.Secondary)
                 }
             } else {
-                LazyColumn(Modifier.fillMaxWidth().weight(1f).testTag("place_list"), contentPadding = PaddingValues(start = 18.dp, end = 18.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                LazyColumn(Modifier.fillMaxWidth().weight(1f).testTag("place_list"), contentPadding = PaddingValues(start = 18.dp, end = 18.dp, bottom = 24.dp + LocalKiriBottomBarInset.current), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     items(missions, key = { it.id }) { mission -> PlaceMissionCard(mission, { onSaveRequest(mission) }, { onEvent(PlaceUiEvent.MissionClicked(mission.id)) }) }
                     if (!state.showingSaved && state.nextCursor != null) item {
                         LaunchedEffect(state.nextCursor) { onMore() }

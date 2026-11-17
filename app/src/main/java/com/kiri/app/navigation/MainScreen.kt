@@ -23,6 +23,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.navigation.compose.rememberNavController
 import com.kiri.uikit.color.KiriColor
+import com.kiri.uikit.component.LocalKiriBottomBarInset
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.currentBackStackEntryAsState
+
+private val TAB_START_ROUTES = TopLevelDestination.entries.map { it.startRoute }.toSet()
 
 // onNavigateToLogin: 로그아웃·회원탈퇴 뒤 로그인 화면으로 간다
 @Composable
@@ -38,11 +45,15 @@ fun MainScreen(onNavigateToLogin: () -> Unit = {}, accessViewModel: FamilyAccess
         accessViewModel.messages.collect { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
     }
 
+    // 바텀 바는 탭으로 이동할 수 있는 화면(각 탭의 첫 화면)에서만 보인다. 홈 답변 작성 중에는 숨긴다
+    val route = navController.currentBackStackEntryAsState().value?.destination?.route
+    val showBottomBar = route in TAB_START_ROUTES && !editingHomeAnswer
+
     Scaffold(
         containerColor = KiriColor.Bg.Base,
         contentColor = KiriColor.Text.Strong,
         bottomBar = {
-            if (!editingHomeAnswer) KiriBottomBar(
+            if (showBottomBar) KiriBottomBar(
                 navController,
                 isBlocked = { it.requiresFamily && access == FamilyAccess.BROWSING },
                 // TODO: 제한 안내 UI 가 정해지면 바꾼다. 그전까지는 토스트로 알린다
@@ -50,10 +61,16 @@ fun MainScreen(onNavigateToLogin: () -> Unit = {}, accessViewModel: FamilyAccess
             )
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).testTag("main_content")) {
-            KiriNavHost(navController, Modifier.fillMaxSize(), onNavigateToLogin = onNavigateToLogin,
-                onCreateFamily = onCreateFamily, onJoinFamily = onJoinFamily,
-                onHomeAnswerEditingChanged = { editingHomeAnswer = it })
+        // 바가 있으면 콘텐츠를 떠 있는 바 뒤까지 그리고, 가려지는 높이는 스크롤 끝 여백으로 넘긴다.
+        // 바가 없는 화면은 시스템 내비게이션 바 위에서 끝낸다
+        val overlayBar = showBottomBar
+        val contentPadding = if (overlayBar) PaddingValues(top = padding.calculateTopPadding()) else padding
+        CompositionLocalProvider(LocalKiriBottomBarInset provides if (overlayBar) padding.calculateBottomPadding() else 0.dp) {
+            Box(Modifier.fillMaxSize().padding(contentPadding).consumeWindowInsets(padding).testTag("main_content")) {
+                KiriNavHost(navController, Modifier.fillMaxSize(), onNavigateToLogin = onNavigateToLogin,
+                    onCreateFamily = onCreateFamily, onJoinFamily = onJoinFamily,
+                    onHomeAnswerEditingChanged = { editingHomeAnswer = it })
+            }
         }
     }
 }

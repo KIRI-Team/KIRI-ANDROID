@@ -84,22 +84,15 @@ class KiriAppNavigationTest {
         compose.onNodeWithTag("bottom_nav_place").performClick()
         compose.onNodeWithContentDescription("저장됨").assertIsDisplayed()
     }
-    @Test fun tabSwitchRestoresSavedCustomConditions() {
-        start(); openMission()
-        compose.onNodeWithTag("open_custom").performClick()
-        compose.onNodeWithTag("condition_AVOID_CROWDS").performScrollTo().performClick()
-        compose.onNodeWithTag("apply_custom").performClick()
-        compose.waitUntil(10_000) { compose.onAllNodesWithTag("condition_custom_screen").fetchSemanticsNodes().isEmpty() }
-        compose.onNodeWithTag("bottom_nav_record").performClick()
-        compose.onNodeWithTag("bottom_nav_home").performClick()
-        compose.onNodeWithTag("mission_detail_screen").assertIsDisplayed()
-        compose.onNodeWithTag("open_custom").performClick()
-        compose.onNodeWithTag("condition_AVOID_CROWDS").assertIsOn()
-    }
-
-    @Test fun bottomTabsRemainVisibleOnDetail() {
-        start(); openMission()
-        listOf("home", "record", "place", "mypage").forEach { compose.onNodeWithTag("bottom_nav_$it").assertIsDisplayed() }
+    @Test fun bottomBarIsHiddenOnDetailAndReturnsOnTab() {
+        start()
+        compose.onNodeWithTag("floating_bottom_bar").assertIsDisplayed()
+        openMission()
+        // 탭으로 이동할 수 있는 화면이 아니면 바텀 바를 띄우지 않는다
+        compose.onNodeWithTag("floating_bottom_bar").assertDoesNotExist()
+        compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("floating_bottom_bar").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("home_screen").assertIsDisplayed()
     }
 
     @Test fun recordTabsKeepSelectionsAcrossMainTabSwitches() {

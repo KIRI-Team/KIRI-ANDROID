@@ -1,5 +1,6 @@
 package com.kiri.feature.mypage.presentation.main
 
+import com.kiri.uikit.component.LocalKiriBottomBarInset
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -107,7 +108,7 @@ fun MypageScreen(
                     onMenuClick = onMenuClick,
                 )
             }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(24.dp + LocalKiriBottomBarInset.current))
         }
     }
 }

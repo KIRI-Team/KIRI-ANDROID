@@ -3,7 +3,6 @@ package com.kiri.feature.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.detail.DetailRepository
 import com.kiri.domain.detail.DetailSuggestion
 import com.kiri.domain.detail.MissionDetail
 import com.kiri.domain.detail.MissionPreview
@@ -26,10 +25,8 @@ import com.kiri.domain.home.isBrowsing
 
 @HiltViewModel
 class MissionPreviewViewModel @Inject constructor(
-    private val repository: DetailRepository,
     private val savedState: SavedStateHandle,
-    private val buckets: com.kiri.domain.record.BucketRepository? = null,
-    private val serverMissions: MissionInfoRepository? = null,
+    private val serverMissions: MissionInfoRepository,
     // 둘러보기 사용자는 버킷에 저장할 수 없다 (가족 정보로 확인). 없으면 확인하지 않는다
     private val home: com.kiri.domain.home.HomeRepository? = null,
     private val appEvents: AppEventRepository? = null,
@@ -63,38 +60,31 @@ class MissionPreviewViewModel @Inject constructor(
         _uiState.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             try {
-                val serverId = missionId.toLongOrNull()
-                if (serverId != null && serverMissions != null) {
-                    val mission = serverMissions.getMission(serverId).getOrThrow()
-                    _uiState.update { it.copy(
-                        loading = false, preview = mission.toPreview(), canSave = true,
-                        saved = mission.bucketState == MissionBucketState.SAVED,
-                        previouslyCompleted = mission.bucketState == MissionBucketState.COMPLETED_ONLY,
-                    ) }
-                    recordDetailView(serverId)
-                    val essentials = serverMissions.getMissionEssentials(serverId)
-                    essentials.exceptionOrNull()?.let { if (it is CancellationException) throw it }
-                    _uiState.update { state ->
-                        state.copy(essentialsFailed = essentials.isFailure, preview = state.preview?.let { preview ->
-                            preview.copy(detail = preview.detail.copy(essentials = essentials.getOrNull().orEmpty().map {
-                                DetailSuggestion(it.title, it.description.orEmpty())
-                            }))
-                        })
-                    }
-                    val nearby = missionNearby?.getMissionNearby(serverId)
-                    nearby?.exceptionOrNull()?.let { if (it is CancellationException) throw it }
-                    _uiState.update { state ->
-                        state.copy(nearbyFailed = nearby?.isFailure == true, preview = state.preview?.let { preview ->
-                            preview.copy(detail = preview.detail.copy(nearby = nearby?.getOrNull().orEmpty()))
-                        })
-                    }
-                    return@launch
+                // 서버 미션 id 가 아니면 보여줄 미션이 없다
+                val serverId = requireNotNull(missionId.toLongOrNull())
+                val mission = serverMissions.getMission(serverId).getOrThrow()
+                _uiState.update { it.copy(
+                    loading = false, preview = mission.toPreview(), canSave = true,
+                    saved = mission.bucketState == MissionBucketState.SAVED,
+                    previouslyCompleted = mission.bucketState == MissionBucketState.COMPLETED_ONLY,
+                ) }
+                recordDetailView(serverId)
+                val essentials = serverMissions.getMissionEssentials(serverId)
+                essentials.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+                _uiState.update { state ->
+                    state.copy(essentialsFailed = essentials.isFailure, preview = state.preview?.let { preview ->
+                        preview.copy(detail = preview.detail.copy(essentials = essentials.getOrNull().orEmpty().map {
+                            DetailSuggestion(it.title, it.description.orEmpty())
+                        }))
+                    })
                 }
-                val preview = repository.preview(missionId)
-                val owned = buckets?.mine().orEmpty().filter { it.missionId == missionId }
-                _uiState.update { it.copy(loading = false, preview = preview,
-                    saved = owned.any { bucket -> !bucket.completed },
-                    previouslyCompleted = owned.any { bucket -> bucket.completed }) }
+                val nearby = missionNearby?.getMissionNearby(serverId)
+                nearby?.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+                _uiState.update { state ->
+                    state.copy(nearbyFailed = nearby?.isFailure == true, preview = state.preview?.let { preview ->
+                        preview.copy(detail = preview.detail.copy(nearby = nearby?.getOrNull().orEmpty()))
+                    })
+                }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { _uiState.update { it.copy(loading = false, error = "미션 정보를 불러오지 못했어요.") } }
             finally { loading = false }
@@ -111,9 +101,7 @@ class MissionPreviewViewModel @Inject constructor(
     private fun save() {
         val current = uiState.value
         if (loading || current.saving || current.saved || !current.canSave || current.preview == null) return
-        val serverId = missionId.toLongOrNull()
-        val bucketRepository = buckets
-        if (serverId == null && bucketRepository == null) return
+        val serverId = missionId.toLongOrNull() ?: return
         _uiState.update { it.copy(saving = true, error = null) }
         viewModelScope.launch {
             // 둘러보기 중이면 저장하지 않고 안내한다
@@ -123,8 +111,7 @@ class MissionPreviewViewModel @Inject constructor(
                 return@launch
             }
             try {
-                if (serverId != null && serverMissions != null) serverMissions.saveBucket(serverId).getOrThrow()
-                else requireNotNull(bucketRepository).save(missionId)
+                serverMissions.saveBucket(serverId).getOrThrow()
                 _uiState.update { it.copy(saving = false, saved = true) }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) {

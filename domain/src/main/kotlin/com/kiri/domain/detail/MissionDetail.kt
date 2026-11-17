@@ -79,10 +79,4 @@ fun rankNearby(places: List<NearbyPlace>, conditions: Set<Condition>): List<Near
     return places.indices.sortedBy { scores[it] }.map(places::get)
 }
 
-interface DetailRepository {
-    suspend fun load(missionId: String): MissionDetail
-    suspend fun applyConditions(missionId: String, conditions: Set<Condition>): MissionDetail
-    suspend fun preview(missionId: String): MissionPreview = MissionPreview(load(missionId))
-}
-
 data class MissionPreview(val detail: MissionDetail, val reviews: List<MissionReview> = emptyList(), val curated: Boolean = false)

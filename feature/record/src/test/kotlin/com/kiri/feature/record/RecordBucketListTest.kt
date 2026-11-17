@@ -2,9 +2,6 @@ package com.kiri.feature.record
 
 import androidx.lifecycle.SavedStateHandle
 import com.kiri.data.bucket.FakeBucketItemRepository
-import com.kiri.data.home.FakeHomeRepository
-import com.kiri.data.mission.FakeMissionRepository
-import com.kiri.data.record.FakeRecordRepository
 import com.kiri.domain.model.bucket.BucketItemStatus
 import com.kiri.feature.record.model.RecordUiEffect
 import com.kiri.feature.record.model.RecordUiEvent
@@ -41,7 +38,7 @@ class RecordBucketListTest {
     @After
     fun teardown() = Dispatchers.resetMain()
 
-    private fun records() = FakeRecordRepository(FakeHomeRepository(clock, latencyMillis = 0), FakeMissionRepository(), clock = clock)
+    private fun records() = FakeQuestionHistory()
 
     private fun viewModel(buckets: FakeBucketItemRepository, handle: SavedStateHandle = SavedStateHandle()) =
         RecordViewModel(handle, records(), clock, bucketItems = buckets)

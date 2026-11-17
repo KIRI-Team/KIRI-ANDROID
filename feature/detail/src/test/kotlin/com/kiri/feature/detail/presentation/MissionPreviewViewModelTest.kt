@@ -1,45 +1,63 @@
 package com.kiri.feature.detail.presentation
 
 import androidx.lifecycle.SavedStateHandle
-import com.kiri.domain.detail.*
+import com.kiri.domain.detail.NearbyPlace
 import com.kiri.domain.model.mission.MissionBucketState
 import com.kiri.domain.model.mission.MissionInfo
 import com.kiri.domain.repository.AppEventRepository
 import com.kiri.domain.repository.MissionInfoRepository
 import com.kiri.domain.repository.MissionNearbyRepository
 import com.kiri.feature.detail.MissionPreviewViewModel
+import com.kiri.feature.detail.model.MissionPreviewUiEffect
+import com.kiri.feature.detail.model.MissionPreviewUiEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.*
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import kotlinx.coroutines.flow.first
-import org.junit.Assert.*
 
+// 미션 미리보기는 서버 미션 API 로 내용을 채우고, 버킷 저장도 서버에 한다
 @OptIn(ExperimentalCoroutinesApi::class)
 class MissionPreviewViewModelTest {
-    @Test fun completedHistoryAllowsOneNewSaveAndUnfinishedSaveTakesPriority() = runTest(dispatcher) {
-        val bucket = com.kiri.domain.record.FamilyBucket("old", "place-river", "me",
-            java.time.Instant.EPOCH, completed = true)
-        val buckets = Buckets(listOf(bucket))
-        val vm = MissionPreviewViewModel(Repository(), SavedStateHandle(mapOf("missionId" to "place-river")), buckets)
+    private val dispatcher = StandardTestDispatcher()
+
+    @Before fun setup() { Dispatchers.setMain(dispatcher) }
+
+    @After fun teardown() { Dispatchers.resetMain() }
+
+    private fun state(missionId: String = "42") = SavedStateHandle(mapOf("missionId" to missionId))
+
+    @Test fun completedHistoryAllowsOneNewSaveAndSavedMissionCannotBeSavedAgain() = runTest(dispatcher) {
+        val missions = Missions(MissionBucketState.COMPLETED_ONLY)
+        val vm = MissionPreviewViewModel(state(), missions)
         advanceUntilIdle()
         assertEquals("다시 버킷에 저장", vm.uiState.value.saveLabel)
-        vm.onEvent(com.kiri.feature.detail.model.MissionPreviewUiEvent.SaveClicked)
-        vm.onEvent(com.kiri.feature.detail.model.MissionPreviewUiEvent.SaveClicked)
+
+        vm.onEvent(MissionPreviewUiEvent.SaveClicked)
+        vm.onEvent(MissionPreviewUiEvent.SaveClicked)
         advanceUntilIdle()
-        assertEquals(1, buckets.saves)
+        assertEquals(listOf(42L), missions.saved)
         assertEquals("저장됨", vm.uiState.value.saveLabel)
-        assertEquals(bucket, buckets.buckets.value.first())
+
+        // 다시 불러오면 서버가 저장됨으로 알려준다
         vm.retry()
         advanceUntilIdle()
         assertEquals("저장됨", vm.uiState.value.saveLabel)
-        vm.onEvent(com.kiri.feature.detail.model.MissionPreviewUiEvent.SaveClicked)
+        vm.onEvent(MissionPreviewUiEvent.SaveClicked)
         advanceUntilIdle()
-        assertEquals(1, buckets.saves)
+        assertEquals(listOf(42L), missions.saved)
     }
-
 
     // 가족 정보만 돌려주는 홈 저장소. familyName 이 null 이면 둘러보기 사용자다
     private fun homeWith(familyName: String?) = object : com.kiri.domain.home.HomeRepository {
@@ -51,66 +69,42 @@ class MissionPreviewViewModelTest {
     }
 
     @Test fun browsingUserCannotSaveBucketAndSeesNotice() = runTest(dispatcher) {
-        val buckets = Buckets(emptyList())
-        val vm = MissionPreviewViewModel(Repository(), SavedStateHandle(mapOf("missionId" to "place-river")), buckets,
-            home = homeWith(familyName = null))
+        val missions = Missions()
+        val vm = MissionPreviewViewModel(state(), missions, home = homeWith(familyName = null))
         advanceUntilIdle()
 
-        vm.onEvent(com.kiri.feature.detail.model.MissionPreviewUiEvent.SaveClicked)
+        vm.onEvent(MissionPreviewUiEvent.SaveClicked)
         advanceUntilIdle()
 
-        assertEquals(0, buckets.saves)
+        assertTrue(missions.saved.isEmpty())
         assertFalse(vm.uiState.value.saving)
-        assertEquals(com.kiri.feature.detail.model.MissionPreviewUiEffect.ShowMessage("가족에 참여하면 이용할 수 있어요."),
-            vm.effect.first())
+        assertEquals(MissionPreviewUiEffect.ShowMessage("가족에 참여하면 이용할 수 있어요."), vm.effect.first())
     }
 
     @Test fun failedResaveKeepsRepeatActionAvailableForRetry() = runTest(dispatcher) {
-        val buckets = Buckets(listOf(com.kiri.domain.record.FamilyBucket("old", "place-river", "me",
-            java.time.Instant.EPOCH, completed = true))).apply { fail = true }
-        val vm = MissionPreviewViewModel(Repository(), SavedStateHandle(mapOf("missionId" to "place-river")), buckets)
+        val missions = Missions(MissionBucketState.COMPLETED_ONLY).apply { failSave = true }
+        val vm = MissionPreviewViewModel(state(), missions)
         advanceUntilIdle()
-        vm.onEvent(com.kiri.feature.detail.model.MissionPreviewUiEvent.SaveClicked)
+        vm.onEvent(MissionPreviewUiEvent.SaveClicked)
         advanceUntilIdle()
         assertEquals("다시 버킷에 저장", vm.uiState.value.saveLabel)
         assertNotNull(vm.uiState.value.error)
-        buckets.fail = false
-        vm.onEvent(com.kiri.feature.detail.model.MissionPreviewUiEvent.SaveClicked)
+
+        missions.failSave = false
+        vm.onEvent(MissionPreviewUiEvent.SaveClicked)
         advanceUntilIdle()
         assertEquals("저장됨", vm.uiState.value.saveLabel)
     }
 
-    private class Buckets(initial: List<com.kiri.domain.record.FamilyBucket>) : com.kiri.domain.record.BucketRepository {
-        override val buckets = kotlinx.coroutines.flow.MutableStateFlow(initial)
-        var saves = 0
-        var fail = false
-        override suspend fun refresh() {}
-        override suspend fun mine() = buckets.value
-        override suspend fun save(missionId: String): com.kiri.domain.record.FamilyBucket {
-            if (fail) error("save")
-            saves++
-            return com.kiri.domain.record.FamilyBucket("new", missionId, "me", java.time.Instant.EPOCH)
-                .also { buckets.value += it }
-        }
-        override suspend fun delete(id: String) = error("unused")
-        override suspend fun link(id: String, scheduleId: String) = error("unused")
-        override suspend fun unlink(id: String, scheduleId: String) = error("unused")
-        override suspend fun complete(id: String) = error("unused")
-    }
-
-    private val dispatcher = StandardTestDispatcher()
-    @Before fun setup() { Dispatchers.setMain(dispatcher) }
-    @After fun teardown() { Dispatchers.resetMain() }
-
     @Test fun defaultsToActivitiesAndRestoresReviewTab() = runTest(dispatcher) {
-        val savedState = SavedStateHandle(mapOf("missionId" to "place-river"))
-        val repo = Repository()
-        val viewModel = MissionPreviewViewModel(repo, savedState)
+        val savedState = state()
+        val missions = Missions()
+        val viewModel = MissionPreviewViewModel(savedState, missions)
         advanceUntilIdle()
-        assertEquals("place-river", repo.id)
+        assertEquals(listOf(42L), missions.loaded)
         assertFalse(viewModel.uiState.value.reviewsSelected)
         viewModel.selectReviews(true)
-        val restored = MissionPreviewViewModel(repo, savedState)
+        val restored = MissionPreviewViewModel(savedState, missions)
         advanceUntilIdle()
         assertTrue(restored.uiState.value.reviewsSelected)
         restored.selectReviews(false)
@@ -118,12 +112,12 @@ class MissionPreviewViewModelTest {
     }
 
     @Test fun failedLoadCanRetryWithoutLosingSelectedTab() = runTest(dispatcher) {
-        val repo = Repository().apply { failing = true }
-        val viewModel = MissionPreviewViewModel(repo, SavedStateHandle(mapOf("missionId" to "place-river")))
+        val missions = Missions().apply { failLoad = true }
+        val viewModel = MissionPreviewViewModel(state(), missions)
         advanceUntilIdle()
         assertNotNull(viewModel.uiState.value.error)
         viewModel.selectReviews(true)
-        repo.failing = false
+        missions.failLoad = false
         viewModel.retry()
         advanceUntilIdle()
         assertNull(viewModel.uiState.value.error)
@@ -131,23 +125,20 @@ class MissionPreviewViewModelTest {
         assertTrue(viewModel.uiState.value.reviewsSelected)
     }
 
+    @Test fun nonServerMissionIdShowsErrorWithoutCallingServer() = runTest(dispatcher) {
+        val missions = Missions()
+        val vm = MissionPreviewViewModel(state("place-river"), missions)
+        advanceUntilIdle()
+
+        assertNotNull(vm.uiState.value.error)
+        assertTrue(missions.loaded.isEmpty())
+        vm.onEvent(MissionPreviewUiEvent.SaveClicked)
+        advanceUntilIdle()
+        assertTrue(missions.saved.isEmpty())
+    }
+
     @Test fun recordsOnlyTheFirstSuccessfulServerDetailLoadPerEntry() = runTest(dispatcher) {
-        var missionAvailable = false
-        val missions = object : MissionInfoRepository {
-            override suspend fun getMission(missionId: Long): Result<MissionInfo> {
-                if (!missionAvailable) return Result.failure(IllegalStateException("unavailable"))
-                return Result.success(
-                    MissionInfo(
-                        id = missionId, title = "미션", description = null, category = null,
-                        missionType = null, status = null, indoorOutdoor = null, imageUrl = null,
-                        imageSource = null, startDate = null, endDate = null, openingTime = null,
-                        closingTime = null, price = null, durationMinMinutes = null, durationMaxMinutes = null,
-                        walkingLevel = null, sourceUrl = null, place = null,
-                        steps = emptyList(), bucketState = MissionBucketState.NONE, averageRating = null, reviewCount = 0,
-                    ),
-                )
-            }
-        }
+        val missions = Missions().apply { failLoad = true }
         val recorded = mutableListOf<Long>()
         val events = object : AppEventRepository {
             override suspend fun recordMissionDetailView(missionId: Long): Result<Unit> {
@@ -155,7 +146,7 @@ class MissionPreviewViewModelTest {
                 return Result.failure(IllegalStateException("events unavailable"))
             }
         }
-        val savedState = SavedStateHandle(mapOf("missionId" to "42"))
+        val savedState = state()
         val nearbyRequests = mutableListOf<Long>()
         val nearbyPlace = NearbyPlace(id = "nearby", title = "Park", address = "", description = "", missionId = 73L, distance = 150.5)
         val nearby = object : MissionNearbyRepository {
@@ -164,14 +155,12 @@ class MissionPreviewViewModelTest {
                 return Result.success(listOf(nearbyPlace))
             }
         }
-        val vm = MissionPreviewViewModel(
-            Repository(), savedState, serverMissions = missions, appEvents = events, missionNearby = nearby,
-        )
+        val vm = MissionPreviewViewModel(savedState, missions, appEvents = events, missionNearby = nearby)
         advanceUntilIdle()
         assertTrue(recorded.isEmpty())
         assertTrue(nearbyRequests.isEmpty())
 
-        missionAvailable = true
+        missions.failLoad = false
         vm.retry()
         advanceUntilIdle()
         assertNull(vm.uiState.value.error)
@@ -179,19 +168,38 @@ class MissionPreviewViewModelTest {
         assertEquals(listOf(nearbyPlace), vm.uiState.value.preview?.detail?.nearby)
 
         vm.retry()
-        MissionPreviewViewModel(Repository(), savedState, serverMissions = missions, appEvents = events)
+        MissionPreviewViewModel(savedState, missions, appEvents = events)
         advanceUntilIdle()
         assertEquals(listOf(42L), recorded)
     }
 
-    private class Repository : DetailRepository {
-        var id = ""
-        var failing = false
-        override suspend fun load(missionId: String): MissionDetail {
-            id = missionId
-            if (failing) error("network")
-            return figmaDetailSample().copy(id = missionId)
+    // 불러온 미션 id 와 버킷에 저장한 미션 id 를 남긴다. 저장에 성공하면 그 뒤로는 저장됨으로 돌려준다
+    private class Missions(private var bucketState: MissionBucketState = MissionBucketState.NONE) : MissionInfoRepository {
+        val loaded = mutableListOf<Long>()
+        val saved = mutableListOf<Long>()
+        var failLoad = false
+        var failSave = false
+
+        override suspend fun getMission(missionId: Long): Result<MissionInfo> {
+            loaded += missionId
+            if (failLoad) return Result.failure(IllegalStateException("unavailable"))
+            return Result.success(mission(missionId, bucketState))
         }
-        override suspend fun applyConditions(missionId: String, conditions: Set<Condition>) = load(missionId)
+
+        override suspend fun saveBucket(missionId: Long): Result<Unit> {
+            if (failSave) return Result.failure(IllegalStateException("save"))
+            saved += missionId
+            bucketState = MissionBucketState.SAVED
+            return Result.success(Unit)
+        }
     }
 }
+
+private fun mission(id: Long, bucketState: MissionBucketState) = MissionInfo(
+    id = id, title = "미션", description = null, category = null,
+    missionType = null, status = null, indoorOutdoor = null, imageUrl = null,
+    imageSource = null, startDate = null, endDate = null, openingTime = null,
+    closingTime = null, price = null, durationMinMinutes = null, durationMaxMinutes = null,
+    walkingLevel = null, sourceUrl = null, place = null,
+    steps = emptyList(), bucketState = bucketState, averageRating = null, reviewCount = 0,
+)

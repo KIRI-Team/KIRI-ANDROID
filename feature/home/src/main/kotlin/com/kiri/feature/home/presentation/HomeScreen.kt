@@ -1,5 +1,6 @@
 package com.kiri.feature.home.presentation
 
+import com.kiri.uikit.component.LocalKiriBottomBarInset
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -221,6 +222,7 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
                     }
                     Spacer(Modifier.height(28.dp))
                 }
+                Spacer(Modifier.height(LocalKiriBottomBarInset.current))
             }
         }
         if (state.answerSaved) AnswerSavedDialog { onEvent(HomeUiEvent.NoticeDismissed) }

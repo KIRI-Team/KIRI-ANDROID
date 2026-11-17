@@ -20,17 +20,16 @@ class BottomNavigationSpacingTest {
     @get:Rule(order = 0) val hilt = HiltAndroidRule(this)
     @get:Rule(order = 1) val compose = createAndroidComposeRule<HiltTestActivity>()
     @Before fun setup() { hilt.inject() }
-    @Test fun everyTabReservesTheEntireFloatingBarAndPreservesSelection() {
+    @Test fun everyTabDrawsContentBehindTheFloatingBarAndPreservesSelection() {
         compose.setContent { KiriTheme { MainScreen() } }
         compose.waitUntil(10_000) { compose.onAllNodesWithTag("home_question_card").fetchSemanticsNodes().isNotEmpty() }
         if (compose.onAllNodesWithTag("home_tutorial_skip").fetchSemanticsNodes().isNotEmpty()) compose.onNodeWithTag("home_tutorial_skip").performClick()
         listOf("home", "place", "record", "mypage").forEach { tab ->
             compose.onNodeWithTag("bottom_nav_$tab").performClick().assertIsSelected()
             val content = compose.onNodeWithTag("main_content").fetchSemanticsNode().boundsInRoot
-            val area = compose.onNodeWithTag("bottom_nav_area").fetchSemanticsNode().boundsInRoot
-            assertTrue("$tab content must finish above the bar including its outer gap", content.bottom <= area.top + 1f)
             val bar = compose.onNodeWithTag("floating_bottom_bar").fetchSemanticsNode().boundsInRoot
-            assertTrue("$tab requires space above the pill", bar.top > content.bottom)
+            // 바가 단색 배경이 아니라 탭 화면 위에 떠 있어야 한다
+            assertTrue("$tab content must extend behind the floating bar", content.bottom >= bar.bottom)
             val directory = InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null)!!
             File(directory, "floating-nav-$tab.png").outputStream().use {
                 compose.onNodeWithTag("floating_bottom_bar").captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it)

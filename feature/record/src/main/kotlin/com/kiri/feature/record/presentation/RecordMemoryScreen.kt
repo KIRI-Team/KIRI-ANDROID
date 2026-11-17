@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kiri.domain.record.*
 import com.kiri.feature.record.R
-import com.kiri.feature.record.RecordDetailUiState
 import com.kiri.feature.detail.presentation.MemoryPhoto
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.*
@@ -48,7 +47,7 @@ fun RecordPhotoImage(photo: RecordPhoto, modifier: Modifier = Modifier) {
     else MemoryPhoto(photo.source, modifier)
 }
 
-// 기록 카드 한 장. 기기 기록(FamilyMemory)과 서버 리뷰(ScheduleReview)를 같은 모양으로 보여준다
+// 기록 카드 한 장. 서버 리뷰(ScheduleReview)를 보여준다
 data class MemoryCardUi(
     val id: String,
     val authorName: String,
@@ -59,36 +58,6 @@ data class MemoryCardUi(
     // 내가 쓴 기록이면 수정·삭제를 보여준다 (수정·삭제 동작을 넘긴 경우에만)
     val mine: Boolean,
 )
-
-@Composable
-fun RecordMemoryScreen(
-    state: RecordDetailUiState,
-    onBack: () -> Unit,
-    onChangePhoto: () -> Unit,
-    onEdit: (String) -> Unit,
-    onDelete: (String) -> Unit,
-    onDismissToast: () -> Unit,
-    onReview: (() -> Unit)? = null,
-) {
-    val me = state.collection.currentUserId
-    RecordMemoryContent(
-        familyName = state.collection.familyName,
-        title = state.detail.detail?.title ?: state.entry?.title.orEmpty(),
-        date = state.entry?.date,
-        participants = state.detail.detail?.participants.orEmpty(),
-        representativePhoto = state.representativePhoto,
-        memories = state.memories.map { MemoryCardUi(it.id, it.authorName, it.role, it.text, it.photos, it.authorId == me) },
-        onBack = onBack,
-        onChangePhoto = onChangePhoto,
-        onEdit = onEdit,
-        onDelete = onDelete,
-        saving = state.detail.saving,
-        error = state.detail.error,
-        toast = state.toast,
-        onDismissToast = onDismissToast,
-        onReview = onReview?.takeIf { me in state.entry?.participantIds.orEmpty() && state.memories.none { it.authorId == me } },
-    )
-}
 
 // Figma 7903:1926 (사진 클릭시 화면). 완료된 약속의 정보, 대표 사진, 가족의 기록 모아보기를 보여준다
 // onChangePhoto·onEdit·onDelete·onReview 를 넘기지 않으면 그 동작(사진 변경, 수정하기, 삭제, 나의 추억 기록하기)을 숨긴다
@@ -246,19 +215,7 @@ private fun MemoryMenuRow(label: String, icon: Int, tag: String, onClick: () -> 
     }
 }
 
-@Composable
-fun RecordPhotoSelectionScreen(state: RecordDetailUiState, onBack: () -> Unit, onSelect: (String) -> Unit, onSave: () -> Unit) {
-    RecordPhotoSelectionContent(
-        photos = state.photos,
-        currentPhotoId = state.entry?.representativePhotoId,
-        selectedPhotoId = state.selectedPhotoId,
-        saving = state.detail.saving,
-        error = state.detail.error,
-        onBack = onBack, onSelect = onSelect, onSave = onSave,
-    )
-}
-
-// 대표 사진 변경(사진변경). 로컬 기록과 서버 일정(리뷰 사진)이 함께 쓴다. 지금 대표 사진에는 "현재사진"을 표시하고,
+// 대표 사진 변경(사진변경). 서버 일정의 리뷰 사진 중에서 고른다. 지금 대표 사진에는 "현재사진"을 표시하고,
 // 다른 사진을 골랐을 때만 저장할 수 있다
 @Composable
 fun RecordPhotoSelectionContent(

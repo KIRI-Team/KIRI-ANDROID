@@ -3,7 +3,6 @@ package com.kiri.feature.record
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.home.ScheduleStatus
 import com.kiri.domain.model.schedule.CalendarSchedule
 import com.kiri.domain.model.schedule.ScheduleDetail
 import com.kiri.domain.model.schedule.ScheduleNotFoundException
@@ -17,7 +16,8 @@ import com.kiri.domain.model.bucket.CompletedBucketItemException
 import com.kiri.domain.model.bucket.NotBucketItemOwnerException
 import com.kiri.domain.model.bucket.ScheduledBucketItemException
 import kotlinx.coroutines.Job
-import com.kiri.domain.record.*
+import com.kiri.domain.record.QuestionHistoryRepository
+import com.kiri.domain.record.RecordedQuestion
 import com.kiri.domain.time.kiriToday
 import com.kiri.feature.record.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,7 +34,7 @@ class RecordViewModel
 @Inject
 constructor(
     private val savedState: SavedStateHandle,
-    private val repository: RecordRepository,
+    private val questions: QuestionHistoryRepository,
     private val clock: java.time.Clock = java.time.Clock.systemUTC(),
     private val calendarSchedules: CalendarScheduleRepository = NoCalendarSchedules,
     private val bucketItems: BucketItemRepository = NoBucketItems,
@@ -62,11 +62,8 @@ constructor(
     val effect = _effect.receiveAsFlow()
     private var refreshing = false
 
-    // 기기에 저장된 활동으로 만든 날짜별 표시. 서버 일정 표시와 합쳐 calendarMarks 가 된다
-    private var localMarks: Map<LocalDate, RecordCalendarMark> = emptyMap()
-
-    // 기기에 저장된 사진 기록의 날짜별 대표 사진. 완료된 서버 일정의 리뷰 대표 이미지와 합쳐 calendarPhotos 가 된다
-    private var localPhotos: Map<LocalDate, RecordPhoto> = emptyMap()
+    // 가족 모두 답한 지난 질문의 날짜 표시. 서버 일정 표시와 합쳐 calendarMarks 가 된다
+    private var questionMarks: Map<LocalDate, RecordCalendarMark> = emptyMap()
 
     // 서버에서 받은 달별 가족 일정. 달을 오가도 다시 받지 않는다 (다시 시도하면 새로 받는다)
     private val schedulesByMonth = mutableMapOf<YearMonth, List<CalendarSchedule>>()
@@ -81,54 +78,9 @@ constructor(
 
     init {
         viewModelScope.launch {
-            repository.records.collect { records ->
-                localMarks = localCalendarMarks(records)
-                update { state ->
-                    val entries = records.entries
-                    state.copy(
-                        entries = entries,
-                        currentUserId = records.currentUserId,
-                        savers = records.savers.map { RecordSaver(it.key, it.value) },
-                        buckets =
-                            entries
-                                .filter { it.kind == CalendarEntryKind.BUCKET }
-                                .map {
-                                    RecordBucketItem(
-                                        it.id,
-                                        it.title,
-                                        it.saverId.orEmpty(),
-                                        it.completed,
-                                    )
-                                },
-                        schedules =
-                            entries
-                                .filter {
-                                    it.kind == CalendarEntryKind.SCHEDULE &&
-                                        (it.status == com.kiri.domain.home.ScheduleStatus.CONFIRMED)
-                                }
-                                .map {
-                                    RecordSchedule(
-                                        it.id,
-                                        it.title,
-                                        it.date,
-                                        RecordScheduleStatus.CONFIRMED,
-                                    )
-                                },
-                        questions = records.questions,
-                        calendarPhotos =
-                            entries
-                                .filter { it.kind == CalendarEntryKind.MEMORY }
-                                .sortedWith(compareBy({ it.startTime }, { it.id }))
-                                .mapNotNull { entry ->
-                                    records.photos[entry.id]
-                                        ?.find { it.id == entry.representativePhotoId }
-                                        ?.let { entry.date to it }
-                                }
-                                .groupBy({ it.first }, { it.second })
-                                .mapValues { it.value.first() }
-                                .also { localPhotos = it },
-                    ).withServerSchedules()
-                }
+            questions.questions.collect { recorded ->
+                questionMarks = questionCalendarMarks(recorded)
+                update { it.copy(questions = recorded).withServerSchedules() }
             }
         }
         refresh()
@@ -152,7 +104,7 @@ constructor(
         loadUpcoming()
         loadBuckets()
         try {
-            repository.refresh()
+            questions.refresh()
             _uiState.update { it.copy(loading = false) }
             refreshQuestion(uiState.value.selectedDate)
         } catch (e: CancellationException) {
@@ -183,18 +135,12 @@ constructor(
                     loadBuckets()
                 }
             }
-            is RecordUiEvent.ScheduleClicked ->
-                if (uiState.value.schedules.any { it.id == event.id })
-                    _effect.trySend(RecordUiEffect.OpenSchedule(event.id))
             is RecordUiEvent.BucketClicked ->
                 if (uiState.value.bucketItems.any { it.id.toString() == event.id })
                     _effect.trySend(RecordUiEffect.OpenBucket(event.id))
             RecordUiEvent.BucketListEndReached -> loadBuckets(more = true)
             RecordUiEvent.BucketListRetryClicked -> loadBuckets(more = uiState.value.bucketItems.isNotEmpty())
             is RecordUiEvent.BucketDeleteConfirmed -> deleteBucket(event.id)
-            is RecordUiEvent.CalendarEntryClicked ->
-                if (uiState.value.entries.any { it.id == event.id })
-                    _effect.trySend(RecordUiEffect.OpenEntry(event.id))
             RecordUiEvent.RetryClicked -> refresh()
             is RecordUiEvent.ServerScheduleClicked ->
                 uiState.value.upcomingSchedules
@@ -202,10 +148,6 @@ constructor(
                     ?.let { _effect.trySend(RecordUiEffect.OpenServerSchedule(it.id, it.date)) }
         }
     }
-
-    // 가족 응답을 기다리는 일정 요청은 "약속 예정"으로 보여준다
-    private val CalendarEntry.pending
-        get() = status == ScheduleStatus.PENDING_RESPONSE
 
     private fun changeMonth(offset: Long) {
         val month = runCatching { uiState.value.month.plusMonths(offset) }.getOrNull() ?: return
@@ -238,13 +180,10 @@ constructor(
         }
     }
 
-    // 고른 날의 활동(기기에 저장된 활동과 열 수 있는 서버 일정) 중 가장 이른 것 하나의 상세 화면으로 간다
-    // 날짜 아래에 그날 활동 목록을 따로 보여주지 않으므로, 여러 개가 겹치면 시간이 가장 이른 것을 연다
-    // 시간을 모르는 활동은 뒤로 미루고, 시간이 같으면 기기에 저장된 활동을 먼저 연다. 취소·미확정 일정만 있으면 이동하지 않는다
     private fun refreshQuestion(date: LocalDate) {
         viewModelScope.launch {
             try {
-                repository.refreshQuestion(date)
+                questions.refreshQuestion(date)
             } catch (error: CancellationException) {
                 throw error
             } catch (_: Exception) {
@@ -255,14 +194,14 @@ constructor(
         }
     }
 
+    // 고른 날의 열 수 있는 서버 일정 중 가장 이른 것 하나의 상세 화면으로 간다
+    // 날짜 아래에 그날 일정 목록을 따로 보여주지 않으므로, 여러 개가 겹치면 시간이 가장 이른 것을 연다
+    // 시간을 모르는 일정은 뒤로 미룬다. 취소·미확정 일정만 있으면 이동하지 않는다
     private fun openSelectedDay() {
         val state = uiState.value
-        val candidates: List<Pair<java.time.LocalTime?, RecordUiEffect>> =
-            state.selectedEntries.map { it.startTime to RecordUiEffect.OpenEntry(it.id) } +
-                state.selectedSchedules
-                    .filter { it.canOpen }
-                    .map { it.time to RecordUiEffect.OpenServerSchedule(it.id, it.date) }
-        candidates.minByOrNull { it.first ?: java.time.LocalTime.MAX }?.let { _effect.trySend(it.second) }
+        state.selectedSchedules
+            .firstOrNull { it.canOpen }
+            ?.let { _effect.trySend(RecordUiEffect.OpenServerSchedule(it.id, it.date)) }
     }
 
     // 다가오는 일정 카드(응답 필요 1건, 다가오는 1건)를 불러온다. 실패하면 이전 카드를 지우고 실패 문구를 보여준다
@@ -284,46 +223,15 @@ constructor(
         val schedules = schedulesByMonth[month].orEmpty()
         return copy(
             monthSchedules = schedules,
-            calendarMarks = mergeCalendarMarks(localMarks, schedules.toCalendarMarks()),
-            // 기기 사진 기록이 있는 날은 그 사진을, 없으면 완료된 서버 일정의 리뷰 대표 이미지를 날짜 배경으로 쓴다
-            calendarPhotos = schedules.toCalendarPhotos() + localPhotos,
+            calendarMarks = mergeCalendarMarks(questionMarks, schedules.toCalendarMarks()),
+            // 완료된 서버 일정의 리뷰 대표 이미지를 날짜 배경으로 쓴다
+            calendarPhotos = schedules.toCalendarPhotos(),
         )
     }
 
-    // 사진 기록 > 약속 > 버킷 순으로 하나만 고르고, 활동이 없는 날은 가족 모두 답한 질문을 보여준다
-    private fun localCalendarMarks(records: RecordCollection): Map<LocalDate, RecordCalendarMark> {
-        val entries = records.entries
-        val activityMarks =
-            entries.groupBy { it.date }.mapValues { (_, values) ->
-                val first =
-                    values.minWith(
-                        compareBy<CalendarEntry> {
-                                when (it.kind) {
-                                    CalendarEntryKind.MEMORY -> 0
-                                    CalendarEntryKind.SCHEDULE -> 1
-                                    CalendarEntryKind.BUCKET -> 2
-                                }
-                            }
-                            .thenBy { it.startTime }
-                            .thenBy { it.id }
-                    )
-                when (first.kind) {
-                    CalendarEntryKind.SCHEDULE ->
-                        if (values.any { it.kind == CalendarEntryKind.SCHEDULE && it.status == ScheduleStatus.CONFIRMED })
-                            RecordCalendarMark.CONFIRMED
-                        else RecordCalendarMark.PLANNED
-                    CalendarEntryKind.BUCKET -> RecordCalendarMark.BUCKET
-                    CalendarEntryKind.MEMORY -> RecordCalendarMark.PHOTO_FIRST
-                }
-            }
-        val questionMarks =
-            records.questions
-                .filterValues { it.everyoneAnswered }
-                .keys
-                .filter { date -> entries.none { it.date == date } }
-                .associateWith { RecordCalendarMark.QUESTION }
-        return activityMarks + questionMarks
-    }
+    // 가족 모두 답한 질문이 있는 날. 그날 서버 일정이 있으면 일정 표시가 앞선다 (mergeCalendarMarks)
+    private fun questionCalendarMarks(recorded: Map<LocalDate, RecordedQuestion>): Map<LocalDate, RecordCalendarMark> =
+        recorded.filterValues { it.everyoneAnswered }.mapValues { RecordCalendarMark.QUESTION }
 
     // 가족 버킷리스트를 불러온다. more 가 false 면 고른 구성원 기준으로 첫 페이지부터 다시 받고(진행 중인 요청은 버린다),
     // true 면 다음 페이지를 이어 붙인다. 이미 받는 중이거나 마지막 페이지면 다음 페이지는 요청하지 않는다
