@@ -22,6 +22,8 @@ fun BucketScheduleCreateRoute(
     onBackClick: () -> Unit,
     onSentByApp: () -> Unit,
     onSentByKakao: () -> Unit,
+    // 요청 미리보기의 자세히 보러가기. 미션 상세를 연다
+    onMissionDetail: (Long) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -46,7 +48,10 @@ fun BucketScheduleCreateRoute(
             }
         }
     }
-    BucketScheduleCreateScreen(state, viewModel::onDraftChange, onBackClick, viewModel::send, viewModel::retry, viewModel::onMonthShown)
+    BucketScheduleCreateScreen(
+        state, viewModel::onDraftChange, onBackClick, viewModel::send, viewModel::retry, viewModel::onMonthShown,
+        onDetailClick = { state.missionId?.let(onMissionDetail) },
+    )
 }
 
 @Composable
