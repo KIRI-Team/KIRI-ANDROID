@@ -52,7 +52,6 @@ data class CalendarDetailHeader(
     val onEditSchedule: (() -> Unit)? = null,
     val onCancelSchedule: (() -> Unit)? = null,
     val showRecord: Boolean = false,
-    val showConditionsInNearby: Boolean = false,
     val recordEnabled: Boolean = false,
 )
 
@@ -259,10 +258,6 @@ fun MissionDetailScreen(
                         style = KiriDetailTypography.Small,
                         color = KiriColor.Text.Tertiary,
                     )
-                    if (calendarHeader?.showConditionsInNearby == true) {
-                        Spacer(Modifier.height(12.dp))
-                        KiriDetailButton("컨디션 조정하러가기", onCustom, softAccent = true)
-                    }
                     if (detail.conditions.isNotEmpty())
                         Text(
                             "컨디션에 맞게 추천 순서를 조정했어요.",

@@ -137,7 +137,11 @@ class ServerScheduleDetailViewModelTest {
             ScheduleParticipant("첫째", MyScheduleStatus.PENDING),
         ),
         missionId = 42,
+        myStatus = MyScheduleStatus.ACCEPTED,
     )
+
+    // 일정(11월 17일 14:50) 시작 전인 같은 날 14:00 (한국 시간)
+    private val beforeStart = java.time.Clock.fixed(java.time.Instant.parse("2026-11-17T05:00:00Z"), java.time.ZoneOffset.UTC)
 
     private class FakeMissions(var result: Result<MissionInfo> = Result.success(mission)) : MissionInfoRepository {
         val requested = mutableListOf<Long>()
@@ -159,6 +163,7 @@ class ServerScheduleDetailViewModelTest {
         conditions: ScheduleConditionRepository? = null,
         nearby: ScheduleNearbyRepository = FakeNearby(),
         scheduleRepository: CalendarScheduleRepository? = null,
+        clock: java.time.Clock = beforeStart,
     ) =
         ServerScheduleDetailViewModel(
             SavedStateHandle(
@@ -174,6 +179,7 @@ class ServerScheduleDetailViewModelTest {
             conditions ?: FakeConditions(Result.failure(IOException())),
             nearby,
             schedules = scheduleRepository,
+            clock = clock,
         )
 
     // 정해 둔 근처 놀거리를 돌려주고, 요청한 일정 id 를 기록한다
@@ -667,7 +673,7 @@ class ServerScheduleDetailViewModelTest {
     @Test
     fun 약속_당일이면_컨디션_커스텀_화면을_열고_조건을_고를_수_있다() = runTest {
         val vm = viewModel(FakeSchedules(Result.success(detail)), conditions = FakeConditions(Result.success(custom.copy(conditions = emptySet()))))
-        assertTrue(vm.uiState.value.canCustomize)
+        assertTrue(vm.uiState.value.canAdjustConditions)
 
         vm.onEvent(DetailUiEvent.CustomClicked)
         assertEquals(ServerScheduleDetailEffect.OpenCustom, vm.effect.first())
@@ -690,14 +696,37 @@ class ServerScheduleDetailViewModelTest {
     fun 당일이_아니거나_불러오지_못했으면_컨디션_커스텀을_열지_않는다() = runTest {
         ScheduleDisplayStatus.entries.filter { it != ScheduleDisplayStatus.TODAY }.forEach { status ->
             val vm = viewModel(FakeSchedules(Result.success(detail.copy(status = status))))
-            assertFalse(vm.uiState.value.canCustomize)
+            assertFalse(vm.uiState.value.canAdjustConditions)
             vm.onEvent(DetailUiEvent.CustomClicked)
             assertNull(withTimeoutOrNull(100) { vm.effect.first() })
         }
         val failed = viewModel(FakeSchedules(Result.failure(IOException())))
-        assertFalse(failed.uiState.value.canCustomize)
+        assertFalse(failed.uiState.value.canAdjustConditions)
         failed.onEvent(DetailUiEvent.CustomClicked)
         assertNull(withTimeoutOrNull(100) { failed.effect.first() })
+    }
+
+    @Test
+    fun 수락하지_않았거나_시작_시각이_지났으면_컨디션_커스텀을_열지_않는다() = runTest {
+        val notAccepted = MyScheduleStatus.entries.filter { it != MyScheduleStatus.ACCEPTED }.map { detail.copy(myStatus = it) } + detail.copy(myStatus = null)
+        notAccepted.forEach { schedule ->
+            val vm = viewModel(FakeSchedules(Result.success(schedule)))
+            assertFalse(schedule.myStatus.toString(), vm.uiState.value.canAdjustConditions)
+            vm.onEvent(DetailUiEvent.CustomClicked)
+            assertNull(withTimeoutOrNull(100) { vm.effect.first() })
+        }
+        // 14:50 시작 일정에 14:50 이 되면 이미 시작한 것으로 본다
+        val started = java.time.Clock.fixed(java.time.Instant.parse("2026-11-17T05:50:00Z"), java.time.ZoneOffset.UTC)
+        val vm = viewModel(FakeSchedules(Result.success(detail)), clock = started)
+        assertFalse(vm.uiState.value.canAdjustConditions)
+        vm.onEvent(DetailUiEvent.CustomClicked)
+        assertNull(withTimeoutOrNull(100) { vm.effect.first() })
+    }
+
+    @Test
+    fun 시작_시각을_모르는_당일_일정은_수락했으면_컨디션_커스텀을_열_수_있다() = runTest {
+        val vm = viewModel(FakeSchedules(Result.success(detail.copy(time = null))))
+        assertTrue(vm.uiState.value.canAdjustConditions)
     }
 
     @Test

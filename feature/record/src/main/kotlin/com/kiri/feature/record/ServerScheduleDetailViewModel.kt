@@ -57,6 +57,8 @@ data class ServerScheduleDetailUiState(
     val canRespond: Boolean = false,
     val canCancel: Boolean = false,
     val canReview: Boolean = false,
+    // 컨디션 조정하러가기를 보여주고 열 수 있는지. 서버 값이 없어 당일 일정이고, 내가 수락했고, 아직 시작 전인지로 정한다
+    val canAdjustConditions: Boolean = false,
     val reviewSaved: Boolean = false,
     // 수정 중인 내 리뷰 id (새로 쓰는 중이면 null). 작성 화면을 수정 모드로 쓴다
     val editingReviewId: Long? = null,
@@ -100,7 +102,7 @@ data class ServerScheduleDetailUiState(
     val appBarTitle
         get() = (schedule?.date ?: requestedDate)?.let { "${it.monthValue}월 ${it.dayOfMonth}일" } ?: "약속 상세"
 
-    // 약속 당일에만 컨디션 조정하러가기 버튼을 보여준다
+    // 약속 당일인지. 홈에서 연 당일 일정은 가족 기록을 함께 보여준다 (컨디션 조정 버튼은 canAdjustConditions 를 따른다)
     val canCustomize get() = schedule?.status == ScheduleDisplayStatus.TODAY
 
     // 대표 사진 후보: 리뷰 사진 중 id 가 있는 것 (리뷰 작성순, 리뷰 안 사진 순서)
@@ -187,7 +189,7 @@ constructor(
             is DetailUiEvent.MemoriesSelected ->
                 state.update { it.copy(detail = it.detail.copy(memoriesSelected = event.selected)) }
             DetailUiEvent.CustomClicked ->
-                if (uiState.value.canCustomize) {
+                if (uiState.value.canAdjustConditions) {
                     // 들어갈 때마다 고른 조건을 비우고, 지금 일정에 적용된 조건을 불러와 채운다
                     state.update { it.copy(customError = null, detail = it.detail.copy(draft = emptySet())) }
                     effects.trySend(ServerScheduleDetailEffect.OpenCustom)
@@ -310,7 +312,7 @@ constructor(
     private fun applyConditions() {
         val id = scheduleId ?: return
         val current = uiState.value
-        if (!current.canCustomize || current.detail.saving || current.customLoading || !current.customLoaded) return
+        if (!current.canAdjustConditions || current.detail.saving || current.customLoading || !current.customLoaded) return
         val draft = current.detail.draft
         state.update { it.copy(customError = null, detail = it.detail.copy(saving = true)) }
         viewModelScope.launch {
@@ -422,6 +424,9 @@ constructor(
             canCancel = detail.canCancel,
             canReview = status == MyScheduleStatus.ACCEPTED && start != null && !start.isAfter(clock.instant()) &&
                 detail.status in setOf(ScheduleDisplayStatus.TODAY, ScheduleDisplayStatus.COMPLETED, ScheduleDisplayStatus.CONFIRMED),
+            // 시작 시각을 모르면 당일인 동안은 열어 둔다 (서버도 당일·최종 참여자만 확인한다)
+            canAdjustConditions = status == MyScheduleStatus.ACCEPTED && detail.status == ScheduleDisplayStatus.TODAY &&
+                (start == null || start.isAfter(clock.instant())),
             myResponse = when (status) {
                 MyScheduleStatus.PENDING -> "미응답"
                 MyScheduleStatus.ACCEPTED -> "수락"

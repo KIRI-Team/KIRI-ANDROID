@@ -290,11 +290,12 @@ fun ServerScheduleDetailScreen(
                 CalendarDetailHeader(
                     title = state.appBarTitle,
                     badge = it.status.badgeLabel(),
-                    showCustom = state.canCustomize && !todayFromHome,
+                    // 컨디션 조정하러가기는 홈·기록 탭 모두 기록하러가기·일정 변경/취소와 같은 버튼 영역에 둔다.
+                    // 당일 일정이고, 내가 수락했고, 아직 시작 전일 때만 보여준다
+                    showCustom = state.canAdjustConditions,
                     // 오늘의 추억 기록하러가기. 기록을 남길 수 있는 일정(내가 수락했고 시작 시각이 지난 일정)일 때만 홈·기록 탭 모두 보여준다.
                     // 기록 탭의 완료 일정은 위의 기록 화면으로 보여준다
                     showRecord = state.canReview,
-                    showConditionsInNearby = todayFromHome,
                     recordEnabled = state.canReview && !state.detail.saving && !state.reviewSaved && state.reviews.none { it.isMine },
                     neutralBadge = it.status.usesNeutralBadge(),
                     collapseParticipants = !todayFromHome && (scheduled || confirmedFromHome || state.canEdit),
