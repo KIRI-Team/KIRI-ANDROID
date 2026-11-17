@@ -22,8 +22,60 @@ class HomeAddressViewModelTest {
         override suspend fun resolveAddress(postalCode: String, address: String, regionCode: String) =
             Result.success(com.kiri.domain.model.family.FamilyAddress(postalCode, address, "", "1165010800", 37.5, 127.0))
         override suspend fun saveAddress(address: com.kiri.domain.model.family.FamilyAddress) = Result.success(Unit)
+        // 아직 주소를 등록하지 않은 가족
+        override suspend fun getAddress(): Result<com.kiri.domain.model.family.FamilyAddress?> = Result.success(null)
     }
     private val viewModel = HomeAddressViewModel(family)
+
+    private fun familyWithAddress(result: Result<com.kiri.domain.model.family.FamilyAddress?>) =
+        object : com.kiri.domain.repository.FamilyRepository by family {
+            override suspend fun getAddress() = result
+        }
+
+    @Test
+    fun 등록한_주소가_있으면_주소_보기에서_시작한다() {
+        val saved = com.kiri.domain.model.family.FamilyAddress("06134", "서울특별시 서초구 강남대로 143", "810동 603호", "1165010800", 37.55, 126.92)
+        val loaded = HomeAddressViewModel(familyWithAddress(Result.success(saved)))
+
+        with(loaded.uiState.value) {
+            assertEquals(HomeAddressStep.SAVED, currentStep)
+            assertFalse(loading)
+            assertNull(loadError)
+            assertEquals(HomeAddress("06134", "서울특별시 서초구 강남대로 143", "810동 603호"), savedAddress)
+            assertEquals("서울특별시 서초구 강남대로 143, 810동 603호", savedAddress?.displayText)
+        }
+    }
+
+    @Test
+    fun 등록한_주소를_불러오지_못하면_안내하고_새로_등록할_수_있다() {
+        val failed = HomeAddressViewModel(familyWithAddress(Result.failure(java.io.IOException())))
+
+        assertEquals(HomeAddressStep.REGISTER, failed.uiState.value.currentStep)
+        assertFalse(failed.uiState.value.loading)
+        assertEquals("등록한 주소를 불러오지 못했어요.", failed.uiState.value.loadError)
+
+        failed.onEvent(HomeAddressUiEvent.FindZipCodeClicked)
+        failed.onEvent(HomeAddressUiEvent.AddressSelected("06134", "서울 서초구 강남대로 143"))
+        failed.onEvent(HomeAddressUiEvent.RegisterClicked)
+        assertEquals(HomeAddressStep.SAVED, failed.uiState.value.currentStep)
+        assertNull(failed.uiState.value.loadError)
+    }
+
+    @Test
+    fun 주소를_불러오는_동안에는_뒤로가기만_받는다() = runTest {
+        val pending = kotlinx.coroutines.CompletableDeferred<Result<com.kiri.domain.model.family.FamilyAddress?>>()
+        val loading = HomeAddressViewModel(object : com.kiri.domain.repository.FamilyRepository by family {
+            override suspend fun getAddress() = pending.await()
+        })
+        assertTrue(loading.uiState.value.loading)
+
+        loading.onEvent(HomeAddressUiEvent.FindZipCodeClicked)
+        assertEquals(HomeAddressStep.REGISTER, loading.uiState.value.currentStep)
+
+        loading.onEvent(HomeAddressUiEvent.BackClicked)
+        assertEquals(HomeAddressUiEffect.NavigateBack, loading.effect.first())
+        pending.complete(Result.success(null))
+    }
     private val state get() = viewModel.uiState.value
 
     @Test

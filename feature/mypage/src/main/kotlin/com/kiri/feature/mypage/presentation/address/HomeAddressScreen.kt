@@ -85,6 +85,12 @@ fun HomeAddressScreen(
             HomeAddressStep.SEARCH -> KiriTopBar(onBackClick = onBackClick)
         }
 
+        // 등록한 주소를 불러오는 동안에는 등록 화면을 먼저 보여주지 않는다
+        if (state.loading) {
+            androidx.compose.material3.CircularProgressIndicator(Modifier.testTag("home_address_loading"))
+            return@Column
+        }
+        state.loadError?.let { androidx.compose.material3.Text(it, Modifier.testTag("home_address_load_error"), color = KiriColor.Status.Error) }
         state.error?.let { androidx.compose.material3.Text(it, Modifier.testTag("home_address_error"), color = KiriColor.Status.Error) }
         if (state.saving) androidx.compose.material3.CircularProgressIndicator()
         when (state.currentStep) {

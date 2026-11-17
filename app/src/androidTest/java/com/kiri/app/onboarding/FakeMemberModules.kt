@@ -30,6 +30,9 @@ class FakeFamilyRepository : FamilyRepository {
     )
 
     override suspend fun renameFamily(name: String): Result<String> = Result.success(name)
+
+    // 아직 우리 집 주소를 등록하지 않은 가족
+    override suspend fun getAddress(): Result<com.kiri.domain.model.family.FamilyAddress?> = Result.success(null)
 }
 
 @Module

@@ -14,6 +14,11 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 internal interface FamilyApi {
+    // 로그인 토큰이 필요하다. 주소를 등록하지 않았으면 주소 필드가 null 로 온다 (FAMILY200_10)
+    // 그 가족의 구성원이 아니면 FAMILY403_1, 회원이나 가족이 없으면 404 (MEMBER404_1, FAMILY404_1)
+    @GET("api/v1/families/{familyId}/address")
+    suspend fun getAddress(@Path("familyId") familyId: Long): ApiResponse<FamilyAddressResponse>
+
     @retrofit2.http.PUT("api/v1/families/{familyId}/address")
     suspend fun saveAddress(@Path("familyId") familyId: Long, @Body address: FamilyAddressRequest): ApiResponse<JsonElement>
 
@@ -138,3 +143,27 @@ internal data class CreateFamilyResponse(
 
 @Serializable internal data class FamilyAddressRequest(val postalCode: String, val address: String, val detailAddress: String,
     val regionCode: String, val latitude: Double, val longitude: Double)
+
+@Serializable internal data class FamilyAddressResponse(
+    val familyId: Long? = null,
+    val postalCode: String? = null,
+    val address: String? = null,
+    val detailAddress: String? = null,
+    val regionCode: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+)
+
+// 우편번호나 주소가 없으면 아직 등록하지 않은 것이다
+internal fun FamilyAddressResponse.toFamilyAddressOrNull(): com.kiri.domain.model.family.FamilyAddress? {
+    val postalCode = postalCode?.takeIf { it.isNotBlank() } ?: return null
+    val address = address?.takeIf { it.isNotBlank() } ?: return null
+    return com.kiri.domain.model.family.FamilyAddress(
+        postalCode = postalCode,
+        address = address,
+        detailAddress = detailAddress.orEmpty(),
+        regionCode = regionCode.orEmpty(),
+        latitude = latitude ?: 0.0,
+        longitude = longitude ?: 0.0,
+    )
+}

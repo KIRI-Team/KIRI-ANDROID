@@ -1,6 +1,7 @@
 package com.kiri.app.mypage
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -34,6 +35,22 @@ class HomeAddressScreenTest {
         composeTestRule.setContent {
             KiriTheme { HomeAddressScreen(state = state, onEvent = { events += it }) }
         }
+    }
+
+    @Test
+    fun 등록한_주소를_불러오는_동안에는_등록_화면을_보여주지_않는다() {
+        setContent(HomeAddressUiState(loading = true))
+
+        composeTestRule.onNodeWithTag("home_address_loading").assertIsDisplayed()
+        composeTestRule.onNodeWithText("아직 작성된 주소가 없어요!").assertDoesNotExist()
+    }
+
+    @Test
+    fun 등록한_주소를_불러오지_못하면_안내하고_등록_화면을_보여준다() {
+        setContent(HomeAddressUiState(loadError = "등록한 주소를 불러오지 못했어요."))
+
+        composeTestRule.onNodeWithTag("home_address_load_error").assertIsDisplayed()
+        composeTestRule.onNodeWithText("우리 집 주소 작성하기").assertIsDisplayed()
     }
 
     @Test
