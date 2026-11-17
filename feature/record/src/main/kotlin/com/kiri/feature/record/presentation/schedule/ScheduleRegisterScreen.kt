@@ -90,7 +90,6 @@ data class ScheduleFormMode(
 fun ScheduleRegisterScreen(
     savedBy: String,
     title: String,
-    description: String,
     members: List<RecordMember>,
     times: List<LocalTime>,
     draft: ScheduleRegisterDraft,
@@ -109,7 +108,6 @@ fun ScheduleRegisterScreen(
     ScheduleRegisterContent(
         savedBy = savedBy,
         title = title,
-        description = description,
         draft = draft,
         onBackClick = onBackClick,
         onScheduleClick = { openSheet = ScheduleRegisterSheet.Schedule },
@@ -163,7 +161,6 @@ fun ScheduleRegisterScreen(
 internal fun ScheduleRegisterContent(
     savedBy: String,
     title: String,
-    description: String,
     draft: ScheduleRegisterDraft,
     onBackClick: () -> Unit,
     onScheduleClick: () -> Unit,
@@ -194,7 +191,6 @@ internal fun ScheduleRegisterContent(
             ScheduleRegisterHeader(
                 (mode.subtitle ?: if (weekly) "가족에게 추천된 주간 미션이에요!" else savedByLabel(savedBy)).takeIf { mode.showSubtitle },
                 title,
-                description,
             )
             Spacer(Modifier.height(30.dp))
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -235,7 +231,7 @@ internal fun ScheduleRegisterContent(
 }
 
 @Composable
-private fun ScheduleRegisterHeader(subtitle: String?, title: String, description: String) {
+private fun ScheduleRegisterHeader(subtitle: String?, title: String) {
     Column(verticalArrangement = Arrangement.spacedBy(19.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             // Figma 는 rgba(155,234,81,0.2) 배경. 코드의 Bg.GreenSoft 는 0.1 이라 같은 0.2 값인 Primary.Container 를 쓴다
@@ -249,7 +245,6 @@ private fun ScheduleRegisterHeader(subtitle: String?, title: String, description
             )
             Text(title, color = KiriColor.Text.Strong, style = HeadingLarge)
         }
-        if (description.isNotBlank()) Text(description, color = KiriColor.Text.Secondary, style = KiriDetailTypography.Small)
     }
 }
 
@@ -356,7 +351,6 @@ private fun ScheduleRegisterContentPreview() {
         ScheduleRegisterContent(
             savedBy = "아빠",
             title = "한강 뚜벅뚜벅 축제 가보기",
-            description = "2026 한강 뚜벅뚜벅 축제는 잠수교를 보행교로 전환해 시민이 직접 걸으며 공연·체험·미식 등 다양한 문화·여가 프로그램을 즐기는 서울 대표 한강 축제입니다.",
             draft = ScheduleRegisterDraft(
                 date = LocalDate.of(2026, 10, 7),
                 time = LocalTime.of(16, 30),

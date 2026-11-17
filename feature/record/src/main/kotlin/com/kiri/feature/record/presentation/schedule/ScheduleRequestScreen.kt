@@ -129,9 +129,10 @@ fun ScheduleRequestScreen(
             ) {
                 Text("자세히 보러가기", color = KiriColor.Text.Primary, style = TitleMedium)
             }
-            // KIRI/Description Block (8424:5918). 설명이 없으면 블록째 숨긴다
+            // KIRI/Description Block (8424:5918). 자세히 보러가기 아래 30 간격 (Figma 10630:27955). 설명이 없으면 블록째 숨긴다.
+            // 행사 설명은 일정 등록 화면이 아니라 이 요청 화면에만 보여준다
             if (description.isNotBlank()) {
-                Spacer(Modifier.height(36.dp))
+                Spacer(Modifier.height(30.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text("행사설명", color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Title)
                     Text(description, color = KiriColor.Text.Primary, style = KiriDetailTypography.Body)

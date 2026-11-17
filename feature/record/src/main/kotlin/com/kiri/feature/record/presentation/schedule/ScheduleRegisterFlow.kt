@@ -72,7 +72,6 @@ internal fun ScheduleRegisterFlow(
         ScheduleRegisterScreen(
             savedBy = savedBy,
             title = title,
-            description = description,
             members = members,
             times = times,
             draft = draft,

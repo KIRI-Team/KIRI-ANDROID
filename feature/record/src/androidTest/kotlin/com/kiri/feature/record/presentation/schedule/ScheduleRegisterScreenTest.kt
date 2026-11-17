@@ -116,6 +116,20 @@ class ScheduleRegisterScreenTest {
         assertEquals(listOf(ScheduleRequestChannel.APP, ScheduleRequestChannel.KAKAO), sent)
     }
 
+    // 행사 설명은 일정 등록 화면에는 없고, 초대장 만들기로 연 요청 미리보기의 자세히 보러가기 아래에만 보인다
+    @Test fun missionDescriptionShowsOnlyOnRequestPreview() {
+        setFlow()
+        compose.onNodeWithText("설명").assertDoesNotExist()
+        compose.onNodeWithText("행사설명").assertDoesNotExist()
+
+        fillScheduleAndMembers("mom")
+        compose.onNode(hasText("초대장 만들기")).performClick()
+
+        compose.onNodeWithTag("schedule_request_screen").assertExists()
+        compose.onNodeWithText("행사설명").assertExists()
+        compose.onNodeWithText("설명").assertExists()
+    }
+
     @Test fun requestShowsSendingAndErrorWithoutLeaving() {
         setFlow()
         fillScheduleAndMembers("mom")
