@@ -12,10 +12,26 @@ internal data class BucketOptions(
     val deleteEnabled: Boolean,
 )
 
+// 미션이 종료·취소·비공개로 바뀐 버킷. 서버는 이런 항목도 그대로 주고 mission.status 로 구분하게 한다
+internal val BucketItem.missionEnded: Boolean
+    get() = missionStatus != null && missionStatus != ACTIVE_MISSION_STATUS
+
 // 일정 잡기는 서버가 schedulable 로 허락한 버킷만, 삭제는 deletable 인 버킷만 누를 수 있다.
-// 일정이 잡힌 버킷은 연결된 일정이 있을 때만 그 일정을 열 수 있다 (일정 기능이 연결되기 전까지 서버가 id 를 주지 않는다)
+// 연결된 약속 보기는 연결된 활성 일정이 있고 미션이 종료되지 않았을 때만 누를 수 있다. 그 밖에는 비활성으로 둔다
 internal fun BucketItem.options(): BucketOptions = when (status) {
     BucketItemStatus.COMPLETED -> BucketOptions("완료한 활동", scheduleEnabled = false, linkedScheduleId = null, deleteEnabled = deletable)
-    BucketItemStatus.SCHEDULED -> BucketOptions("연결된 약속 보기", scheduleEnabled = scheduleId != null, linkedScheduleId = scheduleId, deleteEnabled = deletable)
+    BucketItemStatus.SCHEDULED -> {
+        val linked = scheduleId?.takeIf { !missionEnded }
+        BucketOptions("연결된 약속 보기", scheduleEnabled = linked != null, linkedScheduleId = linked, deleteEnabled = deletable)
+    }
     else -> BucketOptions("일정 잡기", scheduleEnabled = schedulable, linkedScheduleId = null, deleteEnabled = deletable)
 }
+
+// 버킷 카드 위쪽 배지 (저장한 사람 배지 앞에 붙는다)
+internal fun BucketItem.statusBadges(): List<String> = when {
+    status == BucketItemStatus.COMPLETED -> listOf("완료된 일정")
+    missionEnded -> listOf("종료된 미션")
+    else -> emptyList()
+}
+
+private const val ACTIVE_MISSION_STATUS = "ACTIVE"

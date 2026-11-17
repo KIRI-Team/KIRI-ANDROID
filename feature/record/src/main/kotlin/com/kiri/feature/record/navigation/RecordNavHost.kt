@@ -118,7 +118,8 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onNearbyMiss
                         } else {
                             val args = BucketScheduleCreateViewModel
                             navController.navigate(
-                                "$BUCKET_SCHEDULE_ROUTE/${bucket.id}?${args.TITLE_ARG}=${Uri.encode(bucket.title)}&${args.SAVER_ARG}=${Uri.encode(savers)}",
+                                "$BUCKET_SCHEDULE_ROUTE/${bucket.id}?${args.TITLE_ARG}=${Uri.encode(bucket.title)}&${args.SAVER_ARG}=${Uri.encode(savers)}" +
+                                    "&${args.MISSION_ID_ARG}=${bucket.missionId}",
                             ) { launchSingleTop = true }
                         }
                     },
@@ -248,11 +249,14 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onNearbyMiss
         composable(
             "$BUCKET_SCHEDULE_ROUTE/{${BucketScheduleCreateViewModel.BUCKET_ITEM_ID_ARG}}" +
                 "?${BucketScheduleCreateViewModel.TITLE_ARG}={${BucketScheduleCreateViewModel.TITLE_ARG}}" +
-                "&${BucketScheduleCreateViewModel.SAVER_ARG}={${BucketScheduleCreateViewModel.SAVER_ARG}}",
+                "&${BucketScheduleCreateViewModel.SAVER_ARG}={${BucketScheduleCreateViewModel.SAVER_ARG}}" +
+                "&${BucketScheduleCreateViewModel.MISSION_ID_ARG}={${BucketScheduleCreateViewModel.MISSION_ID_ARG}}",
             arguments = listOf(
                 navArgument(BucketScheduleCreateViewModel.BUCKET_ITEM_ID_ARG) { type = NavType.LongType },
                 navArgument(BucketScheduleCreateViewModel.TITLE_ARG) { type = NavType.StringType; defaultValue = "" },
                 navArgument(BucketScheduleCreateViewModel.SAVER_ARG) { type = NavType.StringType; defaultValue = "" },
+                // 일정 등록 화면의 행사 설명을 미션 상세 API 로 불러온다. 없으면 -1
+                navArgument(BucketScheduleCreateViewModel.MISSION_ID_ARG) { type = NavType.LongType; defaultValue = -1L },
             ),
         ) { entry ->
             BucketScheduleCreateRoute(

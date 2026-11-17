@@ -164,6 +164,22 @@ fun ServerScheduleDetailRoute(
     }
 }
 
+// 상세 아래 거절·수락을 보여줄지. 확정(당일·완료 포함)된 약속은 서버가 canRespond 를 줘도 보여주지 않는다.
+// 확정된 약속이 바뀌어 다시 확인해야 할 때(재확인 필요)는 응답해야 하므로 보여준다
+internal val ServerScheduleDetailUiState.showsRespondButtons: Boolean
+    get() {
+        if (!canRespond) return false
+        val schedule = schedule ?: return true
+        if (schedule.myStatus == com.kiri.domain.model.schedule.MyScheduleStatus.RECONFIRM_REQUIRED) return true
+        return schedule.status !in CONFIRMED_SCHEDULE_STATUSES
+    }
+
+private val CONFIRMED_SCHEDULE_STATUSES = setOf(
+    com.kiri.domain.model.schedule.ScheduleDisplayStatus.CONFIRMED,
+    com.kiri.domain.model.schedule.ScheduleDisplayStatus.TODAY,
+    com.kiri.domain.model.schedule.ScheduleDisplayStatus.COMPLETED,
+)
+
 // 일정 변경하기를 보여줄지. 상세 API 의 canEdit 를 그대로 따른다 (어디서 들어왔든 같다)
 internal val ServerScheduleDetailUiState.showsEditButton: Boolean
     get() = canEdit
@@ -175,7 +191,7 @@ internal val ServerScheduleDetailUiState.showsCancelButton: Boolean
 @Composable
 fun ServerScheduleActions(state: ServerScheduleDetailUiState, onRespond: (Boolean) -> Unit, showRespond: Boolean = true) {
     Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (showRespond && state.canRespond) {
+        if (showRespond && state.showsRespondButtons) {
             Button({ onRespond(false) }, enabled = !state.detail.saving, modifier = Modifier.testTag("server_schedule_decline")) { Text("거절") }
             Button({ onRespond(true) }, enabled = !state.detail.saving, modifier = Modifier.testTag("server_schedule_accept")) { Text("수락") }
         }
