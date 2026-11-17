@@ -136,7 +136,7 @@ fun OnboardingScreen(
                 familyCode = state.inputFamilyCode,
                 onFamilyCodeChange = { onEvent(OnboardingUiEvent.InputFamilyCodeChanged(it)) },
                 onCancelClick = onBackClick,
-                onInviteClick = { onEvent(OnboardingUiEvent.InviteClicked) },
+                onJoinClick = { onEvent(OnboardingUiEvent.InviteClicked) },
                 onBackClick = onBackClick,
             )
         }

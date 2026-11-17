@@ -31,7 +31,7 @@ fun InputFamilyCodeScreen(
     familyCode: String,
     onFamilyCodeChange: (String) -> Unit,
     onCancelClick: () -> Unit,
-    onInviteClick: () -> Unit,
+    onJoinClick: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -76,8 +76,8 @@ fun InputFamilyCodeScreen(
                 modifier = Modifier.weight(1f),
             )
             KiriButton(
-                onClick = onInviteClick,
-                text = "초대하기",
+                onClick = onJoinClick,
+                text = "참여하기",
                 modifier = Modifier.weight(1f),
             )
         }
@@ -87,5 +87,5 @@ fun InputFamilyCodeScreen(
 @Preview(showSystemUi = true)
 @Composable
 private fun InputFamilyCodeScreenPreview() {
-    InputFamilyCodeScreen(familyCode = "", onFamilyCodeChange = {}, onCancelClick = {}, onInviteClick = {}, onBackClick = {})
+    InputFamilyCodeScreen(familyCode = "", onFamilyCodeChange = {}, onCancelClick = {}, onJoinClick = {}, onBackClick = {})
 }

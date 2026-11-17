@@ -65,7 +65,7 @@ fun BucketScheduleCreateScreen(
     ScheduleRegisterFlow(
         savedBy = state.savedBy,
         title = state.title,
-        description = "",
+        description = state.description,
         members = state.members,
         draft = state.draft,
         onDraftChange = onDraftChange,

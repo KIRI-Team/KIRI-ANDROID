@@ -73,7 +73,8 @@ fun ScheduleRequestScreen(
     sending: Boolean = false,
     error: String? = null,
     weekly: Boolean = false,
-    topBarTitle: String = "요청알림",
+    // 보내기 전 미리보기라 받는 사람이 보는 "요청알림"이 아니라 "요청 미리보기"로 쓴다
+    topBarTitle: String = "요청 미리보기",
     // 카드 위 안내 문구. null 이면 저장한 사람(주간 미션이면 추천) 문구를 쓴다
     headline: String? = null,
     dismissText: String = "취소",
