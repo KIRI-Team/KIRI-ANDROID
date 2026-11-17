@@ -2,11 +2,6 @@ package com.kiri.data.notification
 
 import com.kiri.domain.home.HomeRepository
 import com.kiri.domain.notification.*
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
 import java.time.Clock
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.sync.Mutex
@@ -53,15 +48,11 @@ class FakeNotificationRepository(private val home: HomeRepository, private val c
         val family = home.load()
         if (family.browsing) return false
         return when (notification.target) {
-            NotificationTarget.QUESTION -> family.question?.id == notification.targetId
-            NotificationTarget.SCHEDULE, NotificationTarget.MEMORY -> family.schedules.any { it.id == notification.targetId }
+            NotificationTarget.QUESTION, NotificationTarget.FAMILY_ANSWERS -> family.question?.id == notification.targetId
+            NotificationTarget.SCHEDULE, NotificationTarget.MEMORY, NotificationTarget.SCHEDULE_INVITATION -> family.schedules.any { it.id == notification.targetId }
             NotificationTarget.MISSION -> family.mission?.id == notification.targetId
+            NotificationTarget.UNSUPPORTED -> false
         }
     }
 }
 
-@Module
-@InstallIn(SingletonComponent::class)
-object NotificationRepositoryModule {
-    @Provides @Singleton fun provideNotificationRepository(home: HomeRepository): NotificationRepository = FakeNotificationRepository(home)
-}

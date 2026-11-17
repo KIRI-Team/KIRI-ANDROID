@@ -40,7 +40,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun NotificationRoute(
     onBack: () -> Unit,
-    onTarget: (FamilyNotification) -> Unit,
+    onTarget: (FamilyNotification) -> Boolean,
     viewModel: NotificationViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -48,7 +48,7 @@ fun NotificationRoute(
     val lifecycle = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycle) {
         lifecycle.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            viewModel.target.collect { currentTarget(it) }
+            viewModel.target.collect { if (!currentTarget(it)) viewModel.showUnavailableTarget() }
         }
     }
     NotificationScreen(
@@ -74,7 +74,7 @@ fun NotificationScreen(
         Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically) {
             KiriLeadingIconSlot(onBack)
             Text(
-                "알림함${if (state.unreadCount > 0) " +${if (state.unreadCount > 99) "99" else state.unreadCount}" else ""}",
+                "알림함${if (state.unreadCount > 0) " +${if (state.unreadCount > 99) "99+" else state.unreadCount}" else ""}",
                 Modifier.weight(1f).padding(start = 11.dp),
                 style = KiriDetailTypography.Title.copy(fontSize = 20.sp, lineHeight = 30.sp),
                 color = KiriColor.Text.Primary,
@@ -207,7 +207,7 @@ private fun NotificationRow(item: FamilyNotification, enabled: Boolean, onClick:
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (item.id == "demo-invite") {
+            if (item.target == NotificationTarget.SCHEDULE_INVITATION) {
                 Spacer(Modifier.width(4.dp))
                 Image(
                     painterResource(R.drawable.notification_invite_envelope),
