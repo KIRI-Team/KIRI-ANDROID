@@ -24,6 +24,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -116,17 +117,29 @@ class BucketScheduleCreateViewModelTest {
     }
 
     @Test
-    fun 카카오톡으로_보내면_일정을_만든_뒤_공유_문구를_넘긴다() = runTest {
-        val repo = FakeSchedules()
+    fun 카카오톡으로_보내면_일정을_만든_뒤_만든_일정_id로_초대장을_보낸다() = runTest {
+        val repo = FakeSchedules(create = Result.success(100))
         val vm = viewModel(repo)
 
         vm.fill(members = setOf("3"))
         vm.send(ScheduleRequestChannel.KAKAO)
 
-        val effect = vm.effect.first() as BucketScheduleCreateEffect.SentByKakao
-        assertTrue(effect.shareText.contains("광장시장에서 시장음식 먹어보기"))
-        assertTrue(effect.shareText.contains("아빠"))
+        // 카톡 초대장 버튼의 실행 파라미터는 일정 제목이 아니라 만든 일정의 id 다
+        assertEquals(BucketScheduleCreateEffect.SentByKakao(100), vm.effect.first())
         assertEquals(1, repo.created.size)
+    }
+
+    @Test
+    fun 일정을_만들지_못하면_카카오톡_초대장을_보내지_않는다() = runTest {
+        val repo = FakeSchedules(create = Result.failure(IOException()))
+        val vm = viewModel(repo)
+
+        vm.fill(members = setOf("3"))
+        vm.send(ScheduleRequestChannel.KAKAO)
+
+        assertFalse(vm.uiState.value.sending)
+        assertTrue(vm.uiState.value.error != null)
+        assertNull(withTimeoutOrNull(100) { vm.effect.first() })
     }
 
     @Test

@@ -16,6 +16,13 @@
                      https://kiri.app/.well-known/assetlinks.json 에 앱 서명 지문이 있어야 자동 검증된다 -->
                 <data android:scheme="https" android:host="kiri.app" android:pathPrefix="/invite/" />
             </intent-filter>
+            <!-- 카카오톡 일정 초대장 버튼 kakao{앱 키}://kakaolink?scheduleId={id} (ScheduleInviteLink.KAKAO_LINK_HOST와 같은 값) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="kakao${KAKAO_NATIVE_APP_KEY}" android:host="kakaolink" />
+            </intent-filter>
         </activity>
         <!-- 앱이 백그라운드일 때 FCM 이 직접 띄우는 알림의 채널·아이콘 (PushNotifications.kt 와 같은 값) -->
         <meta-data

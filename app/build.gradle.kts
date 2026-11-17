@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -5,6 +7,14 @@ plugins {
     id("kiri.hilt")
     alias(libs.plugins.google.services)
 }
+// 카카오 네이티브 앱 키는 git 에 올리지 않는다 (feature/auth 와 같은 곳에서 읽는다)
+val kakaoNativeAppKey: String = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}.getProperty("KAKAO_NATIVE_APP_KEY")
+    ?: providers.gradleProperty("KAKAO_NATIVE_APP_KEY").orNull
+    ?: providers.environmentVariable("KAKAO_NATIVE_APP_KEY").orNull
+    ?: ""
+
 android {
     namespace = "com.kiri.app"
     compileSdk = libs.versions.compileSdk.get().toInt()
@@ -17,6 +27,8 @@ android {
         versionName = "0.1.0"
         // hiltViewModel()을 쓰는 화면을 UI 테스트에서 띄울 수 있도록 Hilt 테스트용 Application으로 실행한다
         testInstrumentationRunner = "com.kiri.app.HiltTestRunner"
+        // 카카오톡 일정 초대장 버튼이 앱을 여는 주소(kakao{앱 키}://kakaolink)에 쓴다
+        manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeAppKey
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

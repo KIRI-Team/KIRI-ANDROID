@@ -48,21 +48,6 @@ internal fun scheduleChangedLabel(name: String): String =
 internal fun changedDateLabel(date: LocalDate, time: LocalTime?): String =
     time?.let { "${requestDateLabel(date)} ${it.format(DateTimeFormatter.ofPattern("HH:mm"))}" } ?: requestDateLabel(date)
 
-// 카카오톡 등 공유 시트로 보낼 요청 문구. 초대 링크가 생기기 전까지는 요청 내용만 글로 보낸다
-internal fun scheduleRequestShareText(
-    title: String,
-    date: LocalDate,
-    time: LocalTime?,
-    memberNames: List<String>,
-    message: String,
-): String = buildString {
-    appendLine("[끼리] 일정 요청이 왔어요!")
-    appendLine("활동: $title")
-    appendLine("일정: ${time?.let { scheduleLabel(date, it) } ?: requestDateLabel(date)}")
-    append("함께: ${memberNames.joinToString(", ")}")
-    if (message.isNotBlank()) append("\n\n$message")
-}
-
 private val DateFormat = DateTimeFormatter.ofPattern("yy.MM.dd")
 private val TimeFormat = DateTimeFormatter.ofPattern("HH:mm")
 

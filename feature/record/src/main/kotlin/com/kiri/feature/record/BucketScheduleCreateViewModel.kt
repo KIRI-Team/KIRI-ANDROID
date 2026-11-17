@@ -14,7 +14,6 @@ import com.kiri.domain.record.ScheduleRequestChannel
 import com.kiri.domain.repository.CalendarScheduleRepository
 import com.kiri.domain.time.kiriNow
 import com.kiri.feature.record.presentation.schedule.ScheduleRegisterDraft
-import com.kiri.feature.record.presentation.schedule.scheduleRequestShareText
 import com.kiri.feature.record.presentation.sheet.RecordMember
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
@@ -51,11 +50,12 @@ data class BucketScheduleCreateUiState(
 sealed interface BucketScheduleCreateEffect {
     data object SentByApp : BucketScheduleCreateEffect
 
-    data class SentByKakao(val shareText: String) : BucketScheduleCreateEffect
+    // 만든 일정의 id. 카카오톡 초대장 버튼이 이 일정으로 앱을 연다
+    data class SentByKakao(val scheduleId: Long) : BucketScheduleCreateEffect
 }
 
 // 서버 버킷의 일정 잡기. 일정 등록 화면으로 날짜·시간·가족·한 줄을 고르고, 일정 생성 API 로 일정을 만들어 초대를 보낸다.
-// 카카오톡으로 보내기를 고르면 일정을 만든 뒤 공유 시트로 요청 문구도 보낸다
+// 카카오톡으로 보내기를 고르면 일정을 만든 뒤 카카오톡 초대장도 보낸다 (ScheduleInviteLink)
 @HiltViewModel
 class BucketScheduleCreateViewModel
 @Inject
@@ -143,22 +143,14 @@ constructor(
             val form = ScheduleUpdate(date, time, inviteeIds, draft.message.takeIf { it.isNotBlank() })
             val result = if (weeklyMissionId != null) schedules.createWeeklySchedule(id, form) else schedules.createSchedule(id, form)
             result
-                .onSuccess {
-                    savedState["createdScheduleId"] = it
+                .onSuccess { scheduleId ->
+                    savedState["createdScheduleId"] = scheduleId
                     sent = true
                     state.update { it.copy(sending = false) }
                     effects.send(
                         when (channel) {
                             ScheduleRequestChannel.APP -> BucketScheduleCreateEffect.SentByApp
-                            ScheduleRequestChannel.KAKAO -> BucketScheduleCreateEffect.SentByKakao(
-                                scheduleRequestShareText(
-                                    current.title,
-                                    date,
-                                    time,
-                                    current.members.filter { it.id in draft.memberIds }.map { it.name },
-                                    draft.message,
-                                ),
-                            )
+                            ScheduleRequestChannel.KAKAO -> BucketScheduleCreateEffect.SentByKakao(scheduleId)
                         },
                     )
                 }
