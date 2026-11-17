@@ -268,6 +268,7 @@ fun NavGraphBuilder.recordNavHost(navController: NavHostController, onNearbyMiss
                     navController.popBackStack(START_ROUTE, inclusive = false)
                 },
                 onSentByKakao = { navController.popBackStack(START_ROUTE, inclusive = false) },
+                onMissionDetail = { id -> onNearbyMission?.invoke(id) },
             )
         }
     }

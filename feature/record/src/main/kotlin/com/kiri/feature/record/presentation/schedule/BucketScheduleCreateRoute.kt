@@ -57,6 +57,8 @@ fun BucketScheduleCreateScreen(
     onSend: (ScheduleRequestChannel) -> Unit,
     onRetryClick: () -> Unit,
     onMonthShown: (java.time.YearMonth) -> Unit = {},
+    // 요청 미리보기의 자세히 보러가기
+    onDetailClick: () -> Unit = {},
 ) {
     if (state.loading || state.loadError != null) {
         ScheduleFormStatus("일정 등록하기", state.loadError, onBackClick, onRetryClick, "bucket_schedule_status")
@@ -70,8 +72,7 @@ fun BucketScheduleCreateScreen(
         draft = state.draft,
         onDraftChange = onDraftChange,
         onBackClick = onBackClick,
-        // 서버 버킷의 활동 상세 화면은 아직 없다
-        onDetailClick = {},
+        onDetailClick = onDetailClick,
         onSend = onSend,
         sending = state.sending,
         error = state.error,

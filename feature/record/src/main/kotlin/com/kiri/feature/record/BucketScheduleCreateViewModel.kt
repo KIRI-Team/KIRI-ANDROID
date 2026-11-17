@@ -37,6 +37,8 @@ data class BucketScheduleCreateUiState(
     val title: String,
     // 미션의 행사 설명 (미션 상세 API). 불러오지 못하면 비워서 화면에서 숨긴다
     val description: String = "",
+    // 요청 미리보기의 자세히 보러가기로 열 미션 id. 모르면 null 이라 눌러도 아무 일도 없다
+    val missionId: Long? = null,
     // 버킷을 저장한 사람의 닉네임 ("OO가 저장했어요!")
     val savedBy: String,
     val loading: Boolean = true,
@@ -94,6 +96,7 @@ constructor(
     private val missionId = weeklyMissionId ?: savedState.get<Long>(MISSION_ID_ARG)?.takeIf { it > 0 }
 
     init {
+        state.update { it.copy(missionId = missionId) }
         load()
         loadDescription()
     }
