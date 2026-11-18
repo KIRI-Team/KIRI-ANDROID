@@ -288,7 +288,7 @@ fun KiriMissionCard(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         keywords.filter { it.isNotBlank() }.take(2).forEach { label ->
                             Surface(modifier = Modifier.weight(1f, fill = false), color = KiriColor.Bg.Elevated, shape = RoundedCornerShape(5.dp)) {
-                                Text(label, Modifier.padding(horizontal = 8.dp, vertical = 6.dp), color = KiriColor.Text.Tertiary, style = KiriDetailTypography.Small.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 17.sp, letterSpacing = (-0.48).sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(label, Modifier.padding(horizontal = 8.dp, vertical = 6.dp), color = KiriColor.Text.Tertiary, style = com.kiri.uikit.KiriTypography.BodySmall.copy(fontWeight = FontWeight.Medium, lineHeight = 17.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }

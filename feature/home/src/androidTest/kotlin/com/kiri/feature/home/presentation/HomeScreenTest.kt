@@ -190,6 +190,8 @@ class HomeScreenTest {
         compose.onNodeWithTag("home_mission_card").assertHeightIsEqualTo(136.dp)
         compose.onNodeWithText("광장시장 · 종로구").assertIsDisplayed()
         compose.onNodeWithText("광장시장에서 시장음식 먹어보기").assertIsDisplayed()
+        compose.onNodeWithText("대중교통 편리").assertIsDisplayed()
+        compose.onNodeWithText("혼잡도 높음").assertIsDisplayed()
         capture("home-mission")
         compose.onNodeWithContentDescription("질문 카드로 전환").performClick()
         compose.onNodeWithTag("home_question_card").assertIsDisplayed()

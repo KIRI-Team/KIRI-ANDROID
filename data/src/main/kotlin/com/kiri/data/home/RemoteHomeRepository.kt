@@ -124,14 +124,7 @@ internal class RemoteHomeRepository(
         if (daily.isAnswered && daily.answer != null && me.isNotEmpty()) answers[me] = daily.answer
         val poked = snapshot?.takeIf { it.date == date && it.question?.id == question?.id && it.currentUserId == me }?.pokedMemberIds.orEmpty()
         val weekly = if (daily.hasFamily) missions?.let { missionApi ->
-            apiResult(json) { missionApi.getWeeklyRecommendation() }.getOrNull()?.let {
-                WeeklyMission(
-                    id = it.missionId.toString(), title = it.title,
-                    description = it.description ?: it.recommendationReason.orEmpty(),
-                    tags = listOfNotNull(it.recommendationReason),
-                    completed = false, imageUrl = it.imageUrl, recommendationOnly = false,
-                )
-            }
+            apiResult(json) { missionApi.getWeeklyRecommendation() }.getOrNull()
         } else null
         val feed = if (loadRecommendations) missions?.let { missionApi ->
             try {
@@ -146,13 +139,39 @@ internal class RemoteHomeRepository(
         return FamilyHome(date, me, if (daily.hasFamily) info?.familyName ?: "우리 가족" else null,
             info?.members() ?: family?.answers.orEmpty().map { FamilyMember(it.memberId.toString(), it.nickname, "") },
             question, answers, poked,
-            mission = weekly?.copy(place = items.firstOrNull { it.missionId.toString() == weekly.id }?.placeName),
+            mission = weekly?.let { recommendation ->
+                val item = items.firstOrNull { it.missionId == recommendation.missionId }
+                WeeklyMission(
+                    id = recommendation.missionId.toString(),
+                    title = recommendation.title,
+                    description = recommendation.description ?: recommendation.recommendationReason.orEmpty(),
+                    tags = listOfNotNull(
+                        missionCategoryLabel(recommendation.category) ?: missionCategoryLabel(item?.category),
+                        item?.price?.takeIf { it >= 0 }?.let { if (it == 0) "무료" else "${it}원" },
+                        recommendation.recommendationReason?.trim()?.takeIf { it.isNotEmpty() },
+                    ).distinct().take(2),
+                    completed = false,
+                    place = item?.placeName,
+                    imageUrl = recommendation.imageUrl,
+                    recommendationOnly = false,
+                )
+            },
             serverBacked = true,
             familyId = info?.familyId?.toString(), ownerId = info?.ownerMemberId?.toString(),
             recommendations = items.map { it.toHomeRecommendation() },
             recommendationsLoadFailed = feed?.isFailure == true,
             outdoorRecommendations = items.filter { it.category == "OUTDOOR" }.map { it.toHomeRecommendation() },
         ).also { snapshot = it }
+    }
+
+    private fun missionCategoryLabel(category: String?): String? = when (category) {
+        "EXHIBITION" -> "전시·문화"
+        "POPUP" -> "팝업·행사"
+        "PERFORMANCE" -> "공연"
+        "FOOD_CAFE" -> "맛집·카페"
+        "OUTDOOR" -> "산책·야외"
+        "EXPERIENCE" -> "체험·놀거리"
+        else -> null
     }
 
     private suspend fun loadMissionFeed(api: MissionApi): List<MissionFeedItem> {
