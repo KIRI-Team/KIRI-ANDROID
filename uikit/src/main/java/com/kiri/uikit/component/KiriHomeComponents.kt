@@ -149,6 +149,7 @@ fun KiriTooltip(
     anchor: IntRect,
     onDismiss: () -> Unit = {},
     unanswered: Boolean = false,
+    showAction: Boolean = true,
 ) {
     val density = LocalDensity.current
     val width = (LocalConfiguration.current.screenWidthDp.dp - 36.dp).coerceAtMost(303.dp)
@@ -204,19 +205,21 @@ fun KiriTooltip(
                     Text(title, color = KiriColor.Text.Secondary, style = if (unanswered) com.kiri.uikit.KiriTypography.TitleLarge.copy(letterSpacing = (-0.72).sp) else KiriDetailTypography.Title, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(answer, color = if (unanswered) KiriColor.Text.Disabled else KiriColor.Text.Strong, style = if (unanswered) com.kiri.uikit.KiriTypography.Value.copy(letterSpacing = (-0.8).sp) else com.kiri.uikit.KiriTypography.Value, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
-                Spacer(Modifier.width(12.dp))
-                Box(Modifier.width(1.dp).size(height = 50.dp, width = 1.dp).background(KiriColor.Border.Strong))
-                Spacer(Modifier.width(10.dp))
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(if (unanswered) 5.dp else 0.dp)) {
-                    IconButton(onClick = onAction, enabled = actionEnabled, modifier = Modifier.size(30.dp)) {
-                        Image(
-                            painter = painterResource(R.drawable.kiri_poke),
-                            contentDescription = "콕 찌르기",
-                            modifier = Modifier.size(24.dp),
-                            alpha = if (actionEnabled) 1f else 0.45f,
-                        )
+                if (showAction) {
+                    Spacer(Modifier.width(12.dp))
+                    Box(Modifier.width(1.dp).size(height = 50.dp, width = 1.dp).background(KiriColor.Border.Strong))
+                    Spacer(Modifier.width(10.dp))
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(if (unanswered) 5.dp else 0.dp)) {
+                        IconButton(onClick = onAction, enabled = actionEnabled, modifier = Modifier.size(30.dp)) {
+                            Image(
+                                painter = painterResource(R.drawable.kiri_poke),
+                                contentDescription = "콕 찌르기",
+                                modifier = Modifier.size(24.dp),
+                                alpha = if (actionEnabled) 1f else 0.45f,
+                            )
+                        }
+                        Text("콕 찌르기", color = if (actionEnabled) KiriColor.Text.Accent else KiriColor.Text.Disabled, fontSize = 12.sp)
                     }
-                    Text("콕 찌르기", color = if (actionEnabled) KiriColor.Text.Accent else KiriColor.Text.Disabled, fontSize = 12.sp)
                 }
             }
         }

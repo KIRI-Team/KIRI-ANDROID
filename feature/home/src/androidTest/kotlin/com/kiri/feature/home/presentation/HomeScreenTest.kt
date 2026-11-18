@@ -105,7 +105,7 @@ class HomeScreenTest {
                 )
             }
         }
-        compose.onNodeWithText("오늘 가을분위기를 느끼고 싶다면").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("야외에서 즐기는 미션").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("추천을 불러오지 못했어요.").performScrollTo().assertIsDisplayed()
     }
 
@@ -231,6 +231,16 @@ class HomeScreenTest {
             assertEquals(0, detailClicks)
         }
         capture("home-weekly-schedule-action")
+    }
+
+    @Test
+    fun ownAvatarDisplaysAnswerWithoutSelfPokeAction() {
+        val repository = ScreenRepository()
+        val viewModel = HomeViewModel(repository)
+        compose.setContent { KiriTheme { HomeRoute(viewModel = viewModel) } }
+        compose.onNodeWithTag("home_member_me").performScrollTo().performClick()
+        compose.onNodeWithTag("member_answer_tooltip").assertIsDisplayed()
+        compose.onNodeWithContentDescription("콕 찌르기").assertDoesNotExist()
     }
 
     @Test
