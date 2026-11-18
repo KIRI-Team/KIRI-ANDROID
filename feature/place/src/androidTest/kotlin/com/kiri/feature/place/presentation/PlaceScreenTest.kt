@@ -19,6 +19,16 @@ import org.junit.Assert.*
 class PlaceScreenTest {
     @get:Rule val compose = createComposeRule()
 
+    @Test fun emptyKiriPickShowsStatusWithoutMakingAnOrdinaryMissionFeatured() {
+        val ordinary = PlaceMission("1", "일반 미션", "", "", PlaceCategory.CULTURE)
+        compose.setContent {
+            KiriTheme { PlaceScreen(PlaceUiState(items = listOf(ordinary), loading = false)) {} }
+        }
+        compose.onNodeWithTag("place_kiri_picks_empty").assertIsDisplayed()
+        compose.onNodeWithTag("place_kiri_picks").assertDoesNotExist()
+        compose.onNodeWithTag("place_card_1").assertIsDisplayed()
+    }
+
     @Test fun kiriPickOpensItsMissionAndDoesNotRepeatInTheRegularList() {
         val ordinary = PlaceMission("1", "일반 미션", "", "", PlaceCategory.CULTURE)
         val featured = ordinary.copy(

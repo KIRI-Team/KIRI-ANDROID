@@ -22,7 +22,7 @@ class BottomNavigationSpacingTest {
     @Before fun setup() { hilt.inject() }
     @Test fun everyTabDrawsContentBehindTheFloatingBarAndPreservesSelection() {
         compose.setContent { KiriTheme { MainScreen() } }
-        compose.waitUntil(10_000) { compose.onAllNodesWithTag("home_question_card").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("home_mission_card").fetchSemanticsNodes().isNotEmpty() }
         if (compose.onAllNodesWithTag("home_tutorial_skip").fetchSemanticsNodes().isNotEmpty()) compose.onNodeWithTag("home_tutorial_skip").performClick()
         listOf("home", "place", "record", "mypage").forEach { tab ->
             compose.onNodeWithTag("bottom_nav_$tab").performClick().assertIsSelected()

@@ -50,26 +50,7 @@ internal fun PlaceKiriPickSection(picks: List<PlaceMission>, onPick: (String, Lo
             }
             Box(Modifier.matchParentSize().background(KiriColor.Bg.Base.copy(alpha = .48f)))
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(
-                    Modifier.clip(RoundedCornerShape(4.dp))
-                        .background(KiriColor.Bg.Base.copy(alpha = .65f))
-                        .padding(horizontal = 8.dp, vertical = 5.dp),
-                    horizontalArrangement = Arrangement.spacedBy(3.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Image(
-                        painter = painterResource(R.drawable.place_kiri_pick_crown),
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Text(
-                        "오늘의 끼리픽",
-                        color = KiriColor.Text.Accent,
-                        style = KiriDetailTypography.Small.copy(
-                            fontWeight = FontWeight.SemiBold, fontSize = 12.sp, lineHeight = 18.sp,
-                        ),
-                    )
-                }
+                KiriPickLabel()
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         pick.headline,
@@ -88,5 +69,42 @@ internal fun PlaceKiriPickSection(picks: List<PlaceMission>, onPick: (String, Lo
                 }
             }
         }
+    }
+}
+
+@Composable
+internal fun EmptyKiriPickSection() {
+    Column(
+        Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 17.dp)
+            .clip(RoundedCornerShape(8.dp)).background(KiriColor.Bg.Primary)
+            .padding(horizontal = 16.dp, vertical = 12.dp).testTag("place_kiri_picks_empty"),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        KiriPickLabel()
+        Text("현재 공개된 끼리픽이 없어요.", color = KiriColor.Text.Secondary, style = KiriDetailTypography.Small)
+    }
+}
+
+@Composable
+private fun KiriPickLabel() {
+    Row(
+        Modifier.clip(RoundedCornerShape(4.dp))
+            .background(KiriColor.Bg.Base.copy(alpha = .65f))
+            .padding(horizontal = 8.dp, vertical = 5.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Image(
+            painter = painterResource(R.drawable.place_kiri_pick_crown),
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+        )
+        Text(
+            "오늘의 끼리픽",
+            color = KiriColor.Text.Accent,
+            style = KiriDetailTypography.Small.copy(
+                fontWeight = FontWeight.SemiBold, fontSize = 12.sp, lineHeight = 18.sp,
+            ),
+        )
     }
 }

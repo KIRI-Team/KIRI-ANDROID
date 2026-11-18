@@ -19,7 +19,7 @@ class RecordBucketScheduleNavigationTest {
 
     private fun openBucketTab() {
         compose.setContent { KiriTheme { MainScreen() } }
-        compose.waitUntil(10_000) { compose.onAllNodesWithTag("home_question_card").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("home_mission_card").fetchSemanticsNodes().isNotEmpty() }
         if (compose.onAllNodesWithTag("home_tutorial_skip").fetchSemanticsNodes().isNotEmpty()) compose.onNodeWithTag("home_tutorial_skip").performClick()
         compose.onNodeWithTag("bottom_nav_record").performClick()
         compose.onNodeWithTag("record_tab_BUCKET").performClick()

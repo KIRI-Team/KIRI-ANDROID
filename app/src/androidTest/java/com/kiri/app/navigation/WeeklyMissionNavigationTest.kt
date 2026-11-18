@@ -43,8 +43,9 @@ class WeeklyMissionNavigationTest {
     @Test fun answerEditorHidesBottomNavigationAndBackRestoresIt() {
         compose.setContent { KiriTheme { MainScreen() } }
         compose.waitUntil(15_000) {
-            compose.onAllNodesWithTag("home_question_card").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithTag("home_mission_card").fetchSemanticsNodes().isNotEmpty()
         }
+        compose.onNodeWithContentDescription("질문 카드로 전환").performScrollTo().performClick()
         compose.onNodeWithTag("home_question_card").performScrollTo().performClick()
         compose.onNodeWithTag("bottom_nav_home").assertDoesNotExist()
         compose.onNodeWithContentDescription("뒤로").performClick()
@@ -54,8 +55,7 @@ class WeeklyMissionNavigationTest {
     @Test fun emptyMissionLinkOpensPlaceAndKeepsBottomTabsUsable() {
         hasWeeklyMission = false
         compose.setContent { KiriTheme { MainScreen() } }
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("home_question_card").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithContentDescription("미션 카드로 전환").performScrollTo().performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("home_mission_card").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("공개된 미션을 둘러보세요 →").performScrollTo().performClick()
         compose.onNodeWithTag("bottom_nav_place").assertIsSelected()
         compose.onNodeWithTag("place_screen").assertIsDisplayed()
