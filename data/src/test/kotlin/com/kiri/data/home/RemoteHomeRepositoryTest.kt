@@ -65,12 +65,13 @@ class RemoteHomeRepositoryTest {
             server.reply("""{"missionId":88,"title":"산책하기","description":"주간 미션 설명"}""")
             server.reply("""{"missions":[{"missionId":90,"title":"전시","category":"EXHIBITION"}],"nextCursor":90,"hasNext":true}""")
             server.reply("""{"missions":[{"missionId":88,"title":"산책하기","category":"OUTDOOR","placeName":"공원","price":0,"imageUrl":"https://example.com/park.png"}],"hasNext":false}""")
+            server.reply("""{"missionId":88,"title":"산책하기","place":{"placeId":7,"name":"공원","address":"서울특별시 종로구 세종대로 1"}}""")
             server.reply("null")
             val repo = repository(server, recommendations = true)
             val home = repo.load()
             assertEquals(listOf("90", "88"), home.recommendations.map { it.id })
-            assertEquals("공원", home.mission?.place)
-            assertEquals(listOf("산책·야외", "무료"), home.mission?.tags)
+            assertEquals("공원 · 종로구", home.mission?.place)
+            assertEquals(emptyList<String>(), home.mission?.tags)
             assertEquals("88", home.outdoorRecommendations.single().id)
             assertEquals("https://example.com/park.png", home.outdoorRecommendations.single().imageUrl)
             assertEquals(home.recommendations, repo.saveAnswer(requireNotNull(home.question), "답변").recommendations)
@@ -82,6 +83,7 @@ class RemoteHomeRepositoryTest {
             assertEquals("90", next.url.queryParameter("cursor"))
             assertNull(next.url.queryParameter("category"))
             assertEquals("Bearer access", feed.headers["Authorization"])
+            assertEquals("/api/v1/missions/88", server.takeRequest().url.encodedPath)
         }
     }
 
@@ -102,6 +104,7 @@ class RemoteHomeRepositoryTest {
         MockWebServer().use { server ->
             server.start(); server.family()
             server.reply("""{"missionId":130,"title":"미술관 관람","description":"전시 둘러보기","recommendationReason":"가족 취향 반영"}""")
+            server.reply("null", status = 503)
             server.reply("null")
             val repo = repository(server, weekly = true)
             val home = repo.load()

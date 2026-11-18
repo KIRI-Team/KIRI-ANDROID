@@ -7,6 +7,7 @@ import com.kiri.data.family.FamilyIdStore
 import com.kiri.data.family.FamilyInfoResponse
 import com.kiri.data.mission.MissionApi
 import com.kiri.data.mission.MissionFeedItem
+import com.kiri.data.mission.MissionPlaceResponse
 import com.kiri.data.network.*
 import com.kiri.domain.home.*
 import java.time.Clock
@@ -136,6 +137,9 @@ internal class RemoteHomeRepository(
             }
         } else null
         val items = feed?.getOrNull().orEmpty()
+        val weeklyPlace = weekly?.let { recommendation ->
+            missions?.let { api -> apiResult(json) { api.getMission(recommendation.missionId) }.getOrNull()?.place }
+        }
         return FamilyHome(date, me, if (daily.hasFamily) info?.familyName ?: "우리 가족" else null,
             info?.members() ?: family?.answers.orEmpty().map { FamilyMember(it.memberId.toString(), it.nickname, "") },
             question, answers, poked,
@@ -145,13 +149,9 @@ internal class RemoteHomeRepository(
                     id = recommendation.missionId.toString(),
                     title = recommendation.title,
                     description = recommendation.description ?: recommendation.recommendationReason.orEmpty(),
-                    tags = listOfNotNull(
-                        missionCategoryLabel(recommendation.category) ?: missionCategoryLabel(item?.category),
-                        item?.price?.takeIf { it >= 0 }?.let { if (it == 0) "무료" else "${it}원" },
-                        recommendation.recommendationReason?.trim()?.takeIf { it.isNotEmpty() },
-                    ).distinct().take(2),
+                    tags = listOfNotNull(recommendation.recommendationReason?.trim()?.takeIf { it.isNotEmpty() }),
                     completed = false,
-                    place = item?.placeName,
+                    place = weeklyPlace?.cardSubtitle() ?: item?.placeName,
                     imageUrl = recommendation.imageUrl,
                     recommendationOnly = false,
                 )
@@ -164,14 +164,13 @@ internal class RemoteHomeRepository(
         ).also { snapshot = it }
     }
 
-    private fun missionCategoryLabel(category: String?): String? = when (category) {
-        "EXHIBITION" -> "전시·문화"
-        "POPUP" -> "팝업·행사"
-        "PERFORMANCE" -> "공연"
-        "FOOD_CAFE" -> "맛집·카페"
-        "OUTDOOR" -> "산책·야외"
-        "EXPERIENCE" -> "체험·놀거리"
-        else -> null
+    private fun MissionPlaceResponse.cardSubtitle(): String? {
+        val name = name.trim().takeIf { it.isNotEmpty() }
+        val regions = address.orEmpty().split(Regex("\\s+"))
+            .filter { it.matches(Regex("[가-힣]+(구|군|시)")) }
+            .filterNot { it == "대구" || it.endsWith("특별시") || it.endsWith("광역시") }
+        val region = regions.firstOrNull { it.endsWith("구") || it.endsWith("군") } ?: regions.firstOrNull()
+        return listOfNotNull(name, region).distinct().joinToString(" · ").ifBlank { null }
     }
 
     private suspend fun loadMissionFeed(api: MissionApi): List<MissionFeedItem> {

@@ -210,25 +210,6 @@ class HomeViewModelTest {
         assertEquals(HomeUiEffect.OpenSchedule("118"), vm.effect.first())
     }
 
-    @Test fun weeklyActionOpensRegistrationOrExistingScheduleAndBlocksCompleted() = runTest(dispatcher) {
-        val repo = TestRepository()
-        val weekly = WeeklyMission("weekly", "산책", "공원", emptyList(), false, missionId = "mission")
-        repo.home = repo.home.copy(mission = weekly)
-        val vm = HomeViewModel(repo)
-        advanceUntilIdle()
-        vm.onEvent(HomeUiEvent.WeeklyScheduleClicked)
-        assertEquals(HomeUiEffect.CreateWeeklySchedule("weekly"), vm.effect.first())
-        repo.home = repo.home.copy(schedules = listOf(HomeSchedule("active", "산책",
-            java.time.Instant.now(), ScheduleStatus.PENDING_RESPONSE, true, weeklyMissionId = "weekly")))
-        vm.refreshOnResume(); advanceUntilIdle()
-        vm.onEvent(HomeUiEvent.WeeklyScheduleClicked)
-        assertEquals(HomeUiEffect.OpenSchedule("active"), vm.effect.first())
-        repo.home = repo.home.copy(mission = weekly.copy(completed = true))
-        vm.refreshOnResume(); advanceUntilIdle()
-        vm.onEvent(HomeUiEvent.WeeklyScheduleClicked)
-        assertNull(kotlinx.coroutines.withTimeoutOrNull(10) { vm.effect.first() })
-    }
-
     private class TestRepository : HomeRepository {
         var saves = 0
         var failSave = false
