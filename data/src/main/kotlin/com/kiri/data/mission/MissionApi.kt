@@ -12,11 +12,15 @@ import java.time.LocalTime
 import kotlinx.serialization.Serializable
 import retrofit2.http.GET
 import retrofit2.http.Path
+import retrofit2.http.Query
 import retrofit2.http.QueryMap
 
 internal interface MissionApi {
     @retrofit2.http.POST("api/v1/missions/{missionId}/bucket")
-    suspend fun saveBucket(@Path("missionId") missionId: Long): ApiResponse<kotlinx.serialization.json.JsonElement>
+    suspend fun saveBucket(
+        @Path("missionId") missionId: Long,
+        @Query("kiriPickId") kiriPickId: Long? = null,
+    ): ApiResponse<kotlinx.serialization.json.JsonElement>
 
     @GET("api/v1/missions")
     suspend fun getFeed(@QueryMap filters: Map<String, String>): ApiResponse<MissionFeedResponse>
@@ -49,6 +53,15 @@ internal data class MissionFeedItem(
     val imageSource: String? = null,
     val price: Int? = null,
     val distance: Double? = null,
+    val kiriPick: KiriPickResponse? = null,
+)
+
+@Serializable
+internal data class KiriPickResponse(
+    val kiriPickId: Long,
+    val headline: String? = null,
+    val description: String? = null,
+    val imageUrl: String? = null,
 )
 
 @Serializable

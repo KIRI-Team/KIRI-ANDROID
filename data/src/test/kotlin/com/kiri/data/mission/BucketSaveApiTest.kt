@@ -15,7 +15,9 @@ class BucketSaveApiTest {
             val api=Retrofit.Builder().baseUrl(server.url("/")).addConverterFactory(kiriJson.asConverterFactory("application/json".toMediaType())).build().create(MissionApi::class.java)
             val repo=MissionInfoRepositoryImpl(api,kiriJson); repo.saveBucket(55).getOrThrow()
             val request=server.takeRequest(); assertEquals("POST",request.method); assertEquals("/api/v1/missions/55/bucket",request.url.encodedPath)
-            assertTrue(repo.saveBucket(55).isFailure)
+            assertNull(request.url.queryParameter("kiriPickId"))
+            assertTrue(repo.saveBucket(55, 42).isFailure)
+            assertEquals("42", server.takeRequest().url.queryParameter("kiriPickId"))
         }
     }
 }

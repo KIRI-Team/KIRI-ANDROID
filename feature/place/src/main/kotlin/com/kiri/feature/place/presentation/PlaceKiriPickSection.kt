@@ -1,0 +1,84 @@
+package com.kiri.feature.place.presentation
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.kiri.domain.place.PlaceMission
+import com.kiri.uikit.color.KiriColor
+import com.kiri.uikit.component.KiriAsyncImage
+import com.kiri.uikit.component.KiriDetailTypography
+
+@Composable
+internal fun PlaceKiriPickSection(picks: List<PlaceMission>, onPick: (String, Long) -> Unit) {
+    HorizontalPager(
+        state = rememberPagerState { picks.size },
+        modifier = Modifier.fillMaxWidth().padding(top = 17.dp).testTag("place_kiri_picks"),
+        contentPadding = PaddingValues(horizontal = 18.dp),
+        pageSpacing = 12.dp,
+        key = { picks[it].id },
+    ) { page ->
+        val mission = picks[page]
+        val pick = requireNotNull(mission.kiriPick)
+        Box(
+            Modifier.fillMaxWidth()
+                .heightIn(min = 120.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(KiriColor.Bg.Elevated)
+                .clickable(role = Role.Button, onClickLabel = "미션 상세 보기") { onPick(mission.id, pick.id) }
+                .testTag("place_kiri_pick_${mission.id}"),
+        ) {
+            (pick.imageUrl ?: mission.imageUrl)?.let { url ->
+                KiriAsyncImage(url, null, Modifier.matchParentSize())
+            }
+            Box(Modifier.matchParentSize().background(KiriColor.Bg.Base.copy(alpha = .48f)))
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    Modifier.clip(RoundedCornerShape(4.dp))
+                        .background(KiriColor.Bg.Base.copy(alpha = .65f))
+                        .padding(horizontal = 8.dp, vertical = 5.dp),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "오늘의 끼리픽",
+                        color = KiriColor.Text.Accent,
+                        style = KiriDetailTypography.Small.copy(
+                            fontWeight = FontWeight.SemiBold, fontSize = 12.sp, lineHeight = 18.sp,
+                        ),
+                    )
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        pick.headline,
+                        color = Color.White,
+                        style = KiriDetailTypography.Title.copy(fontWeight = FontWeight.SemiBold, lineHeight = 28.sp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        pick.description ?: "미션 상세 보기 →",
+                        color = Color.White,
+                        style = KiriDetailTypography.Small.copy(fontSize = 12.sp, lineHeight = 18.sp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}

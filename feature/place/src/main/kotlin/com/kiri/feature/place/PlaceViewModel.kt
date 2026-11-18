@@ -36,7 +36,7 @@ class PlaceViewModel @Inject constructor(
                 _uiState.update { it.copy(query = it.query.copy(filters = event.filters, cursor = null)) }
                 reload()
             }
-            is PlaceUiEvent.MissionClicked -> _effect.trySend(PlaceUiEffect.OpenMission(event.missionId))
+            is PlaceUiEvent.MissionClicked -> _effect.trySend(PlaceUiEffect.OpenMission(event.missionId, event.kiriPickId))
             is PlaceUiEvent.SearchChanged -> search(event.keyword)
             is PlaceUiEvent.CategorySelected -> category(event.category)
             is PlaceUiEvent.SaveClicked -> requestSave(event.mission)

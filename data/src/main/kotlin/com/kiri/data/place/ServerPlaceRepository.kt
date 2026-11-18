@@ -42,7 +42,8 @@ internal class ServerPlaceRepository(
             val cards = page.missions.filter { item ->
                 (item.price == null || item.price >= query.filters.minPrice) &&
                     (item.title.contains(query.keyword.trim(), ignoreCase = true) ||
-                        item.placeName.orEmpty().contains(query.keyword.trim(), ignoreCase = true))
+                        item.placeName.orEmpty().contains(query.keyword.trim(), ignoreCase = true) ||
+                        item.kiriPick?.headline.orEmpty().contains(query.keyword.trim(), ignoreCase = true))
             }.mapNotNull { it.toPlace() }.distinctBy { it.id }
             if (page.hasNext) {
                 val next = requireNotNull(page.nextCursor)
@@ -127,7 +128,16 @@ private fun MissionFeedItem.toPlace(): PlaceMission? {
     val tags = listOfNotNull(price?.let { if (it == 0) "무료" else "${it}원" }, distance?.let { "${it}km" })
     return PlaceMission(missionId.toString(), title, placeName.orEmpty(), "", category, tags = tags, canSave = true,
         imageUrl = imageUrl?.takeIf { it.isNotBlank() },
-        imageSource = imageSource?.takeIf { !imageUrl.isNullOrBlank() })
+        imageSource = imageSource?.takeIf { !imageUrl.isNullOrBlank() },
+        kiriPick = kiriPick?.let { pick ->
+            PlaceKiriPick(
+                id = pick.kiriPickId,
+                headline = pick.headline?.takeIf { it.isNotBlank() } ?: title,
+                description = pick.description?.takeIf { it.isNotBlank() },
+                imageUrl = pick.imageUrl?.takeIf { it.isNotBlank() },
+            )
+        },
+    )
 }
 
 internal fun PlaceQuery.requestFilters() = buildMap {

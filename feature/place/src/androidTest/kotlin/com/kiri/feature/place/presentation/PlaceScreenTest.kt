@@ -18,6 +18,27 @@ import org.junit.Assert.*
 
 class PlaceScreenTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test fun kiriPickOpensItsMissionAndDoesNotRepeatInTheRegularList() {
+        val ordinary = PlaceMission("1", "일반 미션", "", "", PlaceCategory.CULTURE)
+        val featured = ordinary.copy(
+            id = "2",
+            kiriPick = PlaceKiriPick(42, "추천 전시", "전시 둘러보기", null),
+        )
+        var opened: PlaceUiEvent.MissionClicked? = null
+        compose.setContent {
+            KiriTheme {
+                PlaceScreen(PlaceUiState(items = listOf(featured, ordinary), loading = false)) {
+                    if (it is PlaceUiEvent.MissionClicked) opened = it
+                }
+            }
+        }
+        compose.onNodeWithText("오늘의 끼리픽").assertIsDisplayed()
+        compose.onNodeWithTag("place_card_1").assertIsDisplayed()
+        compose.onNodeWithTag("place_card_2").assertDoesNotExist()
+        compose.onNodeWithTag("place_kiri_pick_2").performClick()
+        compose.runOnIdle { assertEquals(PlaceUiEvent.MissionClicked("2", 42), opened) }
+    }
     @Test fun completedCardShowsResaveAndUnfinishedCardDisablesSaving() {
         val mission = PlaceMission("repeat", "다시 참여할 활동", "장소", "서울", PlaceCategory.OUTDOOR,
             previouslyCompleted = true)

@@ -41,7 +41,11 @@ import com.kiri.uikit.component.*
 import kotlinx.coroutines.delay
 
 @Composable
-fun PlaceRoute(onBack: () -> Unit = {}, viewModel: PlaceViewModel = hiltViewModel(), onMission: (String) -> Unit = {}) {
+fun PlaceRoute(
+    onBack: () -> Unit = {},
+    viewModel: PlaceViewModel = hiltViewModel(),
+    onMission: (String, Long?) -> Unit = { _, _ -> },
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentBack by rememberUpdatedState(onBack)
     val currentMission by rememberUpdatedState(onMission)
@@ -53,7 +57,7 @@ fun PlaceRoute(onBack: () -> Unit = {}, viewModel: PlaceViewModel = hiltViewMode
             viewModel.effect.collect { effect ->
                 when (effect) {
                     PlaceUiEffect.NavigateBack -> currentBack()
-                    is PlaceUiEffect.OpenMission -> currentMission(effect.missionId)
+                    is PlaceUiEffect.OpenMission -> currentMission(effect.missionId, effect.kiriPickId)
                     // TODO: 제한 안내 UI 가 정해지면 바꾼다
                     is PlaceUiEffect.ShowMessage -> android.widget.Toast.makeText(context, effect.message, android.widget.Toast.LENGTH_SHORT).show()
                 }
@@ -65,6 +69,7 @@ fun PlaceRoute(onBack: () -> Unit = {}, viewModel: PlaceViewModel = hiltViewMode
 
 @Composable
 fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
+    val picks = if (state.showingSaved) emptyList() else state.items.filter { it.kiriPick != null }
     var showingFilters by rememberSaveable { mutableStateOf(false) }
     val onSearch: (String) -> Unit = { onEvent(PlaceUiEvent.SearchChanged(it)) }
     val onCategory: (PlaceCategory?) -> Unit = { onEvent(PlaceUiEvent.CategorySelected(it)) }
@@ -95,8 +100,13 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
                     listOf(PlaceCategory.CULTURE, PlaceCategory.POPUP, PlaceCategory.EXPERIENCE, PlaceCategory.OUTDOOR, PlaceCategory.SHOW, PlaceCategory.FOOD).forEach { category -> PlaceChip(category.label, state.query.category == category, { onCategory(category) }, Modifier.testTag("place_category_${category.name}")) }
                 }
             }
+            if (picks.isNotEmpty()) {
+                PlaceKiriPickSection(picks) { missionId, pickId ->
+                    onEvent(PlaceUiEvent.MissionClicked(missionId, pickId))
+                }
+            }
             Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(if (state.showingSaved) "저장한 활동 ${state.savedItems.size}개" else if (state.loading) "활동 불러오는 중" else state.totalCount?.let { "활동 ${it}개" } ?: "불러온 활동 ${state.items.size}개", style = KiriDetailTypography.Small,
+                Text(if (state.showingSaved) "저장한 활동 ${state.savedItems.size}개" else if (state.loading) "활동 불러오는 중" else if (picks.isNotEmpty()) "미션 둘러보기" else state.totalCount?.let { "활동 ${it}개" } ?: "불러온 활동 ${state.items.size}개", style = KiriDetailTypography.Small,
                     color = if (!state.showingSaved && state.query.filters.activeCount > 0) KiriColor.Text.Accent else KiriColor.Text.Secondary,
                     modifier = Modifier.weight(1f).testTag("place_count"))
                 if (!state.showingSaved) {
@@ -115,13 +125,13 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
             }
             if (state.error != null && state.pending == null) {
                 Text(state.error, Modifier.padding(horizontal = 18.dp), color = KiriColor.Status.Error, style = KiriDetailTypography.Small)
-                TextButton(onClick = if (state.showingSaved) onSaved else if (state.items.isEmpty()) onRetry else onMore) { Text("다시 시도") }
+                TextButton(onClick = if (state.showingSaved) onSaved else if (state.nextCursor == null) onRetry else onMore) { Text("다시 시도") }
             }
-            val missions = if (state.showingSaved) state.savedItems else state.items
+            val missions = if (state.showingSaved) state.savedItems else state.items.filter { it.kiriPick == null }
             if (state.loading && !state.showingSaved) {
                 Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            } else if (missions.isEmpty()) {
-                Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            } else if (missions.isEmpty() && (state.showingSaved || state.nextCursor == null)) {
+                if (picks.isEmpty()) Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(if (state.showingSaved) "저장한 활동이 없어요" else "검색 결과가 없어요", style = KiriDetailTypography.Title, color = KiriColor.Text.Strong)
                     Text(if (state.showingSaved) "마음에 드는 활동을 저장해보세요" else "다른 검색어나 카테고리로 둘러보세요", style = KiriDetailTypography.Small, color = KiriColor.Text.Secondary)
                 }

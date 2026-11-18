@@ -102,6 +102,7 @@ class MissionPreviewViewModel @Inject constructor(
         val current = uiState.value
         if (loading || current.saving || current.saved || !current.canSave || current.preview == null) return
         val serverId = missionId.toLongOrNull() ?: return
+        val kiriPickId = savedState.get<String>("kiriPickId")?.toLongOrNull()
         _uiState.update { it.copy(saving = true, error = null) }
         viewModelScope.launch {
             // 둘러보기 중이면 저장하지 않고 안내한다
@@ -111,7 +112,9 @@ class MissionPreviewViewModel @Inject constructor(
                 return@launch
             }
             try {
-                serverMissions.saveBucket(serverId).getOrThrow()
+                val result = if (kiriPickId == null) serverMissions.saveBucket(serverId)
+                else serverMissions.saveBucket(serverId, kiriPickId)
+                result.getOrThrow()
                 _uiState.update { it.copy(saving = false, saved = true) }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) {

@@ -1,11 +1,11 @@
 package com.kiri.feature.place.navigation
 
-import androidx.compose.runtime.remember
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
+import androidx.navigation.navArgument
 import android.net.Uri
 import com.kiri.feature.detail.presentation.MissionPreviewRoute
 import com.kiri.feature.place.presentation.PlaceRoute
@@ -18,14 +18,24 @@ private const val DETAIL_ROUTE = "place_graph/detail"
 fun NavGraphBuilder.placeNavHost(navController: NavHostController) {
     navigation(startDestination = START_ROUTE, route = GRAPH_ROUTE) {
         composable(START_ROUTE) {
-            PlaceRoute(onBack = { navController.popBackStack() }, onMission = { id ->
-                navController.navigate("$DETAIL_ROUTE/${Uri.encode(id)}") { launchSingleTop = true }
+            PlaceRoute(onBack = { navController.popBackStack() }, onMission = { id, kiriPickId ->
+                val destination = "$DETAIL_ROUTE/${Uri.encode(id)}"
+                navController.navigate(kiriPickId?.let { "$destination?kiriPickId=$it" } ?: destination) {
+                    launchSingleTop = true
+                }
             })
         }
-        composable("$DETAIL_ROUTE/{missionId}") {
+        composable(
+            "$DETAIL_ROUTE/{missionId}?kiriPickId={kiriPickId}",
+            arguments = listOf(navArgument("kiriPickId") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }),
+        ) { entry ->
             MissionPreviewRoute(
                 onBack = { navController.popBackStack() },
-                showSaveAction = false,
+                showSaveAction = entry.arguments?.getString("kiriPickId") != null,
                 onNearbyMission = { id -> navController.navigate("$DETAIL_ROUTE/$id") { launchSingleTop = true } },
             )
         }
