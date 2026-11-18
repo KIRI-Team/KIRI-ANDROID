@@ -192,6 +192,8 @@ class HomeScreenTest {
         compose.onNodeWithText("광장시장에서 시장음식 먹어보기").assertIsDisplayed()
         compose.onNodeWithText("대중교통 편리").assertIsDisplayed()
         compose.onNodeWithText("혼잡도 높음").assertIsDisplayed()
+        compose.onNodeWithText("일정 잡기").assertDoesNotExist()
+        compose.onNodeWithText("일정 보기").assertDoesNotExist()
         capture("home-mission")
         compose.onNodeWithContentDescription("질문 카드로 전환").performClick()
         compose.onNodeWithTag("home_question_card").assertIsDisplayed()
@@ -213,24 +215,6 @@ class HomeScreenTest {
         compose.onNodeWithText("답변 제출").performClick()
         compose.waitForIdle()
         assertEquals("가족과 산책하기", repository.home.answers["me"])
-    }
-
-    @Test
-    fun weeklyScheduleButtonStartsRegistrationWithoutOpeningDetail() {
-        var weeklyId: String? = null
-        var detailClicks = 0
-        val viewModel = HomeViewModel(ScreenRepository())
-        compose.setContent {
-            KiriTheme { HomeRoute(viewModel = viewModel,
-                onMissionClick = { detailClicks++ }, onWeeklyScheduleClick = { weeklyId = it }) }
-        }
-        compose.waitForIdle()
-        compose.onNodeWithText("일정 잡기").performScrollTo().assertIsDisplayed().performClick()
-        compose.runOnIdle {
-            assertEquals("m", weeklyId)
-            assertEquals(0, detailClicks)
-        }
-        capture("home-weekly-schedule-action")
     }
 
     @Test

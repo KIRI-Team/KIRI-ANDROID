@@ -33,13 +33,6 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
                 onNearbyMission = { id -> navController.navigate(serverMissionDetailRoute(id)) { launchSingleTop = true } },
             )
         }
-        // 이번 주 미션의 일정 잡기. 서버 미션 id 로 일정 생성 API 를 부른다
-        composable("home_graph/weekly-schedule/{weeklyMissionId}") { entry ->
-            val viewModel: com.kiri.feature.record.BucketScheduleCreateViewModel = hiltViewModel(entry)
-            com.kiri.feature.record.presentation.schedule.BucketScheduleCreateRoute(viewModel,
-                onBackClick = { navController.popBackStack() }, onSentByApp = { navController.popBackStack() }, onSentByKakao = { navController.popBackStack() },
-                onMissionDetail = { id -> navController.navigate(serverMissionDetailRoute(id)) { launchSingleTop = true } })
-        }
         composable(START_ROUTE) {
             HomeRoute(
                 onAnswerEditingChanged = onAnswerEditingChanged,
@@ -49,9 +42,6 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
                 },
                 onScheduleClick = onSchedule,
                 onRespondSchedule = onRespondSchedule,
-                onWeeklyScheduleClick = { id ->
-                    navController.navigate("home_graph/weekly-schedule/${Uri.encode(id)}") { launchSingleTop = true }
-                },
                 onDestination = { destination ->
                     when (destination) {
                         HomeUiDestination.CreateFamily -> onCreateFamily()

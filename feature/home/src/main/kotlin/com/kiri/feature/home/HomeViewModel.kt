@@ -46,16 +46,6 @@ class HomeViewModel @Inject constructor(
             HomeUiEvent.TutorialDismissed -> setTutorial(null)
             is HomeUiEvent.DestinationClicked -> _effect.trySend(HomeUiEffect.Navigate(event.destination))
             is HomeUiEvent.MissionClicked -> _effect.trySend(HomeUiEffect.OpenMission(event.id))
-            HomeUiEvent.WeeklyScheduleClicked -> {
-                val home = uiState.value.home ?: return
-                val weekly = home.mission ?: return
-                if (home.browsing || weekly.unavailable || weekly.completed || weekly.recommendationOnly) return
-                val existing = home.schedules.firstOrNull {
-                    it.weeklyMissionId == weekly.id && it.status != ScheduleStatus.CANCELLED
-                }
-                _effect.trySend(if (existing == null) HomeUiEffect.CreateWeeklySchedule(weekly.id)
-                    else HomeUiEffect.OpenSchedule(existing.id))
-            }
             is HomeUiEvent.ScheduleClicked -> _effect.trySend(HomeUiEffect.OpenSchedule(event.id, event.respond))
             HomeUiEvent.InviteFamilyClicked -> uiState.value.home?.takeUnless { it.browsing }?.let { home ->
                 if (home.serverBacked) _effect.trySend(HomeUiEffect.Navigate(HomeUiDestination.InviteFamily))

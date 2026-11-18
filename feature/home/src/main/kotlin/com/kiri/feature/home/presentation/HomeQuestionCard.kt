@@ -34,7 +34,6 @@ internal fun QuestionMissionSection(
     onMissionClick: (String) -> Unit,
     cardModifier: Modifier = Modifier,
     flipIconModifier: Modifier = Modifier,
-    onWeeklyScheduleClick: () -> Unit = {},
 ) {
     Column {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -64,16 +63,6 @@ internal fun QuestionMissionSection(
                 onMissionClick,
                 flipIconModifier,
             )
-        }
-        val mission = home.mission
-        if (showingMission && !home.browsing && mission != null &&
-            !mission.recommendationOnly && !mission.unavailable && !mission.completed) {
-            val hasSchedule = home.schedules.any {
-                it.weeklyMissionId == mission.id && it.status != ScheduleStatus.CANCELLED
-            }
-            TextButton(onClick = onWeeklyScheduleClick, modifier = Modifier.align(Alignment.End)) {
-                Text(if (hasSchedule) "일정 보기" else "일정 잡기")
-            }
         }
     }
 }
