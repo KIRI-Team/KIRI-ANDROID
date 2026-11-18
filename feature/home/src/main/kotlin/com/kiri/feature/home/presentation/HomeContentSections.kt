@@ -299,11 +299,13 @@ internal fun MemberAnswerToast(
     onDismiss: () -> Unit,
 ) {
     val m = home.members.firstOrNull { it.id == memberId } ?: return
+    val ownAnswer = m.id == home.currentUserId
     val can = home.canPoke(m.id)
     val answer = home.answers[m.id]
     val question = home.question?.text?.trim().orEmpty()
     val nickname = m.nickname
     val title = when {
+        ownAnswer -> "내 답변"
         answer != null -> "${nickname}의 답변"
         question.isEmpty() -> "${nickname}의 오늘 질문"
         question.startsWith("내가 ") -> "${nickname}의 ${question.removePrefix("내가 ")}"
@@ -312,7 +314,7 @@ internal fun MemberAnswerToast(
     }
     KiriTooltip(
         title,
-        answer ?: "답변하지 않았어요",
+        answer ?: if (ownAnswer && question.isEmpty()) "아직 배정된 질문이 없어요" else "답변하지 않았어요",
         can && !busy,
         onPoke,
         IntRect(
@@ -323,6 +325,7 @@ internal fun MemberAnswerToast(
         ),
         onDismiss,
         unanswered = answer == null,
+        showAction = !ownAnswer,
     )
 }
 

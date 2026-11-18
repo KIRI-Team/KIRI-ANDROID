@@ -68,8 +68,13 @@ class HomeViewModel @Inject constructor(
                 if (uiState.value.home?.date != date && !uiState.value.loading && !uiState.value.busy) load()
             }
             is HomeUiEvent.MemberSelected -> {
-                if (uiState.value.home?.canRead(event.id) == true && !uiState.value.busy)
+                val state = uiState.value
+                val home = state.home ?: return
+                val ownAnswer = !home.browsing && event.id == home.currentUserId &&
+                    home.members.any { it.id == event.id && it.accessible }
+                if (!state.busy && (ownAnswer || home.canRead(event.id))) {
                     _uiState.update { it.copy(selectedMemberId = event.id, error = null) }
+                }
             }
             HomeUiEvent.AnswerEditClicked -> {
                 val s = uiState.value

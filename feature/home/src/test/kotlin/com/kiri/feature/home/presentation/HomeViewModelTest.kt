@@ -161,6 +161,17 @@ class HomeViewModelTest {
         assertNull(vm.uiState.value.selectedMemberId)
     }
 
+    @Test fun ownAvatarCanShowEmptyAnswerWithoutAnAssignedQuestion() = runTest(dispatcher) {
+        val repo = TestRepository().apply { home = home.copy(question = null, answers = emptyMap()) }
+        val vm = HomeViewModel(repo)
+        advanceUntilIdle()
+        vm.onEvent(HomeUiEvent.MemberSelected(repo.home.currentUserId))
+        assertEquals(repo.home.currentUserId, vm.uiState.value.selectedMemberId)
+        vm.onEvent(HomeUiEvent.MemberDismissed)
+        vm.onEvent(HomeUiEvent.MemberSelected("other"))
+        assertNull(vm.uiState.value.selectedMemberId)
+    }
+
     @Test fun successfulPokeShowsMemberNotificationNotice() = runTest(dispatcher) {
         val repo = TestRepository().also {
             it.home = it.home.copy(
