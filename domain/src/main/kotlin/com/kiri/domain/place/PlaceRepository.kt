@@ -8,13 +8,20 @@ data class PlaceMission(val id: String, val title: String, val place: String, va
     val pick: Boolean = false, val saved: Boolean = false,
     val searchMetadata: PlaceSearchMetadata? = null,
     val previouslyCompleted: Boolean = false, val canSave: Boolean = true,
-    val imageUrl: String? = null, val imageSource: String? = null) {
+    val imageUrl: String? = null, val imageSource: String? = null, val kiriPick: PlaceKiriPick? = null) {
     val saveLabel get() = when {
         saved -> "저장됨"
         previouslyCompleted -> "다시 버킷에 저장"
         else -> "버킷에 저장"
     }
 }
+data class PlaceKiriPick(
+    val id: Long,
+    val headline: String,
+    val description: String?,
+    val imageUrl: String?,
+)
+
 data class PlaceQuery(val keyword: String = "", val category: PlaceCategory? = null, val cursor: String? = null,
     val filters: PlaceFilters = PlaceFilters())
 /** totalCount is supplied by the repository/server, not the loaded page size. */
