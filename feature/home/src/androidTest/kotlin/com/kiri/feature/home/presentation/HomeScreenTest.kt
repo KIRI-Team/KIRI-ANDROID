@@ -173,6 +173,9 @@ class HomeScreenTest {
         compose.setContent { KiriTheme { HomeRoute(viewModel = viewModel) } }
         compose.waitForIdle()
 
+        compose.onNodeWithTag("home_mission_card").performScrollTo().assertHeightIsEqualTo(136.dp)
+        compose.onNodeWithText("광장시장에서 시장음식 먹어보기").assertIsDisplayed()
+        compose.onNodeWithContentDescription("질문 카드로 전환").performClick()
         compose.onNodeWithText("오늘 나의 질문카드").assertIsDisplayed()
         compose.onNodeWithText("오늘 가족과 함께하고 싶은 일은 무엇인가요?", substring = true).assertIsDisplayed()
         capture("home-avatars")
@@ -201,6 +204,7 @@ class HomeScreenTest {
         compose.setContent { HomeRoute(viewModel = viewModel) }
         compose.waitForIdle()
 
+        compose.onNodeWithContentDescription("질문 카드로 전환").performScrollTo().performClick()
         compose.onNodeWithTag("home_question_card").performScrollTo().performClick()
         compose.onNodeWithText("답변 제출").assertIsDisplayed()
         compose.onNodeWithContentDescription("오늘의 질문 답변").performTextInput("가족과 산책하기")
@@ -219,7 +223,6 @@ class HomeScreenTest {
                 onMissionClick = { detailClicks++ }, onWeeklyScheduleClick = { weeklyId = it }) }
         }
         compose.waitForIdle()
-        compose.onNodeWithContentDescription("미션 카드로 전환").performScrollTo().performClick()
         compose.onNodeWithText("일정 잡기").performScrollTo().assertIsDisplayed().performClick()
         compose.runOnIdle {
             assertEquals("m", weeklyId)

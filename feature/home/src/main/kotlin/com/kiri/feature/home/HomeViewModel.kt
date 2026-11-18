@@ -28,7 +28,7 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState(
         tutorialStep = savedState.get<String>("homeTutorialStep")?.let { value -> HomeTutorialStep.entries.firstOrNull { it.name == value } },
-        showingMission = savedState["homeShowingMission"] ?: false,
+        showingMission = savedState["homeShowingMission"] ?: true,
     ))
     val uiState = _uiState.asStateFlow()
     private val _effect = kotlinx.coroutines.channels.Channel<HomeUiEffect>(kotlinx.coroutines.channels.Channel.BUFFERED)
@@ -132,7 +132,6 @@ class HomeViewModel @Inject constructor(
                         .getOrElse { error -> if (error is CancellationException) throw error else false }
                     savedState["homeTutorialChecked"] = true
                     if (uiState.value.tutorialStep == null && firstVisit) {
-                        setShowingMission(false)
                         setTutorial(HomeTutorialStep.INITIAL)
                     }
                 }

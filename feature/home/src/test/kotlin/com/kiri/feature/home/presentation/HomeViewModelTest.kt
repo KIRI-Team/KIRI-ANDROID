@@ -137,8 +137,9 @@ class HomeViewModelTest {
         val vm = HomeViewModel(TestRepository())
         advanceUntilIdle()
         val before = vm.uiState.value.home
-        vm.onEvent(HomeUiEvent.CardFlipped)
         assertTrue(vm.uiState.value.showingMission)
+        vm.onEvent(HomeUiEvent.CardFlipped)
+        assertFalse(vm.uiState.value.showingMission)
         assertEquals(before, vm.uiState.value.home)
         vm.onEvent(HomeUiEvent.AnswerEditClicked)
         vm.onEvent(HomeUiEvent.AnswerChanged("아직 작성 중"))
@@ -156,7 +157,7 @@ class HomeViewModelTest {
         vm.onEvent(HomeUiEvent.MemberSelected("other"))
         vm.onEvent(HomeUiEvent.CardFlipped)
         assertFalse(vm.uiState.value.editing)
-        assertFalse(vm.uiState.value.showingMission)
+        assertTrue(vm.uiState.value.showingMission)
         assertNull(vm.uiState.value.selectedMemberId)
     }
 
@@ -183,10 +184,10 @@ class HomeViewModelTest {
         vm.refreshOnResume()
         assertFalse(vm.uiState.value.loading)
         assertEquals(previous, vm.uiState.value.home)
-        assertTrue(vm.uiState.value.showingMission)
+        assertFalse(vm.uiState.value.showingMission)
         advanceUntilIdle()
         assertFalse(vm.uiState.value.loading)
-        assertTrue(vm.uiState.value.showingMission)
+        assertFalse(vm.uiState.value.showingMission)
     }
 
     @Test fun responseRequiredCardOpensTheResponseScreen() = runTest(dispatcher) {

@@ -13,7 +13,7 @@ data class HomeUiState(
     val editing: Boolean = false,
     val draft: String = "",
     val draftQuestionId: String? = null,
-    val showingMission: Boolean = false,
+    val showingMission: Boolean = true,
     val busy: Boolean = false,
     val error: String? = null,
     val notice: String? = null,
