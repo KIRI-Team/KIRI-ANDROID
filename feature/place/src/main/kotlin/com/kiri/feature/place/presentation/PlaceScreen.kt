@@ -17,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -70,7 +69,7 @@ fun PlaceRoute(
 @Composable
 fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
     val picks = if (state.showingSaved) emptyList() else state.items.filter { it.kiriPick != null }
-    var showingFilters by rememberSaveable { mutableStateOf(false) }
+    var filterSection by rememberSaveable { mutableStateOf<Int?>(null) }
     val onSearch: (String) -> Unit = { onEvent(PlaceUiEvent.SearchChanged(it)) }
     val onCategory: (PlaceCategory?) -> Unit = { onEvent(PlaceUiEvent.CategorySelected(it)) }
     val onRetry = { onEvent(PlaceUiEvent.RetryClicked) }
@@ -113,19 +112,9 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
                 Text(if (state.showingSaved) "저장한 활동 ${state.savedItems.size}개" else if (state.loading) "활동 불러오는 중" else if (picks.isNotEmpty()) "미션 둘러보기" else state.totalCount?.let { "활동 ${it}개" } ?: "불러온 활동 ${state.items.size}개", style = KiriDetailTypography.Small,
                     color = if (!state.showingSaved && state.query.filters.activeCount > 0) KiriColor.Text.Accent else KiriColor.Text.Secondary,
                     modifier = Modifier.weight(1f).testTag("place_count"))
-                if (!state.showingSaved) {
-                    Box {
-                        IconButton(onClick = { showingFilters = true }, modifier = Modifier.testTag("place_filters")) {
-                            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
-                                Image(painterResource(R.drawable.kiri_filter_action), "상세 필터", Modifier.size(width = 19.dp, height = 20.dp),
-                                    colorFilter = ColorFilter.tint(if (state.query.filters.activeCount > 0) KiriColor.Text.Accent else KiriColor.Text.Secondary))
-                            }
-                        }
-                        if (state.query.filters.activeCount > 0) Surface(color = KiriColor.Primary.Default, shape = RoundedCornerShape(100.dp), modifier = Modifier.align(Alignment.TopEnd).size(16.dp).testTag("place_filter_count")) {
-                            Box(contentAlignment = Alignment.Center) { Text("${state.query.filters.activeCount}", style = KiriDetailTypography.Small.copy(fontSize = 10.sp), color = KiriColor.Text.Inverse) }
-                        }
-                    }
-                }
+            }
+            if (!state.showingSaved) {
+                PlaceConditionFilters(state.query.filters) { filterSection = it }
             }
             if (state.error != null && state.pending == null) {
                 Text(state.error, Modifier.padding(horizontal = 18.dp), color = KiriColor.Status.Error, style = KiriDetailTypography.Small)
@@ -156,10 +145,16 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
             actionLabel = "바로가기", onAction = onSaved,
         )
     }
-    if (showingFilters) PlaceFilterSheet(state.query.filters, onDismiss = { showingFilters = false }, onApply = {
-        onEvent(PlaceUiEvent.FiltersApplied(it))
-        showingFilters = false
-    })
+    filterSection?.let { section ->
+        PlaceFilterSheet(
+            applied = state.query.filters,
+            onDismiss = { filterSection = null },
+            initialSection = section,
+        ) {
+            onEvent(PlaceUiEvent.FiltersApplied(it))
+            filterSection = null
+        }
+    }
     state.pending?.let { mission ->
         Dialog(onDismissRequest = onDismissSave, properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(Modifier.padding(horizontal = 22.dp).widthIn(max = 345.dp).fillMaxWidth().testTag("place_save_dialog"), color = KiriColor.Bg.Secondary, shape = RoundedCornerShape(16.dp)) {

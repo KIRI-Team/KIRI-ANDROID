@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -48,25 +49,44 @@ internal fun PlaceKiriPickSection(picks: List<PlaceMission>, onPick: (String, Lo
             (pick.imageUrl ?: mission.imageUrl)?.let { url ->
                 KiriAsyncImage(url, null, Modifier.matchParentSize())
             }
-            Box(Modifier.matchParentSize().background(KiriColor.Bg.Base.copy(alpha = .48f)))
-            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                KiriPickLabel()
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        pick.headline,
-                        color = Color.White,
-                        style = KiriDetailTypography.Title.copy(fontWeight = FontWeight.SemiBold, lineHeight = 28.sp),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        pick.description ?: "미션 상세 보기 →",
-                        color = Color.White,
-                        style = KiriDetailTypography.Small.copy(fontSize = 12.sp, lineHeight = 18.sp),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+            Box(
+                Modifier.matchParentSize().background(
+                    Brush.horizontalGradient(
+                        listOf(KiriColor.Bg.Base.copy(alpha = .8f), KiriColor.Bg.Base.copy(alpha = .48f)),
+                    ),
+                ),
+            )
+            Row(
+                Modifier.fillMaxWidth().align(Alignment.BottomStart).padding(16.dp),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    KiriPickLabel()
+                    Column {
+                        Text(
+                            pick.headline,
+                            color = KiriColor.Text.Strong,
+                            style = KiriDetailTypography.Title,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            pick.description?.takeIf { it.isNotBlank() } ?: "미션 상세 보기 →",
+                            color = KiriColor.Text.Primary,
+                            style = KiriDetailTypography.Small,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
+                Text(
+                    "광고",
+                    modifier = Modifier.background(Color.White.copy(alpha = .2f), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 6.dp, vertical = 3.dp),
+                    color = KiriColor.Text.Secondary,
+                    style = KiriDetailTypography.Small.copy(fontSize = 12.sp, lineHeight = 18.sp),
+                )
             }
         }
     }
@@ -89,7 +109,7 @@ internal fun EmptyKiriPickSection() {
 private fun KiriPickLabel() {
     Row(
         Modifier.clip(RoundedCornerShape(4.dp))
-            .background(KiriColor.Bg.Base.copy(alpha = .65f))
+            .background(KiriColor.Bg.Base)
             .padding(horizontal = 8.dp, vertical = 5.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -97,7 +117,7 @@ private fun KiriPickLabel() {
         Image(
             painter = painterResource(R.drawable.place_kiri_pick_crown),
             contentDescription = null,
-            modifier = Modifier.size(14.dp),
+            modifier = Modifier.size(16.dp),
         )
         Text(
             "오늘의 끼리픽",

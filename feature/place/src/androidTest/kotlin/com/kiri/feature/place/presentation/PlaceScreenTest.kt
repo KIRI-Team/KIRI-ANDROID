@@ -44,11 +44,36 @@ class PlaceScreenTest {
             }
         }
         compose.onNodeWithText("오늘의 끼리픽").assertIsDisplayed()
+        compose.onNodeWithText("광고").assertIsDisplayed()
         compose.onNodeWithTag("place_card_1").assertIsDisplayed()
         compose.onNodeWithTag("place_card_2").assertDoesNotExist()
         compose.onNodeWithTag("place_kiri_pick_2").performClick()
         compose.runOnIdle { assertEquals(PlaceUiEvent.MissionClicked("2", 42), opened) }
     }
+    @Test fun filtersShowAppliedValuesAndOpenTheirOwnSections() {
+        val state = mutableStateOf(PlaceUiState(loading = false))
+        compose.setContent {
+            KiriTheme {
+                PlaceScreen(state.value) { event ->
+                    if (event is PlaceUiEvent.FiltersApplied) {
+                        state.value = state.value.copy(query = state.value.query.copy(filters = event.filters))
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("place_condition_1").assertIsNotSelected().performClick()
+        compose.onNodeWithTag("filter_region_서울").performClick()
+        compose.onNodeWithTag("filter_apply").performClick()
+        compose.onNodeWithTag("place_condition_1").assertIsSelected()
+        compose.onNodeWithText("지역 · 서울").assertIsDisplayed()
+        compose.onNodeWithTag("place_condition_1").performClick()
+        compose.onNodeWithTag("filter_reset").performClick()
+        compose.onNodeWithTag("filter_apply").performClick()
+        compose.onNodeWithTag("place_condition_1").assertIsNotSelected()
+        compose.onNodeWithText("지역 · 서울").assertDoesNotExist()
+    }
+
     @Test fun completedCardShowsResaveAndUnfinishedCardDisablesSaving() {
         val mission = PlaceMission("repeat", "다시 참여할 활동", "장소", "서울", PlaceCategory.OUTDOOR,
             previouslyCompleted = true)

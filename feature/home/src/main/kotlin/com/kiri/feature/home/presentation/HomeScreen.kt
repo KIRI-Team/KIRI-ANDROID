@@ -215,7 +215,7 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
                         loading = state.loading,
                         loadFailed = state.loadError || home?.recommendationsLoadFailed == true,
                         onRetry = { onEvent(HomeUiEvent.RetryClicked) },
-                        title = "야외에서 즐기는 미션",
+                        title = "오늘 가을분위기를 느끼고 싶다면",
                         cardTagPrefix = "home_outdoor_recommendation",
                     )
                     Spacer(Modifier.height(28.dp))

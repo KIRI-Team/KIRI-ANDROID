@@ -105,7 +105,7 @@ class HomeScreenTest {
                 )
             }
         }
-        compose.onNodeWithText("야외에서 즐기는 미션").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("오늘 가을분위기를 느끼고 싶다면").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("추천을 불러오지 못했어요.").performScrollTo().assertIsDisplayed()
     }
 
