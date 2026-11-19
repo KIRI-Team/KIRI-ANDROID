@@ -22,7 +22,7 @@ import coil3.request.crossfade
 
 /**
  * 서버 사진(https)이나 기기 사진(content://, file://)을 Coil 로 불러와 그린다.
- * 메모리·디스크 캐시를 쓰고, 그리는 크기에 맞춰 줄여 디코딩한다.
+ * 메모리·디스크 캐시를 쓰고(서버 사진은 서명 쿼리를 뺀 주소가 캐시 키다, [imageCacheKey]), 그리는 크기에 맞춰 줄여 디코딩한다.
  * 주소가 비어 있거나, 불러오는 중이거나, 불러오지 못하면 [placeholder] 를 대신 보여준다.
  *
  * Coil 은 앱의 OkHttpClient 가 아닌 기본 클라이언트를 쓴다. 사진 주소(presigned 등)에 로그인 토큰이 붙지 않게 하려는 것이다.
@@ -47,7 +47,12 @@ fun KiriAsyncImage(
         if (url != null) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalPlatformContext.current).data(url).crossfade(true)
-                    .apply { if (onBitmap != null) allowHardware(false) }
+                    .apply {
+                        val cacheKey = imageCacheKey(url)
+                        memoryCacheKey(cacheKey)
+                        diskCacheKey(cacheKey)
+                        if (onBitmap != null) allowHardware(false)
+                    }
                     .build(),
                 contentDescription = contentDescription,
                 modifier = Modifier.fillMaxSize(),
@@ -63,4 +68,15 @@ fun KiriAsyncImage(
         }
         if (!loaded) placeholder()
     }
+}
+
+/**
+ * 사진의 캐시 키. 서버 사진(https)은 서명 쿼리스트링이 요청마다 바뀌어도 같은 사진이면 캐시를 다시 쓰도록
+ * 쿼리와 프래그먼트를 뺀 주소를 쓴다. 요청은 서명이 붙은 원래 주소로 보낸다.
+ * 기기 사진(content://, file://)은 쿼리가 사진을 가리키는 데 쓰일 수 있어 그대로 둔다
+ */
+internal fun imageCacheKey(url: String): String {
+    val scheme = url.substringBefore("://", "").lowercase()
+    if (scheme != "http" && scheme != "https") return url
+    return url.substringBefore('#').substringBefore('?')
 }
