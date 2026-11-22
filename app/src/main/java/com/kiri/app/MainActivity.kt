@@ -78,7 +78,7 @@ class MainActivity : ComponentActivity() {
         pendingScheduleInvite.save(scheduleId)
     }
 
-    // 초대 링크(https://kiri.app/invite/{token})로 열렸으면 초대 토큰을 기기에 보관한다.
+    // 초대 링크(https://halo-official.co.kr/invite/{token})로 열렸으면 초대 토큰을 기기에 보관한다.
     // 로그인 -> 온보딩 도중 앱이 종료돼도 남아 있고, 가족 참여가 끝나면 지운다
     // 보관한 토큰은 AcceptPendingInviteUseCase 가 꺼내 참여한다: 온보딩은 가족 선택 화면에 들어올 때,
     // 메인은 화면에 돌아올 때(FamilyAccessViewModel). 참여했거나 더 쓸 수 없는 토큰이면 지운다

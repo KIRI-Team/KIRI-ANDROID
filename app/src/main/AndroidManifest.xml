@@ -12,9 +12,9 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <!-- 초대 링크 https://kiri.app/invite/{token} (InviteLink.HOST와 같은 값).
-                     https://kiri.app/.well-known/assetlinks.json 에 앱 서명 지문이 있어야 자동 검증된다 -->
-                <data android:scheme="https" android:host="kiri.app" android:pathPrefix="/invite/" />
+                <!-- 초대 링크 https://halo-official.co.kr/invite/{token} (InviteLink.HOST와 같은 값).
+                     https://halo-official.co.kr/.well-known/assetlinks.json 에 앱 서명 지문이 있어야 자동 검증된다 -->
+                <data android:scheme="https" android:host="halo-official.co.kr" android:pathPrefix="/invite/" />
             </intent-filter>
             <!-- 카카오톡 일정 초대장 버튼 kakao{앱 키}://kakaolink?scheduleId={id} (ScheduleInviteLink.KAKAO_LINK_HOST와 같은 값) -->
             <intent-filter>

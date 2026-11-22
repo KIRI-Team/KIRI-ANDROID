@@ -74,7 +74,7 @@ class FamilyRepositoryImplTest {
             Family(
                 id = 1,
                 name = "끼리네가족",
-                invite = Invite(code = "NWTKYJ", url = "https://kiri.app/invite/NWTKYJ", expiresAt = LocalDate.of(2026, 10, 14)),
+                invite = Invite(code = "NWTKYJ", url = "https://halo-official.co.kr/invite/NWTKYJ", expiresAt = LocalDate.of(2026, 10, 14)),
             ),
             family,
         )
@@ -352,7 +352,7 @@ class FamilyRepositoryImplTest {
         const val RENAME_BODY = """{"isSuccess":true,"code":"FAMILY200_4","message":"가족명이 변경되었습니다.",""" +
             """"result":{"familyId":7,"name":"끼리네가족2"}}"""
         const val SUCCESS_BODY = """{"isSuccess":true,"code":"FAMILY201_1","message":"가족 공간이 생성되었습니다.",""" +
-            """"result":{"familyId":1,"name":"끼리네가족","inviteCode":"NWTKYJ","inviteUrl":"https://kiri.app/invite/NWTKYJ",""" +
+            """"result":{"familyId":1,"name":"끼리네가족","inviteCode":"NWTKYJ","inviteUrl":"https://halo-official.co.kr/invite/NWTKYJ",""" +
             """"inviteExpiresAt":"2026-10-14T11:51:36"}}"""
     }
 }

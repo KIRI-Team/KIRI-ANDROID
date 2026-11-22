@@ -13,7 +13,7 @@ data class InviteLinkUiState(
     val code: String
         get() = invite?.code.orEmpty()
 
-    // 링크 끝의 초대 토큰은 길이와 상관없이 같은 길이로 가려서 보여준다 (예: kiri.app/invite/••••••)
+    // 링크 끝의 초대 토큰은 길이와 상관없이 같은 길이로 가려서 보여준다 (예: halo-official.co.kr/invite/••••••)
     val maskedLink: String
         get() = invite?.let { it.url.substringAfter("://").trimEnd('/').substringBeforeLast('/') + "/" + MASK.repeat(MASK_LENGTH) }
             .orEmpty()
