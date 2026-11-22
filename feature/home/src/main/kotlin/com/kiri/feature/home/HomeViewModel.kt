@@ -28,7 +28,7 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState(
         tutorialStep = savedState.get<String>("homeTutorialStep")?.let { value -> HomeTutorialStep.entries.firstOrNull { it.name == value } },
-        showingMission = savedState["homeShowingMission"] ?: false,
+        showingMission = savedState["homeShowingMission"] ?: true,
     ))
     val uiState = _uiState.asStateFlow()
     private val _effect = kotlinx.coroutines.channels.Channel<HomeUiEffect>(kotlinx.coroutines.channels.Channel.BUFFERED)
@@ -46,16 +46,6 @@ class HomeViewModel @Inject constructor(
             HomeUiEvent.TutorialDismissed -> setTutorial(null)
             is HomeUiEvent.DestinationClicked -> _effect.trySend(HomeUiEffect.Navigate(event.destination))
             is HomeUiEvent.MissionClicked -> _effect.trySend(HomeUiEffect.OpenMission(event.id))
-            HomeUiEvent.WeeklyScheduleClicked -> {
-                val home = uiState.value.home ?: return
-                val weekly = home.mission ?: return
-                if (home.browsing || weekly.unavailable || weekly.completed || weekly.recommendationOnly) return
-                val existing = home.schedules.firstOrNull {
-                    it.weeklyMissionId == weekly.id && it.status != ScheduleStatus.CANCELLED
-                }
-                _effect.trySend(if (existing == null) HomeUiEffect.CreateWeeklySchedule(weekly.id)
-                    else HomeUiEffect.OpenSchedule(existing.id))
-            }
             is HomeUiEvent.ScheduleClicked -> _effect.trySend(HomeUiEffect.OpenSchedule(event.id, event.respond))
             HomeUiEvent.InviteFamilyClicked -> uiState.value.home?.takeUnless { it.browsing }?.let { home ->
                 if (home.serverBacked) _effect.trySend(HomeUiEffect.Navigate(HomeUiDestination.InviteFamily))
@@ -68,8 +58,13 @@ class HomeViewModel @Inject constructor(
                 if (uiState.value.home?.date != date && !uiState.value.loading && !uiState.value.busy) load()
             }
             is HomeUiEvent.MemberSelected -> {
-                if (uiState.value.home?.canRead(event.id) == true && !uiState.value.busy)
+                val state = uiState.value
+                val home = state.home ?: return
+                val ownAnswer = !home.browsing && event.id == home.currentUserId &&
+                    home.members.any { it.id == event.id && it.accessible }
+                if (!state.busy && (ownAnswer || home.canRead(event.id))) {
                     _uiState.update { it.copy(selectedMemberId = event.id, error = null) }
+                }
             }
             HomeUiEvent.AnswerEditClicked -> {
                 val s = uiState.value
@@ -132,7 +127,6 @@ class HomeViewModel @Inject constructor(
                         .getOrElse { error -> if (error is CancellationException) throw error else false }
                     savedState["homeTutorialChecked"] = true
                     if (uiState.value.tutorialStep == null && firstVisit) {
-                        setShowingMission(false)
                         setTutorial(HomeTutorialStep.INITIAL)
                     }
                 }

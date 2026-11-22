@@ -55,15 +55,37 @@ class NotificationViewModelTest {
         repo.fail = false; vm.readAll(); advanceUntilIdle()
         assertEquals(0, vm.uiState.value.unreadCount)
     }
+    @Test fun bulkFailureReconcilesItemsAlreadyReadOnServer() = runTest(dispatcher) {
+        val repo = Repository().apply { partialFailure = true }
+        val vm = NotificationViewModel(repo, SavedStateHandle())
+        advanceUntilIdle()
+
+        vm.readAll()
+        advanceUntilIdle()
+
+        assertEquals(1, vm.uiState.value.unreadCount)
+        assertTrue(vm.uiState.value.items.last().read)
+        assertNotNull(vm.uiState.value.notice)
+    }
+
     private class Repository : NotificationRepository {
         var fail = false
         var reads = 0
+        var partialFailure = false
+        private var firstRead = false
         val items = listOf(
             FamilyNotification("old", "가족", "기록", "내용", Instant.EPOCH, NotificationCategory.RECORD, NotificationTarget.MEMORY, "mission"),
             FamilyNotification("new", "가족", "일정", "내용", Instant.EPOCH.plusSeconds(1), NotificationCategory.SCHEDULE, NotificationTarget.SCHEDULE, "schedule"),
         )
-        override suspend fun load(): List<FamilyNotification> { if (fail) error("network"); return items }
+        override suspend fun load(): List<FamilyNotification> { if (fail) error("network"); return items.map { if (firstRead && it.id == "old") it.copy(read = true) else it } }
         override suspend fun markRead(id: String) { if (fail) error("network"); reads++ }
-        override suspend fun markAllRead() { if (fail) error("network"); reads++ }
+        override suspend fun markAllRead() {
+            if (fail) error("network")
+            if (partialFailure) {
+                firstRead = true
+                error("network")
+            }
+            reads++
+        }
     }
 }

@@ -12,6 +12,7 @@ import com.kiri.domain.model.schedule.InvalidScheduleUpdateException
 import com.kiri.domain.model.schedule.ScheduleUpdate
 import com.kiri.domain.record.ScheduleRequestChannel
 import com.kiri.domain.repository.CalendarScheduleRepository
+import com.kiri.domain.repository.MissionInfoRepository
 import com.kiri.domain.time.kiriNow
 import com.kiri.feature.record.presentation.schedule.ScheduleRegisterDraft
 import com.kiri.feature.record.presentation.sheet.RecordMember
@@ -33,6 +34,10 @@ import kotlinx.coroutines.launch
 data class BucketScheduleCreateUiState(
     val earliest: LocalDateTime,
     val title: String,
+    // 미션의 행사 설명 (미션 상세 API). 불러오지 못하면 비워서 화면에서 숨긴다
+    val description: String = "",
+    // 요청 미리보기의 자세히 보러가기로 열 미션 id. 모르면 null 이라 눌러도 아무 일도 없다
+    val missionId: Long? = null,
     // 버킷을 저장한 사람의 닉네임 ("OO가 저장했어요!")
     val savedBy: String,
     val loading: Boolean = true,
@@ -64,6 +69,8 @@ constructor(
     private val schedules: CalendarScheduleRepository,
     private val home: HomeRepository,
     private val clock: Clock,
+    // 행사 설명을 불러온다. 없으면 설명 없이 보여준다
+    private val missions: MissionInfoRepository? = null,
 ) : ViewModel() {
     private val weeklyMissionId = savedState.get<String>("weeklyMissionId")?.toLongOrNull()
     private var sent = savedState.get<Long>("createdScheduleId") != null
@@ -85,8 +92,23 @@ constructor(
     val effect = effects.receiveAsFlow()
     private val dayLimit = ScheduleDayLimit(schedules)
 
+    // 주간 미션은 그 미션 id 로, 버킷은 버킷의 미션 id 로 설명을 불러온다
+    private val missionId = weeklyMissionId ?: savedState.get<Long>(MISSION_ID_ARG)?.takeIf { it > 0 }
+
     init {
+        state.update { it.copy(missionId = missionId) }
         load()
+        loadDescription()
+    }
+
+    private fun loadDescription() {
+        val repository = missions ?: return
+        val id = missionId ?: return
+        viewModelScope.launch {
+            repository.getMission(id).getOrNull()?.description?.takeIf { it.isNotBlank() }?.let { description ->
+                state.update { it.copy(description = description.trim()) }
+            }
+        }
     }
 
     // 날짜 시트가 보여주는 달의 가족 일정을 불러와 일정이 있는 날을 고를 수 없게 한다
@@ -201,5 +223,6 @@ constructor(
         const val BUCKET_ITEM_ID_ARG = "bucketItemId"
         const val TITLE_ARG = "title"
         const val SAVER_ARG = "saver"
+        const val MISSION_ID_ARG = "missionId"
     }
 }

@@ -38,14 +38,20 @@ internal val PlaceFiltersSaver = listSaver<PlaceFilters, Any>(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun PlaceFilterSheet(applied: PlaceFilters, onDismiss: () -> Unit, onApply: (PlaceFilters) -> Unit) {
+internal fun PlaceFilterSheet(
+    applied: PlaceFilters,
+    onDismiss: () -> Unit,
+    initialSection: Int = 0,
+    onApply: (PlaceFilters) -> Unit,
+) {
     var draft by rememberSaveable(stateSaver = PlaceFiltersSaver) { mutableStateOf(applied) }
     var pickingDate by rememberSaveable { mutableStateOf(false) }
-    var selectedSection by rememberSaveable { mutableIntStateOf(0) }
-    val scroll = rememberLazyListState()
+    var selectedSection by rememberSaveable { mutableIntStateOf(initialSection) }
+    val scroll = rememberLazyListState(initialFirstVisibleItemIndex = initialSection)
     val scope = rememberCoroutineScope()
     ModalBottomSheet(onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetGesturesEnabled = false,
         shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp),
         containerColor = KiriColor.Bg.Primary, dragHandle = null, modifier = Modifier.testTag("place_filter_sheet")) {
         Column(Modifier.fillMaxWidth().fillMaxHeight(.92f)) {

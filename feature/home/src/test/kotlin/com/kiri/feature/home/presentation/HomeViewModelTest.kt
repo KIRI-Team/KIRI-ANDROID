@@ -137,8 +137,9 @@ class HomeViewModelTest {
         val vm = HomeViewModel(TestRepository())
         advanceUntilIdle()
         val before = vm.uiState.value.home
-        vm.onEvent(HomeUiEvent.CardFlipped)
         assertTrue(vm.uiState.value.showingMission)
+        vm.onEvent(HomeUiEvent.CardFlipped)
+        assertFalse(vm.uiState.value.showingMission)
         assertEquals(before, vm.uiState.value.home)
         vm.onEvent(HomeUiEvent.AnswerEditClicked)
         vm.onEvent(HomeUiEvent.AnswerChanged("아직 작성 중"))
@@ -156,7 +157,18 @@ class HomeViewModelTest {
         vm.onEvent(HomeUiEvent.MemberSelected("other"))
         vm.onEvent(HomeUiEvent.CardFlipped)
         assertFalse(vm.uiState.value.editing)
-        assertFalse(vm.uiState.value.showingMission)
+        assertTrue(vm.uiState.value.showingMission)
+        assertNull(vm.uiState.value.selectedMemberId)
+    }
+
+    @Test fun ownAvatarCanShowEmptyAnswerWithoutAnAssignedQuestion() = runTest(dispatcher) {
+        val repo = TestRepository().apply { home = home.copy(question = null, answers = emptyMap()) }
+        val vm = HomeViewModel(repo)
+        advanceUntilIdle()
+        vm.onEvent(HomeUiEvent.MemberSelected(repo.home.currentUserId))
+        assertEquals(repo.home.currentUserId, vm.uiState.value.selectedMemberId)
+        vm.onEvent(HomeUiEvent.MemberDismissed)
+        vm.onEvent(HomeUiEvent.MemberSelected("other"))
         assertNull(vm.uiState.value.selectedMemberId)
     }
 
@@ -183,10 +195,10 @@ class HomeViewModelTest {
         vm.refreshOnResume()
         assertFalse(vm.uiState.value.loading)
         assertEquals(previous, vm.uiState.value.home)
-        assertTrue(vm.uiState.value.showingMission)
+        assertFalse(vm.uiState.value.showingMission)
         advanceUntilIdle()
         assertFalse(vm.uiState.value.loading)
-        assertTrue(vm.uiState.value.showingMission)
+        assertFalse(vm.uiState.value.showingMission)
     }
 
     @Test fun responseRequiredCardOpensTheResponseScreen() = runTest(dispatcher) {
@@ -196,25 +208,6 @@ class HomeViewModelTest {
         assertEquals(HomeUiEffect.OpenSchedule("120", respond = true), vm.effect.first())
         vm.onEvent(HomeUiEvent.ScheduleClicked("118"))
         assertEquals(HomeUiEffect.OpenSchedule("118"), vm.effect.first())
-    }
-
-    @Test fun weeklyActionOpensRegistrationOrExistingScheduleAndBlocksCompleted() = runTest(dispatcher) {
-        val repo = TestRepository()
-        val weekly = WeeklyMission("weekly", "산책", "공원", emptyList(), false, missionId = "mission")
-        repo.home = repo.home.copy(mission = weekly)
-        val vm = HomeViewModel(repo)
-        advanceUntilIdle()
-        vm.onEvent(HomeUiEvent.WeeklyScheduleClicked)
-        assertEquals(HomeUiEffect.CreateWeeklySchedule("weekly"), vm.effect.first())
-        repo.home = repo.home.copy(schedules = listOf(HomeSchedule("active", "산책",
-            java.time.Instant.now(), ScheduleStatus.PENDING_RESPONSE, true, weeklyMissionId = "weekly")))
-        vm.refreshOnResume(); advanceUntilIdle()
-        vm.onEvent(HomeUiEvent.WeeklyScheduleClicked)
-        assertEquals(HomeUiEffect.OpenSchedule("active"), vm.effect.first())
-        repo.home = repo.home.copy(mission = weekly.copy(completed = true))
-        vm.refreshOnResume(); advanceUntilIdle()
-        vm.onEvent(HomeUiEvent.WeeklyScheduleClicked)
-        assertNull(kotlinx.coroutines.withTimeoutOrNull(10) { vm.effect.first() })
     }
 
     private class TestRepository : HomeRepository {

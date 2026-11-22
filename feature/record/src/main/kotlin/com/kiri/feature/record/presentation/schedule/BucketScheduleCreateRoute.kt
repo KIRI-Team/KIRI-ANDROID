@@ -22,6 +22,8 @@ fun BucketScheduleCreateRoute(
     onBackClick: () -> Unit,
     onSentByApp: () -> Unit,
     onSentByKakao: () -> Unit,
+    // 요청 미리보기의 자세히 보러가기. 미션 상세를 연다
+    onMissionDetail: (Long) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -44,7 +46,10 @@ fun BucketScheduleCreateRoute(
             }
         }
     }
-    BucketScheduleCreateScreen(state, viewModel::onDraftChange, onBackClick, viewModel::send, viewModel::retry, viewModel::onMonthShown)
+    BucketScheduleCreateScreen(
+        state, viewModel::onDraftChange, onBackClick, viewModel::send, viewModel::retry, viewModel::onMonthShown,
+        onDetailClick = { state.missionId?.let(onMissionDetail) },
+    )
 }
 
 @Composable
@@ -55,6 +60,8 @@ fun BucketScheduleCreateScreen(
     onSend: (ScheduleRequestChannel) -> Unit,
     onRetryClick: () -> Unit,
     onMonthShown: (java.time.YearMonth) -> Unit = {},
+    // 요청 미리보기의 자세히 보러가기
+    onDetailClick: () -> Unit = {},
 ) {
     if (state.loading || state.loadError != null) {
         ScheduleFormStatus("일정 등록하기", state.loadError, onBackClick, onRetryClick, "bucket_schedule_status")
@@ -63,13 +70,12 @@ fun BucketScheduleCreateScreen(
     ScheduleRegisterFlow(
         savedBy = state.savedBy,
         title = state.title,
-        description = "",
+        description = state.description,
         members = state.members,
         draft = state.draft,
         onDraftChange = onDraftChange,
         onBackClick = onBackClick,
-        // 서버 버킷의 활동 상세 화면은 아직 없다
-        onDetailClick = {},
+        onDetailClick = onDetailClick,
         onSend = onSend,
         sending = state.sending,
         error = state.error,

@@ -28,6 +28,7 @@ class HomeAddressViewModel @Inject constructor(
     val uiState: StateFlow<HomeAddressUiState> = _uiState.asStateFlow()
 
     init {
+        loadAddress()
         home?.let { source ->
             viewModelScope.launch {
                 try { source.family().familyName?.let { name -> _uiState.update { it.copy(familyName = name) } } }
@@ -47,7 +48,31 @@ class HomeAddressViewModel @Inject constructor(
 
     private var addressJob: kotlinx.coroutines.Job? = null
 
+    // 가족 주소 조회 API 로 등록한 주소를 불러온다. 있으면 주소 보기, 없으면 등록 화면을 보여준다
+    private fun loadAddress() {
+        _uiState.update { it.copy(loading = true, loadError = null) }
+        viewModelScope.launch {
+            family.getAddress()
+                .onSuccess { address ->
+                    _uiState.update { state ->
+                        if (address == null) {
+                            state.copy(loading = false, currentStep = HomeAddressStep.REGISTER, savedAddress = null)
+                        } else {
+                            state.copy(
+                                loading = false,
+                                currentStep = HomeAddressStep.SAVED,
+                                savedAddress = HomeAddress(address.postalCode, address.address, address.detailAddress),
+                            )
+                        }
+                    }
+                }
+                .onFailure { _uiState.update { it.copy(loading = false, loadError = LOAD_ERROR_MESSAGE) } }
+        }
+    }
+
     fun onEvent(event: HomeAddressUiEvent) {
+        // 주소를 불러오는 동안에는 뒤로가기만 받는다
+        if (_uiState.value.loading && event != HomeAddressUiEvent.BackClicked) return
         if (_uiState.value.saving && !(event == HomeAddressUiEvent.BackClicked && currentStep == HomeAddressStep.SEARCH)) return
         when (event) {
             HomeAddressUiEvent.EditClicked -> edit()
@@ -110,7 +135,7 @@ class HomeAddressViewModel @Inject constructor(
         viewModelScope.launch {
             repository.saveAddress(address.copy(detailAddress = state.form.detailAddress.trim()))
                 .onSuccess { _uiState.update { it.copy(currentStep = HomeAddressStep.SAVED,
-                    savedAddress = state.form.copy(detailAddress = state.form.detailAddress.trim()), form = HomeAddress(), saving = false) } }
+                    savedAddress = state.form.copy(detailAddress = state.form.detailAddress.trim()), form = HomeAddress(), saving = false, loadError = null) } }
                 .onFailure { error -> _uiState.update { it.copy(saving = false, error = error.message ?: "주소를 저장하지 못했어요. 입력은 유지했어요.") } }
         }
     }
@@ -125,5 +150,9 @@ class HomeAddressViewModel @Inject constructor(
             HomeAddressStep.EDIT -> _uiState.update { it.copy(currentStep = HomeAddressStep.SAVED, form = HomeAddress()) }
             HomeAddressStep.SAVED, HomeAddressStep.REGISTER -> _effect.trySend(HomeAddressUiEffect.NavigateBack)
         }
+    }
+
+    private companion object {
+        const val LOAD_ERROR_MESSAGE = "등록한 주소를 불러오지 못했어요."
     }
 }

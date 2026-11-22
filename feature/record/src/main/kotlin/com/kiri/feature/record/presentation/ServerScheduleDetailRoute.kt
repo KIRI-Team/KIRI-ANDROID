@@ -77,8 +77,15 @@ fun ServerScheduleDetailRoute(
             date = invitation.date,
             memberNames = members,
             message = invitation.requestMessage.orEmpty(),
-            topBarTitle = if (reconfirm) "변경알림" else "요청알림",
+            topBarTitle = if (reconfirm) "일정 변경알림" else "요청알림",
             headline = if (reconfirm) scheduleChangedLabel(proposerName) else null,
+            // 초대 수락 현황 (Figma 10298:38588, 10298:38540). 수락한 가족만 초록 테두리로 보여준다
+            acceptance = invitation.participants.mapIndexed { index, participant ->
+                com.kiri.uikit.component.KiriParticipantStatus(
+                    index.toString(), participant.nickname, participant.accepted,
+                    if (participant.accepted) "수락" else "미수락", participant.characterImageUrl,
+                )
+            },
             changedFields = if (reconfirm) invitation.changedFields else emptySet(),
             time = invitation.time,
             onBackClick = { if (!state.detail.saving) onBack() },
@@ -133,6 +140,7 @@ fun ServerScheduleDetailRoute(
             confirmText = "일정 취소하기",
             confirmingText = "취소하는 중…",
             dismissBackground = KiriComponentColor.Button.FilledNeutral.BgDefault,
+            descriptionTopGap = 30.dp,
         )
         return
     }
@@ -145,23 +153,14 @@ fun ServerScheduleDetailRoute(
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         viewModel.messageShown()
     }
-    Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f)) {
-            ServerScheduleDetailScreen(
-                state, onDetailEvent, viewModel::retryReviews, viewModel::editClicked,
-                viewModel::editReview, viewModel::deleteReview, viewModel::openPhotoChange,
-                fromHome = fromHome,
-                onCancelClick = { confirmCancel = true },
-                onNearbyMission = onNearbyMission,
-            )
-        }
-        ServerScheduleActions(
-            state, { viewModel.respond(it) },
-            // 기록 탭(캘린더·다가오는 약속)에서 연 상세에서는 초대에 응답할 수 없다. 응답은 홈의 응답 필요 카드에서 한다.
-            // 응답 화면에서 자세히 보러가기로 온 상세도 뒤로가기로 응답 화면에 돌아가 응답하므로 숨긴다
-            showRespond = fromHome && !respond,
-        )
-    }
+    // 초대 응답(거절·수락)은 요청알림·변경알림 화면에서만 한다. 상세 아래의 임시 거절·수락 버튼은 없앴다
+    ServerScheduleDetailScreen(
+        state, onDetailEvent, viewModel::retryReviews, viewModel::editClicked,
+        viewModel::editReview, viewModel::deleteReview, viewModel::openPhotoChange,
+        fromHome = fromHome,
+        onCancelClick = { confirmCancel = true },
+        onNearbyMission = onNearbyMission,
+    )
 }
 
 // 일정 변경하기를 보여줄지. 상세 API 의 canEdit 를 그대로 따른다 (어디서 들어왔든 같다)
@@ -171,16 +170,6 @@ internal val ServerScheduleDetailUiState.showsEditButton: Boolean
 // 일정 취소하기를 보여줄지. 상세 API 의 canCancel 을 그대로 따른다 (어디서 들어왔든 같다)
 internal val ServerScheduleDetailUiState.showsCancelButton: Boolean
     get() = canCancel
-
-@Composable
-fun ServerScheduleActions(state: ServerScheduleDetailUiState, onRespond: (Boolean) -> Unit, showRespond: Boolean = true) {
-    Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (showRespond && state.canRespond) {
-            Button({ onRespond(false) }, enabled = !state.detail.saving, modifier = Modifier.testTag("server_schedule_decline")) { Text("거절") }
-            Button({ onRespond(true) }, enabled = !state.detail.saving, modifier = Modifier.testTag("server_schedule_accept")) { Text("수락") }
-        }
-    }
-}
 
 // 상세 화면과 컨디션 커스텀 화면이 같은 ViewModel 을 쓰므로, 앞에 보이는(RESUMED) 화면만 효과를 받는다
 @Composable
@@ -274,11 +263,12 @@ fun ServerScheduleDetailScreen(
                 CalendarDetailHeader(
                     title = state.appBarTitle,
                     badge = it.status.badgeLabel(),
-                    showCustom = state.canCustomize && !todayFromHome,
-                    // 오늘의 추억 기록하러가기. 당일이거나 기록을 남길 수 있는 일정(수락한 시작된 일정)이면 홈·기록 탭 모두 보여준다.
+                    // 컨디션 조정하러가기는 홈·기록 탭 모두 기록하러가기·일정 변경/취소와 같은 버튼 영역에 둔다.
+                    // 당일 일정이고, 내가 수락했고, 아직 시작 전일 때만 보여준다
+                    showCustom = state.canAdjustConditions,
+                    // 오늘의 추억 기록하러가기. 기록을 남길 수 있는 일정(내가 수락했고 시작 시각이 지난 일정)일 때만 홈·기록 탭 모두 보여준다.
                     // 기록 탭의 완료 일정은 위의 기록 화면으로 보여준다
-                    showRecord = it.status == ScheduleDisplayStatus.TODAY || state.canReview || (fromHome && state.showsRecord),
-                    showConditionsInNearby = todayFromHome,
+                    showRecord = state.canReview,
                     recordEnabled = state.canReview && !state.detail.saving && !state.reviewSaved && state.reviews.none { it.isMine },
                     neutralBadge = it.status.usesNeutralBadge(),
                     collapseParticipants = !todayFromHome && (scheduled || confirmedFromHome || state.canEdit),

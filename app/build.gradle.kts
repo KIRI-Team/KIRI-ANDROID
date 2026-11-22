@@ -30,6 +30,15 @@ android {
         // 카카오톡 일정 초대장 버튼이 앱을 여는 주소(kakao{앱 키}://kakaolink)에 쓴다
         manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeAppKey
     }
+    buildTypes {
+        release {
+            // R8 로 코드를 줄이고 난독화·최적화하며, 쓰지 않는 리소스를 지운다.
+            // 라이브러리가 챙기지 않는 규칙은 proguard-rules.pro 에 둔다. 크래시 해석용 mapping.txt 는 빌드마다 보관한다
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

@@ -7,7 +7,7 @@ sealed interface PlaceUiEvent {
     data class SearchChanged(val keyword: String) : PlaceUiEvent
     data class CategorySelected(val category: PlaceCategory?) : PlaceUiEvent
     data class SaveClicked(val mission: PlaceMission) : PlaceUiEvent
-    data class MissionClicked(val missionId: String) : PlaceUiEvent
+    data class MissionClicked(val missionId: String, val kiriPickId: Long? = null) : PlaceUiEvent
     data object RetryClicked : PlaceUiEvent
     data object MoreRequested : PlaceUiEvent
     data object SaveConfirmed : PlaceUiEvent

@@ -245,7 +245,7 @@ class OnboardingScreensTest {
                         code = it
                     },
                     onCancelClick = {},
-                    onInviteClick = {},
+                    onJoinClick = {},
                     onBackClick = {},
                 )
             }
@@ -276,11 +276,12 @@ class OnboardingScreensTest {
     }
 
     @Test
-    fun 가족코드_입력_화면의_초대하기는_InviteClicked를_보낸다() {
-        assertInviteSendsInviteClicked(OnboardingStep.INPUT_FAMILY_CODE)
+    fun 가족코드_입력_화면은_초대하기가_아닌_참여하기로_InviteClicked를_보낸다() {
+        assertInviteSendsInviteClicked(OnboardingStep.INPUT_FAMILY_CODE, buttonText = "참여하기")
+        composeTestRule.onNodeWithText("초대하기").assertDoesNotExist()
     }
 
-    private fun assertInviteSendsInviteClicked(step: OnboardingStep) {
+    private fun assertInviteSendsInviteClicked(step: OnboardingStep, buttonText: String = "초대하기") {
         val events = mutableListOf<OnboardingUiEvent>()
         composeTestRule.setContent {
             KiriTheme {
@@ -288,7 +289,7 @@ class OnboardingScreensTest {
             }
         }
 
-        composeTestRule.onNodeWithText("초대하기").performClick()
+        composeTestRule.onNodeWithText(buttonText).performClick()
 
         assertEquals(listOf(OnboardingUiEvent.InviteClicked), events)
     }

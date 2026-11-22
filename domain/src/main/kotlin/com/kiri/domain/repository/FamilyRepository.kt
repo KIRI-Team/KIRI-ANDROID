@@ -7,6 +7,9 @@ interface FamilyRepository {
     suspend fun resolveAddress(postalCode: String, address: String, regionCode: String): Result<com.kiri.domain.model.family.FamilyAddress> = Result.failure(UnsupportedOperationException())
     suspend fun saveAddress(address: com.kiri.domain.model.family.FamilyAddress): Result<Unit> = Result.failure(UnsupportedOperationException())
 
+    // 내 가족에 등록한 주소. 아직 등록하지 않았으면 null 이다
+    suspend fun getAddress(): Result<com.kiri.domain.model.family.FamilyAddress?> = Result.failure(UnsupportedOperationException())
+
     // 가족 공간을 만들고, 함께 발급된 초대 코드·링크를 돌려준다
     // 같은 이름의 가족 공간이 이미 있으면 DuplicateFamilyNameException 으로 실패한다
     suspend fun createFamily(name: String): Result<Family>

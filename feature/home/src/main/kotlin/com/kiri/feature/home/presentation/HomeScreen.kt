@@ -197,7 +197,6 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
                                     Modifier.bringIntoViewRequester(cardTarget)
                                         .then(anchor(HomeTutorialTarget.CARD)),
                                     anchor(HomeTutorialTarget.FLIP),
-                                  { onEvent(HomeUiEvent.WeeklyScheduleClicked) },
                                 )
                             }
                             RecommendationSection(
@@ -210,16 +209,15 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
                             )
                         }
                     }
-                    if (home != null && !state.loading && !state.loadError) {
-                        RecommendationSection(
-                            home.outdoorRecommendations,
-                            onMissionClick = onMissionClick,
-                            loadFailed = home.recommendationsLoadFailed,
-                            onRetry = { onEvent(HomeUiEvent.RetryClicked) },
-                            title = "오늘 가을분위기를 느끼고 싶다면",
-                            cardTagPrefix = "home_outdoor_recommendation",
-                        )
-                    }
+                    RecommendationSection(
+                        home?.outdoorRecommendations.orEmpty(),
+                        onMissionClick = onMissionClick,
+                        loading = state.loading,
+                        loadFailed = state.loadError || home?.recommendationsLoadFailed == true,
+                        onRetry = { onEvent(HomeUiEvent.RetryClicked) },
+                        title = "오늘 가을분위기를 느끼고 싶다면",
+                        cardTagPrefix = "home_outdoor_recommendation",
+                    )
                     Spacer(Modifier.height(28.dp))
                 }
                 Spacer(Modifier.height(LocalKiriBottomBarInset.current))
@@ -228,22 +226,21 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
         if (state.answerSaved) AnswerSavedDialog { onEvent(HomeUiEvent.NoticeDismissed) }
         home?.let { h ->
             state.selectedMemberId?.let { id ->
+                val bounds = memberBounds[id] ?: return@let
                 Box(
                     Modifier.fillMaxSize()
                         .zIndex(3f)
                         .background(KiriColor.State.Overlay)
                         .clickable { onEvent(HomeUiEvent.MemberDismissed) }
                 )
-                memberBounds[id]?.let { bounds ->
-                    MemberAnswerToast(
-                        h,
-                        id,
-                        state.busy,
-                        bounds,
-                        { onEvent(HomeUiEvent.PokeClicked) },
-                        { onEvent(HomeUiEvent.MemberDismissed) },
-                    )
-                }
+                MemberAnswerToast(
+                    h,
+                    id,
+                    state.busy,
+                    bounds,
+                    { onEvent(HomeUiEvent.PokeClicked) },
+                    { onEvent(HomeUiEvent.MemberDismissed) },
+                )
             }
         }
         state.notice?.let { message ->

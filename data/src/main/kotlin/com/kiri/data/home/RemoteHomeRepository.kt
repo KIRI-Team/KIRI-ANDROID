@@ -7,6 +7,7 @@ import com.kiri.data.family.FamilyIdStore
 import com.kiri.data.family.FamilyInfoResponse
 import com.kiri.data.mission.MissionApi
 import com.kiri.data.mission.MissionFeedItem
+import com.kiri.data.mission.MissionPlaceResponse
 import com.kiri.data.network.*
 import com.kiri.domain.home.*
 import java.time.Clock
@@ -124,14 +125,7 @@ internal class RemoteHomeRepository(
         if (daily.isAnswered && daily.answer != null && me.isNotEmpty()) answers[me] = daily.answer
         val poked = snapshot?.takeIf { it.date == date && it.question?.id == question?.id && it.currentUserId == me }?.pokedMemberIds.orEmpty()
         val weekly = if (daily.hasFamily) missions?.let { missionApi ->
-            apiResult(json) { missionApi.getWeeklyRecommendation() }.getOrNull()?.let {
-                WeeklyMission(
-                    id = it.missionId.toString(), title = it.title,
-                    description = it.description ?: it.recommendationReason.orEmpty(),
-                    tags = listOfNotNull(it.recommendationReason),
-                    completed = false, imageUrl = it.imageUrl, recommendationOnly = false,
-                )
-            }
+            apiResult(json) { missionApi.getWeeklyRecommendation() }.getOrNull()
         } else null
         val feed = if (loadRecommendations) missions?.let { missionApi ->
             try {
@@ -143,14 +137,40 @@ internal class RemoteHomeRepository(
             }
         } else null
         val items = feed?.getOrNull().orEmpty()
+        val weeklyPlace = weekly?.let { recommendation ->
+            missions?.let { api -> apiResult(json) { api.getMission(recommendation.missionId) }.getOrNull()?.place }
+        }
         return FamilyHome(date, me, if (daily.hasFamily) info?.familyName ?: "우리 가족" else null,
             info?.members() ?: family?.answers.orEmpty().map { FamilyMember(it.memberId.toString(), it.nickname, "") },
-            question, answers, poked, mission = weekly, serverBacked = true,
+            question, answers, poked,
+            mission = weekly?.let { recommendation ->
+                val item = items.firstOrNull { it.missionId == recommendation.missionId }
+                WeeklyMission(
+                    id = recommendation.missionId.toString(),
+                    title = recommendation.title,
+                    description = recommendation.description ?: recommendation.recommendationReason.orEmpty(),
+                    tags = listOfNotNull(recommendation.recommendationReason?.trim()?.takeIf { it.isNotEmpty() }),
+                    completed = false,
+                    place = weeklyPlace?.cardSubtitle() ?: item?.placeName,
+                    imageUrl = recommendation.imageUrl,
+                    recommendationOnly = false,
+                )
+            },
+            serverBacked = true,
             familyId = info?.familyId?.toString(), ownerId = info?.ownerMemberId?.toString(),
             recommendations = items.map { it.toHomeRecommendation() },
             recommendationsLoadFailed = feed?.isFailure == true,
             outdoorRecommendations = items.filter { it.category == "OUTDOOR" }.map { it.toHomeRecommendation() },
         ).also { snapshot = it }
+    }
+
+    private fun MissionPlaceResponse.cardSubtitle(): String? {
+        val name = name.trim().takeIf { it.isNotEmpty() }
+        val regions = address.orEmpty().split(Regex("\\s+"))
+            .filter { it.matches(Regex("[가-힣]+(구|군|시)")) }
+            .filterNot { it == "대구" || it.endsWith("특별시") || it.endsWith("광역시") }
+        val region = regions.firstOrNull { it.endsWith("구") || it.endsWith("군") } ?: regions.firstOrNull()
+        return listOfNotNull(name, region).distinct().joinToString(" · ").ifBlank { null }
     }
 
     private suspend fun loadMissionFeed(api: MissionApi): List<MissionFeedItem> {

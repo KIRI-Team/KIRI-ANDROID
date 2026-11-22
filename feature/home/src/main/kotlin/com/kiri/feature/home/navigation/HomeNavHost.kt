@@ -33,12 +33,6 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
                 onNearbyMission = { id -> navController.navigate(serverMissionDetailRoute(id)) { launchSingleTop = true } },
             )
         }
-        // 이번 주 미션의 일정 잡기. 서버 미션 id 로 일정 생성 API 를 부른다
-        composable("home_graph/weekly-schedule/{weeklyMissionId}") { entry ->
-            val viewModel: com.kiri.feature.record.BucketScheduleCreateViewModel = hiltViewModel(entry)
-            com.kiri.feature.record.presentation.schedule.BucketScheduleCreateRoute(viewModel,
-                onBackClick = { navController.popBackStack() }, onSentByApp = { navController.popBackStack() }, onSentByKakao = { navController.popBackStack() })
-        }
         composable(START_ROUTE) {
             HomeRoute(
                 onAnswerEditingChanged = onAnswerEditingChanged,
@@ -48,9 +42,6 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
                 },
                 onScheduleClick = onSchedule,
                 onRespondSchedule = onRespondSchedule,
-                onWeeklyScheduleClick = { id ->
-                    navController.navigate("home_graph/weekly-schedule/${Uri.encode(id)}") { launchSingleTop = true }
-                },
                 onDestination = { destination ->
                     when (destination) {
                         HomeUiDestination.CreateFamily -> onCreateFamily()
@@ -70,15 +61,32 @@ fun NavGraphBuilder.homeNavHost(navController: NavHostController, onOpenPlaces: 
             val homeViewModel: HomeViewModel = hiltViewModel(homeEntry)
             NotificationRoute(onBack = { navController.popBackStack() }, onTarget = { notification ->
                 when (notification.target) {
-                    NotificationTarget.QUESTION -> {
-                        if (homeViewModel.uiState.value.home?.question?.id == notification.targetId) homeViewModel.onEvent(HomeUiEvent.AnswerEditClicked)
-                        navController.popBackStack()
+                    NotificationTarget.QUESTION, NotificationTarget.FAMILY_ANSWERS -> {
+                        if (homeViewModel.uiState.value.home?.question?.id != notification.targetId) {
+                            false
+                        } else {
+                            if (notification.target == NotificationTarget.QUESTION) {
+                                homeViewModel.onEvent(HomeUiEvent.AnswerEditClicked)
+                            }
+                            navController.popBackStack()
+                        }
                     }
-                    // 기록 알림도 그 일정의 상세(가족 기록 포함)로 연다
-                    NotificationTarget.SCHEDULE, NotificationTarget.MEMORY -> onSchedule(notification.targetId)
-                    NotificationTarget.MISSION -> notification.targetId.toLongOrNull()?.let {
-                        navController.navigate(serverMissionDetailRoute(it)) { launchSingleTop = true }
+                    NotificationTarget.SCHEDULE_INVITATION -> {
+                        onRespondSchedule(notification.targetId)
+                        true
                     }
+                    NotificationTarget.SCHEDULE, NotificationTarget.MEMORY -> {
+                        onSchedule(notification.targetId)
+                        true
+                    }
+                    NotificationTarget.MISSION -> {
+                        val id = notification.targetId.toLongOrNull()
+                        if (id == null) false else {
+                            navController.navigate(serverMissionDetailRoute(id)) { launchSingleTop = true }
+                            true
+                        }
+                    }
+                    NotificationTarget.UNSUPPORTED -> false
                 }
             })
         }

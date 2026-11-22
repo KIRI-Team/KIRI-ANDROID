@@ -12,6 +12,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.kiri.uikit.KiriTheme
@@ -43,6 +44,20 @@ class RecordSheetsTest {
         compose.onNodeWithTag("record_option_delete").performClick()
         compose.onNodeWithTag("record_option_close").performClick()
         assertEquals(listOf("schedule", "delete", "close"), clicks)
+    }
+
+    // 미션 이미지 주소가 있으면 썸네일 자리에 사진을 그리고, 없으면 빈 썸네일 자리만 둔다
+    @Test fun optionSheetShowsMissionImageOnlyWhenThereIsOne() {
+        var imageUrl by mutableStateOf<String?>("https://example.com/mission.png")
+        compose.setContent {
+            KiriTheme { RecordItemOptionSheetContent("광장시장에서 시장음식 먹어보기", "아빠가 저장했어요!", {}, {}, {}, imageUrl = imageUrl) }
+        }
+        compose.onNodeWithTag("record_option_thumbnail").assertExists()
+        compose.onNodeWithContentDescription("광장시장에서 시장음식 먹어보기 사진").assertExists()
+
+        imageUrl = null
+        compose.onNodeWithTag("record_option_thumbnail").assertExists()
+        compose.onNodeWithContentDescription("광장시장에서 시장음식 먹어보기 사진").assertDoesNotExist()
     }
 
     @Test fun unavailableBucketActionsAreDisabled() {

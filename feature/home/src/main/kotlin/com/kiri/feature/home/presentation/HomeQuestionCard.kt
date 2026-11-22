@@ -14,7 +14,6 @@ import androidx.compose.ui.layout.*
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
 import com.kiri.domain.home.*
@@ -35,14 +34,13 @@ internal fun QuestionMissionSection(
     onMissionClick: (String) -> Unit,
     cardModifier: Modifier = Modifier,
     flipIconModifier: Modifier = Modifier,
-    onWeeklyScheduleClick: () -> Unit = {},
 ) {
     Column {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 if (showingMission) "이번주 미션이에요!" else "오늘 나의 질문카드",
                 color = KiriColor.Text.Strong,
-                style = com.kiri.uikit.component.KiriDetailTypography.Title,
+                style = if (showingMission) KiriTypography.TitleLarge else com.kiri.uikit.component.KiriDetailTypography.Title,
             )
             if (!showingMission) {
                 Text(
@@ -54,18 +52,7 @@ internal fun QuestionMissionSection(
                 )
             }
         }
-        if (showingMission) {
-            Text(
-                "버킷리스트에서 일정을 확정해보세요!",
-                modifier = Modifier.fillMaxWidth(),
-                color = KiriColor.Text.Accent,
-                style = KiriTypography.BodyMedium,
-                maxLines = 1,
-                softWrap = false,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(if (showingMission) 16.dp else 12.dp))
         Box(cardModifier) {
             QuestionMissionCard(
                 home,
@@ -76,16 +63,6 @@ internal fun QuestionMissionSection(
                 onMissionClick,
                 flipIconModifier,
             )
-        }
-        val mission = home.mission
-        if (showingMission && !home.browsing && mission != null &&
-            !mission.recommendationOnly && !mission.unavailable && !mission.completed) {
-            val hasSchedule = home.schedules.any {
-                it.weeklyMissionId == mission.id && it.status != ScheduleStatus.CANCELLED
-            }
-            TextButton(onClick = onWeeklyScheduleClick, modifier = Modifier.align(Alignment.End)) {
-                Text(if (hasSchedule) "일정 보기" else "일정 잡기")
-            }
         }
     }
 }
@@ -119,7 +96,7 @@ private fun QuestionMissionCard(
                 val mission = home.mission
                 KiriMissionCard(
                     title = mission?.title,
-                    place = mission?.place ?: mission?.description,
+                    place = mission?.place,
                     keywords = mission?.let { it.keywords.ifEmpty { it.tags } }.orEmpty(),
                     completed = mission?.completed == true,
                     unavailable = mission?.unavailable == true,

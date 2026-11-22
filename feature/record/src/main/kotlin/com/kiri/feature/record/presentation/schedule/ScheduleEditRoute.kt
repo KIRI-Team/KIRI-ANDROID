@@ -48,14 +48,8 @@ fun ScheduleEditRoute(viewModel: ScheduleEditViewModel, onBackClick: () -> Unit,
             }
         }
     }
-    var confirmCancel by remember { mutableStateOf(false) }
-    Column {
-        Box(Modifier.weight(1f)) { ScheduleEditScreen(state, viewModel::onDraftChange, onBackClick, viewModel::save, viewModel::retry, viewModel::onMonthShown) }
-        if (!state.loading && state.loadError == null) TextButton({ confirmCancel = true }, enabled = !state.saving, modifier = Modifier.testTag("server_schedule_cancel")) { Text("일정 취소", color = KiriColor.Status.Error) }
-    }
-    if (confirmCancel) AlertDialog(onDismissRequest = { confirmCancel = false }, title = { Text("일정을 취소할까요?") },
-        confirmButton = { TextButton({ confirmCancel = false; viewModel.cancel() }) { Text("취소하기") } },
-        dismissButton = { TextButton({ confirmCancel = false }) { Text("돌아가기") } })
+    // 일정 취소는 일정 상세의 일정 취소하기 버튼에서만 한다 (변경 화면 아래 임시 취소 버튼은 없앴다)
+    ScheduleEditScreen(state, viewModel::onDraftChange, onBackClick, viewModel::save, viewModel::retry, viewModel::onMonthShown)
 }
 
 @Composable
@@ -74,7 +68,6 @@ fun ScheduleEditScreen(
     ScheduleRegisterScreen(
         savedBy = "",
         title = state.title,
-        description = "",
         members = state.members,
         times = DefaultScheduleTimes,
         draft = state.draft,

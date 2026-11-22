@@ -17,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -41,7 +40,11 @@ import com.kiri.uikit.component.*
 import kotlinx.coroutines.delay
 
 @Composable
-fun PlaceRoute(onBack: () -> Unit = {}, viewModel: PlaceViewModel = hiltViewModel(), onMission: (String) -> Unit = {}) {
+fun PlaceRoute(
+    onBack: () -> Unit = {},
+    viewModel: PlaceViewModel = hiltViewModel(),
+    onMission: (String, Long?) -> Unit = { _, _ -> },
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentBack by rememberUpdatedState(onBack)
     val currentMission by rememberUpdatedState(onMission)
@@ -53,7 +56,7 @@ fun PlaceRoute(onBack: () -> Unit = {}, viewModel: PlaceViewModel = hiltViewMode
             viewModel.effect.collect { effect ->
                 when (effect) {
                     PlaceUiEffect.NavigateBack -> currentBack()
-                    is PlaceUiEffect.OpenMission -> currentMission(effect.missionId)
+                    is PlaceUiEffect.OpenMission -> currentMission(effect.missionId, effect.kiriPickId)
                     // TODO: 제한 안내 UI 가 정해지면 바꾼다
                     is PlaceUiEffect.ShowMessage -> android.widget.Toast.makeText(context, effect.message, android.widget.Toast.LENGTH_SHORT).show()
                 }
@@ -65,7 +68,8 @@ fun PlaceRoute(onBack: () -> Unit = {}, viewModel: PlaceViewModel = hiltViewMode
 
 @Composable
 fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
-    var showingFilters by rememberSaveable { mutableStateOf(false) }
+    val picks = if (state.showingSaved) emptyList() else state.items.filter { it.kiriPick != null }
+    var filterSection by rememberSaveable { mutableStateOf<Int?>(null) }
     val onSearch: (String) -> Unit = { onEvent(PlaceUiEvent.SearchChanged(it)) }
     val onCategory: (PlaceCategory?) -> Unit = { onEvent(PlaceUiEvent.CategorySelected(it)) }
     val onRetry = { onEvent(PlaceUiEvent.RetryClicked) }
@@ -95,33 +99,32 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
                     listOf(PlaceCategory.CULTURE, PlaceCategory.POPUP, PlaceCategory.EXPERIENCE, PlaceCategory.OUTDOOR, PlaceCategory.SHOW, PlaceCategory.FOOD).forEach { category -> PlaceChip(category.label, state.query.category == category, { onCategory(category) }, Modifier.testTag("place_category_${category.name}")) }
                 }
             }
+            if (picks.isNotEmpty()) {
+                PlaceKiriPickSection(picks) { missionId, pickId ->
+                    onEvent(PlaceUiEvent.MissionClicked(missionId, pickId))
+                }
+            } else if (!state.showingSaved && !state.loading && state.error == null &&
+                state.query.keyword.isBlank() && state.query.category == null && state.query.filters.activeCount == 0
+            ) {
+                EmptyKiriPickSection()
+            }
             Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(if (state.showingSaved) "저장한 활동 ${state.savedItems.size}개" else if (state.loading) "활동 불러오는 중" else state.totalCount?.let { "활동 ${it}개" } ?: "불러온 활동 ${state.items.size}개", style = KiriDetailTypography.Small,
+                Text(if (state.showingSaved) "저장한 활동 ${state.savedItems.size}개" else if (state.loading) "활동 불러오는 중" else if (picks.isNotEmpty()) "미션 둘러보기" else state.totalCount?.let { "활동 ${it}개" } ?: "불러온 활동 ${state.items.size}개", style = KiriDetailTypography.Small,
                     color = if (!state.showingSaved && state.query.filters.activeCount > 0) KiriColor.Text.Accent else KiriColor.Text.Secondary,
                     modifier = Modifier.weight(1f).testTag("place_count"))
-                if (!state.showingSaved) {
-                    Box {
-                        IconButton(onClick = { showingFilters = true }, modifier = Modifier.testTag("place_filters")) {
-                            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
-                                Image(painterResource(R.drawable.kiri_filter_action), "상세 필터", Modifier.size(width = 19.dp, height = 20.dp),
-                                    colorFilter = ColorFilter.tint(if (state.query.filters.activeCount > 0) KiriColor.Text.Accent else KiriColor.Text.Secondary))
-                            }
-                        }
-                        if (state.query.filters.activeCount > 0) Surface(color = KiriColor.Primary.Default, shape = RoundedCornerShape(100.dp), modifier = Modifier.align(Alignment.TopEnd).size(16.dp).testTag("place_filter_count")) {
-                            Box(contentAlignment = Alignment.Center) { Text("${state.query.filters.activeCount}", style = KiriDetailTypography.Small.copy(fontSize = 10.sp), color = KiriColor.Text.Inverse) }
-                        }
-                    }
-                }
+            }
+            if (!state.showingSaved) {
+                PlaceConditionFilters(state.query.filters) { filterSection = it }
             }
             if (state.error != null && state.pending == null) {
                 Text(state.error, Modifier.padding(horizontal = 18.dp), color = KiriColor.Status.Error, style = KiriDetailTypography.Small)
-                TextButton(onClick = if (state.showingSaved) onSaved else if (state.items.isEmpty()) onRetry else onMore) { Text("다시 시도") }
+                TextButton(onClick = if (state.showingSaved) onSaved else if (state.nextCursor == null) onRetry else onMore) { Text("다시 시도") }
             }
-            val missions = if (state.showingSaved) state.savedItems else state.items
+            val missions = if (state.showingSaved) state.savedItems else state.items.filter { it.kiriPick == null }
             if (state.loading && !state.showingSaved) {
                 Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            } else if (missions.isEmpty()) {
-                Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            } else if (missions.isEmpty() && (state.showingSaved || state.nextCursor == null)) {
+                if (picks.isEmpty()) Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(if (state.showingSaved) "저장한 활동이 없어요" else "검색 결과가 없어요", style = KiriDetailTypography.Title, color = KiriColor.Text.Strong)
                     Text(if (state.showingSaved) "마음에 드는 활동을 저장해보세요" else "다른 검색어나 카테고리로 둘러보세요", style = KiriDetailTypography.Small, color = KiriColor.Text.Secondary)
                 }
@@ -142,10 +145,16 @@ fun PlaceScreen(state: PlaceUiState, onEvent: (PlaceUiEvent) -> Unit) {
             actionLabel = "바로가기", onAction = onSaved,
         )
     }
-    if (showingFilters) PlaceFilterSheet(state.query.filters, onDismiss = { showingFilters = false }, onApply = {
-        onEvent(PlaceUiEvent.FiltersApplied(it))
-        showingFilters = false
-    })
+    filterSection?.let { section ->
+        PlaceFilterSheet(
+            applied = state.query.filters,
+            onDismiss = { filterSection = null },
+            initialSection = section,
+        ) {
+            onEvent(PlaceUiEvent.FiltersApplied(it))
+            filterSection = null
+        }
+    }
     state.pending?.let { mission ->
         Dialog(onDismissRequest = onDismissSave, properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(Modifier.padding(horizontal = 22.dp).widthIn(max = 345.dp).fillMaxWidth().testTag("place_save_dialog"), color = KiriColor.Bg.Secondary, shape = RoundedCornerShape(16.dp)) {

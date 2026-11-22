@@ -4,6 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
@@ -94,6 +96,29 @@ class ServerScheduleDetailScreenTest {
     }
 
     @Test
+    fun todayScheduleWithoutReviewPermissionHidesReviewAction() {
+        // 당일 일정이어도 수락하지 않았거나 시작 전이면(canReview = false) 기록하러가기를 보여주지 않는다
+        var fromHome by mutableStateOf(true)
+        compose.setContent {
+            KiriTheme {
+                ServerScheduleDetailScreen(
+                    ServerScheduleDetailUiState(
+                        detail = DetailUiState(loading = false, detail = detail.toMissionDetail(7)),
+                        schedule = detail,
+                        canReview = false,
+                    ),
+                    onEvent = {},
+                    fromHome = fromHome,
+                )
+            }
+        }
+        compose.onNodeWithTag("open_memory_editor").assertDoesNotExist()
+
+        fromHome = false
+        compose.onNodeWithTag("open_memory_editor").assertDoesNotExist()
+    }
+
+    @Test
     fun showsDateStatusTimeAndParticipantsFromScheduleDetail() {
         compose.setContent {
             KiriTheme {
@@ -154,15 +179,17 @@ class ServerScheduleDetailScreenTest {
     }
 
     @Test
-    fun customButtonShowsOnlyOnTheDayAndSendsCustomClicked() {
+    fun customButtonFollowsCanAdjustConditionsAndSendsCustomClicked() {
+        // 당일이어도 수락하지 않았거나 시작한 일정(canAdjustConditions = false)이면 보여주지 않는다
         val events = mutableListOf<DetailUiEvent>()
-        var schedule by mutableStateOf(detail)
+        var canAdjust by mutableStateOf(true)
         compose.setContent {
             KiriTheme {
                 ServerScheduleDetailScreen(
                     ServerScheduleDetailUiState(
-                        detail = DetailUiState(loading = false, detail = schedule.toMissionDetail(7)),
-                        schedule = schedule,
+                        detail = DetailUiState(loading = false, detail = detail.toMissionDetail(7)),
+                        schedule = detail,
+                        canAdjustConditions = canAdjust,
                     ),
                     { events += it },
                 )
@@ -171,8 +198,30 @@ class ServerScheduleDetailScreenTest {
         compose.onNodeWithText("컨디션 조정하러가기").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(listOf<DetailUiEvent>(DetailUiEvent.CustomClicked), events) }
 
-        schedule = detail.copy(status = ScheduleDisplayStatus.CONFIRMED)
+        canAdjust = false
         compose.onNodeWithText("컨디션 조정하러가기").assertDoesNotExist()
+    }
+
+    @Test
+    fun homeTodayShowsCustomButtonOnceInTheActionArea() {
+        // 홈에서 연 당일 일정도 컨디션 조정하러가기를 근처 놀거리 대신 버튼 영역(open_custom)에 한 번만 둔다
+        val events = mutableListOf<DetailUiEvent>()
+        compose.setContent {
+            KiriTheme {
+                ServerScheduleDetailScreen(
+                    ServerScheduleDetailUiState(
+                        detail = DetailUiState(loading = false, detail = detail.toMissionDetail(7)),
+                        schedule = detail,
+                        canAdjustConditions = true,
+                    ),
+                    { events += it },
+                    fromHome = true,
+                )
+            }
+        }
+        compose.onAllNodesWithText("컨디션 조정하러가기").assertCountEquals(1)
+        compose.onNodeWithTag("open_custom").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(listOf<DetailUiEvent>(DetailUiEvent.CustomClicked), events) }
     }
 
     @Test

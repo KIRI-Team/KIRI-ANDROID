@@ -27,7 +27,6 @@ fun HomeRoute(
     onInviteFamily: (String) -> Unit = {},
     onMissionClick: (String) -> Unit = {},
     onScheduleClick: (String) -> Unit = { onDestination(HomeUiDestination.Schedule) },
-    onWeeklyScheduleClick: (String) -> Unit = {},
     // 응답이 필요한 일정 카드. 따로 정하지 않으면 일정 상세로 연다
     onRespondSchedule: (String) -> Unit = onScheduleClick,
     viewModel: HomeViewModel = hiltViewModel(),
@@ -39,7 +38,6 @@ fun HomeRoute(
     val currentMission by rememberUpdatedState(onMissionClick)
     val currentSchedule by rememberUpdatedState(onScheduleClick)
     val currentRespond by rememberUpdatedState(onRespondSchedule)
-    val currentWeeklySchedule by rememberUpdatedState(onWeeklyScheduleClick)
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
@@ -50,7 +48,6 @@ fun HomeRoute(
                     is HomeUiEffect.InviteFamily -> currentInvite(effect.code)
                     is HomeUiEffect.OpenMission -> currentMission(effect.id)
                     is HomeUiEffect.OpenSchedule -> if (effect.respond) currentRespond(effect.id) else currentSchedule(effect.id)
-                    is HomeUiEffect.CreateWeeklySchedule -> currentWeeklySchedule(effect.weeklyMissionId)
                 }
             }
         }

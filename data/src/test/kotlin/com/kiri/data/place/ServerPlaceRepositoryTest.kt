@@ -58,7 +58,7 @@ class ServerPlaceRepositoryTest {
         MockWebServer().use { server ->
             server.start()
             server.enqueue(MockResponse.Builder().body("""{"isSuccess":true,"code":"MISSION200_1","message":"조회","result":{"missions":[
-                {"missionId":1,"title":"사진 있는 활동","category":"EXHIBITION","imageUrl":"https://images.example/one.jpg","imageSource":"공식 출처","price":0,"distance":1.2},
+                {"missionId":1,"title":"사진 있는 활동","category":"EXHIBITION","imageUrl":"https://images.example/one.jpg","imageSource":"공식 출처","price":0,"distance":1.2,"kiriPick":{"kiriPickId":42,"headline":"오늘의 전시","description":"전시 둘러보기","imageUrl":"https://images.example/pick.jpg"}},
                 {"missionId":2,"title":"상세 실패 활동","category":"EXHIBITION","imageUrl":"https://images.example/two.jpg"},
                 {"missionId":3,"title":"사진 없는 활동","category":"EXHIBITION","imageUrl":""}
             ],"hasNext":false}}""").build())
@@ -85,6 +85,8 @@ class ServerPlaceRepositoryTest {
             assertEquals("4.6", cards[0].rating)
             assertEquals(listOf("무료", "1.2km"), cards[0].tags)
             assertTrue(cards[0].saved)
+            assertEquals(PlaceKiriPick(42, "오늘의 전시", "전시 둘러보기", "https://images.example/pick.jpg"), cards[0].kiriPick)
+            assertNull(cards[1].kiriPick)
             assertEquals("https://images.example/two.jpg", cards[1].imageUrl)
             assertNull(cards[1].rating)
             assertNull(cards[2].imageUrl)
