@@ -4,7 +4,7 @@ package com.kiri.domain.model.invite
 // 링크에는 초대 코드가 아니라 서버가 발급한 초대 토큰이 들어온다
 object InviteLink {
     // AndroidManifest의 intent-filter host와 같은 값이어야 한다
-    const val HOST = "kiri.app"
+    const val HOST = "halo-official.co.kr"
     private const val SCHEME = "https"
     private const val PATH_PREFIX = "/invite/"
 

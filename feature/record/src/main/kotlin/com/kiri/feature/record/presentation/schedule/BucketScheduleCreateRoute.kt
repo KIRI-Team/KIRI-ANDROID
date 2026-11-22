@@ -1,6 +1,6 @@
 package com.kiri.feature.record.presentation.schedule
 
-import android.content.Intent
+import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,12 +36,10 @@ fun BucketScheduleCreateRoute(
                 when (effect) {
                     BucketScheduleCreateEffect.SentByApp -> sentByApp()
                     is BucketScheduleCreateEffect.SentByKakao -> {
-                        // 카카오톡을 포함해 설치된 앱을 고를 수 있는 시스템 공유 시트를 연다
-                        val send = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, effect.shareText)
+                        // 카카오톡 초대장을 보낸다. 보내지 못해도 일정은 만들어졌으니 화면은 닫는다
+                        shareScheduleInviteByKakao(context, effect.scheduleId) { message ->
+                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                         }
-                        context.startActivity(Intent.createChooser(send, null))
                         sentByKakao()
                     }
                 }

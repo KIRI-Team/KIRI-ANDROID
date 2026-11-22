@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.navigation.compose.rememberNavController
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.LocalKiriBottomBarInset
+import com.kiri.feature.record.navigation.serverScheduleDetailRoute
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.unit.dp
@@ -33,7 +34,13 @@ private val TAB_START_ROUTES = TopLevelDestination.entries.map { it.startRoute }
 
 // onNavigateToLogin: 로그아웃·회원탈퇴 뒤 로그인 화면으로 간다
 @Composable
-fun MainScreen(onNavigateToLogin: () -> Unit = {}, accessViewModel: FamilyAccessViewModel = hiltViewModel(), onCreateFamily: () -> Unit = {}, onJoinFamily: () -> Unit = {}) {
+fun MainScreen(
+    onNavigateToLogin: () -> Unit = {},
+    accessViewModel: FamilyAccessViewModel = hiltViewModel(),
+    onCreateFamily: () -> Unit = {},
+    onJoinFamily: () -> Unit = {},
+    scheduleInviteViewModel: ScheduleInviteViewModel = hiltViewModel(),
+) {
     val navController = rememberNavController()
     val context = LocalContext.current
     var editingHomeAnswer by remember { mutableStateOf(false) }
@@ -48,6 +55,17 @@ fun MainScreen(onNavigateToLogin: () -> Unit = {}, accessViewModel: FamilyAccess
     // 바텀 바는 탭으로 이동할 수 있는 화면(각 탭의 첫 화면)에서만 보인다. 홈 답변 작성 중에는 숨긴다
     val route = navController.currentBackStackEntryAsState().value?.destination?.route
     val showBottomBar = route in TAB_START_ROUTES && !editingHomeAnswer
+
+    // 카카오톡 일정 초대장으로 열렸으면 일정 상세로 간다. 응답할 수 있으면(canRespond) 요청알림 화면을 먼저 보여주고,
+    // 볼 수 없는 일정(다른 가족의 일정 등)이면 상세 조회가 실패해 내용을 보여주지 않는다
+    // 내비게이션 그래프가 준비된 뒤(route 가 생긴 뒤)에 이동한다
+    val invitedScheduleId by scheduleInviteViewModel.scheduleId.collectAsStateWithLifecycle()
+    LaunchedEffect(invitedScheduleId, route != null) {
+        val scheduleId = invitedScheduleId ?: return@LaunchedEffect
+        if (route == null) return@LaunchedEffect
+        scheduleInviteViewModel.opened(scheduleId)
+        navController.navigate(serverScheduleDetailRoute(scheduleId, fromHome = true, respond = true)) { launchSingleTop = true }
+    }
 
     Scaffold(
         containerColor = KiriColor.Bg.Base,

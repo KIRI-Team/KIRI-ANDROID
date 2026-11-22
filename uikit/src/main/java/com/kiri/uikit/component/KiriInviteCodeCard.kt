@@ -126,7 +126,7 @@ private fun KiriInviteCodeCardPreview() {
 private fun KiriInviteCodeCardLinkPreview() {
     KiriInviteCodeCard(
         label = "초대링크",
-        value = "kiri.app/invite/••••••",
+        value = "halo-official.co.kr/invite/••••••",
         onCopyClick = {},
         valueType = KiriInviteCodeValue.Link,
     )

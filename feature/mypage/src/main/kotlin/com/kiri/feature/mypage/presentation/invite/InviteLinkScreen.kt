@@ -215,7 +215,7 @@ private fun InviteLinkScreenPreview() {
         state = InviteLinkUiState(
             invite = Invite(
                 code = "NWTKYJ",
-                url = "https://kiri.app/invite/NWTKYJ",
+                url = "https://halo-official.co.kr/invite/NWTKYJ",
                 expiresAt = LocalDate.of(2026, 10, 12),
             ),
         ),

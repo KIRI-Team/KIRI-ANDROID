@@ -64,6 +64,8 @@ androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-
 
 # 소셜 로그인 (카카오 SDK, Credential Manager + Google ID)
 kakao-user = { module = "com.kakao.sdk:v2-user", version.ref = "kakaoSdk" }
+# 일정 초대장 카카오톡 공유
+kakao-share = { module = "com.kakao.sdk:v2-share", version.ref = "kakaoSdk" }
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
 androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
 googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleId" }

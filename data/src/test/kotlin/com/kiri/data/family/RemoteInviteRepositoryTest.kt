@@ -57,7 +57,7 @@ class RemoteInviteRepositoryTest {
         assertEquals("GET", request.method)
         assertEquals("/api/v1/families/7/invite", request.url.encodedPath)
         assertEquals(
-            Invite(code = "NWTKYJ", url = "https://kiri.app/invite/NWTKYJ", expiresAt = LocalDate.of(2026, 10, 14)),
+            Invite(code = "NWTKYJ", url = "https://halo-official.co.kr/invite/NWTKYJ", expiresAt = LocalDate.of(2026, 10, 14)),
             invite,
         )
     }
@@ -123,7 +123,7 @@ class RemoteInviteRepositoryTest {
         assertEquals("PATCH", reissue.method)
         assertEquals("/api/v1/families/7/invite", reissue.url.encodedPath)
         assertEquals(
-            Invite(code = "NEW123", url = "https://kiri.app/invite/NEW123", expiresAt = LocalDate.of(2026, 10, 21)),
+            Invite(code = "NEW123", url = "https://halo-official.co.kr/invite/NEW123", expiresAt = LocalDate.of(2026, 10, 21)),
             invite,
         )
     }
@@ -192,8 +192,8 @@ class RemoteInviteRepositoryTest {
     private companion object {
         const val DELETE_BODY = """{"isSuccess":true,"code":"FAMILY200_3","message":"가족 초대 정보가 삭제되었습니다.","result":null}"""
         const val REISSUE_BODY = """{"isSuccess":true,"code":"FAMILY200_1","message":"가족 초대 정보가 생성되었습니다.",""" +
-            """"result":{"inviteCode":"NEW123","inviteUrl":"https://kiri.app/invite/NEW123","inviteExpiresAt":"2026-10-21T09:00:00"}}"""
+            """"result":{"inviteCode":"NEW123","inviteUrl":"https://halo-official.co.kr/invite/NEW123","inviteExpiresAt":"2026-10-21T09:00:00"}}"""
         const val SUCCESS_BODY = """{"isSuccess":true,"code":"FAMILY200_2","message":"가족 초대 정보를 조회했습니다.",""" +
-            """"result":{"inviteCode":"NWTKYJ","inviteUrl":"https://kiri.app/invite/NWTKYJ","inviteExpiresAt":"2026-10-14T11:51:36"}}"""
+            """"result":{"inviteCode":"NWTKYJ","inviteUrl":"https://halo-official.co.kr/invite/NWTKYJ","inviteExpiresAt":"2026-10-14T11:51:36"}}"""
     }
 }
