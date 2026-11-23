@@ -16,11 +16,6 @@ import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
@@ -134,59 +129,61 @@ internal class RemoteHomeRepository(
         val weekly = if (daily.hasFamily) missions?.let { missionApi ->
             apiResult(json) { missionApi.getWeeklyRecommendation() }.getOrNull()
         } else null
-        val feed = if (loadRecommendations) missions?.let { missionApi ->
-            try {
-                Result.success(loadMissionFeed(missionApi))
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                Result.failure(error)
-            }
-        } else null
-        val items = feed?.getOrNull().orEmpty()
         val weeklyDetail = weekly?.let { recommendation ->
             missions?.let { api -> apiResult(json) { api.getMission(recommendation.missionId) }.getOrNull() }
         }
-        val recommendations = coroutineScope {
-            val detailRequests = Semaphore(4)
-            items.map { item ->
-                async {
-                    val matchingWeekly = weekly?.takeIf { it.missionId == item.missionId }
-                    val detail = if (matchingWeekly != null) weeklyDetail else missions?.let { api ->
-                        detailRequests.withPermit { apiResult(json) { api.getMission(item.missionId) }.getOrNull() }
-                    }
-                    item.toHomeRecommendation(detail?.averageRating.toMissionCardRating(), matchingWeekly?.recommendationReason)
-                }
-            }.awaitAll()
-        }
-        val outdoorIds = items.filter { it.category == "OUTDOOR" }.mapTo(mutableSetOf()) { it.missionId.toString() }
         return FamilyHome(date, me, if (daily.hasFamily) info?.familyName ?: "우리 가족" else null,
             info?.members() ?: family?.answers.orEmpty().map { FamilyMember(it.memberId.toString(), it.nickname, "") },
             question, answers, poked,
             mission = weekly?.let { recommendation ->
-                val item = items.firstOrNull { it.missionId == recommendation.missionId }
                 WeeklyMission(
                     id = recommendation.missionId.toString(),
                     title = recommendation.title,
                     description = recommendation.description ?: recommendation.recommendationReason.orEmpty(),
                     tags = listOfNotNull(recommendation.recommendationReason?.trim()?.takeIf { it.isNotEmpty() }),
                     completed = false,
-                    place = weeklyDetail?.place?.cardSubtitle() ?: item?.placeName,
+                    place = weeklyDetail?.place?.cardSubtitle(),
                     imageUrl = recommendation.imageUrl,
                     recommendationOnly = false,
                 )
             },
             serverBacked = true,
             familyId = info?.familyId?.toString(), ownerId = info?.ownerMemberId?.toString(),
-            recommendations = recommendations,
-            recommendationsLoadFailed = feed?.isFailure == true,
-            outdoorRecommendations = recommendations.filter { it.id in outdoorIds },
         ).also { snapshot = it }
+    }
+
+    override suspend fun loadRecommendationFeed(weeklyMission: WeeklyMission?): HomeRecommendationFeed? {
+        val api = missions?.takeIf { loadRecommendations } ?: return null
+        return try {
+            val items = loadMissionFeed(api)
+            val recommendations = items.map { item ->
+                val weekly = weeklyMission?.takeIf { it.missionId == item.missionId.toString() }
+                item.toHomeRecommendation(weekly?.tags?.firstOrNull())
+            }
+            HomeRecommendationFeed(
+                recommendations = recommendations,
+                outdoorRecommendations = items.zip(recommendations).mapNotNull { (item, card) ->
+                    card.takeIf { item.category == "OUTDOOR" }
+                },
+                loadFailed = false,
+            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            HomeRecommendationFeed(emptyList(), emptyList(), loadFailed = true)
+        }
+    }
+
+    override suspend fun loadRecommendationDetails(id: String): HomeRecommendationDetails? {
+        val api = missions ?: return null
+        val missionId = id.toLongOrNull() ?: return null
+        val detail = apiResult(json) { api.getMission(missionId) }.getOrNull() ?: return null
+        return HomeRecommendationDetails(detail.place?.cardSubtitle(), detail.averageRating.toMissionCardRating())
     }
 
     private fun MissionPlaceResponse.cardSubtitle(): String? {
         val name = name.trim().takeIf { it.isNotEmpty() }
-        val region = address.toMissionCardRegion()
+        val region = address.toMissionCardRegion() ?: address?.trim()?.takeIf { it.isNotEmpty() }
         return listOfNotNull(name, region).distinct().joinToString(" · ").ifBlank { null }
     }
 
@@ -209,12 +206,11 @@ internal class RemoteHomeRepository(
         return items.values.toList()
     }
 
-    private fun MissionFeedItem.toHomeRecommendation(rating: String?, reason: String?) = HomeRecommendation(
+    private fun MissionFeedItem.toHomeRecommendation(reason: String?) = HomeRecommendation(
         id = missionId.toString(),
         title = title,
         place = placeName.orEmpty(),
         imageUrl = imageUrl,
-        rating = rating,
         description = reason?.trim().orEmpty(),
     )
 
