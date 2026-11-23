@@ -23,8 +23,8 @@ android {
         applicationId = "com.kiri.android"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
         // hiltViewModel()을 쓰는 화면을 UI 테스트에서 띄울 수 있도록 Hilt 테스트용 Application으로 실행한다
         testInstrumentationRunner = "com.kiri.app.HiltTestRunner"
         // 카카오톡 일정 초대장 버튼이 앱을 여는 주소(kakao{앱 키}://kakaolink)에 쓴다
