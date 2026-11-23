@@ -13,6 +13,9 @@ internal class UpcomingHomeRepository(private val questions: HomeRepository, pri
     private val json: Json) : HomeRepository {
     private val mutex = Mutex()
     override suspend fun load() = mutex.withLock { enrich(questions.load()) }
+    override suspend fun loadRecommendationFeed(weeklyMission: WeeklyMission?) =
+        questions.loadRecommendationFeed(weeklyMission)
+    override suspend fun loadRecommendationDetails(id: String) = questions.loadRecommendationDetails(id)
     // 가족 정보만 필요하면 일정 카드를 부르지 않는다
     override suspend fun family() = questions.family()
     override suspend fun invalidateFamily() = questions.invalidateFamily()

@@ -12,6 +12,9 @@ import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -34,6 +37,40 @@ class HomeViewModel @Inject constructor(
     private val _effect = kotlinx.coroutines.channels.Channel<HomeUiEffect>(kotlinx.coroutines.channels.Channel.BUFFERED)
     val effect = _effect.receiveAsFlow()
     private var loadingInProgress = false
+    private var recommendationFeedJob: Job? = null
+    private val detailRequests = Semaphore(4)
+    private val pendingDetails = mutableSetOf<String>()
+    private var recommendationGeneration = 0
+
+    fun loadRecommendationDetails(id: String) {
+        val state = uiState.value
+        if (state.home == null || id in state.recommendationDetails || !pendingDetails.add(id)) return
+        val generation = recommendationGeneration
+        viewModelScope.launch {
+            try {
+                val details = detailRequests.withPermit {
+                    if (generation != recommendationGeneration) return@withPermit null
+                    repository.loadRecommendationDetails(id)
+                }
+                if (generation == recommendationGeneration) {
+                    _uiState.update {
+                        it.copy(recommendationDetails = it.recommendationDetails + (id to
+                            (details ?: HomeRecommendationDetails(null, null))))
+                    }
+                }
+            } finally {
+                if (generation == recommendationGeneration) pendingDetails.remove(id)
+            }
+        }
+    }
+
+    private fun loadRecommendationFeed(home: FamilyHome) {
+        recommendationFeedJob?.cancel()
+        recommendationFeedJob = viewModelScope.launch {
+            val feed = repository.loadRecommendationFeed(home.mission)
+            _uiState.update { it.copy(recommendationFeed = feed, recommendationsLoading = false) }
+        }
+    }
     init {
         load()
     }
@@ -105,7 +142,7 @@ class HomeViewModel @Inject constructor(
     private fun advanceTutorial() {
         when (uiState.value.tutorialStep) {
             HomeTutorialStep.INITIAL -> { setShowingMission(true); setTutorial(HomeTutorialStep.MISSION) }
-            HomeTutorialStep.MISSION -> setTutorial(if (uiState.value.home?.recommendations?.isNotEmpty() == true) HomeTutorialStep.RECOMMENDATIONS else null)
+            HomeTutorialStep.MISSION -> setTutorial(if ((uiState.value.recommendationFeed?.recommendations ?: uiState.value.home?.recommendations).orEmpty().isNotEmpty()) HomeTutorialStep.RECOMMENDATIONS else null)
             HomeTutorialStep.RECOMMENDATIONS -> setTutorial(null)
             null -> Unit
         }
@@ -118,8 +155,30 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(loading = it.home == null, loadFailure = null) }
         viewModelScope.launch {
             try {
-                val loaded = repository.load()
-                val home = loaded
+                val home = repository.load()
+                val previous = uiState.value.home
+                val accountChanged = previous?.currentUserId != home.currentUserId || previous?.familyId != home.familyId
+                if (accountChanged) {
+                    recommendationGeneration++
+                    pendingDetails.clear()
+                }
+                _uiState.update { old ->
+                    val changed = old.home != null && old.home.date != home.date
+                    old.copy(
+                        loading = false, home = home, loadFailure = null,
+                        recommendationFeed = old.recommendationFeed.takeUnless { accountChanged },
+                        recommendationDetails = if (accountChanged) emptyMap() else old.recommendationDetails,
+                        recommendationsLoading = home.serverBacked && (accountChanged || old.recommendationFeed == null),
+                        showTasteBanner = old.showTasteBanner && !accountChanged && !home.browsing,
+                        error = if (changed) null else old.error,
+                        editing = if (changed) false else old.editing,
+                        selectedMemberId = if (changed) null else old.selectedMemberId,
+                        draft = if (changed) "" else old.draft,
+                        draftQuestionId = if (changed) null else old.draftQuestionId,
+                        notice = if (changed) "날짜가 바뀌어 오늘의 질문을 불러왔어요." else old.notice,
+                    )
+                }
+                loadRecommendationFeed(home)
                 val taste = if (!home.browsing) tasteRepository?.getMyTaste()?.getOrNull() else null
                 if (!home.browsing && savedState.get<Boolean>("homeTutorialChecked") != true) {
                     // Mark the visit before showing it: returning home or restarting cannot replay it.
@@ -130,18 +189,8 @@ class HomeViewModel @Inject constructor(
                         setTutorial(HomeTutorialStep.INITIAL)
                     }
                 }
-                _uiState.update { old ->
-                    val changed = old.home != null && old.home.date != home.date
-                    old.copy(
-                        loading = false, home = home, loadFailure = null,
-                        showTasteBanner = taste != null && !taste.isSet,
-                        tasteNickname = taste?.nickname.orEmpty(), error = if (changed) null else old.error,
-                        editing = if (changed) false else old.editing,
-                        selectedMemberId = if (changed) null else old.selectedMemberId,
-                        draft = if (changed) "" else old.draft,
-                        draftQuestionId = if (changed) null else old.draftQuestionId,
-                        notice = if (changed) "날짜가 바뀌어 오늘의 질문을 불러왔어요." else old.notice,
-                    )
+                _uiState.update {
+                    it.copy(showTasteBanner = taste != null && !taste.isSet, tasteNickname = taste?.nickname.orEmpty())
                 }
             } catch (error: CancellationException) { throw error }
             catch (error: Exception) {

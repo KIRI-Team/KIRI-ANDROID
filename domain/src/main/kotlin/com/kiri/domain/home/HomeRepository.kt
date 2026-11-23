@@ -165,7 +165,18 @@ class HomeException(val reason: HomeFailure) : Exception(reason.name)
  * authenticated current user is the answer author; callers cannot select another author. A
  * successful mutation returns the complete consistent snapshot.
  */
+data class HomeRecommendationFeed(
+    val recommendations: List<HomeRecommendation>,
+    val outdoorRecommendations: List<HomeRecommendation>,
+    val loadFailed: Boolean,
+)
+
+data class HomeRecommendationDetails(val place: String?, val rating: String?)
+
 interface HomeRepository {
+    suspend fun loadRecommendationFeed(weeklyMission: WeeklyMission?): HomeRecommendationFeed? = null
+    suspend fun loadRecommendationDetails(id: String): HomeRecommendationDetails? = null
+
     // 홈 화면 전체(오늘의 질문·답변·일정 카드·주간 미션)를 불러온다. 홈 화면에서만 쓴다
     suspend fun load(): FamilyHome
 
