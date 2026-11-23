@@ -9,6 +9,7 @@ import com.kiri.domain.model.mission.MissionStatus
 import com.kiri.domain.model.mission.WalkingLevel
 import java.time.LocalDate
 import java.time.LocalTime
+import java.util.Locale
 import kotlinx.serialization.Serializable
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -145,3 +146,12 @@ internal fun MissionResponse.toMissionInfo() = MissionInfo(
     averageRating = averageRating,
     reviewCount = reviewCount,
 )
+
+internal fun Double?.toMissionCardRating(): String? =
+    this?.takeIf { it.isFinite() && it in 1.0..5.0 }?.let { String.format(Locale.ROOT, "%.1f", it) }
+
+internal fun String?.toMissionCardRegion(): String? {
+    val regions = orEmpty().split(Regex("\\s+")).filter { it.matches(Regex("[가-힣]+(구|군|시)")) }
+        .filterNot { it == "대구" || it.endsWith("특별시") || it.endsWith("광역시") }
+    return regions.firstOrNull { it.endsWith("구") || it.endsWith("군") } ?: regions.firstOrNull()
+}
