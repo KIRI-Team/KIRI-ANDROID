@@ -25,7 +25,12 @@ import com.kiri.uikit.color.KiriColor
 import java.time.ZoneId
 
 @Composable
-fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Modifier = Modifier) {
+fun HomeScreen(
+    state: HomeUiState,
+    onEvent: (HomeUiEvent) -> Unit,
+    modifier: Modifier = Modifier,
+    onRecommendationVisible: (String) -> Unit = {},
+) {
     val home = state.home
     val onDestination: (HomeUiDestination) -> Unit = { onEvent(HomeUiEvent.DestinationClicked(it)) }
     val onMissionClick: (String) -> Unit = { onEvent(HomeUiEvent.MissionClicked(it)) }
@@ -143,9 +148,12 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
                         home.browsing -> {
                             BrowseCard(onDestination)
                             RecommendationSection(
-                                home.recommendations,
+                                state.recommendationFeed?.recommendations ?: home.recommendations,
                                 onMissionClick = onMissionClick,
-                                loadFailed = home.recommendationsLoadFailed,
+                                loadFailed = state.recommendationFeed?.loadFailed ?: home.recommendationsLoadFailed,
+                                loading = state.recommendationsLoading,
+                                details = state.recommendationDetails,
+                                onCardVisible = onRecommendationVisible,
                                 onRetry = { onEvent(HomeUiEvent.RetryClicked) },
                             )
                         }
@@ -200,20 +208,25 @@ fun HomeScreen(state: HomeUiState, onEvent: (HomeUiEvent) -> Unit, modifier: Mod
                                 )
                             }
                             RecommendationSection(
-                                home.recommendations,
+                                state.recommendationFeed?.recommendations ?: home.recommendations,
                                 Modifier.bringIntoViewRequester(recommendationsTarget)
                                     .then(anchor(HomeTutorialTarget.RECOMMENDATIONS)),
                                 onMissionClick = onMissionClick,
-                                loadFailed = home.recommendationsLoadFailed,
+                                loadFailed = state.recommendationFeed?.loadFailed ?: home.recommendationsLoadFailed,
+                                loading = state.recommendationsLoading,
+                                details = state.recommendationDetails,
+                                onCardVisible = onRecommendationVisible,
                                 onRetry = { onEvent(HomeUiEvent.RetryClicked) },
                             )
                         }
                     }
                     RecommendationSection(
-                        home?.outdoorRecommendations.orEmpty(),
+                        state.recommendationFeed?.outdoorRecommendations ?: home?.outdoorRecommendations.orEmpty(),
                         onMissionClick = onMissionClick,
-                        loading = state.loading,
-                        loadFailed = state.loadError || home?.recommendationsLoadFailed == true,
+                        loading = state.loading || state.recommendationsLoading,
+                        loadFailed = state.loadError || (state.recommendationFeed?.loadFailed ?: home?.recommendationsLoadFailed) == true,
+                        details = state.recommendationDetails,
+                        onCardVisible = onRecommendationVisible,
                         onRetry = { onEvent(HomeUiEvent.RetryClicked) },
                         title = "오늘 가을분위기를 느끼고 싶다면",
                         cardTagPrefix = "home_outdoor_recommendation",
