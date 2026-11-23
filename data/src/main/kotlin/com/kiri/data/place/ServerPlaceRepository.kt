@@ -2,6 +2,8 @@ package com.kiri.data.place
 
 import com.kiri.data.mission.MissionApi
 import com.kiri.data.mission.MissionFeedItem
+import com.kiri.data.mission.toMissionCardRating
+import com.kiri.data.mission.toMissionCardRegion
 import com.kiri.data.network.apiResult
 import com.kiri.domain.model.mission.MissionBucketState
 import com.kiri.domain.model.mission.MissionNotFoundException
@@ -9,7 +11,6 @@ import com.kiri.domain.place.*
 import com.kiri.domain.repository.BucketItemRepository
 import com.kiri.domain.repository.MissionInfoRepository
 import com.kiri.domain.model.mission.MissionInfo
-import java.util.Locale
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -116,8 +117,10 @@ private fun PlaceMission.withState(state: MissionBucketState) = copy(
 )
 
 private fun PlaceMission.withDetail(detail: MissionInfo): PlaceMission = withState(detail.bucketState).copy(
-    rating = detail.averageRating?.takeIf { it.isFinite() && it in 1.0..5.0 }
-        ?.let { String.format(Locale.ROOT, "%.1f", it) },
+    rating = detail.averageRating.toMissionCardRating(),
+    place = place.ifBlank { detail.place?.name.orEmpty() },
+    region = detail.place?.address.toMissionCardRegion()
+        ?: detail.place?.address?.trim().orEmpty(),
     imageUrl = imageUrl ?: detail.imageUrl?.takeIf { it.isNotBlank() },
     imageSource = if (imageUrl != null) imageSource else detail.imageSource,
     tags = tags.ifEmpty { listOfNotNull(detail.price?.let { if (it == 0) "무료" else "${it}원" }) },

@@ -1,5 +1,6 @@
 package com.kiri.data.place
 
+import com.kiri.data.mission.MissionPlaceResponse
 import com.kiri.data.mission.MissionResponse
 import com.kiri.data.mission.toMissionInfo
 import com.kiri.data.mission.MissionApi
@@ -69,6 +70,7 @@ class ServerPlaceRepositoryTest {
                 override suspend fun getMission(missionId: Long): Result<MissionInfo> = when (missionId) {
                     1L -> Result.success(MissionResponse(1, "사진 있는 활동", category = "EXHIBITION",
                         imageUrl = "https://images.example/detail.jpg", averageRating = 4.6, reviewCount = 3,
+                        place = MissionPlaceResponse(7, "미술관", "서울특별시 종로구 삼청로 30"),
                         bucketState = "SAVED").toMissionInfo())
                     3L -> Result.success(MissionResponse(3, "사진 없는 활동", category = "EXHIBITION").toMissionInfo())
                     else -> Result.failure(IllegalStateException("상세 조회 실패"))
@@ -83,6 +85,7 @@ class ServerPlaceRepositoryTest {
             assertEquals("https://images.example/one.jpg", cards[0].imageUrl)
             assertEquals("공식 출처", cards[0].imageSource)
             assertEquals("4.6", cards[0].rating)
+            assertEquals("종로구", cards[0].region)
             assertEquals(listOf("무료", "1.2km"), cards[0].tags)
             assertTrue(cards[0].saved)
             assertEquals(PlaceKiriPick(42, "오늘의 전시", "전시 둘러보기", "https://images.example/pick.jpg"), cards[0].kiriPick)

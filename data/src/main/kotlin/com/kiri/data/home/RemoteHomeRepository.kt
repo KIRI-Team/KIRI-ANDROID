@@ -8,12 +8,19 @@ import com.kiri.data.family.FamilyInfoResponse
 import com.kiri.data.mission.MissionApi
 import com.kiri.data.mission.MissionFeedItem
 import com.kiri.data.mission.MissionPlaceResponse
+import com.kiri.data.mission.toMissionCardRating
+import com.kiri.data.mission.toMissionCardRegion
 import com.kiri.data.network.*
 import com.kiri.domain.home.*
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
@@ -137,9 +144,22 @@ internal class RemoteHomeRepository(
             }
         } else null
         val items = feed?.getOrNull().orEmpty()
-        val weeklyPlace = weekly?.let { recommendation ->
-            missions?.let { api -> apiResult(json) { api.getMission(recommendation.missionId) }.getOrNull()?.place }
+        val weeklyDetail = weekly?.let { recommendation ->
+            missions?.let { api -> apiResult(json) { api.getMission(recommendation.missionId) }.getOrNull() }
         }
+        val recommendations = coroutineScope {
+            val detailRequests = Semaphore(4)
+            items.map { item ->
+                async {
+                    val matchingWeekly = weekly?.takeIf { it.missionId == item.missionId }
+                    val detail = if (matchingWeekly != null) weeklyDetail else missions?.let { api ->
+                        detailRequests.withPermit { apiResult(json) { api.getMission(item.missionId) }.getOrNull() }
+                    }
+                    item.toHomeRecommendation(detail?.averageRating.toMissionCardRating(), matchingWeekly?.recommendationReason)
+                }
+            }.awaitAll()
+        }
+        val outdoorIds = items.filter { it.category == "OUTDOOR" }.mapTo(mutableSetOf()) { it.missionId.toString() }
         return FamilyHome(date, me, if (daily.hasFamily) info?.familyName ?: "우리 가족" else null,
             info?.members() ?: family?.answers.orEmpty().map { FamilyMember(it.memberId.toString(), it.nickname, "") },
             question, answers, poked,
@@ -151,25 +171,22 @@ internal class RemoteHomeRepository(
                     description = recommendation.description ?: recommendation.recommendationReason.orEmpty(),
                     tags = listOfNotNull(recommendation.recommendationReason?.trim()?.takeIf { it.isNotEmpty() }),
                     completed = false,
-                    place = weeklyPlace?.cardSubtitle() ?: item?.placeName,
+                    place = weeklyDetail?.place?.cardSubtitle() ?: item?.placeName,
                     imageUrl = recommendation.imageUrl,
                     recommendationOnly = false,
                 )
             },
             serverBacked = true,
             familyId = info?.familyId?.toString(), ownerId = info?.ownerMemberId?.toString(),
-            recommendations = items.map { it.toHomeRecommendation() },
+            recommendations = recommendations,
             recommendationsLoadFailed = feed?.isFailure == true,
-            outdoorRecommendations = items.filter { it.category == "OUTDOOR" }.map { it.toHomeRecommendation() },
+            outdoorRecommendations = recommendations.filter { it.id in outdoorIds },
         ).also { snapshot = it }
     }
 
     private fun MissionPlaceResponse.cardSubtitle(): String? {
         val name = name.trim().takeIf { it.isNotEmpty() }
-        val regions = address.orEmpty().split(Regex("\\s+"))
-            .filter { it.matches(Regex("[가-힣]+(구|군|시)")) }
-            .filterNot { it == "대구" || it.endsWith("특별시") || it.endsWith("광역시") }
-        val region = regions.firstOrNull { it.endsWith("구") || it.endsWith("군") } ?: regions.firstOrNull()
+        val region = address.toMissionCardRegion()
         return listOfNotNull(name, region).distinct().joinToString(" · ").ifBlank { null }
     }
 
@@ -192,11 +209,13 @@ internal class RemoteHomeRepository(
         return items.values.toList()
     }
 
-    private fun MissionFeedItem.toHomeRecommendation() = HomeRecommendation(
+    private fun MissionFeedItem.toHomeRecommendation(rating: String?, reason: String?) = HomeRecommendation(
         id = missionId.toString(),
         title = title,
         place = placeName.orEmpty(),
         imageUrl = imageUrl,
+        rating = rating,
+        description = reason?.trim().orEmpty(),
     )
 
     override suspend fun loadRecordedQuestion(date: LocalDate, questionId: String?): com.kiri.domain.record.RecordedQuestion? = mapped {
