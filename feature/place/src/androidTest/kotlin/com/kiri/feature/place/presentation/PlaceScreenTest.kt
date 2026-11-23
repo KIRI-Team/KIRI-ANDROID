@@ -111,7 +111,7 @@ class PlaceScreenTest {
                 else -> Unit
             }
         } } }
-        compose.onNodeWithText("활동 48개").assertIsDisplayed()
+        compose.onNodeWithText("활동 48개").assertDoesNotExist()
         compose.onNodeWithText("끼리추천").assertIsDisplayed()
         compose.onNodeWithText("4.6").assertIsDisplayed()
         capture("place-default")
