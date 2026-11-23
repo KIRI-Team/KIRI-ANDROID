@@ -207,6 +207,8 @@ internal fun RecommendationSection(
     title: String = "가족과 함께라면 여기!",
     cardTagPrefix: String = "home_recommendation",
     loading: Boolean = false,
+    details: Map<String, HomeRecommendationDetails> = emptyMap(),
+    onCardVisible: (String) -> Unit = {},
 ) {
     Column(Modifier.padding(top = 48.dp)) {
         Text(
@@ -229,16 +231,21 @@ internal fun RecommendationSection(
             horizontalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             items(items, key = { it.id }) { recommendation ->
+                val detail = details[recommendation.id]
                 KiriPlaceCard(
                     title = recommendation.title,
-                    place = recommendation.place,
+                    place = detail?.place ?: recommendation.place,
                     description =
                         recommendation.description.ifBlank {
                             recommendation.keywords.joinToString(", ")
                         },
-                    rating = recommendation.rating,
+                    rating = detail?.rating ?: recommendation.rating,
                     modifier = Modifier.clickable { onMissionClick(recommendation.id) }
-                        .testTag("${cardTagPrefix}_${recommendation.id}"),
+                        .testTag("${cardTagPrefix}_${recommendation.id}")
+                        .onGloballyPositioned { coordinates ->
+                            val bounds = coordinates.boundsInWindow()
+                            if (bounds.width > 0 && bounds.height > 0) onCardVisible(recommendation.id)
+                        },
                     image = { imageModifier ->
                         com.kiri.uikit.component.KiriAsyncImage(
                             recommendation.imageUrl, recommendation.title,
