@@ -63,22 +63,26 @@ class RemoteHomeRepositoryTest {
         MockWebServer().use { server ->
             server.start(); server.family()
             server.reply("""{"missionId":88,"title":"산책하기","description":"주간 미션 설명","recommendationReason":"가족이 산책을 좋아해요."}""")
+            server.reply("""{"missionId":88,"title":"산책하기","averageRating":4.6,"place":{"placeId":7,"name":"공원","address":"서울특별시 종로구 세종대로 1"}}""")
             server.reply("""{"missions":[{"missionId":90,"title":"전시","category":"EXHIBITION"}],"nextCursor":90,"hasNext":true}""")
             server.reply("""{"missions":[{"missionId":88,"title":"산책하기","category":"OUTDOOR","placeName":"공원","price":0,"imageUrl":"https://example.com/park.png"}],"hasNext":false}""")
-            server.reply("""{"missionId":88,"title":"산책하기","averageRating":4.6,"place":{"placeId":7,"name":"공원","address":"서울특별시 종로구 세종대로 1"}}""")
-            server.reply("""{"missionId":90,"title":"전시","averageRating":3.1}""")
+            server.reply("""{"missionId":90,"title":"전시","averageRating":3.1,"place":{"placeId":9,"name":"경복궁","address":"서울특별시 종로구 사직로 161"}}""")
             server.reply("null")
             val repo = repository(server, recommendations = true)
             val home = repo.load()
-            assertEquals(listOf("90", "88"), home.recommendations.map { it.id })
+            assertEquals(4, server.requestCount)
+            assertTrue(home.recommendations.isEmpty())
+            val cards = requireNotNull(repo.loadRecommendationFeed(home.mission))
+            assertEquals(listOf("90", "88"), cards.recommendations.map { it.id })
             assertEquals("공원 · 종로구", home.mission?.place)
-            assertEquals(listOf("3.1", "4.6"), home.recommendations.map { it.rating })
-            assertEquals(listOf("", "가족이 산책을 좋아해요."), home.recommendations.map { it.description })
-            assertEquals("가족이 산책을 좋아해요.", home.outdoorRecommendations.single().description)
-            assertEquals("88", home.outdoorRecommendations.single().id)
-            assertEquals("https://example.com/park.png", home.outdoorRecommendations.single().imageUrl)
+            assertTrue(cards.recommendations.all { it.rating == null })
+            assertEquals(HomeRecommendationDetails("경복궁 · 종로구", "3.1"), repo.loadRecommendationDetails("90"))
+            assertEquals(listOf("", "가족이 산책을 좋아해요."), cards.recommendations.map { it.description })
+            assertEquals("가족이 산책을 좋아해요.", cards.outdoorRecommendations.single().description)
+            assertEquals("88", cards.outdoorRecommendations.single().id)
+            assertEquals("https://example.com/park.png", cards.outdoorRecommendations.single().imageUrl)
             assertEquals(home.recommendations, repo.saveAnswer(requireNotNull(home.question), "답변").recommendations)
-            repeat(3) { server.takeRequest() }
+            repeat(4) { server.takeRequest() }
             val feed = server.takeRequest()
             assertEquals("/api/v1/missions", feed.url.encodedPath)
             assertEquals("50", feed.url.queryParameter("size"))
@@ -86,7 +90,6 @@ class RemoteHomeRepositoryTest {
             assertEquals("90", next.url.queryParameter("cursor"))
             assertNull(next.url.queryParameter("category"))
             assertEquals("Bearer access", feed.headers["Authorization"])
-            assertEquals("/api/v1/missions/88", server.takeRequest().url.encodedPath)
             assertEquals("/api/v1/missions/90", server.takeRequest().url.encodedPath)
         }
     }
@@ -96,10 +99,12 @@ class RemoteHomeRepositoryTest {
             MockWebServer().use { server ->
                 server.start(); server.family(); server.reply("null", status = 503)
                 server.reply(result, status = if (result == "null") 503 else 200)
-                val home = repository(server, recommendations = true).load()
+                val repo = repository(server, recommendations = true)
+                val home = repo.load()
+                val cards = requireNotNull(repo.loadRecommendationFeed(home.mission))
                 assertEquals("12", home.question?.id)
-                assertTrue(home.recommendations.isEmpty())
-                assertEquals(result == "null", home.recommendationsLoadFailed)
+                assertTrue(cards.recommendations.isEmpty())
+                assertEquals(result == "null", cards.loadFailed)
             }
         }
     }
