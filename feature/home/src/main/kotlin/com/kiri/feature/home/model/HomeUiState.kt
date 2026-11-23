@@ -19,6 +19,9 @@ data class HomeUiState(
     val notice: String? = null,
     val answerSaved: Boolean = false,
     val tutorialStep: HomeTutorialStep? = null,
+    val recommendationFeed: HomeRecommendationFeed? = null,
+    val recommendationDetails: Map<String, HomeRecommendationDetails> = emptyMap(),
+    val recommendationsLoading: Boolean = false,
 ) {
     val loadError: Boolean get() = loadFailure != null
 
