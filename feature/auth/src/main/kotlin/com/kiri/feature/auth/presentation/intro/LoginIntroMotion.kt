@@ -116,6 +116,9 @@ internal object LoginIntroMotion {
     // 마지막 키프레임(캐릭터가 자리를 잡는 시점)
     val END_MS = pct(31.96f)
 
+    // 스플래시가 멈추는 시점: 로그인 버튼이 나타나기 직전. 앱 시작 화면은 로그인 여부와 상관없이 여기까지 재생한다
+    val SPLASH_END_MS = pct(24.415f)
+
     // 회색 글자 조각 4개가 초록으로 바뀌며 커지고 흩어진 뒤 사라진다 (Figma 9265:11150~11153)
     val pieces = listOf(
         piece(
@@ -213,5 +216,5 @@ internal object LoginIntroMotion {
     val characterScale = Track(Key(pct(16.091f), 0.9f, DropIn), Key(pct(29.752f), 1f))
 
     // 로그인 버튼: 캐릭터가 거의 자리 잡을 때 서서히 나타난다 (Figma 9265:14366, 9265:14375)
-    val buttonsAlpha = Track(Key(pct(24.415f), 0f, EaseIn), Key(pct(27.151f), 1f))
+    val buttonsAlpha = Track(Key(SPLASH_END_MS, 0f, EaseIn), Key(pct(27.151f), 1f))
 }

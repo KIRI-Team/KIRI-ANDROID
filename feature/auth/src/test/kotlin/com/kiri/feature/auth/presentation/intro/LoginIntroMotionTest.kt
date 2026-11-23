@@ -64,4 +64,14 @@ class LoginIntroMotionTest {
         assertEquals(1f, buttonsAlpha.valueAt(3300f), 0.0001f)
         assertTrue(3300f < END_MS)
     }
+
+    @Test
+    fun 스플래시는_로그인_버튼이_나타나기_직전에_멈추고_로고와_캐릭터는_이미_보인다() = with(LoginIntroMotion) {
+        assertEquals(0f, buttonsAlpha.valueAt(SPLASH_END_MS), 0.0001f)
+        assertTrue(buttonsAlpha.valueAt(SPLASH_END_MS + 50f) > 0f)
+        assertTrue(SPLASH_END_MS < END_MS)
+        assertEquals(1f, wordmarkAlpha.valueAt(SPLASH_END_MS), 0.0001f)
+        assertEquals(1f, characterAlpha.valueAt(SPLASH_END_MS), 0.0001f)
+        pieces.forEach { assertEquals(0f, it.alpha.valueAt(SPLASH_END_MS), 0.0001f) }
+    }
 }

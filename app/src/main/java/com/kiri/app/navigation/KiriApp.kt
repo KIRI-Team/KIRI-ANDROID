@@ -4,6 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -21,10 +24,17 @@ private const val ROUTE_MAIN = "main"
 
 /**
  * @param isLoggedIn 저장된 로그인 토큰이 있는지. 메인에 있는 동안 false 가 되면(토큰 재발급 거절) 로그인으로 보낸다
+ * @param continueFromSplash 앱 시작 스플래시를 보여준 뒤인지. 처음 보이는 로그인 화면이 스플래시에 이어서 버튼만 띄운다
  */
 @Composable
-fun KiriApp(isLoggedIn: Flow<Boolean> = emptyFlow(), initialRoute: String = ROUTE_AUTH) {
+fun KiriApp(
+    isLoggedIn: Flow<Boolean> = emptyFlow(),
+    initialRoute: String = ROUTE_AUTH,
+    continueFromSplash: Boolean = false,
+) {
     val rootNavController = rememberNavController()
+    // 스플래시를 이어 받는 건 시작 화면으로 처음 들어온 로그인뿐이다. 로그아웃 뒤 다시 온 로그인은 처음부터 재생한다
+    var splashHandoff by rememberSaveable { mutableStateOf(continueFromSplash && initialRoute == ROUTE_AUTH) }
     // 처음 값을 읽기 전(null)에는 아무것도 하지 않는다
     val loggedIn by isLoggedIn.collectAsState(initial = null)
     val currentRoute = rootNavController.currentBackStackEntryAsState().value?.destination?.route
@@ -35,7 +45,10 @@ fun KiriApp(isLoggedIn: Flow<Boolean> = emptyFlow(), initialRoute: String = ROUT
 
     NavHost(navController = rootNavController, startDestination = initialRoute) {
         composable(ROUTE_AUTH) {
+            // 화면이 다시 만들어져도 처음 받은 값을 유지한다
+            val fromSplash = rememberSaveable { splashHandoff.also { splashHandoff = false } }
             AuthRoute(
+                continueFromSplash = fromSplash,
                 // 로그인과 온보딩은 하나의 진입 플로우라 로그인을 백스택에 남겨둔다
                 onNavigateToOnboarding = { rootNavController.navigate(ROUTE_ONBOARDING) },
                 // 약관에 동의한 기존 회원은 온보딩 없이 메인으로 가고, 로그인으로 뒤로가지 않게 지운다
