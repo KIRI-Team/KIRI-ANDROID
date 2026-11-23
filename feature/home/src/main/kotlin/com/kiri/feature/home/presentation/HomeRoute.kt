@@ -59,5 +59,5 @@ fun HomeRoute(
         reportEditing(state.editing)
         onDispose { reportEditing(false) }
     }
-    HomeScreen(state, viewModel::onEvent)
+    HomeScreen(state, viewModel::onEvent, onRecommendationVisible = viewModel::loadRecommendationDetails)
 }
