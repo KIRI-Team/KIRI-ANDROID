@@ -25,6 +25,8 @@ class PlaceScreenTest {
             KiriTheme { PlaceScreen(PlaceUiState(items = listOf(ordinary), loading = false)) {} }
         }
         compose.onNodeWithTag("place_kiri_picks_empty").assertIsDisplayed()
+        compose.onNodeWithText("불러온 활동 1개").assertDoesNotExist()
+        compose.onNodeWithTag("place_count").assertDoesNotExist()
         compose.onNodeWithTag("place_kiri_picks").assertDoesNotExist()
         compose.onNodeWithTag("place_card_1").assertIsDisplayed()
     }
