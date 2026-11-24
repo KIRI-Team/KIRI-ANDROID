@@ -61,4 +61,18 @@ class LoginScreenTest {
         composeTestRule.onNodeWithTag("auth_login_button_kakao").assertIsNotEnabled()
         composeTestRule.onNodeWithTag("auth_login_button_google").assertIsNotEnabled()
     }
+
+    @Test
+    fun 스플래시에서_이어지면_처음부터_재생하지_않고_곧_버튼을_누를_수_있다() {
+        var finished = false
+        composeTestRule.mainClock.autoAdvance = false
+        composeTestRule.setContent {
+            KiriTheme { LoginScreen(onLoginClick = {}, continueFromSplash = true, onIntroFinished = { finished = true }) }
+        }
+
+        // 처음부터 재생하면 1초 뒤에도 버튼이 막혀 있지만, 이어서 재생하면 나머지(약 0.9초)만 남는다
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.onNodeWithTag("auth_login_button_kakao").assertIsEnabled()
+        assertTrue(finished)
+    }
 }

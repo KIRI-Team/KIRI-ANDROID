@@ -47,6 +47,7 @@ private val PIECE_IMAGES = listOf(
 
 // 로그인 첫 화면. 들어올 때 Figma 스플래시 애니메이션을 한 번 재생하고, 끝나갈 때 로그인 버튼이 나타난다
 // playIntro 가 false 면 애니메이션 없이 마지막 모습으로 바로 보여준다 (다른 단계에서 돌아왔을 때, 미리보기)
+// continueFromSplash 가 true 면 앱 시작 스플래시(SplashScreen)가 멈춘 시점부터 이어서 버튼만 나타나게 한다
 @Composable
 fun LoginScreen(
     onLoginClick: (LoginProvider) -> Unit,
@@ -54,15 +55,24 @@ fun LoginScreen(
     // 로그인이 진행 중이면 false. 버튼을 다시 누르지 못하게 한다
     loginEnabled: Boolean = true,
     playIntro: Boolean = true,
+    continueFromSplash: Boolean = false,
     onIntroFinished: () -> Unit = {},
 ) {
-    val time = remember { Animatable(if (playIntro) 0f else LoginIntroMotion.END_MS) }
+    val startMs = when {
+        !playIntro -> LoginIntroMotion.END_MS
+        continueFromSplash -> LoginIntroMotion.SPLASH_END_MS
+        else -> 0f
+    }
+    val time = remember { Animatable(startMs) }
     val currentOnIntroFinished by rememberUpdatedState(onIntroFinished)
     LaunchedEffect(Unit) {
         if (time.value < LoginIntroMotion.END_MS) {
             time.animateTo(
                 targetValue = LoginIntroMotion.END_MS,
-                animationSpec = tween(durationMillis = LoginIntroMotion.END_MS.toInt(), easing = LinearEasing),
+                animationSpec = tween(
+                    durationMillis = (LoginIntroMotion.END_MS - time.value).toInt(),
+                    easing = LinearEasing,
+                ),
             )
         }
         currentOnIntroFinished()
@@ -78,41 +88,7 @@ fun LoginScreen(
             .background(KiriColor.Bg.Base)
             .testTag("login_screen"),
     ) {
-        // Figma 화면(390×844)을 가운데에 맞춰 놓고 그 좌표 그대로 배치한다
-        Box(
-            Modifier
-                .align(Alignment.Center)
-                .requiredSize(LoginIntroMotion.DESIGN_WIDTH.dp, LoginIntroMotion.DESIGN_HEIGHT.dp),
-        ) {
-            LoginIntroMotion.pieces.forEachIndexed { index, piece ->
-                IntroPieceImage(piece = piece, image = PIECE_IMAGES[index], now = now)
-            }
-            Image(
-                painter = painterResource(R.drawable.img_auth_intro_wordmark),
-                contentDescription = "KIRI",
-                modifier = Modifier
-                    .centeredAt(LoginIntroMotion.WORDMARK_CENTER_X, LoginIntroMotion.WORDMARK_CENTER_Y, 275.934f, 99.531f)
-                    .graphicsLayer {
-                        val t = now()
-                        alpha = LoginIntroMotion.wordmarkAlpha.valueAt(t)
-                        LoginIntroMotion.wordmarkScale.valueAt(t).let { scaleX = it; scaleY = it }
-                    }
-                    .testTag("login_wordmark"),
-            )
-            Image(
-                painter = painterResource(R.drawable.img_auth_intro_character),
-                contentDescription = null,
-                modifier = Modifier
-                    .centeredAt(LoginIntroMotion.CHARACTER_CENTER_X, LoginIntroMotion.CHARACTER_CENTER_Y, 56f, 56f)
-                    .graphicsLayer {
-                        val t = now()
-                        translationY = LoginIntroMotion.characterTranslateY.valueAt(t).dp.toPx()
-                        alpha = LoginIntroMotion.characterAlpha.valueAt(t)
-                        rotationZ = LoginIntroMotion.characterRotation.valueAt(t)
-                        LoginIntroMotion.characterScale.valueAt(t).let { scaleX = it; scaleY = it }
-                    },
-            )
-        }
+        LoginIntroScene(now = now, modifier = Modifier.align(Alignment.Center))
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -134,6 +110,42 @@ fun LoginScreen(
             // Figma: 구글 버튼 아래로 홈 인디케이터까지 97dp
             Spacer(Modifier.height(97.dp))
         }
+    }
+}
+
+// 글자 조각 → KIRI 로고 → 캐릭터 애니메이션. 로그인 화면과 앱 시작 스플래시가 함께 쓴다
+// Figma 화면(390×844)을 가운데에 맞춰 놓고 그 좌표 그대로 배치한다
+@Composable
+internal fun LoginIntroScene(now: () -> Float, modifier: Modifier = Modifier) {
+    Box(modifier.requiredSize(LoginIntroMotion.DESIGN_WIDTH.dp, LoginIntroMotion.DESIGN_HEIGHT.dp)) {
+        LoginIntroMotion.pieces.forEachIndexed { index, piece ->
+            IntroPieceImage(piece = piece, image = PIECE_IMAGES[index], now = now)
+        }
+        Image(
+            painter = painterResource(R.drawable.img_auth_intro_wordmark),
+            contentDescription = "KIRI",
+            modifier = Modifier
+                .centeredAt(LoginIntroMotion.WORDMARK_CENTER_X, LoginIntroMotion.WORDMARK_CENTER_Y, 275.934f, 99.531f)
+                .graphicsLayer {
+                    val t = now()
+                    alpha = LoginIntroMotion.wordmarkAlpha.valueAt(t)
+                    LoginIntroMotion.wordmarkScale.valueAt(t).let { scaleX = it; scaleY = it }
+                }
+                .testTag("login_wordmark"),
+        )
+        Image(
+            painter = painterResource(R.drawable.img_auth_intro_character),
+            contentDescription = null,
+            modifier = Modifier
+                .centeredAt(LoginIntroMotion.CHARACTER_CENTER_X, LoginIntroMotion.CHARACTER_CENTER_Y, 56f, 56f)
+                .graphicsLayer {
+                    val t = now()
+                    translationY = LoginIntroMotion.characterTranslateY.valueAt(t).dp.toPx()
+                    alpha = LoginIntroMotion.characterAlpha.valueAt(t)
+                    rotationZ = LoginIntroMotion.characterRotation.valueAt(t)
+                    LoginIntroMotion.characterScale.valueAt(t).let { scaleX = it; scaleY = it }
+                },
+        )
     }
 }
 

@@ -40,6 +40,8 @@ fun AuthRoute(
     onNavigateToOnboarding: () -> Unit,
     onNavigateToMain: () -> Unit,
     modifier: Modifier = Modifier,
+    // 앱 시작 스플래시를 보여준 뒤 바로 들어왔으면 true. 로그인 화면이 애니메이션을 처음부터 다시 재생하지 않고 이어서 버튼을 띄운다
+    continueFromSplash: Boolean = false,
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -91,6 +93,7 @@ fun AuthRoute(
         modifier = modifier,
         state = state,
         onEvent = viewModel::onEvent,
+        continueFromSplash = continueFromSplash,
     )
 }
 
@@ -99,6 +102,7 @@ fun AuthScreen(
     state: AuthUiState,
     onEvent: (AuthUiEvent) -> Unit,
     modifier: Modifier = Modifier,
+    continueFromSplash: Boolean = false,
 ) {
     val onBackClick = { onEvent(AuthUiEvent.BackClicked) }
 
@@ -114,6 +118,7 @@ fun AuthScreen(
                 onLoginClick = { onEvent(AuthUiEvent.LoginClicked(it)) },
                 loginEnabled = !state.isLoggingIn,
                 playIntro = !introPlayed,
+                continueFromSplash = continueFromSplash,
                 onIntroFinished = { introPlayed = true },
             )
             AuthStep.TERMS_AGREEMENT -> TermsAgreementScreen(
