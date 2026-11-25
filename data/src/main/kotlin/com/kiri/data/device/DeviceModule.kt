@@ -1,6 +1,6 @@
 package com.kiri.data.device
 
-import com.kiri.domain.repository.PushDeviceRepository
+import com.kiri.domain.push.repository.PushDeviceRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

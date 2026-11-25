@@ -29,9 +29,9 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.kiri.domain.detail.MissionDetail
-import com.kiri.domain.mission.MissionReview
-import com.kiri.domain.time.kiriToday
+import com.kiri.domain.mission.model.MissionDetail
+import com.kiri.domain.mission.repository.MissionReview
+import com.kiri.domain.common.kiriToday
 import com.kiri.feature.detail.R as DetailR
 import com.kiri.feature.detail.model.*
 import com.kiri.uikit.R as UiR

@@ -11,10 +11,10 @@ import androidx.lifecycle.lifecycleScope
 import com.kiri.app.navigation.KiriApp
 import com.kiri.app.push.NotificationPermissionPromptEnabled
 import com.kiri.app.navigation.PendingScheduleInvite
-import com.kiri.domain.model.invite.InviteLink
-import com.kiri.domain.model.schedule.ScheduleInviteLink
-import com.kiri.domain.repository.AuthRepository
-import com.kiri.domain.repository.PendingInviteRepository
+import com.kiri.domain.invite.model.InviteLink
+import com.kiri.domain.schedule.model.ScheduleInviteLink
+import com.kiri.domain.auth.repository.AuthRepository
+import com.kiri.domain.invite.repository.PendingInviteRepository
 import com.kiri.uikit.KiriTheme
 import com.kiri.uikit.permission.LocalNotificationPermissionPromptEnabled
 import dagger.hilt.android.AndroidEntryPoint

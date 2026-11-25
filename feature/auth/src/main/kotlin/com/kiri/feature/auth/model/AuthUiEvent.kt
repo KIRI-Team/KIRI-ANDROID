@@ -1,6 +1,6 @@
 package com.kiri.feature.auth.model
 
-import com.kiri.domain.model.term.Term
+import com.kiri.domain.term.model.Term
 import com.kiri.feature.auth.login.SocialLoginResult
 
 // 화면 → ViewModel 으로 전달하는 사용자 동작

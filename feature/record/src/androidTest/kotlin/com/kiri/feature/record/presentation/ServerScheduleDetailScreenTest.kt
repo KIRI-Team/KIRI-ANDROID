@@ -12,27 +12,27 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
 import androidx.compose.ui.geometry.Offset
-import com.kiri.domain.detail.Condition
+import com.kiri.domain.mission.model.Condition
 import com.kiri.feature.detail.presentation.ConditionCustomScreen
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
-import com.kiri.domain.model.mission.MissionBucketState
-import com.kiri.domain.model.mission.MissionGuide
-import com.kiri.domain.model.mission.MissionInfo
-import com.kiri.domain.model.mission.MissionPlace
-import com.kiri.domain.model.mission.WalkingLevel
-import com.kiri.domain.model.schedule.ScheduleDetail
-import com.kiri.domain.model.schedule.ScheduleDisplayStatus
-import com.kiri.domain.model.schedule.MyScheduleStatus
-import com.kiri.domain.model.schedule.ScheduleParticipant
+import com.kiri.domain.mission.model.MissionBucketState
+import com.kiri.domain.mission.model.MissionGuide
+import com.kiri.domain.mission.model.MissionInfo
+import com.kiri.domain.mission.model.MissionPlace
+import com.kiri.domain.mission.model.WalkingLevel
+import com.kiri.domain.schedule.model.ScheduleDetail
+import com.kiri.domain.schedule.model.ScheduleDisplayStatus
+import com.kiri.domain.schedule.model.MyScheduleStatus
+import com.kiri.domain.schedule.model.ScheduleParticipant
 import com.kiri.feature.detail.model.DetailUiEvent
 import com.kiri.feature.detail.model.DetailUiState
 import com.kiri.feature.record.ServerScheduleDetailUiState
-import com.kiri.domain.model.member.FamilyRole
-import com.kiri.domain.model.review.ReviewWriter
-import com.kiri.domain.model.review.ScheduleReview
+import com.kiri.domain.member.model.FamilyRole
+import com.kiri.domain.review.model.ReviewWriter
+import com.kiri.domain.review.model.ScheduleReview
 import com.kiri.feature.record.toMissionDetail
 import com.kiri.uikit.KiriTheme
 import java.time.LocalDate
@@ -160,7 +160,7 @@ class ServerScheduleDetailScreenTest {
                         detail = DetailUiState(
                             loading = false,
                             detail = detail.toMissionDetail(7, mission).copy(
-                                essentials = listOf(com.kiri.domain.detail.DetailSuggestion("사전 예약", "")),
+                                essentials = listOf(com.kiri.domain.mission.model.DetailSuggestion("사전 예약", "")),
                             ),
                         ),
                         schedule = detail,

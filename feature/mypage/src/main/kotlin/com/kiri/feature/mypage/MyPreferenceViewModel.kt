@@ -2,8 +2,8 @@ package com.kiri.feature.mypage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.model.taste.Taste
-import com.kiri.domain.repository.TasteRepository
+import com.kiri.domain.taste.model.Taste
+import com.kiri.domain.taste.repository.TasteRepository
 import com.kiri.feature.mypage.model.preference.MyPreferenceUiEffect
 import com.kiri.feature.mypage.model.preference.MyPreferenceUiEvent
 import com.kiri.feature.mypage.model.preference.MyPreferenceUiState

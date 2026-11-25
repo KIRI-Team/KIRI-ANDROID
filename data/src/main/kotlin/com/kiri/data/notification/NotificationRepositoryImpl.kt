@@ -1,10 +1,10 @@
 package com.kiri.data.notification
 
 import com.kiri.data.network.ApiResponse
-import com.kiri.domain.notification.FamilyNotification
-import com.kiri.domain.notification.NotificationCategory
-import com.kiri.domain.notification.NotificationRepository
-import com.kiri.domain.notification.NotificationTarget
+import com.kiri.domain.notification.repository.FamilyNotification
+import com.kiri.domain.notification.repository.NotificationCategory
+import com.kiri.domain.notification.repository.NotificationRepository
+import com.kiri.domain.notification.repository.NotificationTarget
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

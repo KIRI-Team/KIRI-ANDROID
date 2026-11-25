@@ -1,6 +1,6 @@
 package com.kiri.feature.detail.model
 
-import com.kiri.domain.detail.Condition
+import com.kiri.domain.mission.model.Condition
 
 sealed interface DetailUiEvent {
     data object RetryClicked : DetailUiEvent

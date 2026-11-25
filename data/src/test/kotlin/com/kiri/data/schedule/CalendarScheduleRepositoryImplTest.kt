@@ -3,22 +3,22 @@ package com.kiri.data.schedule
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiBaseUrl
 import com.kiri.data.network.kiriJson
-import com.kiri.domain.model.schedule.CalendarScheduleStatus
-import com.kiri.domain.model.family.NoFamilyException
-import com.kiri.domain.model.schedule.CalendarSchedule
-import com.kiri.domain.model.schedule.CancelledScheduleException
-import com.kiri.domain.model.schedule.MyScheduleStatus
-import com.kiri.domain.model.schedule.ScheduleDetail
-import com.kiri.domain.model.schedule.ScheduleDisplayStatus
-import com.kiri.domain.model.schedule.ScheduleNotFoundException
-import com.kiri.domain.model.schedule.ScheduleParticipant
-import com.kiri.domain.model.schedule.ScheduleProposer
-import com.kiri.domain.model.schedule.ScheduleChangedField
-import com.kiri.domain.model.member.FamilyRole
-import com.kiri.domain.model.schedule.ScheduleUpdate
-import com.kiri.domain.model.schedule.NotScheduleProposerException
-import com.kiri.domain.model.schedule.ScheduleNotEditableException
-import com.kiri.domain.model.schedule.InvalidScheduleUpdateException
+import com.kiri.domain.schedule.model.CalendarScheduleStatus
+import com.kiri.domain.family.model.NoFamilyException
+import com.kiri.domain.schedule.model.CalendarSchedule
+import com.kiri.domain.schedule.model.CancelledScheduleException
+import com.kiri.domain.schedule.model.MyScheduleStatus
+import com.kiri.domain.schedule.model.ScheduleDetail
+import com.kiri.domain.schedule.model.ScheduleDisplayStatus
+import com.kiri.domain.schedule.model.ScheduleNotFoundException
+import com.kiri.domain.schedule.model.ScheduleParticipant
+import com.kiri.domain.schedule.model.ScheduleProposer
+import com.kiri.domain.schedule.model.ScheduleChangedField
+import com.kiri.domain.member.model.FamilyRole
+import com.kiri.domain.schedule.model.ScheduleUpdate
+import com.kiri.domain.schedule.model.NotScheduleProposerException
+import com.kiri.domain.schedule.model.ScheduleNotEditableException
+import com.kiri.domain.schedule.model.InvalidScheduleUpdateException
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -128,9 +128,9 @@ class CalendarScheduleRepositoryImplTest {
         failure(403, "SCHEDULE403_1")
         assertTrue(repository().createSchedule(42, form).exceptionOrNull() is NoFamilyException)
         failure(404, "SCHEDULE404_1")
-        assertTrue(repository().createSchedule(42, form).exceptionOrNull() is com.kiri.domain.model.bucket.BucketItemNotFoundException)
+        assertTrue(repository().createSchedule(42, form).exceptionOrNull() is com.kiri.domain.bucket.model.BucketItemNotFoundException)
         failure(409, "SCHEDULE409_1")
-        assertTrue(repository().createSchedule(42, form).exceptionOrNull() is com.kiri.domain.model.schedule.BucketNotSchedulableException)
+        assertTrue(repository().createSchedule(42, form).exceptionOrNull() is com.kiri.domain.schedule.model.BucketNotSchedulableException)
         failure(400, "COMMON400_1")
         assertTrue(repository().createSchedule(42, form).exceptionOrNull() is InvalidScheduleUpdateException)
     }

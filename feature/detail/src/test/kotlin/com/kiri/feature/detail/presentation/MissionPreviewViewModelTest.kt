@@ -1,12 +1,12 @@
 package com.kiri.feature.detail.presentation
 
 import androidx.lifecycle.SavedStateHandle
-import com.kiri.domain.detail.NearbyPlace
-import com.kiri.domain.model.mission.MissionBucketState
-import com.kiri.domain.model.mission.MissionInfo
-import com.kiri.domain.repository.AppEventRepository
-import com.kiri.domain.repository.MissionInfoRepository
-import com.kiri.domain.repository.MissionNearbyRepository
+import com.kiri.domain.mission.model.NearbyPlace
+import com.kiri.domain.mission.model.MissionBucketState
+import com.kiri.domain.mission.model.MissionInfo
+import com.kiri.domain.event.repository.AppEventRepository
+import com.kiri.domain.mission.repository.MissionInfoRepository
+import com.kiri.domain.mission.repository.MissionNearbyRepository
 import com.kiri.feature.detail.MissionPreviewViewModel
 import com.kiri.feature.detail.model.MissionPreviewUiEffect
 import com.kiri.feature.detail.model.MissionPreviewUiEvent
@@ -60,12 +60,12 @@ class MissionPreviewViewModelTest {
     }
 
     // 가족 정보만 돌려주는 홈 저장소. familyName 이 null 이면 둘러보기 사용자다
-    private fun homeWith(familyName: String?) = object : com.kiri.domain.home.HomeRepository {
-        private val family = com.kiri.domain.home.FamilyHome(java.time.LocalDate.of(2026, 11, 11), "13", familyName,
+    private fun homeWith(familyName: String?) = object : com.kiri.domain.home.repository.HomeRepository {
+        private val family = com.kiri.domain.home.repository.FamilyHome(java.time.LocalDate.of(2026, 11, 11), "13", familyName,
             emptyList(), null, emptyMap(), emptySet(), null, serverBacked = true)
         override suspend fun load() = family
-        override suspend fun saveAnswer(question: com.kiri.domain.home.DailyQuestion, answer: String) = family
-        override suspend fun poke(question: com.kiri.domain.home.DailyQuestion, memberId: String) = family
+        override suspend fun saveAnswer(question: com.kiri.domain.home.repository.DailyQuestion, answer: String) = family
+        override suspend fun poke(question: com.kiri.domain.home.repository.DailyQuestion, memberId: String) = family
     }
 
     @Test fun browsingUserCannotSaveBucketAndSeesNotice() = runTest(dispatcher) {

@@ -16,7 +16,7 @@ import com.kiri.feature.home.model.HomeUiDestination
 import com.kiri.feature.home.HomeViewModel
 import com.kiri.feature.home.model.HomeUiEvent
 import com.kiri.feature.home.presentation.NotificationRoute
-import com.kiri.domain.notification.NotificationTarget
+import com.kiri.domain.notification.repository.NotificationTarget
 
 private const val GRAPH_ROUTE = "home_graph"
 private const val START_ROUTE = "home"

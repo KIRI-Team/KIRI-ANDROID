@@ -13,7 +13,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.kiri.domain.mission.MissionReview
+import com.kiri.domain.mission.repository.MissionReview
 import com.kiri.feature.detail.R
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.KiriDetailTypography

@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.kiri.feature.auth.presentation.SplashScreen
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.kiri.domain.repository.*
+import com.kiri.domain.auth.repository.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow

@@ -2,7 +2,7 @@ package com.kiri.feature.mypage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.repository.AuthRepository
+import com.kiri.domain.auth.repository.AuthRepository
 import com.kiri.feature.mypage.model.account.AccountInfoUiEffect
 import com.kiri.feature.mypage.model.account.AccountInfoUiEvent
 import com.kiri.feature.mypage.model.account.AccountInfoUiState

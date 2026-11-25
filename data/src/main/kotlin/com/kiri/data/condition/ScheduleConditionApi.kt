@@ -1,9 +1,9 @@
 package com.kiri.data.condition
 
 import com.kiri.data.network.ApiResponse
-import com.kiri.domain.detail.Condition
-import com.kiri.domain.model.condition.ConditionCustom
-import com.kiri.domain.model.mission.WalkingLevel
+import com.kiri.domain.mission.model.Condition
+import com.kiri.domain.schedule.model.ConditionCustom
+import com.kiri.domain.mission.model.WalkingLevel
 import kotlinx.serialization.Serializable
 import retrofit2.http.Body
 import retrofit2.http.GET

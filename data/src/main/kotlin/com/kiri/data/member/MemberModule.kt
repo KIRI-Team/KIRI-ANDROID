@@ -1,6 +1,6 @@
 package com.kiri.data.member
 
-import com.kiri.domain.repository.MemberRepository
+import com.kiri.domain.member.repository.MemberRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

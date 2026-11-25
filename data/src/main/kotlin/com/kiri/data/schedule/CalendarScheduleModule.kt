@@ -1,9 +1,9 @@
 package com.kiri.data.schedule
 
-import com.kiri.domain.home.HomeRepository
-import com.kiri.domain.repository.CalendarScheduleRepository
-import com.kiri.domain.repository.UpcomingScheduleRepository
-import com.kiri.domain.usecase.schedule.GetScheduleEditAccessUseCase
+import com.kiri.domain.home.repository.HomeRepository
+import com.kiri.domain.schedule.repository.CalendarScheduleRepository
+import com.kiri.domain.schedule.repository.UpcomingScheduleRepository
+import com.kiri.domain.schedule.usecase.GetScheduleEditAccessUseCase
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

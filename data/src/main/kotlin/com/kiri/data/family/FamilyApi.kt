@@ -1,8 +1,8 @@
 package com.kiri.data.family
 
 import com.kiri.data.network.ApiResponse
-import com.kiri.domain.model.family.Family
-import com.kiri.domain.model.invite.Invite
+import com.kiri.domain.family.model.Family
+import com.kiri.domain.invite.model.Invite
 import java.time.LocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -155,10 +155,10 @@ internal data class CreateFamilyResponse(
 )
 
 // 우편번호나 주소가 없으면 아직 등록하지 않은 것이다
-internal fun FamilyAddressResponse.toFamilyAddressOrNull(): com.kiri.domain.model.family.FamilyAddress? {
+internal fun FamilyAddressResponse.toFamilyAddressOrNull(): com.kiri.domain.family.model.FamilyAddress? {
     val postalCode = postalCode?.takeIf { it.isNotBlank() } ?: return null
     val address = address?.takeIf { it.isNotBlank() } ?: return null
-    return com.kiri.domain.model.family.FamilyAddress(
+    return com.kiri.domain.family.model.FamilyAddress(
         postalCode = postalCode,
         address = address,
         detailAddress = detailAddress.orEmpty(),

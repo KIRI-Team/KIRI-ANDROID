@@ -1,6 +1,6 @@
 package com.kiri.data.mission
 
-import com.kiri.domain.repository.MissionInfoRepository
+import com.kiri.domain.mission.repository.MissionInfoRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

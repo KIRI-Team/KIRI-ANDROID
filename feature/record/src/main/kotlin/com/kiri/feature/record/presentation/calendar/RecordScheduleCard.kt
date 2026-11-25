@@ -13,8 +13,8 @@ import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.kiri.domain.model.schedule.UpcomingSchedule
-import com.kiri.domain.model.schedule.UpcomingScheduleType
+import com.kiri.domain.schedule.model.UpcomingSchedule
+import com.kiri.domain.schedule.model.UpcomingScheduleType
 import com.kiri.feature.record.R
 import com.kiri.feature.record.model.*
 import com.kiri.uikit.color.KiriColor

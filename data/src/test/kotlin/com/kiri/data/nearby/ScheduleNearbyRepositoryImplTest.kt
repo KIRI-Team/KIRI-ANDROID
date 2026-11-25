@@ -3,9 +3,9 @@ package com.kiri.data.nearby
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiBaseUrl
 import com.kiri.data.network.kiriJson
-import com.kiri.domain.detail.NearbyPlace
-import com.kiri.domain.model.family.NoFamilyException
-import com.kiri.domain.model.schedule.ScheduleNotFoundException
+import com.kiri.domain.mission.model.NearbyPlace
+import com.kiri.domain.family.model.NoFamilyException
+import com.kiri.domain.schedule.model.ScheduleNotFoundException
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer

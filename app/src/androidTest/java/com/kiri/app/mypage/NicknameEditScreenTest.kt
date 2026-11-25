@@ -7,7 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.kiri.domain.model.nickname.NicknameRule
+import com.kiri.domain.member.model.NicknameRule
 import com.kiri.feature.mypage.model.nameedit.NameEditUiEvent
 import com.kiri.feature.mypage.model.nameedit.NameEditUiState
 import com.kiri.feature.mypage.presentation.nameedit.NicknameEditScreen

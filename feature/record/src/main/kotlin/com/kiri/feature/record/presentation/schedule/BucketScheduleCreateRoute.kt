@@ -10,7 +10,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import com.kiri.domain.record.ScheduleRequestChannel
+import com.kiri.domain.schedule.model.ScheduleRequestChannel
 import com.kiri.feature.record.BucketScheduleCreateEffect
 import com.kiri.feature.record.BucketScheduleCreateUiState
 import com.kiri.feature.record.BucketScheduleCreateViewModel

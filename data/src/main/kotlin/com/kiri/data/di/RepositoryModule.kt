@@ -1,7 +1,7 @@
 package com.kiri.data.di
 
 import com.kiri.data.repository.PendingInviteRepositoryImpl
-import com.kiri.domain.repository.PendingInviteRepository
+import com.kiri.domain.invite.repository.PendingInviteRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

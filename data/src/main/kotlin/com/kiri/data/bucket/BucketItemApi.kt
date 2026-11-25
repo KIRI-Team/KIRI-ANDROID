@@ -1,10 +1,10 @@
 package com.kiri.data.bucket
 
 import com.kiri.data.network.ApiResponse
-import com.kiri.domain.model.bucket.BucketItem
-import com.kiri.domain.model.bucket.BucketItemPage
-import com.kiri.domain.model.bucket.BucketItemStatus
-import com.kiri.domain.model.bucket.BucketSaver
+import com.kiri.domain.bucket.model.BucketItem
+import com.kiri.domain.bucket.model.BucketItemPage
+import com.kiri.domain.bucket.model.BucketItemStatus
+import com.kiri.domain.bucket.model.BucketSaver
 import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlinx.serialization.Serializable

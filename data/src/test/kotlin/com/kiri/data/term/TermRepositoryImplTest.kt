@@ -3,7 +3,7 @@ package com.kiri.data.term
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiBaseUrl
 import com.kiri.data.network.kiriJson
-import com.kiri.domain.model.term.Term
+import com.kiri.domain.term.model.Term
 import java.io.IOException
 import java.time.LocalDate
 import kotlinx.coroutines.test.runTest

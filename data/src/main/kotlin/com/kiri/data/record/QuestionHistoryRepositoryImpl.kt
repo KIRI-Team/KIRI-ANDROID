@@ -2,11 +2,11 @@ package com.kiri.data.record
 
 import com.kiri.data.local.LocalStateStore
 import com.kiri.data.local.localStorageScope
-import com.kiri.domain.home.FamilyHome
-import com.kiri.domain.home.HomeRepository
-import com.kiri.domain.record.QuestionHistoryRepository
-import com.kiri.domain.record.RecordedQuestion
-import com.kiri.domain.time.kiriToday
+import com.kiri.domain.home.repository.FamilyHome
+import com.kiri.domain.home.repository.HomeRepository
+import com.kiri.domain.question.repository.QuestionHistoryRepository
+import com.kiri.domain.question.model.RecordedQuestion
+import com.kiri.domain.common.kiriToday
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

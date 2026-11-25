@@ -1,12 +1,12 @@
 package com.kiri.data.mission
 
 import com.kiri.data.network.ApiResponse
-import com.kiri.domain.model.mission.MissionBucketState
-import com.kiri.domain.model.mission.MissionGuide
-import com.kiri.domain.model.mission.MissionInfo
-import com.kiri.domain.model.mission.MissionPlace
-import com.kiri.domain.model.mission.MissionStatus
-import com.kiri.domain.model.mission.WalkingLevel
+import com.kiri.domain.mission.model.MissionBucketState
+import com.kiri.domain.mission.model.MissionGuide
+import com.kiri.domain.mission.model.MissionInfo
+import com.kiri.domain.mission.model.MissionPlace
+import com.kiri.domain.mission.model.MissionStatus
+import com.kiri.domain.mission.model.WalkingLevel
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.Locale

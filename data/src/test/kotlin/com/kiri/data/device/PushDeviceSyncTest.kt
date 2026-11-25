@@ -5,7 +5,7 @@ import com.kiri.data.auth.FakeTokenStore
 import com.kiri.data.device.PushDeviceSync.Companion.FIRST_RETRY_DELAY_MS
 import com.kiri.data.device.PushDeviceSync.Companion.MAX_ATTEMPTS
 import com.kiri.data.network.KiriApiException
-import com.kiri.domain.repository.PushDeviceRepository
+import com.kiri.domain.push.repository.PushDeviceRepository
 import java.io.IOException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch

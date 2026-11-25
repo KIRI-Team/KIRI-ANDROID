@@ -1,7 +1,7 @@
 package com.kiri.data.home
 
-import com.kiri.domain.home.*
-import com.kiri.domain.mission.MissionRepository
+import com.kiri.domain.home.repository.*
+import com.kiri.domain.mission.repository.MissionRepository
 import com.kiri.data.mission.FakeMissionRepository
 import java.time.Clock
 import java.time.LocalDate

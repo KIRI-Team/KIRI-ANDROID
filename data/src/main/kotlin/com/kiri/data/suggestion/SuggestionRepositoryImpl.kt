@@ -1,7 +1,7 @@
 package com.kiri.data.suggestion
 
 import com.kiri.data.network.apiResult
-import com.kiri.domain.repository.SuggestionRepository
+import com.kiri.domain.suggestion.repository.SuggestionRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

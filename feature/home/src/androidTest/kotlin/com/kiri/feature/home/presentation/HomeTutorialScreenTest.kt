@@ -13,7 +13,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
-import com.kiri.domain.home.*
+import com.kiri.domain.home.repository.*
 import com.kiri.feature.home.HomeViewModel
 import com.kiri.uikit.KiriTheme
 import org.junit.Assert.*

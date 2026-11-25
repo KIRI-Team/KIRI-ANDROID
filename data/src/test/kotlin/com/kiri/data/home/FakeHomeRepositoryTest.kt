@@ -1,6 +1,6 @@
 package com.kiri.data.home
 
-import com.kiri.domain.home.*
+import com.kiri.domain.home.repository.*
 import java.time.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll

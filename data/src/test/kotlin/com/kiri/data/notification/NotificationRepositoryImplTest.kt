@@ -1,8 +1,8 @@
 package com.kiri.data.notification
 
 import com.kiri.data.network.kiriJson
-import com.kiri.domain.notification.NotificationCategory
-import com.kiri.domain.notification.NotificationTarget
+import com.kiri.domain.notification.repository.NotificationCategory
+import com.kiri.domain.notification.repository.NotificationTarget
 import java.time.Instant
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse

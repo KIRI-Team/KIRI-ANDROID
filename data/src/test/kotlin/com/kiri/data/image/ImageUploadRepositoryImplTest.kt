@@ -3,10 +3,10 @@ package com.kiri.data.image
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiBaseUrl
 import com.kiri.data.network.kiriJson
-import com.kiri.domain.model.image.ImageContentType
-import com.kiri.domain.model.image.ImageUploadFailedException
-import com.kiri.domain.model.image.InvalidUploadImageException
-import com.kiri.domain.model.image.UploadImage
+import com.kiri.domain.image.model.ImageContentType
+import com.kiri.domain.image.model.ImageUploadFailedException
+import com.kiri.domain.image.model.InvalidUploadImageException
+import com.kiri.domain.image.model.UploadImage
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive

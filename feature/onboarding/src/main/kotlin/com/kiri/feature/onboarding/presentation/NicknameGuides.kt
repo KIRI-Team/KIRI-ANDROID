@@ -1,7 +1,7 @@
 package com.kiri.feature.onboarding.presentation
 
-import com.kiri.domain.model.nickname.NicknameRule
-import com.kiri.domain.model.nickname.NicknameValidator
+import com.kiri.domain.member.model.NicknameRule
+import com.kiri.domain.member.model.NicknameValidator
 import com.kiri.feature.onboarding.presentation.component.OnboardingInputGuide
 
 // 닉네임·가족명 입력 아래 안내 문구. 지키지 못한 규칙은 오류로 표시한다. 둘은 최대 길이만 다르다

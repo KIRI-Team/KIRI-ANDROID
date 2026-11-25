@@ -2,12 +2,12 @@ package com.kiri.app.navigation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.home.FamilyAccess
-import com.kiri.domain.home.HomeRepository
-import com.kiri.domain.home.access
-import com.kiri.domain.usecase.invite.AcceptPendingInviteUseCase
-import com.kiri.domain.usecase.invite.InviteAcceptResult
-import com.kiri.domain.usecase.invite.message
+import com.kiri.domain.family.model.FamilyAccess
+import com.kiri.domain.home.repository.HomeRepository
+import com.kiri.domain.family.model.access
+import com.kiri.domain.invite.usecase.AcceptPendingInviteUseCase
+import com.kiri.domain.invite.usecase.InviteAcceptResult
+import com.kiri.domain.invite.usecase.message
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException

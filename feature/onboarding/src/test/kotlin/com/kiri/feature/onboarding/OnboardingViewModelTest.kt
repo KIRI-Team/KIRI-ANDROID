@@ -1,12 +1,12 @@
 package com.kiri.feature.onboarding
 
-import com.kiri.domain.model.family.DuplicateFamilyNameException
-import com.kiri.domain.model.family.Family
-import com.kiri.domain.model.nickname.DuplicateNicknameException
-import com.kiri.domain.model.nickname.NicknameRule
-import com.kiri.domain.model.invite.Invite
+import com.kiri.domain.family.model.DuplicateFamilyNameException
+import com.kiri.domain.family.model.Family
+import com.kiri.domain.member.model.DuplicateNicknameException
+import com.kiri.domain.member.model.NicknameRule
+import com.kiri.domain.invite.model.Invite
 import java.io.IOException
-import com.kiri.domain.model.member.FamilyRole as MemberFamilyRole
+import com.kiri.domain.member.model.FamilyRole as MemberFamilyRole
 import com.kiri.feature.onboarding.model.FamilyRole
 import com.kiri.feature.onboarding.model.OnboardingUiEffect
 import com.kiri.feature.onboarding.model.OnboardingUiEvent
@@ -351,9 +351,9 @@ class OnboardingViewModelTest {
         moveToFamilyCode("4QNC1Q")
         val effects = collectEffects()
         val cases = listOf(
-            com.kiri.domain.model.family.InvalidInviteCodeException() to "가족코드를 다시 확인해주세요.",
-            com.kiri.domain.model.family.ExpiredInviteCodeException() to "만료된 가족코드예요. 가족에게 새 코드를 받아주세요.",
-            com.kiri.domain.model.family.AlreadyInFamilyException() to "이미 다른 가족에 가입되어 있어요.",
+            com.kiri.domain.family.model.InvalidInviteCodeException() to "가족코드를 다시 확인해주세요.",
+            com.kiri.domain.family.model.ExpiredInviteCodeException() to "만료된 가족코드예요. 가족에게 새 코드를 받아주세요.",
+            com.kiri.domain.family.model.AlreadyInFamilyException() to "이미 다른 가족에 가입되어 있어요.",
             IOException() to "가족에 참여하지 못했어요. 잠시 후 다시 시도해주세요.",
         )
 

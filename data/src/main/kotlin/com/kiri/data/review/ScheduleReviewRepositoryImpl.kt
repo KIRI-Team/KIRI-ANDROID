@@ -3,15 +3,15 @@ package com.kiri.data.review
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiCommand
 import com.kiri.data.network.apiResult
-import com.kiri.domain.model.review.AlreadyReviewedException
-import com.kiri.domain.model.review.InvalidReviewException
-import com.kiri.domain.model.review.NotScheduleParticipantException
-import com.kiri.domain.model.review.ReviewAccessDeniedException
-import com.kiri.domain.model.review.ScheduleReview
-import com.kiri.domain.model.review.ScheduleReviewForm
-import com.kiri.domain.model.review.ScheduleReviewResult
-import com.kiri.domain.model.schedule.ScheduleNotFoundException
-import com.kiri.domain.repository.ScheduleReviewRepository
+import com.kiri.domain.review.model.AlreadyReviewedException
+import com.kiri.domain.review.model.InvalidReviewException
+import com.kiri.domain.review.model.NotScheduleParticipantException
+import com.kiri.domain.review.model.ReviewAccessDeniedException
+import com.kiri.domain.review.model.ScheduleReview
+import com.kiri.domain.review.model.ScheduleReviewForm
+import com.kiri.domain.review.model.ScheduleReviewResult
+import com.kiri.domain.schedule.model.ScheduleNotFoundException
+import com.kiri.domain.review.repository.ScheduleReviewRepository
 import javax.inject.Inject
 import kotlinx.serialization.json.Json
 
@@ -48,7 +48,7 @@ internal class ScheduleReviewRepositoryImpl @Inject constructor(
             .map { it.representativePhotoId }
             .recoverCatching { error ->
                 throw when ((error as? KiriApiException)?.code) {
-                    PHOTO_NOT_FOUND -> com.kiri.domain.model.review.ReviewPhotoNotFoundException()
+                    PHOTO_NOT_FOUND -> com.kiri.domain.review.model.ReviewPhotoNotFoundException()
                     ACCESS_DENIED -> ReviewAccessDeniedException()
                     SCHEDULE_NOT_FOUND -> ScheduleNotFoundException()
                     else -> error
@@ -59,7 +59,7 @@ internal class ScheduleReviewRepositoryImpl @Inject constructor(
     private fun <T> Result<T>.recoverMyReviewErrors(): Result<T> = recoverCatching { error ->
         val api = error as? KiriApiException
         throw when {
-            api?.code == REVIEW_NOT_FOUND -> com.kiri.domain.model.review.ReviewNotFoundException()
+            api?.code == REVIEW_NOT_FOUND -> com.kiri.domain.review.model.ReviewNotFoundException()
             // 다른 가족의 리뷰(REVIEW403_2)와 본인 리뷰가 아닌 경우(같은 403) 모두 권한 없음으로 본다
             api?.code?.startsWith("REVIEW403") == true -> ReviewAccessDeniedException()
             api?.code == INVALID_INPUT -> InvalidReviewException(api.message)
@@ -70,10 +70,10 @@ internal class ScheduleReviewRepositoryImpl @Inject constructor(
     override suspend fun getReviews(scheduleId: Long): Result<List<ScheduleReview>> =
         getReviewList(scheduleId).map { it.reviews }
 
-    override suspend fun getReviewList(scheduleId: Long): Result<com.kiri.domain.model.review.ScheduleReviewList> =
+    override suspend fun getReviewList(scheduleId: Long): Result<com.kiri.domain.review.model.ScheduleReviewList> =
         apiResult(json) { api.getReviews(scheduleId) }
             .map { response ->
-                com.kiri.domain.model.review.ScheduleReviewList(response.reviews.map { it.toScheduleReview() }, response.representativePhotoId)
+                com.kiri.domain.review.model.ScheduleReviewList(response.reviews.map { it.toScheduleReview() }, response.representativePhotoId)
             }
             .recoverCatching { error ->
                 throw when ((error as? KiriApiException)?.code) {

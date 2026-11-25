@@ -1,9 +1,9 @@
 package com.kiri.data.taste
 
 import com.kiri.data.network.apiResult
-import com.kiri.domain.model.taste.MyTaste
-import com.kiri.domain.model.taste.Taste
-import com.kiri.domain.repository.TasteRepository
+import com.kiri.domain.taste.model.MyTaste
+import com.kiri.domain.taste.model.Taste
+import com.kiri.domain.taste.repository.TasteRepository
 import javax.inject.Inject
 import kotlinx.serialization.json.Json
 

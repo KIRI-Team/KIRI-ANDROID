@@ -1,6 +1,6 @@
 package com.kiri.data.review
 
-import com.kiri.domain.repository.ScheduleReviewRepository
+import com.kiri.domain.review.repository.ScheduleReviewRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

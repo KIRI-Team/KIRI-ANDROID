@@ -3,10 +3,10 @@ package com.kiri.data.family
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiBaseUrl
 import com.kiri.data.network.kiriJson
-import com.kiri.domain.model.family.DuplicateFamilyNameException
-import com.kiri.domain.model.family.Family
-import com.kiri.domain.model.family.NoFamilyException
-import com.kiri.domain.model.invite.Invite
+import com.kiri.domain.family.model.DuplicateFamilyNameException
+import com.kiri.domain.family.model.Family
+import com.kiri.domain.family.model.NoFamilyException
+import com.kiri.domain.invite.model.Invite
 import java.io.IOException
 import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
@@ -212,7 +212,7 @@ class FamilyRepositoryImplTest {
         val error = repository().renameFamily("끼리네가족2").exceptionOrNull()
 
         // 같은 가족의 구성원이지만 방장이 아니어서 거절된 것으로 본다
-        assertTrue(error is com.kiri.domain.model.family.NotFamilyOwnerException)
+        assertTrue(error is com.kiri.domain.family.model.NotFamilyOwnerException)
         assertEquals(2, server.requestCount)
     }
 
@@ -237,7 +237,7 @@ class FamilyRepositoryImplTest {
         assertEquals("/api/v1/families/join/code", request.url.encodedPath)
         val body = kiriJson.parseToJsonElement(request.body!!.utf8()).jsonObject
         assertEquals("4QNC1Q", body["inviteCode"]!!.jsonPrimitive.content)
-        assertEquals(com.kiri.domain.model.family.JoinedFamily(1, "끼리네가족"), joined)
+        assertEquals(com.kiri.domain.family.model.JoinedFamily(1, "끼리네가족"), joined)
         assertEquals(1L, familyIdStore.saved)
     }
 
@@ -251,7 +251,7 @@ class FamilyRepositoryImplTest {
         assertEquals("POST", request.method)
         assertEquals("/api/v1/families/join/tok-abc123", request.url.encodedPath)
         assertEquals(0, request.body?.size ?: 0)
-        assertEquals(com.kiri.domain.model.family.JoinedFamily(3, "끼리네가족"), joined)
+        assertEquals(com.kiri.domain.family.model.JoinedFamily(3, "끼리네가족"), joined)
         assertEquals(3L, familyIdStore.saved)
     }
 
@@ -259,7 +259,7 @@ class FamilyRepositoryImplTest {
     fun 빈_초대_토큰은_보내지_않는다() = runTest {
         val error = repository().joinFamilyByToken(" ").exceptionOrNull()
 
-        assertTrue(error is com.kiri.domain.model.family.InvalidInviteCodeException)
+        assertTrue(error is com.kiri.domain.family.model.InvalidInviteCodeException)
         assertEquals(0, server.requestCount)
     }
 
@@ -273,9 +273,9 @@ class FamilyRepositoryImplTest {
         enqueue(404, failure("MEMBER404_1"))
 
         val repo = repository()
-        assertTrue(repo.joinFamilyByToken("tok").exceptionOrNull() is com.kiri.domain.model.family.ExpiredInviteCodeException)
-        assertTrue(repo.joinFamilyByToken("tok").exceptionOrNull() is com.kiri.domain.model.family.AlreadyInFamilyException)
-        repeat(2) { assertTrue(repo.joinFamilyByToken("tok").exceptionOrNull() is com.kiri.domain.model.family.InvalidInviteCodeException) }
+        assertTrue(repo.joinFamilyByToken("tok").exceptionOrNull() is com.kiri.domain.family.model.ExpiredInviteCodeException)
+        assertTrue(repo.joinFamilyByToken("tok").exceptionOrNull() is com.kiri.domain.family.model.AlreadyInFamilyException)
+        repeat(2) { assertTrue(repo.joinFamilyByToken("tok").exceptionOrNull() is com.kiri.domain.family.model.InvalidInviteCodeException) }
         assertEquals("MEMBER404_1", (repo.joinFamilyByToken("tok").exceptionOrNull() as KiriApiException).code)
         assertNull(familyIdStore.saved)
     }
@@ -284,7 +284,7 @@ class FamilyRepositoryImplTest {
     fun 빈_초대_코드는_보내지_않는다() = runTest {
         val error = repository().joinFamily("  ").exceptionOrNull()
 
-        assertTrue(error is com.kiri.domain.model.family.InvalidInviteCodeException)
+        assertTrue(error is com.kiri.domain.family.model.InvalidInviteCodeException)
         assertEquals(0, server.requestCount)
     }
 
@@ -299,9 +299,9 @@ class FamilyRepositoryImplTest {
         enqueue(500, failure("COMMON500_1"))
 
         val repo = repository()
-        assertTrue(repo.joinFamily("4QNC1Q").exceptionOrNull() is com.kiri.domain.model.family.ExpiredInviteCodeException)
-        assertTrue(repo.joinFamily("4QNC1Q").exceptionOrNull() is com.kiri.domain.model.family.AlreadyInFamilyException)
-        repeat(3) { assertTrue(repo.joinFamily("4QNC1Q").exceptionOrNull() is com.kiri.domain.model.family.InvalidInviteCodeException) }
+        assertTrue(repo.joinFamily("4QNC1Q").exceptionOrNull() is com.kiri.domain.family.model.ExpiredInviteCodeException)
+        assertTrue(repo.joinFamily("4QNC1Q").exceptionOrNull() is com.kiri.domain.family.model.AlreadyInFamilyException)
+        repeat(3) { assertTrue(repo.joinFamily("4QNC1Q").exceptionOrNull() is com.kiri.domain.family.model.InvalidInviteCodeException) }
         assertEquals("COMMON500_1", (repo.joinFamily("4QNC1Q").exceptionOrNull() as KiriApiException).code)
         assertNull(familyIdStore.saved)
     }
@@ -331,7 +331,7 @@ class FamilyRepositoryImplTest {
         val error = repository().renameFamily("끼리네가족2").exceptionOrNull()
 
         // 같은 가족의 구성원이지만 방장이 아니어서 거절된 것으로 본다
-        assertTrue(error is com.kiri.domain.model.family.NotFamilyOwnerException)
+        assertTrue(error is com.kiri.domain.family.model.NotFamilyOwnerException)
         assertEquals(2, server.requestCount)
     }
 
@@ -344,7 +344,7 @@ class FamilyRepositoryImplTest {
         val error = repository().renameFamily("끼리네가족2").exceptionOrNull()
 
         // 같은 가족의 구성원이지만 방장이 아니어서 거절된 것으로 본다
-        assertTrue(error is com.kiri.domain.model.family.NotFamilyOwnerException)
+        assertTrue(error is com.kiri.domain.family.model.NotFamilyOwnerException)
         assertEquals(2, server.requestCount)
     }
 

@@ -3,9 +3,9 @@ package com.kiri.data.family
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiBaseUrl
 import com.kiri.data.network.kiriJson
-import com.kiri.domain.model.family.NoFamilyException
-import com.kiri.domain.model.invite.Invite
-import com.kiri.domain.model.invite.InviteReissueFailedException
+import com.kiri.domain.family.model.NoFamilyException
+import com.kiri.domain.invite.model.Invite
+import com.kiri.domain.invite.model.InviteReissueFailedException
 import java.io.IOException
 import java.time.LocalDate
 import kotlinx.coroutines.test.runTest

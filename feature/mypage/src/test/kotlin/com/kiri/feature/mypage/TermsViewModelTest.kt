@@ -1,7 +1,7 @@
 package com.kiri.feature.mypage
 
-import com.kiri.domain.model.term.Term
-import com.kiri.domain.repository.TermRepository
+import com.kiri.domain.term.model.Term
+import com.kiri.domain.term.repository.TermRepository
 import com.kiri.feature.mypage.model.terms.TermsUiEffect
 import com.kiri.feature.mypage.model.terms.TermsUiEvent
 import java.io.IOException

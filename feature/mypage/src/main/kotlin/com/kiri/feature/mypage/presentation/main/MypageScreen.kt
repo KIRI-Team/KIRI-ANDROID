@@ -52,7 +52,7 @@ fun MypageRoute(
             // 둘러보기 중에는 가족 설정 메뉴로 가지 않는다
             // TODO: 제한 안내 UI 가 정해지면 바꾼다. 그전까지는 토스트로 알린다
             if (menu.requiresFamily && state.isBrowsing) {
-                android.widget.Toast.makeText(context, com.kiri.domain.home.BROWSING_BLOCKED_MESSAGE, android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, com.kiri.domain.family.model.BROWSING_BLOCKED_MESSAGE, android.widget.Toast.LENGTH_SHORT).show()
             } else {
                 onMenuClick(menu)
             }

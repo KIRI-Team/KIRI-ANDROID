@@ -1,7 +1,7 @@
 package com.kiri.feature.record
 
-import com.kiri.domain.model.schedule.occupiesDay
-import com.kiri.domain.repository.CalendarScheduleRepository
+import com.kiri.domain.schedule.model.occupiesDay
+import com.kiri.domain.schedule.repository.CalendarScheduleRepository
 import java.time.LocalDate
 import java.time.YearMonth
 

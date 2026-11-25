@@ -5,7 +5,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.kiri.app.HiltTestActivity
 import com.kiri.data.home.FakeHomeRepository
 import com.kiri.data.home.HomeRepositoryModule
-import com.kiri.domain.home.*
+import com.kiri.domain.home.repository.*
 import com.kiri.uikit.KiriTheme
 import dagger.Module
 import dagger.Provides

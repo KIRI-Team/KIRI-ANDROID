@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.kiri.domain.model.term.Term
+import com.kiri.domain.term.model.Term
 import com.kiri.feature.auth.presentation.component.AuthAgreementRow
 import com.kiri.feature.auth.presentation.component.AuthAgreementRowType
 import com.kiri.uikit.KiriTypography

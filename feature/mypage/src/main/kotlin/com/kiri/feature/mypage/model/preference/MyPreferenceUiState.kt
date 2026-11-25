@@ -1,7 +1,7 @@
 package com.kiri.feature.mypage.model.preference
 
-import com.kiri.domain.model.taste.MyTaste
-import com.kiri.domain.model.taste.Taste
+import com.kiri.domain.taste.model.MyTaste
+import com.kiri.domain.taste.model.Taste
 
 // 취향은 필수가 아니라 저장된 취향이 없으면 모든 항목이 비어 있다
 data class MyPreferenceUiState(

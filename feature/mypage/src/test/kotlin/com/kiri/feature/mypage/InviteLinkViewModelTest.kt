@@ -1,7 +1,7 @@
 package com.kiri.feature.mypage
 
-import com.kiri.domain.model.invite.Invite
-import com.kiri.domain.model.invite.InviteReissueFailedException
+import com.kiri.domain.invite.model.Invite
+import com.kiri.domain.invite.model.InviteReissueFailedException
 import com.kiri.feature.mypage.model.invite.InviteLinkUiEffect
 import com.kiri.feature.mypage.model.invite.InviteLinkUiEvent
 import com.kiri.feature.mypage.model.invite.InviteLinkUiState

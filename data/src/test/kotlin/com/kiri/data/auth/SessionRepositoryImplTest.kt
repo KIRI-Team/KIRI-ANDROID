@@ -5,7 +5,7 @@ import androidx.datastore.preferences.core.*
 import com.kiri.data.network.*
 import com.kiri.data.family.*
 import com.kiri.data.term.*
-import com.kiri.domain.repository.*
+import com.kiri.domain.auth.repository.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.*

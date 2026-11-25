@@ -2,8 +2,8 @@ package com.kiri.data.schedule
 
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiResult
-import com.kiri.domain.model.schedule.UpcomingSchedules
-import com.kiri.domain.repository.UpcomingScheduleRepository
+import com.kiri.domain.schedule.model.UpcomingSchedules
+import com.kiri.domain.schedule.repository.UpcomingScheduleRepository
 import javax.inject.Inject
 import kotlinx.serialization.json.Json
 

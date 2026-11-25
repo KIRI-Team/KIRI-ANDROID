@@ -2,9 +2,9 @@ package com.kiri.data.family
 
 import com.kiri.data.network.apiCommand
 import com.kiri.data.network.apiResult
-import com.kiri.domain.model.invite.Invite
-import com.kiri.domain.model.invite.InviteReissueFailedException
-import com.kiri.domain.repository.InviteRepository
+import com.kiri.domain.invite.model.Invite
+import com.kiri.domain.invite.model.InviteReissueFailedException
+import com.kiri.domain.invite.repository.InviteRepository
 import javax.inject.Inject
 import kotlinx.serialization.json.Json
 

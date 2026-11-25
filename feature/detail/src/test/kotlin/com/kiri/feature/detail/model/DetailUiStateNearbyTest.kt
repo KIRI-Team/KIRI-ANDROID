@@ -1,8 +1,8 @@
 package com.kiri.feature.detail.model
 
-import com.kiri.domain.detail.Condition
-import com.kiri.domain.detail.MissionDetail
-import com.kiri.domain.detail.NearbyPlace
+import com.kiri.domain.mission.model.Condition
+import com.kiri.domain.mission.model.MissionDetail
+import com.kiri.domain.mission.model.NearbyPlace
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Test

@@ -1,10 +1,10 @@
 package com.kiri.data.review
 
 import com.kiri.data.network.ApiResponse
-import com.kiri.domain.model.member.FamilyRole
-import com.kiri.domain.model.review.ReviewWriter
-import com.kiri.domain.model.review.ScheduleReview
-import com.kiri.domain.model.review.ScheduleReviewForm
+import com.kiri.domain.member.model.FamilyRole
+import com.kiri.domain.review.model.ReviewWriter
+import com.kiri.domain.review.model.ScheduleReview
+import com.kiri.domain.review.model.ScheduleReviewForm
 import java.time.LocalDateTime
 import kotlinx.serialization.Serializable
 import retrofit2.http.Body

@@ -3,12 +3,12 @@ package com.kiri.data.bucket
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiCommand
 import com.kiri.data.network.apiResult
-import com.kiri.domain.model.bucket.BucketItemNotFoundException
-import com.kiri.domain.model.bucket.CompletedBucketItemException
-import com.kiri.domain.model.bucket.NotBucketItemOwnerException
-import com.kiri.domain.model.bucket.ScheduledBucketItemException
-import com.kiri.domain.model.bucket.BucketItemPage
-import com.kiri.domain.repository.BucketItemRepository
+import com.kiri.domain.bucket.model.BucketItemNotFoundException
+import com.kiri.domain.bucket.model.CompletedBucketItemException
+import com.kiri.domain.bucket.model.NotBucketItemOwnerException
+import com.kiri.domain.bucket.model.ScheduledBucketItemException
+import com.kiri.domain.bucket.model.BucketItemPage
+import com.kiri.domain.bucket.repository.BucketItemRepository
 import javax.inject.Inject
 import kotlinx.serialization.json.Json
 

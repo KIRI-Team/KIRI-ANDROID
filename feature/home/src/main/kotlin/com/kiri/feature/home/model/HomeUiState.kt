@@ -1,6 +1,7 @@
 package com.kiri.feature.home.model
 
-import com.kiri.domain.home.*
+import com.kiri.domain.home.repository.*
+import com.kiri.domain.question.model.*
 
 data class HomeUiState(
     val loading: Boolean = true,

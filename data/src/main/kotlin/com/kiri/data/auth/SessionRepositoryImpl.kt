@@ -6,7 +6,7 @@ import com.kiri.data.family.FamilyApi
 import com.kiri.data.family.FamilyIdStore
 import com.kiri.data.term.TermApi
 import com.kiri.data.network.*
-import com.kiri.domain.repository.*
+import com.kiri.domain.auth.repository.*
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

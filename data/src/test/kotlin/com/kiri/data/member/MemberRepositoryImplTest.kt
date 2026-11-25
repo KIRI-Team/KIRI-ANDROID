@@ -3,8 +3,8 @@ package com.kiri.data.member
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiBaseUrl
 import com.kiri.data.network.kiriJson
-import com.kiri.domain.model.member.FamilyRole
-import com.kiri.domain.model.nickname.DuplicateNicknameException
+import com.kiri.domain.member.model.FamilyRole
+import com.kiri.domain.member.model.DuplicateNicknameException
 import java.io.IOException
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.jsonObject

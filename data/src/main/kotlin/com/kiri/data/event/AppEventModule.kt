@@ -2,8 +2,8 @@ package com.kiri.data.event
 
 import com.kiri.data.network.ApiResponse
 import com.kiri.data.network.apiCommand
-import com.kiri.domain.repository.AppEventRepository
-import com.kiri.domain.time.kiriNow
+import com.kiri.domain.event.repository.AppEventRepository
+import com.kiri.domain.common.kiriNow
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

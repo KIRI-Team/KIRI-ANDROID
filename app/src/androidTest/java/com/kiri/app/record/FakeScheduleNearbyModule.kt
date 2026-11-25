@@ -1,9 +1,9 @@
 package com.kiri.app.record
 
 import com.kiri.data.nearby.ScheduleNearbyRepositoryModule
-import com.kiri.domain.detail.NearbyPlace
-import com.kiri.domain.repository.MissionNearbyRepository
-import com.kiri.domain.repository.ScheduleNearbyRepository
+import com.kiri.domain.mission.model.NearbyPlace
+import com.kiri.domain.mission.repository.MissionNearbyRepository
+import com.kiri.domain.schedule.repository.ScheduleNearbyRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.components.SingletonComponent

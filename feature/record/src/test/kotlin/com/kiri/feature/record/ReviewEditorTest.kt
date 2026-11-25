@@ -1,12 +1,14 @@
 package com.kiri.feature.record
 
 import androidx.lifecycle.SavedStateHandle
-import com.kiri.domain.detail.*
-import com.kiri.domain.home.*
-import com.kiri.domain.model.mission.MissionInfo
-import com.kiri.domain.model.schedule.*
-import com.kiri.domain.repository.*
-import com.kiri.domain.usecase.schedule.GetScheduleEditAccessUseCase
+import com.kiri.domain.mission.model.*
+import com.kiri.domain.home.repository.*
+import com.kiri.domain.mission.model.MissionInfo
+import com.kiri.domain.schedule.model.*
+import com.kiri.domain.mission.repository.*
+import com.kiri.domain.review.repository.*
+import com.kiri.domain.schedule.repository.*
+import com.kiri.domain.schedule.usecase.GetScheduleEditAccessUseCase
 import com.kiri.feature.detail.model.*
 import java.time.*
 import kotlinx.coroutines.*
@@ -65,10 +67,10 @@ class ReviewEditorTest {
         var fail = true
         var onPosted: () -> Unit = {}
         val keys = mutableListOf<List<String>>()
-        override suspend fun getReviews(scheduleId: Long) = Result.success(emptyList<com.kiri.domain.model.review.ScheduleReview>())
-        override suspend fun writeReview(scheduleId: Long, form: com.kiri.domain.model.review.ScheduleReviewForm): Result<com.kiri.domain.model.review.ScheduleReviewResult> {
+        override suspend fun getReviews(scheduleId: Long) = Result.success(emptyList<com.kiri.domain.review.model.ScheduleReview>())
+        override suspend fun writeReview(scheduleId: Long, form: com.kiri.domain.review.model.ScheduleReviewForm): Result<com.kiri.domain.review.model.ScheduleReviewResult> {
             keys += form.imageKeys
-            return if (fail) Result.failure(Exception()) else { onPosted(); Result.success(com.kiri.domain.model.review.ScheduleReviewResult(1, scheduleId)) }
+            return if (fail) Result.failure(Exception()) else { onPosted(); Result.success(com.kiri.domain.review.model.ScheduleReviewResult(1, scheduleId)) }
         }
     }
     private fun vm(photos: Photos, reviews: Reviews, saved: SavedStateHandle, schedules: Schedules = Schedules()): ServerScheduleDetailViewModel {

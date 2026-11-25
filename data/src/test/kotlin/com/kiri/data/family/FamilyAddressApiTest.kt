@@ -1,6 +1,6 @@
 package com.kiri.data.family
 import com.kiri.data.network.kiriJson
-import com.kiri.domain.model.family.FamilyAddress
+import com.kiri.domain.family.model.FamilyAddress
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.*
 import okhttp3.MediaType.Companion.toMediaType

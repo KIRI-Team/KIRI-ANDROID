@@ -1,6 +1,6 @@
 package com.kiri.data.place
 
-import com.kiri.domain.place.PlaceRepository
+import com.kiri.domain.place.repository.PlaceRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -14,8 +14,8 @@ object PlaceRepositoryModule {
     @Singleton
     internal fun providePlaceRepository(
         api: com.kiri.data.mission.MissionApi,
-        missions: com.kiri.domain.repository.MissionInfoRepository,
-        buckets: com.kiri.domain.repository.BucketItemRepository,
+        missions: com.kiri.domain.mission.repository.MissionInfoRepository,
+        buckets: com.kiri.domain.bucket.repository.BucketItemRepository,
         json: kotlinx.serialization.json.Json,
     ): PlaceRepository = PlaceRepositoryImpl(api, missions, buckets, json)
 }

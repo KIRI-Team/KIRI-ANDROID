@@ -4,13 +4,13 @@ import com.kiri.data.family.FamilyRepositoryModule
 import com.kiri.data.family.InviteRepositoryModule
 import com.kiri.data.member.MemberRepositoryModule
 import com.kiri.data.repository.FakeInviteRepository
-import com.kiri.domain.repository.InviteRepository
+import com.kiri.domain.invite.repository.InviteRepository
 import javax.inject.Singleton
-import com.kiri.domain.model.family.Family
-import com.kiri.domain.model.invite.Invite
-import com.kiri.domain.model.member.FamilyRole
-import com.kiri.domain.repository.FamilyRepository
-import com.kiri.domain.repository.MemberRepository
+import com.kiri.domain.family.model.Family
+import com.kiri.domain.invite.model.Invite
+import com.kiri.domain.member.model.FamilyRole
+import com.kiri.domain.family.repository.FamilyRepository
+import com.kiri.domain.member.repository.MemberRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.components.SingletonComponent
@@ -32,7 +32,7 @@ class FakeFamilyRepository : FamilyRepository {
     override suspend fun renameFamily(name: String): Result<String> = Result.success(name)
 
     // 아직 우리 집 주소를 등록하지 않은 가족
-    override suspend fun getAddress(): Result<com.kiri.domain.model.family.FamilyAddress?> = Result.success(null)
+    override suspend fun getAddress(): Result<com.kiri.domain.family.model.FamilyAddress?> = Result.success(null)
 }
 
 @Module

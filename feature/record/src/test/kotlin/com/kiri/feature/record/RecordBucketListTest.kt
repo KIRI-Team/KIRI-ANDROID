@@ -2,7 +2,7 @@ package com.kiri.feature.record
 
 import androidx.lifecycle.SavedStateHandle
 import com.kiri.data.bucket.FakeBucketItemRepository
-import com.kiri.domain.model.bucket.BucketItemStatus
+import com.kiri.domain.bucket.model.BucketItemStatus
 import com.kiri.feature.record.model.RecordUiEffect
 import com.kiri.feature.record.model.RecordUiEvent
 import com.kiri.feature.record.presentation.bucket.options
@@ -199,10 +199,10 @@ class RecordBucketListTest {
     @Test
     fun 삭제에_실패하면_이유를_알려주고_상태가_바뀐_버킷이면_목록을_다시_불러온다() = runTest {
         listOf(
-            com.kiri.domain.model.bucket.ScheduledBucketItemException() to "일정이 잡힌 버킷은 일정을 취소한 뒤 삭제할 수 있어요.",
-            com.kiri.domain.model.bucket.CompletedBucketItemException() to "완료한 버킷은 삭제할 수 없어요.",
-            com.kiri.domain.model.bucket.NotBucketItemOwnerException() to "내가 저장한 버킷만 삭제할 수 있어요.",
-            com.kiri.domain.model.bucket.BucketItemNotFoundException() to "이미 삭제됐거나 찾을 수 없는 버킷이에요.",
+            com.kiri.domain.bucket.model.ScheduledBucketItemException() to "일정이 잡힌 버킷은 일정을 취소한 뒤 삭제할 수 있어요.",
+            com.kiri.domain.bucket.model.CompletedBucketItemException() to "완료한 버킷은 삭제할 수 없어요.",
+            com.kiri.domain.bucket.model.NotBucketItemOwnerException() to "내가 저장한 버킷만 삭제할 수 있어요.",
+            com.kiri.domain.bucket.model.BucketItemNotFoundException() to "이미 삭제됐거나 찾을 수 없는 버킷이에요.",
         ).forEach { (error, message) ->
             val repo = FakeBucketItemRepository().apply { deleteFailure = error }
             val vm = viewModel(repo)

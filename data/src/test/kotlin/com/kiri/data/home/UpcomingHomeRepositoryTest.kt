@@ -1,7 +1,7 @@
 package com.kiri.data.home
 
 import com.kiri.data.network.kiriJson
-import com.kiri.domain.home.*
+import com.kiri.domain.home.repository.*
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset

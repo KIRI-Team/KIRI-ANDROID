@@ -1,7 +1,7 @@
 package com.kiri.data.notification
 
-import com.kiri.domain.home.HomeRepository
-import com.kiri.domain.notification.*
+import com.kiri.domain.home.repository.HomeRepository
+import com.kiri.domain.notification.repository.*
 import java.time.Clock
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.sync.Mutex

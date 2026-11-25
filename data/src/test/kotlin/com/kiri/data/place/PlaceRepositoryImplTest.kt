@@ -5,11 +5,12 @@ import com.kiri.data.mission.MissionResponse
 import com.kiri.data.mission.toMissionInfo
 import com.kiri.data.mission.MissionApi
 import com.kiri.data.network.kiriJson
-import com.kiri.domain.model.bucket.BucketItemPage
-import com.kiri.domain.model.mission.MissionInfo
-import com.kiri.domain.place.*
-import com.kiri.domain.repository.BucketItemRepository
-import com.kiri.domain.repository.MissionInfoRepository
+import com.kiri.domain.bucket.model.BucketItemPage
+import com.kiri.domain.mission.model.MissionInfo
+import com.kiri.domain.place.model.*
+import com.kiri.domain.place.repository.*
+import com.kiri.domain.bucket.repository.BucketItemRepository
+import com.kiri.domain.mission.repository.MissionInfoRepository
 import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse

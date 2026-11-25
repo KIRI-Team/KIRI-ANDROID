@@ -1,6 +1,6 @@
 package com.kiri.data.bucket
 
-import com.kiri.domain.repository.BucketItemRepository
+import com.kiri.domain.bucket.repository.BucketItemRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

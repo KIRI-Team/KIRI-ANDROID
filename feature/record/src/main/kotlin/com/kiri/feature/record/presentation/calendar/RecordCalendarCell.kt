@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
-import com.kiri.domain.record.RecordPhoto
+import com.kiri.domain.review.model.RecordPhoto
 import com.kiri.feature.record.R
 import com.kiri.feature.record.model.*
 import com.kiri.feature.record.presentation.RecordPhotoImage

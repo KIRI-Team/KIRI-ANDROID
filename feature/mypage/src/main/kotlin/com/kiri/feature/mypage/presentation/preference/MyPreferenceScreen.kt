@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.kiri.domain.model.taste.Taste
+import com.kiri.domain.taste.model.Taste
 import com.kiri.feature.mypage.MyPreferenceViewModel
 import com.kiri.feature.mypage.model.preference.MyPreferenceUiEffect
 import com.kiri.feature.mypage.model.preference.MyPreferenceUiEvent

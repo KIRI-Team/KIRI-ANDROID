@@ -1,7 +1,7 @@
 package com.kiri.data.term
 
 import com.kiri.data.network.ApiResponse
-import com.kiri.domain.model.term.Term
+import com.kiri.domain.term.model.Term
 import java.time.LocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement

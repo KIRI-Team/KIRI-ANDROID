@@ -2,10 +2,10 @@ package com.kiri.data.auth
 
 import com.kiri.data.network.apiCommand
 import com.kiri.data.network.apiResult
-import com.kiri.domain.model.auth.LoginResult
-import com.kiri.domain.model.auth.SocialProvider
-import com.kiri.domain.repository.AuthRepository
-import com.kiri.domain.repository.PushDeviceRepository
+import com.kiri.domain.auth.model.LoginResult
+import com.kiri.domain.auth.model.SocialProvider
+import com.kiri.domain.auth.repository.AuthRepository
+import com.kiri.domain.push.repository.PushDeviceRepository
 import javax.inject.Inject
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow

@@ -2,8 +2,8 @@ package com.kiri.data.term
 
 import com.kiri.data.network.apiCommand
 import com.kiri.data.network.apiResult
-import com.kiri.domain.model.term.Term
-import com.kiri.domain.repository.TermRepository
+import com.kiri.domain.term.model.Term
+import com.kiri.domain.term.repository.TermRepository
 import javax.inject.Inject
 import kotlinx.serialization.json.Json
 

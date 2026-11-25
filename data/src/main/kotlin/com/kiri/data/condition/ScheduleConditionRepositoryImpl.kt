@@ -3,13 +3,13 @@ package com.kiri.data.condition
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiCommand
 import com.kiri.data.network.apiResult
-import com.kiri.domain.detail.Condition
-import com.kiri.domain.model.condition.ConditionCustom
-import com.kiri.domain.model.condition.ConditionCustomUnavailableException
-import com.kiri.domain.model.condition.NotFinalParticipantException
-import com.kiri.domain.model.family.NoFamilyException
-import com.kiri.domain.model.schedule.ScheduleNotFoundException
-import com.kiri.domain.repository.ScheduleConditionRepository
+import com.kiri.domain.mission.model.Condition
+import com.kiri.domain.schedule.model.ConditionCustom
+import com.kiri.domain.schedule.model.ConditionCustomUnavailableException
+import com.kiri.domain.schedule.model.NotFinalParticipantException
+import com.kiri.domain.family.model.NoFamilyException
+import com.kiri.domain.schedule.model.ScheduleNotFoundException
+import com.kiri.domain.schedule.repository.ScheduleConditionRepository
 import javax.inject.Inject
 import kotlinx.serialization.json.Json
 

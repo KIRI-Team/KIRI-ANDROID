@@ -1,9 +1,9 @@
 package com.kiri.data.family
 
-import com.kiri.domain.repository.FamilyRepository
-import com.kiri.domain.repository.InviteRepository
-import com.kiri.domain.repository.PendingInviteRepository
-import com.kiri.domain.usecase.invite.AcceptPendingInviteUseCase
+import com.kiri.domain.family.repository.FamilyRepository
+import com.kiri.domain.invite.repository.InviteRepository
+import com.kiri.domain.invite.repository.PendingInviteRepository
+import com.kiri.domain.invite.usecase.AcceptPendingInviteUseCase
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

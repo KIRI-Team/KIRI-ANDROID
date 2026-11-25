@@ -11,7 +11,8 @@ import com.kiri.data.mission.MissionPlaceResponse
 import com.kiri.data.mission.toMissionCardRating
 import com.kiri.data.mission.toMissionCardRegion
 import com.kiri.data.network.*
-import com.kiri.domain.home.*
+import com.kiri.domain.home.repository.*
+import com.kiri.domain.question.model.*
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
@@ -214,7 +215,7 @@ internal class RemoteHomeRepository(
         description = reason?.trim().orEmpty(),
     )
 
-    override suspend fun loadRecordedQuestion(date: LocalDate, questionId: String?): com.kiri.domain.record.RecordedQuestion? = mapped {
+    override suspend fun loadRecordedQuestion(date: LocalDate, questionId: String?): com.kiri.domain.question.model.RecordedQuestion? = mapped {
         ensureSession()
         val id = questionId ?: run {
             if (date != today()) return@mapped null
@@ -224,7 +225,7 @@ internal class RemoteHomeRepository(
         }
         val familyAnswers = apiResult(json) { api.answers(id) }.getOrThrow()
         val members = familyAnswers.answers
-        com.kiri.domain.record.RecordedQuestion(
+        com.kiri.domain.question.model.RecordedQuestion(
             date = date,
             text = familyAnswers.question,
             answers = members.mapNotNull { member ->

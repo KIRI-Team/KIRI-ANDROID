@@ -1,6 +1,6 @@
 package com.kiri.feature.mypage.model.invite
 
-import com.kiri.domain.model.invite.Invite
+import com.kiri.domain.invite.model.Invite
 
 data class InviteLinkUiState(
     // 지금 쓸 수 있는 초대 (아직 불러오지 못했거나 발급하지 못했으면 null)

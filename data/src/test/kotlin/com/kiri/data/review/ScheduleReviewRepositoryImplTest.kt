@@ -3,16 +3,16 @@ package com.kiri.data.review
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiBaseUrl
 import com.kiri.data.network.kiriJson
-import com.kiri.domain.model.review.AlreadyReviewedException
-import com.kiri.domain.model.review.InvalidReviewException
-import com.kiri.domain.model.member.FamilyRole
-import com.kiri.domain.model.review.NotScheduleParticipantException
-import com.kiri.domain.model.review.ReviewAccessDeniedException
-import com.kiri.domain.model.review.ReviewWriter
-import com.kiri.domain.model.review.ScheduleReview
-import com.kiri.domain.model.review.ScheduleReviewForm
-import com.kiri.domain.model.review.ScheduleReviewResult
-import com.kiri.domain.model.schedule.ScheduleNotFoundException
+import com.kiri.domain.review.model.AlreadyReviewedException
+import com.kiri.domain.review.model.InvalidReviewException
+import com.kiri.domain.member.model.FamilyRole
+import com.kiri.domain.review.model.NotScheduleParticipantException
+import com.kiri.domain.review.model.ReviewAccessDeniedException
+import com.kiri.domain.review.model.ReviewWriter
+import com.kiri.domain.review.model.ScheduleReview
+import com.kiri.domain.review.model.ScheduleReviewForm
+import com.kiri.domain.review.model.ScheduleReviewResult
+import com.kiri.domain.schedule.model.ScheduleNotFoundException
 import java.time.LocalDateTime
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.boolean
@@ -177,7 +177,7 @@ class ScheduleReviewRepositoryImplTest {
         val form = ScheduleReviewForm(5, "내용", true, listOf("user/original/a.jpg"))
 
         val repo = repository()
-        assertTrue(repo.updateReview(10, 3, form).exceptionOrNull() is com.kiri.domain.model.review.ReviewNotFoundException)
+        assertTrue(repo.updateReview(10, 3, form).exceptionOrNull() is com.kiri.domain.review.model.ReviewNotFoundException)
         assertTrue(repo.updateReview(10, 3, form).exceptionOrNull() is ReviewAccessDeniedException)
         assertTrue(repo.updateReview(10, 3, form).exceptionOrNull() is ReviewAccessDeniedException)
         assertEquals("별점을 입력해주세요.", (repo.updateReview(10, 3, form).exceptionOrNull() as InvalidReviewException).message)
@@ -198,7 +198,7 @@ class ScheduleReviewRepositoryImplTest {
         assertEquals("DELETE", request.method)
         assertEquals("/api/v1/schedules/10/reviews/3", request.url.encodedPath)
 
-        assertTrue(repo.deleteReview(10, 3).exceptionOrNull() is com.kiri.domain.model.review.ReviewNotFoundException)
+        assertTrue(repo.deleteReview(10, 3).exceptionOrNull() is com.kiri.domain.review.model.ReviewNotFoundException)
         assertTrue(repo.deleteReview(10, 3).exceptionOrNull() is ReviewAccessDeniedException)
         assertEquals("COMMON500_1", (repo.deleteReview(10, 3).exceptionOrNull() as KiriApiException).code)
     }
@@ -219,7 +219,7 @@ class ScheduleReviewRepositoryImplTest {
         assertEquals("/api/v1/schedules/10/representative-photo", request.url.encodedPath)
         assertEquals(3, kiriJson.parseToJsonElement(request.body!!.utf8()).jsonObject["reviewPhotoId"]!!.jsonPrimitive.int)
 
-        assertTrue(repo.changeRepresentativePhoto(10, 3).exceptionOrNull() is com.kiri.domain.model.review.ReviewPhotoNotFoundException)
+        assertTrue(repo.changeRepresentativePhoto(10, 3).exceptionOrNull() is com.kiri.domain.review.model.ReviewPhotoNotFoundException)
         assertTrue(repo.changeRepresentativePhoto(10, 3).exceptionOrNull() is ReviewAccessDeniedException)
         assertTrue(repo.changeRepresentativePhoto(10, 3).exceptionOrNull() is ScheduleNotFoundException)
         assertEquals("COMMON500_1", (repo.changeRepresentativePhoto(10, 3).exceptionOrNull() as KiriApiException).code)

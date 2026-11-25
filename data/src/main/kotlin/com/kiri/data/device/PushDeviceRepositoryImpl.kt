@@ -1,7 +1,7 @@
 package com.kiri.data.device
 
 import com.kiri.data.network.apiCommand
-import com.kiri.domain.repository.PushDeviceRepository
+import com.kiri.domain.push.repository.PushDeviceRepository
 import javax.inject.Inject
 import kotlinx.serialization.json.Json
 

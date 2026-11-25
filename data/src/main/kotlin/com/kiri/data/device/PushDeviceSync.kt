@@ -2,7 +2,7 @@ package com.kiri.data.device
 
 import com.kiri.data.auth.TokenStore
 import com.kiri.data.network.KiriApiException
-import com.kiri.domain.repository.PushDeviceRepository
+import com.kiri.domain.push.repository.PushDeviceRepository
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton

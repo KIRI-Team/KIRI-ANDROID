@@ -1,7 +1,7 @@
 package com.kiri.feature.onboarding
 
-import com.kiri.domain.model.member.FamilyRole
-import com.kiri.domain.repository.MemberRepository
+import com.kiri.domain.member.model.FamilyRole
+import com.kiri.domain.member.repository.MemberRepository
 
 // 저장 결과를 정해두고 보낸 닉네임·역할을 모은다
 class TestMemberRepository(

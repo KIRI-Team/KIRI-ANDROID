@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.kiri.domain.model.invite.Invite
+import com.kiri.domain.invite.model.Invite
 import com.kiri.feature.mypage.InviteLinkViewModel
 import com.kiri.feature.mypage.model.invite.InviteLinkUiEffect
 import com.kiri.feature.mypage.model.invite.InviteLinkUiEvent

@@ -1,6 +1,6 @@
 package com.kiri.data.taste
 
-import com.kiri.domain.repository.TasteRepository
+import com.kiri.domain.taste.repository.TasteRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

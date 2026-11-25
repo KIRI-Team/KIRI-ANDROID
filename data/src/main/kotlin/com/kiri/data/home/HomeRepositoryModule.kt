@@ -1,7 +1,7 @@
 package com.kiri.data.home
 
-import com.kiri.domain.home.HomeRepository
-import com.kiri.domain.home.HomeTutorialRepository
+import com.kiri.domain.home.repository.HomeRepository
+import com.kiri.domain.home.repository.HomeTutorialRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

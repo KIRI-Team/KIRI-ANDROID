@@ -1,7 +1,7 @@
 package com.kiri.data.auth
 
 import com.kiri.data.network.ReissueClient
-import com.kiri.domain.repository.AuthRepository
+import com.kiri.domain.auth.repository.AuthRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

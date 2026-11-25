@@ -1,6 +1,6 @@
 package com.kiri.data.image
 
-import com.kiri.domain.repository.ImageUploadRepository
+import com.kiri.domain.image.repository.ImageUploadRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

@@ -5,8 +5,8 @@ import androidx.compose.material3.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.kiri.domain.model.schedule.CalendarScheduleStatus
-import com.kiri.domain.model.schedule.ScheduleDisplayStatus
+import com.kiri.domain.schedule.model.CalendarScheduleStatus
+import com.kiri.domain.schedule.model.ScheduleDisplayStatus
 import com.kiri.feature.record.model.*
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.KiriDetailTypography

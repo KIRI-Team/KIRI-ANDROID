@@ -1,7 +1,7 @@
 package com.kiri.data.home
 
 import android.content.Context
-import com.kiri.domain.home.HomeTutorialRepository
+import com.kiri.domain.home.repository.HomeTutorialRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex

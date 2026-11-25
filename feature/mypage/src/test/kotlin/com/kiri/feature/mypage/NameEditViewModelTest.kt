@@ -1,7 +1,7 @@
 package com.kiri.feature.mypage
 
-import com.kiri.domain.model.family.DuplicateFamilyNameException
-import com.kiri.domain.model.nickname.NicknameRule
+import com.kiri.domain.family.model.DuplicateFamilyNameException
+import com.kiri.domain.member.model.NicknameRule
 import com.kiri.feature.mypage.model.nameedit.NameEditUiEffect
 import com.kiri.feature.mypage.model.nameedit.NameEditUiEvent
 import java.io.IOException
@@ -30,16 +30,16 @@ class NameEditViewModelTest {
     private val state get() = viewModel.uiState.value
 
     // 가족 정보 API 대신 정해 둔 가족을 돌려주고, 캐시를 비운 횟수를 센다
-    private class FamilyHomeRepository : com.kiri.domain.home.HomeRepository {
+    private class FamilyHomeRepository : com.kiri.domain.home.repository.HomeRepository {
         var invalidated = 0
-        val family = com.kiri.domain.home.FamilyHome(
+        val family = com.kiri.domain.home.repository.FamilyHome(
             java.time.LocalDate.of(2026, 11, 10), "1", "끼리네가족",
-            listOf(com.kiri.domain.home.FamilyMember("1", "쥬123", "딸"), com.kiri.domain.home.FamilyMember("2", "마마", "엄마")),
+            listOf(com.kiri.domain.home.repository.FamilyMember("1", "쥬123", "딸"), com.kiri.domain.home.repository.FamilyMember("2", "마마", "엄마")),
             null, emptyMap(), emptySet(), null, serverBacked = true,
         )
         override suspend fun load() = family
-        override suspend fun saveAnswer(question: com.kiri.domain.home.DailyQuestion, answer: String) = family
-        override suspend fun poke(question: com.kiri.domain.home.DailyQuestion, memberId: String) = family
+        override suspend fun saveAnswer(question: com.kiri.domain.home.repository.DailyQuestion, answer: String) = family
+        override suspend fun poke(question: com.kiri.domain.home.repository.DailyQuestion, memberId: String) = family
         override suspend fun invalidateFamily() { invalidated++ }
     }
 
@@ -62,21 +62,21 @@ class NameEditViewModelTest {
     }
 
     // 닉네임 변경 결과를 정해 두고 보낸 닉네임을 모은다
-    private class Members(var error: Throwable? = null) : com.kiri.domain.repository.MemberRepository {
+    private class Members(var error: Throwable? = null) : com.kiri.domain.member.repository.MemberRepository {
         val sent = mutableListOf<String>()
         override suspend fun updateNickname(nickname: String): Result<Unit> {
             sent += nickname
             return error?.let { Result.failure(it) } ?: Result.success(Unit)
         }
-        override suspend fun updateFamilyRole(role: com.kiri.domain.model.member.FamilyRole): Result<Unit> = Result.success(Unit)
+        override suspend fun updateFamilyRole(role: com.kiri.domain.member.model.FamilyRole): Result<Unit> = Result.success(Unit)
     }
 
     @Test
     fun 가족이_없어도_지금_닉네임을_내_정보에서_불러온다() = runTest(mainDispatcherRule.testDispatcher) {
-        val members = object : com.kiri.domain.repository.MemberRepository {
+        val members = object : com.kiri.domain.member.repository.MemberRepository {
             override suspend fun updateNickname(nickname: String): Result<Unit> = Result.success(Unit)
-            override suspend fun updateFamilyRole(role: com.kiri.domain.model.member.FamilyRole): Result<Unit> = Result.success(Unit)
-            override suspend fun me() = Result.success(com.kiri.domain.model.member.MyInfo(5, "둘러보는중", null, null, null))
+            override suspend fun updateFamilyRole(role: com.kiri.domain.member.model.FamilyRole): Result<Unit> = Result.success(Unit)
+            override suspend fun me() = Result.success(com.kiri.domain.member.model.MyInfo(5, "둘러보는중", null, null, null))
         }
         val nickname = NicknameEditViewModel(members, home = null)
         advanceUntilIdle()
@@ -100,7 +100,7 @@ class NameEditViewModelTest {
 
     @Test
     fun 이미_쓰는_닉네임이면_중복으로_표시하고_다른_실패는_알린다() = runTest(mainDispatcherRule.testDispatcher) {
-        val members = Members(com.kiri.domain.model.nickname.DuplicateNicknameException())
+        val members = Members(com.kiri.domain.member.model.DuplicateNicknameException())
         val home = FamilyHomeRepository()
         val nickname = NicknameEditViewModel(members, home)
         nickname.onEvent(NameEditUiEvent.NameChanged("새닉네임"))
@@ -119,7 +119,7 @@ class NameEditViewModelTest {
 
     @Test
     fun 방장이_아니면_가족명을_바꾸지_못한다고_알린다() = runTest(mainDispatcherRule.testDispatcher) {
-        familyRepository.renameError = com.kiri.domain.model.family.NotFamilyOwnerException()
+        familyRepository.renameError = com.kiri.domain.family.model.NotFamilyOwnerException()
         val familyNameViewModel = FamilyNameEditViewModel(familyRepository)
         familyNameViewModel.onEvent(NameEditUiEvent.NameChanged("끼리네가족2"))
         familyNameViewModel.onEvent(NameEditUiEvent.NextClicked)

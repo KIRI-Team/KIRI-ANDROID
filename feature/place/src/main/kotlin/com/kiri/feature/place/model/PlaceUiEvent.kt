@@ -1,6 +1,7 @@
 package com.kiri.feature.place.model
 
-import com.kiri.domain.place.*
+import com.kiri.domain.place.model.*
+import com.kiri.domain.place.repository.*
 
 sealed interface PlaceUiEvent {
     data class FiltersApplied(val filters: PlaceFilters) : PlaceUiEvent

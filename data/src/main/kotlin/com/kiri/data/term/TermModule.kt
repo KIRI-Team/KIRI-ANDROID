@@ -1,6 +1,6 @@
 package com.kiri.data.term
 
-import com.kiri.domain.repository.TermRepository
+import com.kiri.domain.term.repository.TermRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

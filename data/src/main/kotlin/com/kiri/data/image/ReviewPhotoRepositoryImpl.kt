@@ -2,10 +2,10 @@ package com.kiri.data.image
 
 import android.content.Context
 import android.net.Uri
-import com.kiri.domain.model.image.ImageContentType
-import com.kiri.domain.model.image.UploadImage
-import com.kiri.domain.repository.ImageUploadRepository
-import com.kiri.domain.repository.ReviewPhotoRepository
+import com.kiri.domain.image.model.ImageContentType
+import com.kiri.domain.image.model.UploadImage
+import com.kiri.domain.image.repository.ImageUploadRepository
+import com.kiri.domain.review.repository.ReviewPhotoRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

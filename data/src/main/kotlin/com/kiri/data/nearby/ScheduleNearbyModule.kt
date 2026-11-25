@@ -1,7 +1,7 @@
 package com.kiri.data.nearby
 
-import com.kiri.domain.repository.MissionNearbyRepository
-import com.kiri.domain.repository.ScheduleNearbyRepository
+import com.kiri.domain.mission.repository.MissionNearbyRepository
+import com.kiri.domain.schedule.repository.ScheduleNearbyRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

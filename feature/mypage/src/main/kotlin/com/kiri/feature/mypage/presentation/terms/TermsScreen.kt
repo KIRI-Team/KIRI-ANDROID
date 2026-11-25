@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.kiri.domain.model.term.Term
+import com.kiri.domain.term.model.Term
 import com.kiri.feature.mypage.TermsViewModel
 import com.kiri.feature.mypage.model.terms.TermsUiEffect
 import com.kiri.feature.mypage.model.terms.TermsUiEvent

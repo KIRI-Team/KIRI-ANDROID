@@ -7,7 +7,7 @@ import com.kiri.data.auth.memberIdOf
 import com.kiri.data.family.FakeFamilyIdStore
 import com.kiri.data.family.FamilyApi
 import com.kiri.data.network.kiriJson
-import com.kiri.domain.home.FamilyMember
+import com.kiri.domain.home.repository.FamilyMember
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset

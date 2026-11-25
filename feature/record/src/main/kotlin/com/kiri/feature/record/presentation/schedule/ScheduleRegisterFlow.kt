@@ -5,7 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import com.kiri.domain.record.ScheduleRequestChannel
+import com.kiri.domain.schedule.model.ScheduleRequestChannel
 import com.kiri.feature.record.presentation.sheet.RecordMember
 import com.kiri.feature.record.presentation.sheet.RecordSendMethodSheet
 import java.time.LocalDateTime

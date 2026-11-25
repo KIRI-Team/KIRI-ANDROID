@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.kiri.domain.detail.Condition
+import com.kiri.domain.mission.model.Condition
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.*
 

@@ -1,8 +1,9 @@
 package com.kiri.data.mission
 
-import com.kiri.domain.detail.*
-import com.kiri.domain.mission.*
-import com.kiri.domain.place.*
+import com.kiri.domain.mission.model.*
+import com.kiri.domain.mission.repository.*
+import com.kiri.domain.place.model.*
+import com.kiri.domain.place.repository.*
 
 /** Explicit design/demo fixtures, not live places, ratings, weather, or user reviews. */
 class FakeMissionRepository : MissionRepository {

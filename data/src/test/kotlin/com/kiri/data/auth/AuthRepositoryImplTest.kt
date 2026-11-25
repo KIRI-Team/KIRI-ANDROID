@@ -5,9 +5,9 @@ import com.kiri.data.device.PushDeviceRepositoryImpl
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiBaseUrl
 import com.kiri.data.network.kiriJson
-import com.kiri.domain.model.auth.LoginResult
-import com.kiri.domain.model.auth.SocialProvider
-import com.kiri.domain.repository.PushDeviceRepository
+import com.kiri.domain.auth.model.LoginResult
+import com.kiri.domain.auth.model.SocialProvider
+import com.kiri.domain.push.repository.PushDeviceRepository
 import java.io.IOException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest

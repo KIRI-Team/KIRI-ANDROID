@@ -16,7 +16,7 @@ import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
-import com.kiri.domain.home.*
+import com.kiri.domain.home.repository.*
 import com.kiri.feature.home.model.*
 import com.kiri.uikit.KiriTypography
 import com.kiri.uikit.color.KiriColor

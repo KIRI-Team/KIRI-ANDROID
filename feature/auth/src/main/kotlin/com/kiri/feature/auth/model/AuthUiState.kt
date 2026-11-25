@@ -1,6 +1,6 @@
 package com.kiri.feature.auth.model
 
-import com.kiri.domain.model.term.Term
+import com.kiri.domain.term.model.Term
 import com.kiri.feature.auth.AuthStep
 
 data class AuthUiState(

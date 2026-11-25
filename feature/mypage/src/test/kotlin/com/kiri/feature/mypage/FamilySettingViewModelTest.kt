@@ -1,12 +1,12 @@
 package com.kiri.feature.mypage
 
-import com.kiri.domain.home.DailyQuestion
-import com.kiri.domain.home.FamilyHome
-import com.kiri.domain.home.FamilyMember as HomeMember
-import com.kiri.domain.home.HomeRepository
-import com.kiri.domain.model.member.FamilyRole
-import com.kiri.domain.model.member.MyInfo
-import com.kiri.domain.repository.MemberRepository
+import com.kiri.domain.home.repository.DailyQuestion
+import com.kiri.domain.home.repository.FamilyHome
+import com.kiri.domain.home.repository.FamilyMember as HomeMember
+import com.kiri.domain.home.repository.HomeRepository
+import com.kiri.domain.member.model.FamilyRole
+import com.kiri.domain.member.model.MyInfo
+import com.kiri.domain.member.repository.MemberRepository
 import com.kiri.feature.mypage.model.common.MypageProfile
 import com.kiri.feature.mypage.model.family.FamilyMember
 import java.io.IOException

@@ -20,9 +20,9 @@ import kotlinx.coroutines.flow.update
 
 @HiltViewModel
 class HomeAddressViewModel @Inject constructor(
-    private val family: com.kiri.domain.repository.FamilyRepository,
+    private val family: com.kiri.domain.family.repository.FamilyRepository,
     // 등록한 주소 화면의 "OO님의 공간" 에 쓸 가족 이름을 가족 정보 API 로 불러온다
-    private val home: com.kiri.domain.home.HomeRepository? = null,
+    private val home: com.kiri.domain.home.repository.HomeRepository? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeAddressUiState())
     val uiState: StateFlow<HomeAddressUiState> = _uiState.asStateFlow()
@@ -43,7 +43,7 @@ class HomeAddressViewModel @Inject constructor(
     val effect: Flow<HomeAddressUiEffect> = _effect.receiveAsFlow()
 
     // 주소 검색을 연 작성 단계 (검색을 마치거나 뒤로가면 이 단계로 돌아간다)
-    private var selected: com.kiri.domain.model.family.FamilyAddress? = null
+    private var selected: com.kiri.domain.family.model.FamilyAddress? = null
     private var formStep = HomeAddressStep.REGISTER
 
     private var addressJob: kotlinx.coroutines.Job? = null

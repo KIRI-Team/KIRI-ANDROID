@@ -7,8 +7,8 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.platform.app.InstrumentationRegistry
-import com.kiri.domain.record.QuestionHistoryRepository
-import com.kiri.domain.record.RecordedQuestion
+import com.kiri.domain.question.repository.QuestionHistoryRepository
+import com.kiri.domain.question.model.RecordedQuestion
 import kotlinx.coroutines.flow.MutableStateFlow
 import com.kiri.feature.record.RecordViewModel
 import com.kiri.feature.record.model.*
@@ -16,7 +16,7 @@ import com.kiri.uikit.KiriTheme
 import java.io.File
 import java.time.Clock
 import java.time.Instant
-import com.kiri.domain.model.bucket.BucketItemStatus
+import com.kiri.domain.bucket.model.BucketItemStatus
 import java.time.LocalDate
 import java.time.ZoneOffset
 import org.junit.Rule
@@ -28,16 +28,16 @@ class RecordScreenTest {
     @Test
     fun upcomingCardsShowServerSchedulesInOrderAndOpenTheirDetail() {
         val today = LocalDate.of(2026, 11, 15)
-        fun card(id: Long, type: com.kiri.domain.model.schedule.UpcomingScheduleType, days: Long, title: String) =
-            com.kiri.domain.model.schedule.UpcomingSchedule(
+        fun card(id: Long, type: com.kiri.domain.schedule.model.UpcomingScheduleType, days: Long, title: String) =
+            com.kiri.domain.schedule.model.UpcomingSchedule(
                 id, today.plusDays(days), java.time.LocalTime.of(18, 0), type, days.toInt(), title, null,
             )
         val state = mutableStateOf(
             RecordUiState(
                 today = today,
                 upcomingSchedules = listOf(
-                    card(120, com.kiri.domain.model.schedule.UpcomingScheduleType.RESPONSE_REQUIRED, 5, "광장시장 가기"),
-                    card(118, com.kiri.domain.model.schedule.UpcomingScheduleType.UPCOMING, 2, "한강 축제 가기"),
+                    card(120, com.kiri.domain.schedule.model.UpcomingScheduleType.RESPONSE_REQUIRED, 5, "광장시장 가기"),
+                    card(118, com.kiri.domain.schedule.model.UpcomingScheduleType.UPCOMING, 2, "한강 축제 가기"),
                 ),
             ),
         )
@@ -107,7 +107,7 @@ class RecordScreenTest {
                     RecordUiState(
                         today = date.plusDays(5),
                         calendarMarks = mapOf(date to RecordCalendarMark.PHOTO_FIRST),
-                        calendarPhotos = mapOf(date to com.kiri.domain.record.RecordPhoto("schedule-1", "demo:group")),
+                        calendarPhotos = mapOf(date to com.kiri.domain.review.model.RecordPhoto("schedule-1", "demo:group")),
                     ),
                     {},
                 )

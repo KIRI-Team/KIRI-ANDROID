@@ -2,7 +2,7 @@ package com.kiri.data.family
 
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiResult
-import com.kiri.domain.model.family.NoFamilyException
+import com.kiri.domain.family.model.NoFamilyException
 import kotlinx.serialization.json.Json
 
 // 내 가족 공간 ID 를 돌려준다. 기억해 둔 값이 있으면 그대로 쓰고, 없으면(초대 코드로 들어왔거나 앱을 다시 설치한 경우)

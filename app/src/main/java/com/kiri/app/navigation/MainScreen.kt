@@ -17,8 +17,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.kiri.domain.home.BROWSING_BLOCKED_MESSAGE
-import com.kiri.domain.home.FamilyAccess
+import com.kiri.domain.family.model.BROWSING_BLOCKED_MESSAGE
+import com.kiri.domain.family.model.FamilyAccess
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.navigation.compose.rememberNavController

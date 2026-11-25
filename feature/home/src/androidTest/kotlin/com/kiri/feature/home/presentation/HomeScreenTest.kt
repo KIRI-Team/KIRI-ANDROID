@@ -11,7 +11,7 @@ import androidx.compose.ui.test.swipeUp
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import com.kiri.uikit.KiriTheme
-import com.kiri.domain.home.HomeRecommendation
+import com.kiri.domain.home.repository.HomeRecommendation
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assertIsDisplayed
@@ -28,11 +28,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import com.kiri.domain.home.DailyQuestion
-import com.kiri.domain.home.FamilyHome
-import com.kiri.domain.home.FamilyMember
-import com.kiri.domain.home.HomeRepository
-import com.kiri.domain.home.WeeklyMission
+import com.kiri.domain.home.repository.DailyQuestion
+import com.kiri.domain.home.repository.FamilyHome
+import com.kiri.domain.home.repository.FamilyMember
+import com.kiri.domain.home.repository.HomeRepository
+import com.kiri.domain.home.repository.WeeklyMission
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule

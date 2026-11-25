@@ -1,7 +1,7 @@
 package com.kiri.feature.record
 
 import androidx.lifecycle.SavedStateHandle
-import com.kiri.domain.record.RecordedQuestion
+import com.kiri.domain.question.model.RecordedQuestion
 import com.kiri.feature.record.model.*
 import com.kiri.feature.record.presentation.sheet.recordCalendarWeeks
 import java.time.Clock

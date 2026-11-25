@@ -1,10 +1,10 @@
 package com.kiri.data.image
 
 import com.kiri.data.network.apiResult
-import com.kiri.domain.model.image.ImageUploadFailedException
-import com.kiri.domain.model.image.InvalidUploadImageException
-import com.kiri.domain.model.image.UploadImage
-import com.kiri.domain.repository.ImageUploadRepository
+import com.kiri.domain.image.model.ImageUploadFailedException
+import com.kiri.domain.image.model.InvalidUploadImageException
+import com.kiri.domain.image.model.UploadImage
+import com.kiri.domain.image.repository.ImageUploadRepository
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Dispatchers

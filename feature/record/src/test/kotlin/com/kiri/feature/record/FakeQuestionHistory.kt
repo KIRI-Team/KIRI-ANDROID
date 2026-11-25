@@ -1,7 +1,7 @@
 package com.kiri.feature.record
 
-import com.kiri.domain.record.QuestionHistoryRepository
-import com.kiri.domain.record.RecordedQuestion
+import com.kiri.domain.question.repository.QuestionHistoryRepository
+import com.kiri.domain.question.model.RecordedQuestion
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 

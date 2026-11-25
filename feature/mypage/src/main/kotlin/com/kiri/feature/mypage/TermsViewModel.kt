@@ -2,7 +2,7 @@ package com.kiri.feature.mypage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.repository.TermRepository
+import com.kiri.domain.term.repository.TermRepository
 import com.kiri.feature.mypage.model.terms.TermsUiEffect
 import com.kiri.feature.mypage.model.terms.TermsUiEvent
 import com.kiri.feature.mypage.model.terms.TermsUiState

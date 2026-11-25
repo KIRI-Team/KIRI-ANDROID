@@ -1,9 +1,9 @@
 package com.kiri.data.repository
 
-import com.kiri.domain.model.family.NoFamilyException
-import com.kiri.domain.model.invite.Invite
-import com.kiri.domain.model.invite.InviteLink
-import com.kiri.domain.repository.InviteRepository
+import com.kiri.domain.family.model.NoFamilyException
+import com.kiri.domain.invite.model.Invite
+import com.kiri.domain.invite.model.InviteLink
+import com.kiri.domain.invite.repository.InviteRepository
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId

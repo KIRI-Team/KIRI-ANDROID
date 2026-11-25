@@ -16,7 +16,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import com.kiri.domain.record.ScheduleRequestChannel
+import com.kiri.domain.schedule.model.ScheduleRequestChannel
 import com.kiri.feature.record.presentation.sheet.RecordMember
 import com.kiri.uikit.KiriTheme
 import java.time.LocalDate
@@ -259,7 +259,7 @@ class ScheduleRegisterScreenTest {
 
     // 일정 변경알림: 바뀐 항목(changedFields) 옆에만 "변경되었어요!" 배지를 달고, 시간이 바뀌면 일시에 시간을 붙인다
     @Test fun changeAlertShowsBadgesNextToChangedFieldsOnly() {
-        var changed by mutableStateOf(setOf(com.kiri.domain.model.schedule.ScheduleChangedField.TIME))
+        var changed by mutableStateOf(setOf(com.kiri.domain.schedule.model.ScheduleChangedField.TIME))
         compose.setContent {
             KiriTheme {
                 ScheduleRequestScreen(
@@ -286,7 +286,7 @@ class ScheduleRegisterScreenTest {
         compose.onNodeWithText("잠수교를 걸어요").assertExists()
         compose.onNodeWithText("같이 가요").assertExists()
 
-        changed = setOf(com.kiri.domain.model.schedule.ScheduleChangedField.PARTICIPANTS)
+        changed = setOf(com.kiri.domain.schedule.model.ScheduleChangedField.PARTICIPANTS)
         compose.onNodeWithText("26.12.03").assertExists()
         compose.onNodeWithTag("schedule_request_changed_date").assertDoesNotExist()
         compose.onNodeWithTag("schedule_request_changed_participants").assertExists()

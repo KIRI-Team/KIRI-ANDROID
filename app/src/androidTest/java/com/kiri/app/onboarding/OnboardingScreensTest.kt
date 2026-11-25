@@ -23,10 +23,10 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.kiri.domain.model.family.Family
-import com.kiri.domain.model.invite.Invite
-import com.kiri.domain.repository.FamilyRepository
-import com.kiri.domain.repository.MemberRepository
+import com.kiri.domain.family.model.Family
+import com.kiri.domain.invite.model.Invite
+import com.kiri.domain.family.repository.FamilyRepository
+import com.kiri.domain.member.repository.MemberRepository
 import com.kiri.feature.onboarding.OnboardingStep
 import com.kiri.feature.onboarding.OnboardingViewModel
 import com.kiri.feature.onboarding.model.FamilyRole
@@ -306,7 +306,7 @@ class OnboardingScreensTest {
     private object StubMemberRepository : MemberRepository {
         override suspend fun updateNickname(nickname: String) = Result.success(Unit)
 
-        override suspend fun updateFamilyRole(role: com.kiri.domain.model.member.FamilyRole) = Result.success(Unit)
+        override suspend fun updateFamilyRole(role: com.kiri.domain.member.model.FamilyRole) = Result.success(Unit)
     }
 
     // 시스템 클립보드 읽기 제한(Android 10+)에 영향받지 않도록 복사된 값을 기록만 한다

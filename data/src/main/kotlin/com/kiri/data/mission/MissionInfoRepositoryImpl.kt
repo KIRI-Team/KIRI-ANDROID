@@ -2,10 +2,10 @@ package com.kiri.data.mission
 
 import com.kiri.data.network.KiriApiException
 import com.kiri.data.network.apiResult
-import com.kiri.domain.model.mission.MissionGuide
-import com.kiri.domain.model.mission.MissionInfo
-import com.kiri.domain.model.mission.MissionNotFoundException
-import com.kiri.domain.repository.MissionInfoRepository
+import com.kiri.domain.mission.model.MissionGuide
+import com.kiri.domain.mission.model.MissionInfo
+import com.kiri.domain.mission.model.MissionNotFoundException
+import com.kiri.domain.mission.repository.MissionInfoRepository
 import javax.inject.Inject
 import kotlinx.serialization.json.Json
 

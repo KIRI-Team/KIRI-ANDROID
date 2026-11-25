@@ -5,7 +5,7 @@ import android.util.Log
 import com.kakao.sdk.share.ShareClient
 import com.kakao.sdk.template.model.Link
 import com.kakao.sdk.template.model.TextTemplate
-import com.kiri.domain.model.schedule.ScheduleInviteLink
+import com.kiri.domain.schedule.model.ScheduleInviteLink
 
 private const val TAG = "ScheduleInviteShare"
 

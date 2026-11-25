@@ -3,7 +3,8 @@ package com.kiri.feature.place.presentation
 import com.kiri.feature.place.PlaceViewModel
 import com.kiri.feature.place.model.*
 
-import com.kiri.domain.place.*
+import com.kiri.domain.place.model.*
+import com.kiri.domain.place.repository.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.test.*
 import org.junit.After
@@ -75,12 +76,12 @@ class PlaceViewModelTest {
     }
 
     // 가족 정보만 돌려주는 홈 저장소. familyName 이 null 이면 둘러보기 사용자다
-    private fun homeWith(familyName: String?) = object : com.kiri.domain.home.HomeRepository {
-        private val family = com.kiri.domain.home.FamilyHome(java.time.LocalDate.of(2026, 11, 11), "13", familyName,
+    private fun homeWith(familyName: String?) = object : com.kiri.domain.home.repository.HomeRepository {
+        private val family = com.kiri.domain.home.repository.FamilyHome(java.time.LocalDate.of(2026, 11, 11), "13", familyName,
             emptyList(), null, emptyMap(), emptySet(), null, serverBacked = true)
         override suspend fun load() = family
-        override suspend fun saveAnswer(question: com.kiri.domain.home.DailyQuestion, answer: String) = family
-        override suspend fun poke(question: com.kiri.domain.home.DailyQuestion, memberId: String) = family
+        override suspend fun saveAnswer(question: com.kiri.domain.home.repository.DailyQuestion, answer: String) = family
+        override suspend fun poke(question: com.kiri.domain.home.repository.DailyQuestion, memberId: String) = family
     }
 
     @Test fun browsingUserCannotOpenBucketSaveAndSeesNotice() = runTest(dispatcher) {

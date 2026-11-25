@@ -1,7 +1,7 @@
 package com.kiri.data.nearby
 
 import com.kiri.data.network.ApiResponse
-import com.kiri.domain.detail.NearbyPlace
+import com.kiri.domain.mission.model.NearbyPlace
 import kotlinx.serialization.Serializable
 import retrofit2.http.GET
 import retrofit2.http.Path

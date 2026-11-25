@@ -3,13 +3,13 @@ package com.kiri.feature.record.model
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
-import com.kiri.domain.model.schedule.CalendarScheduleStatus
-import com.kiri.domain.model.bucket.BucketItem
-import com.kiri.domain.model.bucket.BucketSaver
-import com.kiri.domain.model.schedule.CalendarSchedule
-import com.kiri.domain.model.schedule.UpcomingSchedule
-import com.kiri.domain.model.schedule.UpcomingScheduleType
-import com.kiri.domain.record.RecordPhoto
+import com.kiri.domain.schedule.model.CalendarScheduleStatus
+import com.kiri.domain.bucket.model.BucketItem
+import com.kiri.domain.bucket.model.BucketSaver
+import com.kiri.domain.schedule.model.CalendarSchedule
+import com.kiri.domain.schedule.model.UpcomingSchedule
+import com.kiri.domain.schedule.model.UpcomingScheduleType
+import com.kiri.domain.review.model.RecordPhoto
 
 enum class RecordTab(val label: String) { CALENDAR("캘린더"), BUCKET("버킷리스트") }
 // CANCELLED 는 취소된 약속만 있는 날로, 흐리게 그린다
@@ -26,7 +26,7 @@ data class RecordUiState(
     val calendarPhotos: Map<LocalDate, RecordPhoto> = emptyMap(),
     val loading: Boolean = false,
     val error: String? = null,
-    val questions: Map<LocalDate, com.kiri.domain.record.RecordedQuestion> = emptyMap(),
+    val questions: Map<LocalDate, com.kiri.domain.question.model.RecordedQuestion> = emptyMap(),
     // 서버에서 받은 보고 있는 달의 가족 일정. 상세는 일정 상세 화면에서 id 로 따로 조회한다
     val monthSchedules: List<CalendarSchedule> = emptyList(),
     // 다가오는 일정 조회로 받은 카드. 응답이 필요한 일정이 먼저 온다 (최대 2건)

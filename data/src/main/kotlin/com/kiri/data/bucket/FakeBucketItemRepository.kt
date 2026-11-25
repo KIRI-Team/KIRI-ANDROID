@@ -1,10 +1,10 @@
 package com.kiri.data.bucket
 
-import com.kiri.domain.model.bucket.BucketItem
-import com.kiri.domain.model.bucket.BucketItemPage
-import com.kiri.domain.model.bucket.BucketItemStatus
-import com.kiri.domain.model.bucket.BucketSaver
-import com.kiri.domain.repository.BucketItemRepository
+import com.kiri.domain.bucket.model.BucketItem
+import com.kiri.domain.bucket.model.BucketItemPage
+import com.kiri.domain.bucket.model.BucketItemStatus
+import com.kiri.domain.bucket.model.BucketSaver
+import com.kiri.domain.bucket.repository.BucketItemRepository
 import java.time.LocalDateTime
 
 /** 테스트·미리보기용 가족 버킷리스트. 실제 서버 데이터를 대신하지 않는다.
@@ -23,7 +23,7 @@ class FakeBucketItemRepository(
 
     override suspend fun deleteBucketItem(bucketItemId: Long): Result<Unit> {
         deleteFailure?.let { return Result.failure(it) }
-        val item = items.find { it.id == bucketItemId } ?: return Result.failure(com.kiri.domain.model.bucket.BucketItemNotFoundException())
+        val item = items.find { it.id == bucketItemId } ?: return Result.failure(com.kiri.domain.bucket.model.BucketItemNotFoundException())
         deleted += bucketItemId
         items = items - item
         savers = savers.map { if (it.memberId == item.saverId) it.copy(bucketCount = it.bucketCount - 1) else it }

@@ -1,7 +1,7 @@
 package com.kiri.data.repository
 
-import com.kiri.domain.model.family.NoFamilyException
-import com.kiri.domain.model.invite.InviteLink
+import com.kiri.domain.family.model.NoFamilyException
+import com.kiri.domain.invite.model.InviteLink
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate

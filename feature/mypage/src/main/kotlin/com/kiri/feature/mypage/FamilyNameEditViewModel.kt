@@ -1,10 +1,10 @@
 package com.kiri.feature.mypage
 
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.home.HomeRepository
-import com.kiri.domain.model.family.DuplicateFamilyNameException
-import com.kiri.domain.model.nickname.NicknameValidator
-import com.kiri.domain.repository.FamilyRepository
+import com.kiri.domain.home.repository.HomeRepository
+import com.kiri.domain.family.model.DuplicateFamilyNameException
+import com.kiri.domain.member.model.NicknameValidator
+import com.kiri.domain.family.repository.FamilyRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -36,7 +36,7 @@ class FamilyNameEditViewModel @Inject constructor(
     override fun isDuplicated(error: Throwable): Boolean = error is DuplicateFamilyNameException
 
     override fun failureMessage(error: Throwable): String? =
-        if (error is com.kiri.domain.model.family.NotFamilyOwnerException) OWNER_ONLY_MESSAGE else null
+        if (error is com.kiri.domain.family.model.NotFamilyOwnerException) OWNER_ONLY_MESSAGE else null
 
     companion object {
         const val OWNER_ONLY_MESSAGE = "방장만 가족명을 바꿀 수 있어요."

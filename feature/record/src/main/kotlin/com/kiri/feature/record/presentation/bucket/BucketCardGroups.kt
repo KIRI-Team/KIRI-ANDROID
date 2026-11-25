@@ -1,6 +1,6 @@
 package com.kiri.feature.record.presentation.bucket
 
-import com.kiri.domain.model.bucket.BucketItem
+import com.kiri.domain.bucket.model.BucketItem
 
 // 버킷리스트 카드 한 장. 같은 미션을 여러 가족이 저장했으면 한 장으로 합쳐 "엄마, 아빠가 저장했어요!" 처럼 보여준다
 internal data class BucketCardUi(
