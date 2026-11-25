@@ -9,7 +9,7 @@ import javax.inject.Inject
 import kotlinx.serialization.json.Json
 
 // 내 가족 공간의 초대를 서버에서 불러오고 재발급한다. 가족 ID는 기억해 둔 값을, 없으면 가족 ID 조회 API 로 받아 쓴다
-internal class RemoteInviteRepository @Inject constructor(
+internal class InviteRepositoryImpl @Inject constructor(
     private val api: FamilyApi,
     private val familyIdStore: FamilyIdStore,
     private val json: Json,

@@ -13,7 +13,7 @@ import java.time.Clock
 @InstallIn(SingletonComponent::class)
 object HomeRepositoryModule {
     @Provides
-    fun provideHomeTutorialRepository(local: LocalHomeTutorialRepository): HomeTutorialRepository = local
+    fun provideHomeTutorialRepository(local: HomeTutorialRepositoryImpl): HomeTutorialRepository = local
 
     @Provides
     @Singleton

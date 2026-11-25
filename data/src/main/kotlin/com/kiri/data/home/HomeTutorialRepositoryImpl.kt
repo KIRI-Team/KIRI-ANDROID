@@ -11,7 +11,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class LocalHomeTutorialRepository @Inject constructor(@ApplicationContext context: Context) : HomeTutorialRepository {
+class HomeTutorialRepositoryImpl @Inject constructor(@ApplicationContext context: Context) : HomeTutorialRepository {
     private val preferences = context.getSharedPreferences("home_tutorial", Context.MODE_PRIVATE)
     private val mutex = Mutex()
 

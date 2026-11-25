@@ -17,7 +17,7 @@ import javax.inject.Singleton
 import retrofit2.HttpException
 import retrofit2.Retrofit
 
-internal class RemoteNotificationRepository(private val api: NotificationApi) : NotificationRepository {
+internal class NotificationRepositoryImpl(private val api: NotificationApi) : NotificationRepository {
     override suspend fun load(): List<FamilyNotification> {
         val notifications = linkedMapOf<Long, FamilyNotification>()
         var page = 0
@@ -122,5 +122,5 @@ internal object NotificationRepositoryModule {
     @Provides
     @Singleton
     fun provideNotificationRepository(retrofit: Retrofit): NotificationRepository =
-        RemoteNotificationRepository(retrofit.create(NotificationApi::class.java))
+        NotificationRepositoryImpl(retrofit.create(NotificationApi::class.java))
 }

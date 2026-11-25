@@ -11,7 +11,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.random.Random
 
-// UI 테스트에서 실제 서버 대신 쓰는 초대 저장소 (앱은 family/RemoteInviteRepository 를 쓴다)
+// UI 테스트에서 실제 서버 대신 쓰는 초대 저장소 (앱은 family/InviteRepositoryImpl 를 쓴다)
 // 발급한 초대를 지금 초대로 기억한다
 @Singleton
 class FakeInviteRepository(

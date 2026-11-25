@@ -18,7 +18,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 // 초대 토큰이 기기 저장소에 남아, 앱을 다시 켜도(로그인·온보딩 도중 종료) 가족 참여 전까지 유지되는지 확인한다
-class DataStorePendingInviteRepositoryTest {
+class PendingInviteRepositoryImplTest {
 
     @get:Rule
     val folder = TemporaryFolder()
@@ -31,10 +31,10 @@ class DataStorePendingInviteRepositoryTest {
     private val file by lazy { File(folder.root, "pending_invite.preferences_pb") }
 
     // 같은 파일을 여는 새 저장소 = 앱을 다시 켠 상황. 같은 파일을 동시에 여는 DataStore 는 허용되지 않아 이전 것을 닫는다
-    private suspend fun reopen(): DataStorePendingInviteRepository {
+    private suspend fun reopen(): PendingInviteRepositoryImpl {
         scopes.forEach { it.coroutineContext[Job]!!.cancelAndJoin() }
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob()).also { scopes += it }
-        return DataStorePendingInviteRepository(PreferenceDataStoreFactory.create(
+        return PendingInviteRepositoryImpl(PreferenceDataStoreFactory.create(
             storage = androidx.datastore.core.okio.OkioStorage(
                 fileSystem = okio.FileSystem.SYSTEM,
                 serializer = androidx.datastore.preferences.core.PreferencesSerializer,

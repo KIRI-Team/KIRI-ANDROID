@@ -15,7 +15,7 @@ import org.junit.Test
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
-class RemoteNotificationRepositoryTest {
+class NotificationRepositoryImplTest {
     @Test
     fun loadsAllPagesAndAcceptsBothResponseVersions() = runTest {
         MockWebServer().use { server ->
@@ -94,12 +94,12 @@ class RemoteNotificationRepositoryTest {
             (targetType?.let { "\"targetType\":\"$it\"," } ?: "") +
             "\"isRead\":false,\"referenceId\":10,\"createdAt\":\"2026-11-15T21:00:00\"}"
 
-    private fun repository(server: MockWebServer): RemoteNotificationRepository {
+    private fun repository(server: MockWebServer): NotificationRepositoryImpl {
         val retrofit = Retrofit.Builder()
             .baseUrl(server.url("/"))
             .addConverterFactory(kiriJson.asConverterFactory("application/json".toMediaType()))
             .build()
-        return RemoteNotificationRepository(retrofit.create(NotificationApi::class.java))
+        return NotificationRepositoryImpl(retrofit.create(NotificationApi::class.java))
     }
 
     private fun page(last: Boolean, item: String) = success("""{"last":$last,"content":[$item]}""")

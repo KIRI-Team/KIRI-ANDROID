@@ -20,7 +20,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import kotlinx.serialization.json.Json
 
-internal class ServerPlaceRepository(
+internal class PlaceRepositoryImpl(
     private val api: MissionApi,
     private val missions: MissionInfoRepository,
     private val buckets: BucketItemRepository,

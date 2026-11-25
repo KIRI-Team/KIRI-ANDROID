@@ -39,7 +39,7 @@ internal abstract class FamilyIdStoreModule {
 @InstallIn(SingletonComponent::class)
 abstract class InviteRepositoryModule {
     @Binds
-    internal abstract fun bindInviteRepository(impl: RemoteInviteRepository): InviteRepository
+    internal abstract fun bindInviteRepository(impl: InviteRepositoryImpl): InviteRepository
 }
 
 // UI 테스트에서 실제 서버 대신 가짜 저장소로 바꿀 수 있도록(@TestInstallIn) 따로 두고 공개한다

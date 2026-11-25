@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.first
 private val Context.pendingInviteDataStore by preferencesDataStore(name = "pending_invite")
 
 @Singleton
-internal class DataStorePendingInviteRepository
+internal class PendingInviteRepositoryImpl
 internal constructor(private val dataStore: DataStore<Preferences>) : PendingInviteRepository {
     @Inject constructor(@ApplicationContext context: Context) : this(context.pendingInviteDataStore)
 

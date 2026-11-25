@@ -17,5 +17,5 @@ object PlaceRepositoryModule {
         missions: com.kiri.domain.repository.MissionInfoRepository,
         buckets: com.kiri.domain.repository.BucketItemRepository,
         json: kotlinx.serialization.json.Json,
-    ): PlaceRepository = ServerPlaceRepository(api, missions, buckets, json)
+    ): PlaceRepository = PlaceRepositoryImpl(api, missions, buckets, json)
 }

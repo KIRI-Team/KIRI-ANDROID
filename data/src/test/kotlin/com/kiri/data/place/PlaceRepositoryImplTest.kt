@@ -20,7 +20,7 @@ import org.junit.Test
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
-class ServerPlaceRepositoryTest {
+class PlaceRepositoryImplTest {
     @Test fun sendsServerFiltersAndFollowsCursorPastNonmatchingSearchPage() = runTest {
         MockWebServer().use { server ->
             server.start()
@@ -29,7 +29,7 @@ class ServerPlaceRepositoryTest {
             val api = Retrofit.Builder().baseUrl(server.url("/"))
                 .addConverterFactory(kiriJson.asConverterFactory("application/json".toMediaType()))
                 .build().create(MissionApi::class.java)
-            val repo = ServerPlaceRepository(api, object : MissionInfoRepository {
+            val repo = PlaceRepositoryImpl(api, object : MissionInfoRepository {
                 override suspend fun getMission(missionId: Long): Result<MissionInfo> = Result.failure(IllegalStateException("상세 조회 실패"))
             }, object : BucketItemRepository {
                 override suspend fun getBucketItems(memberId: Long?, cursor: Long?, size: Int?) = Result.success(BucketItemPage.Empty)
@@ -76,7 +76,7 @@ class ServerPlaceRepositoryTest {
                     else -> Result.failure(IllegalStateException("상세 조회 실패"))
                 }
             }
-            val repo = ServerPlaceRepository(api, details, object : BucketItemRepository {
+            val repo = PlaceRepositoryImpl(api, details, object : BucketItemRepository {
                 override suspend fun getBucketItems(memberId: Long?, cursor: Long?, size: Int?) = Result.success(BucketItemPage.Empty)
                 override suspend fun deleteBucketItem(bucketItemId: Long): Result<Unit> = error("unused")
             }, kiriJson)

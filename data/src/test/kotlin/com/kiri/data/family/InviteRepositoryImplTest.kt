@@ -22,7 +22,7 @@ import org.junit.Test
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
-class RemoteInviteRepositoryTest {
+class InviteRepositoryImplTest {
 
     private val server = MockWebServer()
     private val familyIdStore = FakeFamilyIdStore(saved = 7)
@@ -33,14 +33,14 @@ class RemoteInviteRepositoryTest {
     @After
     fun tearDown() = server.close()
 
-    private fun repository(): RemoteInviteRepository {
+    private fun repository(): InviteRepositoryImpl {
         val api = Retrofit.Builder()
             .baseUrl(apiBaseUrl(server.url("/").toString()))
             .client(OkHttpClient())
             .addConverterFactory(kiriJson.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(FamilyApi::class.java)
-        return RemoteInviteRepository(api, familyIdStore, kiriJson)
+        return InviteRepositoryImpl(api, familyIdStore, kiriJson)
     }
 
     private fun enqueue(code: Int, body: String) {
