@@ -45,6 +45,6 @@ com.kiri.app/
 
 1. 화면은 해당 feature 모듈에 만든다 (각 feature의 `Skill-*-Structure.md`).
 2. feature가 `NavGraphBuilder.xxxNavHost()`/`xxxGraph()`를 제공하면 `KiriNavHost`에서 호출하고, 다른 탭으로 가는 이동은 콜백으로 연결한다.
-3. 새 탭이면 [`Skill-Navigation.md`](src/main/java/com/kiri/app/navigation/Skill-Navigation.md)의 7번 체크리스트를 따른다.
+3. 새 탭이면 [`Skill-Navigation.md`](src/main/java/com/kiri/app/navigation/Skill-Navigation.md)의 8번 체크리스트를 따른다.
 4. 새 Repository를 쓰는 화면이면 `src/androidTest`에 `FakeXxxModule`을 만든다.
 5. `:app:assembleDebug`, `:app:lintDebug`, 관련 `connectedDebugAndroidTest`를 실행하고, 에뮬레이터에서 화면을 직접 확인한다 (AGENTS.md).

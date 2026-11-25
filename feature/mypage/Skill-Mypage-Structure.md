@@ -1,6 +1,6 @@
 # feature/mypage 구조와 작업 규칙
 
-마이페이지 탭과 그 안의 설정 화면들을 담는 모듈이다. **화면별 파일 위치와 경로 표는 [`README.md`](README.md)에 있다.** 이 문서는 구조 규칙과 새 화면을 만드는 절차만 적는다. 공통 UI 규칙은 [`feature/Skill-UI-Structure.md`](../Skill-UI-Structure.md), 그래프 등록 규칙은 [`Skill-Navigation.md`](../../app/src/main/java/com/kiri/app/navigation/Skill-Navigation.md) 8장을 따른다.
+마이페이지 탭과 그 안의 설정 화면들을 담는 모듈이다. **화면별 파일 위치와 경로 표는 [`README.md`](README.md)에 있다.** 이 문서는 구조 규칙과 새 화면을 만드는 절차만 적는다. 공통 UI 규칙은 [`feature/Skill-UI-Structure.md`](../Skill-UI-Structure.md), 그래프 등록 규칙은 [`Skill-Navigation.md`](../../app/src/main/java/com/kiri/app/navigation/Skill-Navigation.md) 9장을 따른다.
 
 ## 1. 진입점과 경로
 
