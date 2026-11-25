@@ -20,7 +20,7 @@ fun interface PushTokenProvider {
 // 로그인한 동안 이 기기의 FCM 토큰이 서버에 등록되어 있도록 맞춘다.
 // 등록을 지우는 일은 로그아웃·탈퇴 때 AuthRepositoryImpl 이 한다 (로그인 토큰이 남아 있을 때 지워야 해서)
 @Singleton
-class PushDeviceSync @Inject constructor(
+class PushDeviceSync @Inject internal constructor(
     private val tokens: TokenStore,
     private val pushTokens: PushTokenProvider,
     private val devices: PushDeviceRepository,

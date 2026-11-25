@@ -20,7 +20,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /** Versioned JSON snapshots. A write must finish before repositories publish success. */
-interface LocalStateStore {
+internal interface LocalStateStore {
     suspend fun read(key: String): String?
 
     suspend fun write(key: String, value: String)
@@ -31,7 +31,7 @@ interface LocalStateStore {
     }
 }
 
-class MemoryLocalStateStore : LocalStateStore {
+internal class MemoryLocalStateStore : LocalStateStore {
     private val mutex = Mutex()
     private val values = mutableMapOf<String, String>()
 
