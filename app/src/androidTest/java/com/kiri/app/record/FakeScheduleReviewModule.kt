@@ -1,6 +1,6 @@
 package com.kiri.app.record
 
-import com.kiri.data.review.ScheduleReviewRepositoryModule
+import com.kiri.data.review.di.ScheduleReviewRepositoryModule
 import com.kiri.domain.review.model.ScheduleReview
 import com.kiri.domain.review.model.ScheduleReviewForm
 import com.kiri.domain.review.model.ScheduleReviewResult

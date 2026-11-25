@@ -10,7 +10,7 @@
 # 로그인·토큰 재발급 API 는 @NoAuth 로 토큰을 붙이지 않는다 (AuthInterceptor 가 실행 중에 리플렉션으로 확인).
 # 어노테이션이 지워지면 이 요청들에도 토큰이 붙으므로 어노테이션과 Retrofit 메서드의 어노테이션 정보를 남긴다
 -keepattributes RuntimeVisibleAnnotations,RuntimeVisibleParameterAnnotations,AnnotationDefault
--keep @interface com.kiri.data.auth.NoAuth
+-keep @interface com.kiri.data.auth.remote.NoAuth
 
 # ---- 카카오 SDK (v2-common·v2-network·v2-auth 는 규칙을 배포하지 않는다) ----
 # 카카오 개발자 문서의 ProGuard 안내: 서버 응답을 Gson 으로 읽는 모델 클래스의 필드를 남긴다

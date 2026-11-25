@@ -1,9 +1,9 @@
 package com.kiri.app.onboarding
 
-import com.kiri.data.family.FamilyRepositoryModule
-import com.kiri.data.family.InviteRepositoryModule
-import com.kiri.data.member.MemberRepositoryModule
-import com.kiri.data.repository.FakeInviteRepository
+import com.kiri.data.family.di.FamilyRepositoryModule
+import com.kiri.data.family.di.InviteRepositoryModule
+import com.kiri.data.member.di.MemberRepositoryModule
+import com.kiri.data.invite.repository.FakeInviteRepository
 import com.kiri.domain.invite.repository.InviteRepository
 import javax.inject.Singleton
 import com.kiri.domain.family.model.Family

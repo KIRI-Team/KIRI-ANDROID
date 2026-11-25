@@ -2,7 +2,7 @@ package com.kiri.app.push
 
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import com.kiri.data.device.PushDeviceSync
+import com.kiri.data.push.PushDeviceSync
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope

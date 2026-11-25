@@ -3,7 +3,7 @@ package com.kiri.app
 import android.app.Application
 import com.kiri.app.push.PushScope
 import com.kiri.app.push.createNotificationChannels
-import com.kiri.data.device.PushDeviceSync
+import com.kiri.data.push.PushDeviceSync
 import com.kiri.feature.auth.login.SocialLoginInitializer
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject

@@ -91,7 +91,7 @@ class RecordViewModelTest {
     @Test
     fun yearBoundaryAndShortMonthClampSelectedDayWithoutLosingTabOrSaver() {
         val handle = SavedStateHandle(mapOf("recordSeedDate" to "2026-12-31"))
-        val vm = RecordViewModel(handle, repository(), testClock(handle), bucketItems = com.kiri.data.bucket.FakeBucketItemRepository())
+        val vm = RecordViewModel(handle, repository(), testClock(handle), bucketItems = com.kiri.data.bucket.repository.FakeBucketItemRepository())
         vm.onEvent(RecordUiEvent.TabSelected(RecordTab.BUCKET))
         vm.onEvent(RecordUiEvent.SaverSelected("2"))
         vm.onEvent(RecordUiEvent.NextMonth)
@@ -106,7 +106,7 @@ class RecordViewModelTest {
     @Test
     fun savedUiChoicesRestoreAndUnknownSaversOrOutOfMonthDatesAreIgnored() {
         val handle = handle()
-        val buckets = com.kiri.data.bucket.FakeBucketItemRepository()
+        val buckets = com.kiri.data.bucket.repository.FakeBucketItemRepository()
         val vm = RecordViewModel(handle, repository(), testClock(handle), bucketItems = buckets)
         vm.onEvent(RecordUiEvent.DateSelected(LocalDate.of(2026, 10, 22)))
         vm.onEvent(RecordUiEvent.SaverSelected("2"))
@@ -150,7 +150,7 @@ class RecordViewModelTest {
 
     @Test
     fun cardEffectsCarryTheirItemIdsAndDoNotMutateTheFixtures() = runTest {
-        val vm = RecordViewModel(handle(), repository(), testClock(handle()), bucketItems = com.kiri.data.bucket.FakeBucketItemRepository())
+        val vm = RecordViewModel(handle(), repository(), testClock(handle()), bucketItems = com.kiri.data.bucket.repository.FakeBucketItemRepository())
         val original = vm.uiState.value
         vm.onEvent(RecordUiEvent.BucketClicked("12"))
         assertEquals(RecordUiEffect.OpenBucket("12"), vm.effect.first())

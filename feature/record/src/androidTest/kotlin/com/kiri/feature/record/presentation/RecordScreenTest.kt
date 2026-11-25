@@ -129,7 +129,7 @@ class RecordScreenTest {
                 SavedStateHandle(),
                 repo,
                 Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC),
-                bucketItems = com.kiri.data.bucket.FakeBucketItemRepository(),
+                bucketItems = com.kiri.data.bucket.repository.FakeBucketItemRepository(),
             )
         compose.setContent { KiriTheme { RecordRoute(viewModel = vm) } }
     }
@@ -171,7 +171,7 @@ class RecordScreenTest {
     // 같은 미션을 여러 가족이 저장하면 카드 한 장에 "엄마, 아빠가 저장했어요!" 로 합쳐 보여준다
     @Test
     fun sameMissionSavedByTwoMembersShowsOneCardWithBothNames() {
-        val fake = com.kiri.data.bucket.FakeBucketItemRepository
+        val fake = com.kiri.data.bucket.repository.FakeBucketItemRepository
         val mom = fake.item(1, 1, "엄마", title = "한강 축제 가보기").copy(missionId = 100)
         val dad = fake.item(2, 2, "아빠", title = "한강 축제 가보기", deletable = true).copy(missionId = 100)
         val events = mutableListOf<RecordUiEvent>()

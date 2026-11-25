@@ -3,8 +3,8 @@ package com.kiri.app.navigation
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.kiri.app.HiltTestActivity
-import com.kiri.data.home.FakeHomeRepository
-import com.kiri.data.home.HomeRepositoryModule
+import com.kiri.data.home.repository.FakeHomeRepository
+import com.kiri.data.home.di.HomeRepositoryModule
 import com.kiri.domain.home.repository.*
 import com.kiri.uikit.KiriTheme
 import dagger.Module

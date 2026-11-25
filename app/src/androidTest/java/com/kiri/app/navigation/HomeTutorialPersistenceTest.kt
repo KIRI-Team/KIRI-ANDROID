@@ -1,7 +1,7 @@
 package com.kiri.app.navigation
 
 import androidx.test.platform.app.InstrumentationRegistry
-import com.kiri.data.home.HomeTutorialRepositoryImpl
+import com.kiri.data.home.repository.HomeTutorialRepositoryImpl
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.*

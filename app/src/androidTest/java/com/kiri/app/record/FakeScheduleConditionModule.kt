@@ -1,6 +1,6 @@
 package com.kiri.app.record
 
-import com.kiri.data.condition.ScheduleConditionRepositoryModule
+import com.kiri.data.schedule.di.ScheduleConditionRepositoryModule
 import com.kiri.domain.schedule.model.ConditionCustom
 import com.kiri.domain.schedule.repository.ScheduleConditionRepository
 import dagger.Module

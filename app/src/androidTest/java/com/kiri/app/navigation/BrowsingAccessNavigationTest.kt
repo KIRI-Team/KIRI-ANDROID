@@ -7,7 +7,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.kiri.app.HiltTestActivity
-import com.kiri.data.home.HomeRepositoryModule
+import com.kiri.data.home.di.HomeRepositoryModule
 import com.kiri.domain.home.repository.DailyQuestion
 import com.kiri.domain.home.repository.FamilyHome
 import com.kiri.domain.home.repository.HomeException

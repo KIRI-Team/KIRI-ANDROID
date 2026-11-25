@@ -1,7 +1,7 @@
 package com.kiri.app.push
 
 import com.google.firebase.messaging.FirebaseMessaging
-import com.kiri.data.device.PushTokenProvider
+import com.kiri.data.push.PushTokenProvider
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

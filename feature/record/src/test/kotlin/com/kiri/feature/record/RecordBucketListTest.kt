@@ -1,7 +1,7 @@
 package com.kiri.feature.record
 
 import androidx.lifecycle.SavedStateHandle
-import com.kiri.data.bucket.FakeBucketItemRepository
+import com.kiri.data.bucket.repository.FakeBucketItemRepository
 import com.kiri.domain.bucket.model.BucketItemStatus
 import com.kiri.feature.record.model.RecordUiEffect
 import com.kiri.feature.record.model.RecordUiEvent

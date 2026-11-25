@@ -1,6 +1,6 @@
 package com.kiri.app.record
 
-import com.kiri.data.schedule.CalendarScheduleRepositoryModule
+import com.kiri.data.schedule.di.CalendarScheduleRepositoryModule
 import com.kiri.domain.schedule.model.CalendarSchedule
 import com.kiri.domain.schedule.model.ScheduleDetail
 import com.kiri.domain.schedule.model.ScheduleNotFoundException

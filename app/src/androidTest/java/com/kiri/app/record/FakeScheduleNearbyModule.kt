@@ -1,6 +1,6 @@
 package com.kiri.app.record
 
-import com.kiri.data.nearby.ScheduleNearbyRepositoryModule
+import com.kiri.data.schedule.di.ScheduleNearbyRepositoryModule
 import com.kiri.domain.mission.model.NearbyPlace
 import com.kiri.domain.mission.repository.MissionNearbyRepository
 import com.kiri.domain.schedule.repository.ScheduleNearbyRepository

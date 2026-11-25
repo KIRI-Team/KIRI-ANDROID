@@ -1,6 +1,6 @@
 package com.kiri.app.mypage
 
-import com.kiri.data.suggestion.SuggestionRepositoryModule
+import com.kiri.data.suggestion.repository.SuggestionRepositoryModule
 import com.kiri.domain.suggestion.repository.SuggestionRepository
 import dagger.Module
 import dagger.Provides

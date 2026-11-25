@@ -1,6 +1,6 @@
 package com.kiri.feature.record.presentation.bucket
 
-import com.kiri.data.bucket.FakeBucketItemRepository.Companion.item
+import com.kiri.data.bucket.repository.FakeBucketItemRepository.Companion.item
 import com.kiri.domain.bucket.model.BucketItemStatus
 import org.junit.Assert.assertEquals
 import org.junit.Test
