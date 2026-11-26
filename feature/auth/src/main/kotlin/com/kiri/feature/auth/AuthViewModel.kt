@@ -2,10 +2,10 @@ package com.kiri.feature.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.model.auth.SocialProvider
-import com.kiri.domain.model.term.Term
-import com.kiri.domain.repository.AuthRepository
-import com.kiri.domain.repository.TermRepository
+import com.kiri.domain.auth.model.SocialProvider
+import com.kiri.domain.term.model.Term
+import com.kiri.domain.auth.repository.AuthRepository
+import com.kiri.domain.term.repository.TermRepository
 import com.kiri.feature.auth.login.NonceGenerator
 import com.kiri.feature.auth.login.SocialLoginResult
 import com.kiri.feature.auth.model.AuthUiEffect
@@ -28,7 +28,7 @@ class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val termRepository: TermRepository,
     private val nonceGenerator: NonceGenerator,
-    private val session: com.kiri.domain.repository.SessionRepository? = null,
+    private val session: com.kiri.domain.auth.repository.SessionRepository? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
@@ -42,7 +42,7 @@ class AuthViewModel @Inject constructor(
 
     init {
         if (session != null) viewModelScope.launch {
-            session.restore().onSuccess { destination -> if (destination == com.kiri.domain.repository.SessionDestination.TERMS) {
+            session.restore().onSuccess { destination -> if (destination == com.kiri.domain.auth.repository.SessionDestination.TERMS) {
                 _uiState.update { it.copy(currentStep = AuthStep.TERMS_AGREEMENT, isNewUser = true) }
                 loadTerms()
             } }
@@ -51,7 +51,7 @@ class AuthViewModel @Inject constructor(
 
     private suspend fun nextDestination(): AuthUiEffect = if (session == null) AuthUiEffect.NavigateToMain
         else when (session.restore().getOrThrow()) {
-            com.kiri.domain.repository.SessionDestination.MAIN -> AuthUiEffect.NavigateToMain
+            com.kiri.domain.auth.repository.SessionDestination.MAIN -> AuthUiEffect.NavigateToMain
             else -> AuthUiEffect.NavigateToOnboarding
         }
 

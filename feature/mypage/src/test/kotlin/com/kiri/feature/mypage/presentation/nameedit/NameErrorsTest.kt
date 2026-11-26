@@ -1,7 +1,7 @@
 package com.kiri.feature.mypage.presentation.nameedit
 
-import com.kiri.domain.model.nickname.NicknameRule
-import com.kiri.domain.model.nickname.NicknameValidator
+import com.kiri.domain.member.model.NicknameRule
+import com.kiri.domain.member.model.NicknameValidator
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

@@ -20,8 +20,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import com.kiri.domain.model.schedule.ScheduleDisplayStatus
-import com.kiri.domain.record.RecordPhoto
+import com.kiri.domain.schedule.model.ScheduleDisplayStatus
+import com.kiri.domain.review.model.RecordPhoto
 import com.kiri.feature.detail.model.DetailUiEvent
 import com.kiri.feature.detail.presentation.CalendarDetailHeader
 import com.kiri.feature.detail.presentation.MissionDetailScreen

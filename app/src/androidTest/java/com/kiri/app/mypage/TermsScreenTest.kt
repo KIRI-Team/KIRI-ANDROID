@@ -6,7 +6,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.kiri.domain.model.term.Term
+import com.kiri.domain.term.model.Term
 import com.kiri.feature.mypage.model.terms.TermsUiEvent
 import com.kiri.feature.mypage.model.terms.TermsUiState
 import com.kiri.feature.mypage.presentation.terms.TermsScreen

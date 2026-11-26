@@ -1,8 +1,8 @@
 package com.kiri.feature.mypage
 
-import com.kiri.domain.model.auth.LoginResult
-import com.kiri.domain.model.auth.SocialProvider
-import com.kiri.domain.repository.AuthRepository
+import com.kiri.domain.auth.model.LoginResult
+import com.kiri.domain.auth.model.SocialProvider
+import com.kiri.domain.auth.repository.AuthRepository
 import com.kiri.feature.mypage.model.account.AccountInfoUiEffect
 import com.kiri.feature.mypage.model.account.AccountInfoUiEvent
 import java.io.IOException

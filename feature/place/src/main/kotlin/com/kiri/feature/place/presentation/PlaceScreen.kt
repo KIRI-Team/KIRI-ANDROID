@@ -33,7 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import com.kiri.domain.place.*
+import com.kiri.domain.place.repository.*
 import com.kiri.feature.place.R
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.*

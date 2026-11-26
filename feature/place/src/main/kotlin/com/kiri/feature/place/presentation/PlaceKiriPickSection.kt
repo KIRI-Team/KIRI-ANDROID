@@ -21,7 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.kiri.domain.place.PlaceMission
+import com.kiri.domain.place.repository.PlaceMission
 import com.kiri.feature.place.R
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.KiriAsyncImage

@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
-import com.kiri.domain.detail.Condition
+import com.kiri.domain.mission.model.Condition
 import com.kiri.feature.detail.model.*
 import com.kiri.uikit.KiriTheme
 import java.io.File
@@ -20,7 +20,7 @@ class DetailScreenTest {
     @Test
     fun completedDiscoveryCanResaveAndThenShowsSaved() {
         val state = mutableStateOf(MissionPreviewUiState(loading = false,
-            preview = com.kiri.domain.detail.MissionPreview(figmaDetailSample().copy(completed = true)),
+            preview = com.kiri.domain.mission.model.MissionPreview(figmaDetailSample().copy(completed = true)),
             previouslyCompleted = true))
         var saves = 0
         compose.setContent {

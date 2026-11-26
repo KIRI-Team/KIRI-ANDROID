@@ -5,8 +5,9 @@ import com.kiri.feature.place.model.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.place.*
-import com.kiri.domain.home.isBrowsing
+import com.kiri.domain.place.model.*
+import com.kiri.domain.place.repository.*
+import com.kiri.domain.family.model.isBrowsing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.*
@@ -17,7 +18,7 @@ class PlaceViewModel @Inject constructor(
     private val repository: PlaceRepository,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     // 둘러보기 사용자는 버킷에 저장할 수 없다 (가족 정보로 확인). 없으면 확인하지 않는다
-    private val home: com.kiri.domain.home.HomeRepository? = null,
+    private val home: com.kiri.domain.home.repository.HomeRepository? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(PlaceUiState(query = PlaceQuery(filters = restoreFilters())))
     val uiState = _uiState.asStateFlow()
@@ -93,7 +94,7 @@ class PlaceViewModel @Inject constructor(
         val source = home ?: return _uiState.update { it.copy(pending = mission, error = null) }
         viewModelScope.launch {
             // 둘러보기 중이면 저장 확인을 띄우지 않고 안내한다
-            if (source.isBrowsing()) _effect.trySend(PlaceUiEffect.ShowMessage(com.kiri.domain.home.BROWSING_BLOCKED_MESSAGE))
+            if (source.isBrowsing()) _effect.trySend(PlaceUiEffect.ShowMessage(com.kiri.domain.family.model.BROWSING_BLOCKED_MESSAGE))
             else _uiState.update { it.copy(pending = mission, error = null) }
         }
     }

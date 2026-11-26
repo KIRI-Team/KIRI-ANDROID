@@ -16,26 +16,26 @@ import org.junit.Test
 class HomeAddressViewModelTest {
 
     @get:org.junit.Rule val mainDispatcherRule = MainDispatcherRule(kotlinx.coroutines.test.UnconfinedTestDispatcher())
-    private val family = object : com.kiri.domain.repository.FamilyRepository {
-        override suspend fun createFamily(name: String): Result<com.kiri.domain.model.family.Family> = error("unused")
+    private val family = object : com.kiri.domain.family.repository.FamilyRepository {
+        override suspend fun createFamily(name: String): Result<com.kiri.domain.family.model.Family> = error("unused")
         override suspend fun renameFamily(name: String) = Result.success(name)
         override suspend fun resolveAddress(postalCode: String, address: String, regionCode: String) =
-            Result.success(com.kiri.domain.model.family.FamilyAddress(postalCode, address, "", "1165010800", 37.5, 127.0))
-        override suspend fun saveAddress(address: com.kiri.domain.model.family.FamilyAddress) = Result.success(Unit)
+            Result.success(com.kiri.domain.family.model.FamilyAddress(postalCode, address, "", "1165010800", 37.5, 127.0))
+        override suspend fun saveAddress(address: com.kiri.domain.family.model.FamilyAddress) = Result.success(Unit)
         // 아직 주소를 등록하지 않은 가족
-        override suspend fun getAddress(): Result<com.kiri.domain.model.family.FamilyAddress?> = Result.success(null)
+        override suspend fun getAddress(): Result<com.kiri.domain.family.model.FamilyAddress?> = Result.success(null)
     }
     // 만들자마자 등록한 주소를 불러오므로(viewModelScope), 테스트용 Main 디스패처를 바꾼 뒤에 만든다
     private val viewModel by lazy { HomeAddressViewModel(family) }
 
-    private fun familyWithAddress(result: Result<com.kiri.domain.model.family.FamilyAddress?>) =
-        object : com.kiri.domain.repository.FamilyRepository by family {
+    private fun familyWithAddress(result: Result<com.kiri.domain.family.model.FamilyAddress?>) =
+        object : com.kiri.domain.family.repository.FamilyRepository by family {
             override suspend fun getAddress() = result
         }
 
     @Test
     fun 등록한_주소가_있으면_주소_보기에서_시작한다() {
-        val saved = com.kiri.domain.model.family.FamilyAddress("06134", "서울특별시 서초구 강남대로 143", "810동 603호", "1165010800", 37.55, 126.92)
+        val saved = com.kiri.domain.family.model.FamilyAddress("06134", "서울특별시 서초구 강남대로 143", "810동 603호", "1165010800", 37.55, 126.92)
         val loaded = HomeAddressViewModel(familyWithAddress(Result.success(saved)))
 
         with(loaded.uiState.value) {
@@ -64,8 +64,8 @@ class HomeAddressViewModelTest {
 
     @Test
     fun 주소를_불러오는_동안에는_뒤로가기만_받는다() = runTest {
-        val pending = kotlinx.coroutines.CompletableDeferred<Result<com.kiri.domain.model.family.FamilyAddress?>>()
-        val loading = HomeAddressViewModel(object : com.kiri.domain.repository.FamilyRepository by family {
+        val pending = kotlinx.coroutines.CompletableDeferred<Result<com.kiri.domain.family.model.FamilyAddress?>>()
+        val loading = HomeAddressViewModel(object : com.kiri.domain.family.repository.FamilyRepository by family {
             override suspend fun getAddress() = pending.await()
         })
         assertTrue(loading.uiState.value.loading)
@@ -81,13 +81,13 @@ class HomeAddressViewModelTest {
 
     @Test
     fun 가족_이름을_가족_정보에서_불러오고_불러오지_못하면_비워_둔다() {
-        fun home(result: () -> com.kiri.domain.home.FamilyHome) = object : com.kiri.domain.home.HomeRepository {
+        fun home(result: () -> com.kiri.domain.home.repository.FamilyHome) = object : com.kiri.domain.home.repository.HomeRepository {
             override suspend fun load() = result()
-            override suspend fun saveAnswer(question: com.kiri.domain.home.DailyQuestion, answer: String) = result()
-            override suspend fun poke(question: com.kiri.domain.home.DailyQuestion, memberId: String) = result()
+            override suspend fun saveAnswer(question: com.kiri.domain.home.repository.DailyQuestion, answer: String) = result()
+            override suspend fun poke(question: com.kiri.domain.home.repository.DailyQuestion, memberId: String) = result()
         }
         val loaded = HomeAddressViewModel(family, home {
-            com.kiri.domain.home.FamilyHome(java.time.LocalDate.of(2026, 11, 11), "1", "끼리네가족", emptyList(),
+            com.kiri.domain.home.repository.FamilyHome(java.time.LocalDate.of(2026, 11, 11), "1", "끼리네가족", emptyList(),
                 null, emptyMap(), emptySet(), null, serverBacked = true)
         })
         assertEquals("끼리네가족", loaded.uiState.value.familyName)
@@ -260,8 +260,8 @@ class HomeAddressViewModelTest {
         assertNull(withTimeoutOrNull(100) { viewModel.effect.first() })
     }
     @Test fun 위치_확인_중_뒤로가면_취소되고_늦은_결과를_반영하지_않는다() = runTest {
-        val pending = kotlinx.coroutines.CompletableDeferred<com.kiri.domain.model.family.FamilyAddress>()
-        val repo = object : com.kiri.domain.repository.FamilyRepository by family {
+        val pending = kotlinx.coroutines.CompletableDeferred<com.kiri.domain.family.model.FamilyAddress>()
+        val repo = object : com.kiri.domain.family.repository.FamilyRepository by family {
             override suspend fun resolveAddress(postalCode: String, address: String, regionCode: String) = Result.success(pending.await())
         }
         val vm = HomeAddressViewModel(repo)
@@ -271,15 +271,15 @@ class HomeAddressViewModelTest {
         vm.onEvent(HomeAddressUiEvent.BackClicked)
         assertFalse(vm.uiState.value.saving)
         assertEquals(HomeAddressStep.REGISTER, vm.uiState.value.currentStep)
-        pending.complete(com.kiri.domain.model.family.FamilyAddress("06134", "늦은 주소", "", "1165010800", 37.5, 127.0))
+        pending.complete(com.kiri.domain.family.model.FamilyAddress("06134", "늦은 주소", "", "1165010800", 37.5, 127.0))
         assertEquals(HomeAddress(), vm.uiState.value.form)
     }
     @Test fun 좌표_확인_실패는_검색에_남고_저장_실패는_입력을_유지한다() {
-        val repo = object : com.kiri.domain.repository.FamilyRepository by family {
+        val repo = object : com.kiri.domain.family.repository.FamilyRepository by family {
             var failResolution = true
             override suspend fun resolveAddress(postalCode: String, address: String, regionCode: String) =
                 if (failResolution) Result.failure(IllegalStateException("위치 확인 실패")) else family.resolveAddress(postalCode, address, regionCode)
-            override suspend fun saveAddress(address: com.kiri.domain.model.family.FamilyAddress) = Result.failure<Unit>(IllegalStateException("저장 실패"))
+            override suspend fun saveAddress(address: com.kiri.domain.family.model.FamilyAddress) = Result.failure<Unit>(IllegalStateException("저장 실패"))
         }
         val vm = HomeAddressViewModel(repo)
         vm.onEvent(HomeAddressUiEvent.FindZipCodeClicked)

@@ -3,14 +3,14 @@ package com.kiri.feature.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.detail.DetailSuggestion
-import com.kiri.domain.detail.MissionDetail
-import com.kiri.domain.detail.MissionPreview
-import com.kiri.domain.model.mission.MissionBucketState
-import com.kiri.domain.model.mission.MissionInfo
-import com.kiri.domain.repository.AppEventRepository
-import com.kiri.domain.repository.MissionInfoRepository
-import com.kiri.domain.repository.MissionNearbyRepository
+import com.kiri.domain.mission.model.DetailSuggestion
+import com.kiri.domain.mission.model.MissionDetail
+import com.kiri.domain.mission.model.MissionPreview
+import com.kiri.domain.mission.model.MissionBucketState
+import com.kiri.domain.mission.model.MissionInfo
+import com.kiri.domain.event.repository.AppEventRepository
+import com.kiri.domain.mission.repository.MissionInfoRepository
+import com.kiri.domain.mission.repository.MissionNearbyRepository
 import com.kiri.feature.detail.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -21,14 +21,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import com.kiri.domain.home.isBrowsing
+import com.kiri.domain.family.model.isBrowsing
 
 @HiltViewModel
 class MissionPreviewViewModel @Inject constructor(
     private val savedState: SavedStateHandle,
     private val serverMissions: MissionInfoRepository,
     // 둘러보기 사용자는 버킷에 저장할 수 없다 (가족 정보로 확인). 없으면 확인하지 않는다
-    private val home: com.kiri.domain.home.HomeRepository? = null,
+    private val home: com.kiri.domain.home.repository.HomeRepository? = null,
     private val appEvents: AppEventRepository? = null,
     private val missionNearby: MissionNearbyRepository? = null,
 ) : ViewModel() {
@@ -108,7 +108,7 @@ class MissionPreviewViewModel @Inject constructor(
             // 둘러보기 중이면 저장하지 않고 안내한다
             if (home != null && home.isBrowsing()) {
                 _uiState.update { it.copy(saving = false) }
-                _effect.trySend(MissionPreviewUiEffect.ShowMessage(com.kiri.domain.home.BROWSING_BLOCKED_MESSAGE))
+                _effect.trySend(MissionPreviewUiEffect.ShowMessage(com.kiri.domain.family.model.BROWSING_BLOCKED_MESSAGE))
                 return@launch
             }
             try {

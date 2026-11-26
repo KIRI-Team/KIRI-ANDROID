@@ -1,0 +1,15 @@
+package com.kiri.domain.mission.repository
+
+import com.kiri.domain.mission.model.MissionGuide
+import com.kiri.domain.mission.model.MissionInfo
+
+// 서버 미션 API. 일정 상세처럼 미션 id 만 아는 화면이 미션 정보를 채울 때 쓴다
+interface MissionInfoRepository {
+    suspend fun saveBucket(missionId: Long): Result<Unit> = Result.failure(UnsupportedOperationException())
+    suspend fun saveBucket(missionId: Long, kiriPickId: Long): Result<Unit> = saveBucket(missionId)
+
+    // 없거나 노출할 수 없는 미션이면 MissionNotFoundException 으로 실패한다
+    suspend fun getMission(missionId: Long): Result<MissionInfo>
+
+    suspend fun getMissionEssentials(missionId: Long): Result<List<MissionGuide>> = Result.success(emptyList())
+}

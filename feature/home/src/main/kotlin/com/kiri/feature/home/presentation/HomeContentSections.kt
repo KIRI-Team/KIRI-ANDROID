@@ -17,7 +17,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
-import com.kiri.domain.home.*
+import com.kiri.domain.home.repository.*
 import com.kiri.feature.home.model.*
 import com.kiri.uikit.R as UiR
 import com.kiri.uikit.color.KiriColor

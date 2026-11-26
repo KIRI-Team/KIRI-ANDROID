@@ -3,22 +3,22 @@ package com.kiri.feature.record
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.model.schedule.CalendarSchedule
-import com.kiri.domain.model.schedule.ScheduleDetail
-import com.kiri.domain.model.schedule.ScheduleNotFoundException
-import com.kiri.domain.repository.CalendarScheduleRepository
-import com.kiri.domain.repository.BucketItemRepository
-import com.kiri.domain.repository.UpcomingScheduleRepository
-import com.kiri.domain.model.schedule.UpcomingSchedules
-import com.kiri.domain.model.bucket.BucketItemPage
-import com.kiri.domain.model.bucket.BucketItemNotFoundException
-import com.kiri.domain.model.bucket.CompletedBucketItemException
-import com.kiri.domain.model.bucket.NotBucketItemOwnerException
-import com.kiri.domain.model.bucket.ScheduledBucketItemException
+import com.kiri.domain.schedule.model.CalendarSchedule
+import com.kiri.domain.schedule.model.ScheduleDetail
+import com.kiri.domain.schedule.model.ScheduleNotFoundException
+import com.kiri.domain.schedule.repository.CalendarScheduleRepository
+import com.kiri.domain.bucket.repository.BucketItemRepository
+import com.kiri.domain.schedule.repository.UpcomingScheduleRepository
+import com.kiri.domain.schedule.model.UpcomingSchedules
+import com.kiri.domain.bucket.model.BucketItemPage
+import com.kiri.domain.bucket.model.BucketItemNotFoundException
+import com.kiri.domain.bucket.model.CompletedBucketItemException
+import com.kiri.domain.bucket.model.NotBucketItemOwnerException
+import com.kiri.domain.bucket.model.ScheduledBucketItemException
 import kotlinx.coroutines.Job
-import com.kiri.domain.record.QuestionHistoryRepository
-import com.kiri.domain.record.RecordedQuestion
-import com.kiri.domain.time.kiriToday
+import com.kiri.domain.question.repository.QuestionHistoryRepository
+import com.kiri.domain.question.model.RecordedQuestion
+import com.kiri.domain.common.kiriToday
 import com.kiri.feature.record.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
@@ -345,9 +345,9 @@ private object NoCalendarSchedules : CalendarScheduleRepository {
     override suspend fun getScheduleDetail(scheduleId: Long): Result<ScheduleDetail> =
         Result.failure(ScheduleNotFoundException())
 
-    override suspend fun updateSchedule(scheduleId: Long, update: com.kiri.domain.model.schedule.ScheduleUpdate): Result<Unit> =
+    override suspend fun updateSchedule(scheduleId: Long, update: com.kiri.domain.schedule.model.ScheduleUpdate): Result<Unit> =
         Result.failure(ScheduleNotFoundException())
 
-    override suspend fun createSchedule(bucketItemId: Long, form: com.kiri.domain.model.schedule.ScheduleUpdate): Result<Long> =
+    override suspend fun createSchedule(bucketItemId: Long, form: com.kiri.domain.schedule.model.ScheduleUpdate): Result<Long> =
         Result.failure(ScheduleNotFoundException())
 }

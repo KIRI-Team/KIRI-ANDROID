@@ -11,7 +11,7 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "KIRI ANDROID"
-include(":app", ":core", ":uikit", ":domain", ":data")
+include(":app", ":uikit", ":domain", ":data")
 listOf("home", "auth", "onboarding", "detail", "record", "place", "mypage").forEach {
     include(":feature:$it")
 }

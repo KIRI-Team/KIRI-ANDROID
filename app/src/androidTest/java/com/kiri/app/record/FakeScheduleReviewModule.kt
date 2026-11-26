@@ -1,10 +1,10 @@
 package com.kiri.app.record
 
-import com.kiri.data.review.ScheduleReviewRepositoryModule
-import com.kiri.domain.model.review.ScheduleReview
-import com.kiri.domain.model.review.ScheduleReviewForm
-import com.kiri.domain.model.review.ScheduleReviewResult
-import com.kiri.domain.repository.ScheduleReviewRepository
+import com.kiri.data.review.di.ScheduleReviewRepositoryModule
+import com.kiri.domain.review.model.ScheduleReview
+import com.kiri.domain.review.model.ScheduleReviewForm
+import com.kiri.domain.review.model.ScheduleReviewResult
+import com.kiri.domain.review.repository.ScheduleReviewRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.components.SingletonComponent

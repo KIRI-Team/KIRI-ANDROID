@@ -1,6 +1,6 @@
 package com.kiri.feature.place.model
 
-import com.kiri.domain.place.*
+import com.kiri.domain.place.repository.*
 
 data class PlaceUiState(
     val query: PlaceQuery = PlaceQuery(), val items: List<PlaceMission> = emptyList(),

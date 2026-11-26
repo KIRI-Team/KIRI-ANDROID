@@ -26,7 +26,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import com.kiri.domain.notification.*
+import com.kiri.domain.notification.repository.*
 import com.kiri.feature.home.NotificationUiState
 import com.kiri.feature.home.NotificationViewModel
 import com.kiri.feature.home.R

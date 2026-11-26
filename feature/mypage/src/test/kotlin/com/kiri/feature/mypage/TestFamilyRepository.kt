@@ -1,7 +1,7 @@
 package com.kiri.feature.mypage
 
-import com.kiri.domain.model.family.Family
-import com.kiri.domain.repository.FamilyRepository
+import com.kiri.domain.family.model.Family
+import com.kiri.domain.family.repository.FamilyRepository
 
 // 가족명 변경 결과를 정해두고 보낸 가족명을 모은다
 class TestFamilyRepository(

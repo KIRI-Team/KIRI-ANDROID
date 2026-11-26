@@ -2,9 +2,9 @@ package com.kiri.feature.mypage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.model.invite.Invite
-import com.kiri.domain.model.invite.InviteReissueFailedException
-import com.kiri.domain.repository.InviteRepository
+import com.kiri.domain.invite.model.Invite
+import com.kiri.domain.invite.model.InviteReissueFailedException
+import com.kiri.domain.invite.repository.InviteRepository
 import com.kiri.feature.mypage.model.invite.InviteLinkUiEffect
 import com.kiri.feature.mypage.model.invite.InviteLinkUiEvent
 import com.kiri.feature.mypage.model.invite.InviteLinkUiState

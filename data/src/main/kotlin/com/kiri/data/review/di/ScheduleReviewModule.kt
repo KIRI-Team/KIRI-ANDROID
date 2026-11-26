@@ -1,0 +1,28 @@
+package com.kiri.data.review.di
+
+import com.kiri.domain.review.repository.ScheduleReviewRepository
+import dagger.Binds
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+import retrofit2.Retrofit
+import com.kiri.data.review.remote.ScheduleReviewApi
+import com.kiri.data.review.repository.ScheduleReviewRepositoryImpl
+
+@Module
+@InstallIn(SingletonComponent::class)
+internal object ScheduleReviewApiModule {
+    @Provides
+    @Singleton
+    fun provideScheduleReviewApi(retrofit: Retrofit): ScheduleReviewApi = retrofit.create(ScheduleReviewApi::class.java)
+}
+
+// UI 테스트에서 실제 서버 대신 가짜 저장소로 바꿀 수 있도록(@TestInstallIn) 따로 두고 공개한다
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class ScheduleReviewRepositoryModule {
+    @Binds
+    internal abstract fun bindScheduleReviewRepository(impl: ScheduleReviewRepositoryImpl): ScheduleReviewRepository
+}

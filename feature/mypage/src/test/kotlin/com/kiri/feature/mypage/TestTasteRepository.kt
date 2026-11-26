@@ -1,8 +1,8 @@
 package com.kiri.feature.mypage
 
-import com.kiri.domain.model.taste.MyTaste
-import com.kiri.domain.model.taste.Taste
-import com.kiri.domain.repository.TasteRepository
+import com.kiri.domain.taste.model.MyTaste
+import com.kiri.domain.taste.model.Taste
+import com.kiri.domain.taste.repository.TasteRepository
 
 // 불러오기·저장 결과를 정해두고 저장한 취향을 모은다
 class TestTasteRepository(

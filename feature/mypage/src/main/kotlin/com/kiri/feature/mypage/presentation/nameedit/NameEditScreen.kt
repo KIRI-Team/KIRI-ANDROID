@@ -18,8 +18,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.kiri.domain.model.nickname.NicknameRule
-import com.kiri.domain.model.nickname.NicknameValidator
+import com.kiri.domain.member.model.NicknameRule
+import com.kiri.domain.member.model.NicknameValidator
 import com.kiri.feature.mypage.NameEditViewModel
 import com.kiri.feature.mypage.model.nameedit.NameEditUiEffect
 import com.kiri.feature.mypage.model.nameedit.NameEditUiEvent

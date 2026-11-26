@@ -1,7 +1,7 @@
 package com.kiri.feature.home
 
-import com.kiri.domain.home.HomeException
-import com.kiri.domain.home.HomeFailure
+import com.kiri.domain.home.repository.HomeException
+import com.kiri.domain.home.repository.HomeFailure
 import com.kiri.feature.home.model.HomeLoadFailure
 import com.kiri.feature.home.model.HomeUiState
 import java.io.IOException

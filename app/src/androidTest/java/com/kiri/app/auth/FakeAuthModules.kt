@@ -1,13 +1,13 @@
 package com.kiri.app.auth
 
 import android.app.Activity
-import com.kiri.data.auth.AuthRepositoryModule
-import com.kiri.data.term.TermRepositoryModule
-import com.kiri.domain.model.auth.LoginResult
-import com.kiri.domain.model.auth.SocialProvider
-import com.kiri.domain.model.term.Term
-import com.kiri.domain.repository.AuthRepository
-import com.kiri.domain.repository.TermRepository
+import com.kiri.data.auth.di.AuthRepositoryModule
+import com.kiri.data.term.di.TermRepositoryModule
+import com.kiri.domain.auth.model.LoginResult
+import com.kiri.domain.auth.model.SocialProvider
+import com.kiri.domain.term.model.Term
+import com.kiri.domain.auth.repository.AuthRepository
+import com.kiri.domain.term.repository.TermRepository
 import com.kiri.feature.auth.login.SocialLogin
 import com.kiri.feature.auth.login.SocialLoginModule
 import com.kiri.feature.auth.login.SocialLoginResult

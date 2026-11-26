@@ -9,7 +9,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kiri.app.MainActivity
 import com.kiri.app.auth.FakeAuthRepository
-import com.kiri.domain.repository.AuthRepository
+import com.kiri.domain.auth.repository.AuthRepository
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import javax.inject.Inject

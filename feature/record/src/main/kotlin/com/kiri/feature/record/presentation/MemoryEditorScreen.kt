@@ -82,7 +82,7 @@ fun MemoryEditorScreen(
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 draft.photos.forEachIndexed { index, uri ->
                     Box(Modifier.size(137.dp)) {
-                        RecordPhotoImage(com.kiri.domain.record.RecordPhoto(uri, uri), Modifier.fillMaxSize())
+                        RecordPhotoImage(com.kiri.domain.review.model.RecordPhoto(uri, uri), Modifier.fillMaxSize())
                         TextButton(onClick = { onChange(draft.copy(photos = draft.photos - uri)) }, modifier = Modifier.align(Alignment.TopEnd).testTag("remove_memory_photo_$index")) {
                             Text("삭제", color = KiriColor.Text.Strong, style = KiriDetailTypography.Small)
                         }

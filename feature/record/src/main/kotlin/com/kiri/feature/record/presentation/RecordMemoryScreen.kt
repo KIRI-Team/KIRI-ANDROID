@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.kiri.domain.record.*
+import com.kiri.domain.review.model.*
 import com.kiri.feature.record.R
 import com.kiri.feature.detail.presentation.MemoryPhoto
 import com.kiri.uikit.color.KiriColor
@@ -66,7 +66,7 @@ internal fun RecordMemoryContent(
     familyName: String?,
     title: String,
     date: java.time.LocalDate?,
-    participants: List<com.kiri.domain.detail.DetailParticipant>,
+    participants: List<com.kiri.domain.mission.model.DetailParticipant>,
     representativePhoto: RecordPhoto?,
     memories: List<MemoryCardUi>,
     onBack: () -> Unit,

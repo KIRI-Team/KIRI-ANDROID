@@ -3,31 +3,31 @@ package com.kiri.feature.record
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.detail.DetailParticipant
-import com.kiri.domain.detail.DetailSuggestion
-import com.kiri.domain.detail.MissionDetail
-import com.kiri.domain.model.mission.MissionGuide
-import com.kiri.domain.model.mission.MissionInfo
-import com.kiri.domain.home.HomeRepository
-import com.kiri.domain.model.member.FamilyRole
-import com.kiri.domain.model.review.ScheduleReview
-import com.kiri.domain.model.review.ScheduleReviewForm
-import com.kiri.domain.model.review.ScheduleReviewResult
-import com.kiri.domain.repository.ScheduleReviewRepository
-import com.kiri.domain.model.condition.ConditionCustom
-import com.kiri.domain.model.condition.ConditionCustomUnavailableException
-import com.kiri.domain.model.condition.NotFinalParticipantException
-import com.kiri.domain.repository.ScheduleConditionRepository
-import com.kiri.domain.detail.NearbyPlace
-import com.kiri.domain.repository.ScheduleNearbyRepository
-import com.kiri.domain.repository.MissionInfoRepository
-import com.kiri.domain.model.family.NoFamilyException
-import com.kiri.domain.model.schedule.CancelledScheduleException
-import com.kiri.domain.usecase.schedule.GetScheduleEditAccessUseCase
-import com.kiri.domain.model.schedule.ScheduleDetail
-import com.kiri.domain.model.schedule.MyScheduleStatus
-import com.kiri.domain.model.schedule.ScheduleDisplayStatus
-import com.kiri.domain.model.schedule.ScheduleNotFoundException
+import com.kiri.domain.mission.model.DetailParticipant
+import com.kiri.domain.mission.model.DetailSuggestion
+import com.kiri.domain.mission.model.MissionDetail
+import com.kiri.domain.mission.model.MissionGuide
+import com.kiri.domain.mission.model.MissionInfo
+import com.kiri.domain.home.repository.HomeRepository
+import com.kiri.domain.member.model.FamilyRole
+import com.kiri.domain.review.model.ScheduleReview
+import com.kiri.domain.review.model.ScheduleReviewForm
+import com.kiri.domain.review.model.ScheduleReviewResult
+import com.kiri.domain.review.repository.ScheduleReviewRepository
+import com.kiri.domain.schedule.model.ConditionCustom
+import com.kiri.domain.schedule.model.ConditionCustomUnavailableException
+import com.kiri.domain.schedule.model.NotFinalParticipantException
+import com.kiri.domain.schedule.repository.ScheduleConditionRepository
+import com.kiri.domain.mission.model.NearbyPlace
+import com.kiri.domain.schedule.repository.ScheduleNearbyRepository
+import com.kiri.domain.mission.repository.MissionInfoRepository
+import com.kiri.domain.family.model.NoFamilyException
+import com.kiri.domain.schedule.model.CancelledScheduleException
+import com.kiri.domain.schedule.usecase.GetScheduleEditAccessUseCase
+import com.kiri.domain.schedule.model.ScheduleDetail
+import com.kiri.domain.schedule.model.MyScheduleStatus
+import com.kiri.domain.schedule.model.ScheduleDisplayStatus
+import com.kiri.domain.schedule.model.ScheduleNotFoundException
 import com.kiri.feature.detail.model.DetailUiEvent
 import com.kiri.feature.detail.model.DetailUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -106,17 +106,17 @@ data class ServerScheduleDetailUiState(
     val canCustomize get() = schedule?.status == ScheduleDisplayStatus.TODAY
 
     // 대표 사진 후보: 리뷰 사진 중 id 가 있는 것 (리뷰 작성순, 리뷰 안 사진 순서)
-    val reviewPhotos: List<com.kiri.domain.record.RecordPhoto>
+    val reviewPhotos: List<com.kiri.domain.review.model.RecordPhoto>
         get() = reviews.flatMap { review ->
-            review.imageUrls.mapNotNull { url -> review.photoIds[url]?.let { com.kiri.domain.record.RecordPhoto(it.toString(), url) } }
+            review.imageUrls.mapNotNull { url -> review.photoIds[url]?.let { com.kiri.domain.review.model.RecordPhoto(it.toString(), url) } }
         }
 
     // 대표 사진: 리뷰 목록 조회의 representativePhotoId 사진. 없거나 그 사진을 찾지 못하면 리뷰 목록의 첫 사진
-    val representativePhoto: com.kiri.domain.record.RecordPhoto?
+    val representativePhoto: com.kiri.domain.review.model.RecordPhoto?
         get() = reviewPhotos.firstOrNull { it.id == representativePhotoId?.toString() }
             ?: reviews.firstNotNullOfOrNull { review ->
                 review.imageUrls.firstOrNull()?.let { url ->
-                    com.kiri.domain.record.RecordPhoto(review.photoIds[url]?.toString() ?: "review-${review.id}-0", url)
+                    com.kiri.domain.review.model.RecordPhoto(review.photoIds[url]?.toString() ?: "review-${review.id}-0", url)
                 }
             }
 }
@@ -149,9 +149,9 @@ constructor(
     private val home: HomeRepository? = null,
     private val conditions: ScheduleConditionRepository = NoConditions,
     private val nearbyPlaces: ScheduleNearbyRepository = NoNearby,
-    private val schedules: com.kiri.domain.repository.CalendarScheduleRepository? = null,
+    private val schedules: com.kiri.domain.schedule.repository.CalendarScheduleRepository? = null,
     private val clock: java.time.Clock = java.time.Clock.systemUTC(),
-    private val photos: com.kiri.domain.repository.ReviewPhotoRepository? = null,
+    private val photos: com.kiri.domain.review.repository.ReviewPhotoRepository? = null,
 ) : ViewModel() {
     private var customJob: Job? = null
     private var nearbyJob: Job? = null
@@ -413,7 +413,7 @@ constructor(
 
     // 수락·거절, 일정 취소 버튼과 내 응답 상태는 상세 API 가 준 값(canRespond·canCancel·myStatus)을 그대로 쓴다.
     // 기록 작성 가능 여부는 서버 값이 없어, 내가 수락했고 시작 시각이 지난 일정인지로 정한다
-    private suspend fun loadActions(detail: ScheduleDetail, access: com.kiri.domain.usecase.schedule.ScheduleEditAccess) {
+    private suspend fun loadActions(detail: ScheduleDetail, access: com.kiri.domain.schedule.usecase.ScheduleEditAccess) {
         val family = access.family ?: try { home?.family() } catch (e: CancellationException) { throw e } catch (_: Exception) { null }
         val me = family?.members?.find { it.id == family.currentUserId }
         val start = detail.time?.let { detail.date.atTime(it).atZone(java.time.ZoneId.of("Asia/Seoul")).toInstant() }
@@ -524,7 +524,7 @@ constructor(
                     val cause = result.exceptionOrNull()
                     if (cause is CancellationException) throw cause
                     val stored = reviews.getReviews(id).getOrNull()
-                    if (cause !is com.kiri.domain.model.review.AlreadyReviewedException && stored?.any { it.isMine } != true) throw requireNotNull(cause)
+                    if (cause !is com.kiri.domain.review.model.AlreadyReviewedException && stored?.any { it.isMine } != true) throw requireNotNull(cause)
                 }
                 savedState["reviewPosted"] = true
                 state.update {
@@ -571,9 +571,9 @@ constructor(
                 val message = when (e) {
                     is ReviewPhotoUploadException -> e.message
                     is MissingPhotoKeyException -> "기존 사진 정보를 찾지 못했어요. 사진을 지우고 다시 골라주세요."
-                    is com.kiri.domain.model.review.ReviewNotFoundException -> "기록을 찾을 수 없어요. 화면을 새로고침해주세요."
-                    is com.kiri.domain.model.review.ReviewAccessDeniedException -> "내가 쓴 기록만 수정할 수 있어요."
-                    is com.kiri.domain.model.review.InvalidReviewException -> e.message ?: "입력한 내용을 다시 확인해주세요."
+                    is com.kiri.domain.review.model.ReviewNotFoundException -> "기록을 찾을 수 없어요. 화면을 새로고침해주세요."
+                    is com.kiri.domain.review.model.ReviewAccessDeniedException -> "내가 쓴 기록만 수정할 수 있어요."
+                    is com.kiri.domain.review.model.InvalidReviewException -> e.message ?: "입력한 내용을 다시 확인해주세요."
                     else -> "기록을 수정하지 못했어요. 입력은 유지됐으니 다시 시도해주세요."
                 }
                 state.update { it.copy(detail = it.detail.copy(error = message)) }
@@ -629,13 +629,13 @@ constructor(
                 .onFailure { error ->
                     if (error is CancellationException) throw error
                     val message = when (error) {
-                        is com.kiri.domain.model.review.ReviewPhotoNotFoundException -> "지워진 사진이에요. 다른 사진을 골라주세요."
-                        is com.kiri.domain.model.review.ReviewAccessDeniedException -> "우리 가족의 일정만 바꿀 수 있어요."
+                        is com.kiri.domain.review.model.ReviewPhotoNotFoundException -> "지워진 사진이에요. 다른 사진을 골라주세요."
+                        is com.kiri.domain.review.model.ReviewAccessDeniedException -> "우리 가족의 일정만 바꿀 수 있어요."
                         else -> "대표 사진을 바꾸지 못했어요. 잠시 후 다시 시도해주세요."
                     }
                     state.update { it.copy(detail = it.detail.copy(error = message)) }
                     // 사진이 이미 빠졌으면 목록을 다시 불러와 후보를 맞춘다
-                    if (error is com.kiri.domain.model.review.ReviewPhotoNotFoundException) loadReviews(id)
+                    if (error is com.kiri.domain.review.model.ReviewPhotoNotFoundException) loadReviews(id)
                 }
             state.update { it.copy(detail = it.detail.copy(saving = false)) }
         }
@@ -663,13 +663,13 @@ constructor(
                 .onFailure { error ->
                     if (error is CancellationException) throw error
                     val message = when (error) {
-                        is com.kiri.domain.model.review.ReviewNotFoundException -> "이미 지워졌거나 찾을 수 없는 기록이에요."
-                        is com.kiri.domain.model.review.ReviewAccessDeniedException -> "내가 쓴 기록만 삭제할 수 있어요."
+                        is com.kiri.domain.review.model.ReviewNotFoundException -> "이미 지워졌거나 찾을 수 없는 기록이에요."
+                        is com.kiri.domain.review.model.ReviewAccessDeniedException -> "내가 쓴 기록만 삭제할 수 있어요."
                         else -> "기록을 삭제하지 못했어요. 잠시 후 다시 시도해주세요."
                     }
                     state.update { it.copy(detail = it.detail.copy(error = message)) }
                     // 이미 없는 기록이면 목록을 다시 불러와 맞춘다
-                    if (error is com.kiri.domain.model.review.ReviewNotFoundException) loadReviews(id)
+                    if (error is com.kiri.domain.review.model.ReviewNotFoundException) loadReviews(id)
                 }
             state.update { it.copy(detail = it.detail.copy(saving = false)) }
         }
@@ -764,7 +764,7 @@ private object NoConditions : ScheduleConditionRepository {
     override suspend fun getConditionCustom(scheduleId: Long): Result<ConditionCustom> =
         Result.failure(UnsupportedOperationException())
 
-    override suspend fun applyConditions(scheduleId: Long, conditions: Set<com.kiri.domain.detail.Condition>): Result<Unit> =
+    override suspend fun applyConditions(scheduleId: Long, conditions: Set<com.kiri.domain.mission.model.Condition>): Result<Unit> =
         Result.failure(UnsupportedOperationException())
 }
 

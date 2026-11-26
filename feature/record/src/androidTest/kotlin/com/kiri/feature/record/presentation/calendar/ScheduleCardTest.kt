@@ -5,9 +5,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.kiri.domain.model.schedule.MyScheduleStatus
-import com.kiri.domain.model.schedule.UpcomingSchedule
-import com.kiri.domain.model.schedule.UpcomingScheduleType
+import com.kiri.domain.schedule.model.MyScheduleStatus
+import com.kiri.domain.schedule.model.UpcomingSchedule
+import com.kiri.domain.schedule.model.UpcomingScheduleType
 import com.kiri.uikit.KiriTheme
 import java.time.LocalDate
 import java.time.LocalTime

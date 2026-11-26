@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
-import com.kiri.domain.place.*
+import com.kiri.domain.place.repository.*
 import com.kiri.uikit.KiriTheme
 import java.io.File
 import org.junit.Rule

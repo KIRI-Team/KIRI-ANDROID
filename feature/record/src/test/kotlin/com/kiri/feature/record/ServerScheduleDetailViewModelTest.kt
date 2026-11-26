@@ -1,41 +1,41 @@
 package com.kiri.feature.record
 
 import androidx.lifecycle.SavedStateHandle
-import com.kiri.domain.detail.Condition
-import com.kiri.domain.home.HomeRepository
-import com.kiri.domain.usecase.schedule.GetScheduleEditAccessUseCase
-import com.kiri.domain.model.schedule.ScheduleUpdate
-import com.kiri.domain.detail.DetailParticipant
-import com.kiri.domain.detail.DetailSuggestion
-import com.kiri.domain.model.mission.MissionBucketState
-import com.kiri.domain.model.mission.MissionGuide
-import com.kiri.domain.model.mission.MissionInfo
-import com.kiri.domain.model.mission.MissionNotFoundException
-import com.kiri.domain.model.mission.MissionPlace
-import com.kiri.domain.model.mission.WalkingLevel
-import com.kiri.domain.repository.MissionInfoRepository
-import com.kiri.domain.model.member.FamilyRole
-import com.kiri.domain.model.review.ReviewWriter
-import com.kiri.domain.model.review.ScheduleReview
-import com.kiri.domain.model.review.ScheduleReviewForm
-import com.kiri.domain.model.review.ScheduleReviewResult
-import com.kiri.domain.repository.ScheduleReviewRepository
-import com.kiri.domain.model.condition.ConditionCustom
-import com.kiri.domain.model.condition.ConditionCustomUnavailableException
-import com.kiri.domain.model.condition.NotFinalParticipantException
-import com.kiri.domain.repository.ScheduleConditionRepository
-import com.kiri.domain.detail.NearbyPlace
-import com.kiri.domain.repository.ScheduleNearbyRepository
-import com.kiri.domain.model.schedule.CalendarSchedule
-import com.kiri.domain.model.family.NoFamilyException
-import com.kiri.domain.model.schedule.CancelledScheduleException
-import com.kiri.domain.model.schedule.ScheduleNotFoundException
-import com.kiri.domain.model.schedule.ScheduleDetail
-import com.kiri.domain.model.schedule.ScheduleDisplayStatus
-import com.kiri.domain.model.schedule.MyScheduleStatus
-import com.kiri.domain.model.schedule.ScheduleParticipant
-import com.kiri.domain.model.schedule.ScheduleProposer
-import com.kiri.domain.repository.CalendarScheduleRepository
+import com.kiri.domain.mission.model.Condition
+import com.kiri.domain.home.repository.HomeRepository
+import com.kiri.domain.schedule.usecase.GetScheduleEditAccessUseCase
+import com.kiri.domain.schedule.model.ScheduleUpdate
+import com.kiri.domain.mission.model.DetailParticipant
+import com.kiri.domain.mission.model.DetailSuggestion
+import com.kiri.domain.mission.model.MissionBucketState
+import com.kiri.domain.mission.model.MissionGuide
+import com.kiri.domain.mission.model.MissionInfo
+import com.kiri.domain.mission.model.MissionNotFoundException
+import com.kiri.domain.mission.model.MissionPlace
+import com.kiri.domain.mission.model.WalkingLevel
+import com.kiri.domain.mission.repository.MissionInfoRepository
+import com.kiri.domain.member.model.FamilyRole
+import com.kiri.domain.review.model.ReviewWriter
+import com.kiri.domain.review.model.ScheduleReview
+import com.kiri.domain.review.model.ScheduleReviewForm
+import com.kiri.domain.review.model.ScheduleReviewResult
+import com.kiri.domain.review.repository.ScheduleReviewRepository
+import com.kiri.domain.schedule.model.ConditionCustom
+import com.kiri.domain.schedule.model.ConditionCustomUnavailableException
+import com.kiri.domain.schedule.model.NotFinalParticipantException
+import com.kiri.domain.schedule.repository.ScheduleConditionRepository
+import com.kiri.domain.mission.model.NearbyPlace
+import com.kiri.domain.schedule.repository.ScheduleNearbyRepository
+import com.kiri.domain.schedule.model.CalendarSchedule
+import com.kiri.domain.family.model.NoFamilyException
+import com.kiri.domain.schedule.model.CancelledScheduleException
+import com.kiri.domain.schedule.model.ScheduleNotFoundException
+import com.kiri.domain.schedule.model.ScheduleDetail
+import com.kiri.domain.schedule.model.ScheduleDisplayStatus
+import com.kiri.domain.schedule.model.MyScheduleStatus
+import com.kiri.domain.schedule.model.ScheduleParticipant
+import com.kiri.domain.schedule.model.ScheduleProposer
+import com.kiri.domain.schedule.repository.CalendarScheduleRepository
 import com.kiri.feature.detail.model.DetailUiEvent
 import java.io.IOException
 import java.time.LocalDate
@@ -751,14 +751,14 @@ class ServerScheduleDetailViewModelTest {
 // 내 닉네임만 정해 둔 가족 정보. nickname 이 null 이면 불러오기에 실패한다
 internal class FakeFamily(private val nickname: String?, private val others: List<Pair<String, String>> = emptyList()) :
     HomeRepository {
-    override suspend fun load(): com.kiri.domain.home.FamilyHome {
+    override suspend fun load(): com.kiri.domain.home.repository.FamilyHome {
         val me = nickname ?: throw java.io.IOException()
-        return com.kiri.domain.home.FamilyHome(
+        return com.kiri.domain.home.repository.FamilyHome(
             date = LocalDate.of(2026, 11, 4),
             currentUserId = "1",
             familyName = "우리 가족",
-            members = listOf(com.kiri.domain.home.FamilyMember("1", me, "")) +
-                others.map { (id, name) -> com.kiri.domain.home.FamilyMember(id, name, "") },
+            members = listOf(com.kiri.domain.home.repository.FamilyMember("1", me, "")) +
+                others.map { (id, name) -> com.kiri.domain.home.repository.FamilyMember(id, name, "") },
             question = null,
             answers = emptyMap(),
             pokedMemberIds = emptySet(),
@@ -767,7 +767,7 @@ internal class FakeFamily(private val nickname: String?, private val others: Lis
         )
     }
 
-    override suspend fun saveAnswer(question: com.kiri.domain.home.DailyQuestion, answer: String) = load()
+    override suspend fun saveAnswer(question: com.kiri.domain.home.repository.DailyQuestion, answer: String) = load()
 
-    override suspend fun poke(question: com.kiri.domain.home.DailyQuestion, memberId: String) = load()
+    override suspend fun poke(question: com.kiri.domain.home.repository.DailyQuestion, memberId: String) = load()
 }

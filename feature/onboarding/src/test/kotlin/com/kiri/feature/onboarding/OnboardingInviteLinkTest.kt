@@ -1,8 +1,8 @@
 package com.kiri.feature.onboarding
 
-import com.kiri.domain.model.family.ExpiredInviteCodeException
-import com.kiri.domain.repository.PendingInviteRepository
-import com.kiri.domain.usecase.invite.AcceptPendingInviteUseCase
+import com.kiri.domain.family.model.ExpiredInviteCodeException
+import com.kiri.domain.invite.repository.PendingInviteRepository
+import com.kiri.domain.invite.usecase.AcceptPendingInviteUseCase
 import com.kiri.feature.onboarding.model.FamilyRole
 import com.kiri.feature.onboarding.model.OnboardingUiEffect
 import com.kiri.feature.onboarding.model.OnboardingUiEvent

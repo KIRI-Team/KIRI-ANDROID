@@ -4,7 +4,7 @@ import com.kiri.feature.detail.model.*
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import com.kiri.domain.detail.*
+import com.kiri.domain.mission.model.*
 import com.kiri.uikit.KiriTheme
 import java.time.LocalDate
 

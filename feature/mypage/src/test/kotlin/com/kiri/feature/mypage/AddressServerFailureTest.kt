@@ -1,7 +1,7 @@
 package com.kiri.feature.mypage
 
-import com.kiri.domain.repository.FamilyRepository
-import com.kiri.domain.model.family.*
+import com.kiri.domain.family.repository.FamilyRepository
+import com.kiri.domain.family.model.*
 import com.kiri.feature.mypage.model.address.HomeAddressUiEvent.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.*
@@ -16,7 +16,7 @@ class AddressServerFailureTest {
         var resolveFails = false
         var saveFails = true
         var saved: FamilyAddress? = null
-        override suspend fun createFamily(name: String): Result<com.kiri.domain.model.family.Family> = error("unused")
+        override suspend fun createFamily(name: String): Result<com.kiri.domain.family.model.Family> = error("unused")
         override suspend fun renameFamily(name: String) = Result.success(name)
         override suspend fun resolveAddress(postalCode: String, address: String, regionCode: String): Result<FamilyAddress> =
             if (resolveFails) Result.failure(Exception("좌표 변환 실패")) else Result.success(FamilyAddress(postalCode,address,"",regionCode,37.5,127.0))

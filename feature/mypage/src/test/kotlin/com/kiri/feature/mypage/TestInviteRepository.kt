@@ -1,8 +1,8 @@
 package com.kiri.feature.mypage
 
-import com.kiri.domain.model.family.NoFamilyException
-import com.kiri.domain.model.invite.Invite
-import com.kiri.domain.repository.InviteRepository
+import com.kiri.domain.family.model.NoFamilyException
+import com.kiri.domain.invite.model.Invite
+import com.kiri.domain.invite.repository.InviteRepository
 
 // 지금 초대와 발급 결과를 정해두고 발급 횟수를 센다
 class TestInviteRepository(

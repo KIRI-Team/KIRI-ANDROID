@@ -1,22 +1,22 @@
 package com.kiri.feature.onboarding
 
-import com.kiri.domain.model.nickname.NicknameValidator
+import com.kiri.domain.member.model.NicknameValidator
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.model.family.AlreadyInFamilyException
-import com.kiri.domain.model.family.DuplicateFamilyNameException
-import com.kiri.domain.model.family.ExpiredInviteCodeException
-import com.kiri.domain.model.family.InvalidInviteCodeException
-import com.kiri.domain.model.family.Family
-import com.kiri.domain.model.invite.Invite
-import com.kiri.domain.model.nickname.DuplicateNicknameException
-import com.kiri.domain.repository.FamilyRepository
-import com.kiri.domain.repository.MemberRepository
-import com.kiri.domain.usecase.invite.AcceptPendingInviteUseCase
-import com.kiri.domain.usecase.invite.InviteAcceptResult
-import com.kiri.domain.usecase.invite.message
+import com.kiri.domain.family.model.AlreadyInFamilyException
+import com.kiri.domain.family.model.DuplicateFamilyNameException
+import com.kiri.domain.family.model.ExpiredInviteCodeException
+import com.kiri.domain.family.model.InvalidInviteCodeException
+import com.kiri.domain.family.model.Family
+import com.kiri.domain.invite.model.Invite
+import com.kiri.domain.member.model.DuplicateNicknameException
+import com.kiri.domain.family.repository.FamilyRepository
+import com.kiri.domain.member.repository.MemberRepository
+import com.kiri.domain.invite.usecase.AcceptPendingInviteUseCase
+import com.kiri.domain.invite.usecase.InviteAcceptResult
+import com.kiri.domain.invite.usecase.message
 import com.kiri.feature.onboarding.model.FamilyRole
-import com.kiri.domain.model.member.FamilyRole as MemberFamilyRole
+import com.kiri.domain.member.model.FamilyRole as MemberFamilyRole
 import com.kiri.feature.onboarding.model.OnboardingUiEffect
 import com.kiri.feature.onboarding.model.OnboardingUiEvent
 import com.kiri.feature.onboarding.model.OnboardingUiState
@@ -43,7 +43,7 @@ enum class OnboardingPath {
 class OnboardingViewModel @Inject constructor(
     private val familyRepository: FamilyRepository,
     private val memberRepository: MemberRepository,
-    private val session: com.kiri.domain.repository.SessionRepository? = null,
+    private val session: com.kiri.domain.auth.repository.SessionRepository? = null,
     // 초대 링크로 받아 둔 토큰이 있으면 가족 선택 화면에 들어올 때 그 가족에 참여한다. 없으면 확인하지 않는다
     private val acceptInvite: AcceptPendingInviteUseCase? = null,
 ) : ViewModel() {

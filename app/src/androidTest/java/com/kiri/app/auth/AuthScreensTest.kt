@@ -18,7 +18,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.kiri.domain.model.term.Term
+import com.kiri.domain.term.model.Term
 import com.kiri.feature.auth.AuthViewModel
 import com.kiri.feature.auth.login.NonceGenerator
 import com.kiri.feature.auth.login.SocialLoginResult

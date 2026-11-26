@@ -2,7 +2,7 @@ package com.kiri.feature.mypage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.model.nickname.NicknameValidator
+import com.kiri.domain.member.model.NicknameValidator
 import com.kiri.feature.mypage.model.nameedit.NameEditUiEffect
 import com.kiri.feature.mypage.model.nameedit.NameEditUiEvent
 import com.kiri.feature.mypage.model.nameedit.NameEditUiState

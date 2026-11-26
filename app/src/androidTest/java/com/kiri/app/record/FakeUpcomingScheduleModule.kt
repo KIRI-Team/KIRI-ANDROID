@@ -1,8 +1,8 @@
 package com.kiri.app.record
 
-import com.kiri.data.schedule.UpcomingScheduleRepositoryModule
-import com.kiri.domain.model.schedule.UpcomingSchedules
-import com.kiri.domain.repository.UpcomingScheduleRepository
+import com.kiri.data.schedule.di.UpcomingScheduleRepositoryModule
+import com.kiri.domain.schedule.model.UpcomingSchedules
+import com.kiri.domain.schedule.repository.UpcomingScheduleRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.components.SingletonComponent

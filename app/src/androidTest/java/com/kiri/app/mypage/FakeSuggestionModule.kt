@@ -1,7 +1,7 @@
 package com.kiri.app.mypage
 
-import com.kiri.data.suggestion.SuggestionRepositoryModule
-import com.kiri.domain.repository.SuggestionRepository
+import com.kiri.data.suggestion.repository.SuggestionRepositoryModule
+import com.kiri.domain.suggestion.repository.SuggestionRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.components.SingletonComponent

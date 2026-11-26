@@ -68,7 +68,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import com.kiri.domain.model.schedule.ScheduleChangedField
+import com.kiri.domain.schedule.model.ScheduleChangedField
 import java.time.LocalDate
 import java.time.LocalTime
 

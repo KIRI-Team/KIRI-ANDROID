@@ -1,6 +1,6 @@
 package com.kiri.feature.detail.model
 
-import com.kiri.domain.detail.MissionPreview
+import com.kiri.domain.mission.model.MissionPreview
 
 data class MissionPreviewUiState(
     val loading: Boolean = true,

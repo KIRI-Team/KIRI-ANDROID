@@ -1,7 +1,7 @@
 package com.kiri.feature.mypage
 
-import com.kiri.domain.repository.ReviewPhotoRepository
-import com.kiri.domain.repository.SuggestionRepository
+import com.kiri.domain.review.repository.ReviewPhotoRepository
+import com.kiri.domain.suggestion.repository.SuggestionRepository
 import com.kiri.feature.mypage.model.suggestion.SuggestionUiEffect
 import com.kiri.feature.mypage.model.suggestion.SuggestionUiEvent
 import com.kiri.feature.mypage.model.suggestion.SuggestionUiState.Companion.MAX_CONTENT_LENGTH

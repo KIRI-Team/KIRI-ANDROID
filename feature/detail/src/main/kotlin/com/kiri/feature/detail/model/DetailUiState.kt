@@ -1,6 +1,6 @@
 package com.kiri.feature.detail.model
 
-import com.kiri.domain.detail.*
+import com.kiri.domain.mission.model.*
 
 data class DetailUiState(
     val loading: Boolean = true,

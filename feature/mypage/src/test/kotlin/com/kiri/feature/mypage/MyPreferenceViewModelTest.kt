@@ -1,12 +1,12 @@
 package com.kiri.feature.mypage
 
-import com.kiri.domain.model.taste.MyTaste
-import com.kiri.domain.model.taste.Taste
-import com.kiri.domain.model.taste.TasteActivity
-import com.kiri.domain.model.taste.TasteCategory
-import com.kiri.domain.model.taste.TasteDuration
-import com.kiri.domain.model.taste.TastePrice
-import com.kiri.domain.model.taste.TasteSpace
+import com.kiri.domain.taste.model.MyTaste
+import com.kiri.domain.taste.model.Taste
+import com.kiri.domain.taste.model.TasteActivity
+import com.kiri.domain.taste.model.TasteCategory
+import com.kiri.domain.taste.model.TasteDuration
+import com.kiri.domain.taste.model.TastePrice
+import com.kiri.domain.taste.model.TasteSpace
 import com.kiri.feature.mypage.model.preference.MyPreferenceUiEffect
 import com.kiri.feature.mypage.model.preference.MyPreferenceUiEvent
 import com.kiri.feature.mypage.model.preference.PreferenceActivity

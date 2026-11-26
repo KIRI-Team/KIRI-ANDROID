@@ -2,8 +2,8 @@ package com.kiri.feature.mypage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.home.HomeRepository
-import com.kiri.domain.repository.MemberRepository
+import com.kiri.domain.home.repository.HomeRepository
+import com.kiri.domain.member.repository.MemberRepository
 import com.kiri.feature.mypage.model.family.label
 import com.kiri.feature.mypage.model.common.MypageProfile
 import com.kiri.feature.mypage.model.family.FamilySettingUiState

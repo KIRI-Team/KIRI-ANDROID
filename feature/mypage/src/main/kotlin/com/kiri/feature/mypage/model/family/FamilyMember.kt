@@ -1,8 +1,8 @@
 package com.kiri.feature.mypage.model.family
 
-import com.kiri.domain.model.member.FamilyRole
-import com.kiri.domain.model.member.MyInfo
-import com.kiri.domain.home.FamilyHome
+import com.kiri.domain.member.model.FamilyRole
+import com.kiri.domain.member.model.MyInfo
+import com.kiri.domain.home.repository.FamilyHome
 
 data class FamilyMember(
     // 역할 표시 이름 (엄마·아빠·딸·아들). 정하지 않았으면 빈 문자열

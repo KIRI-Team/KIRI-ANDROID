@@ -3,7 +3,7 @@ package com.kiri.feature.home.presentation
 import com.kiri.feature.home.HomeViewModel
 import com.kiri.feature.home.model.*
 
-import com.kiri.domain.home.*
+import com.kiri.domain.home.repository.*
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,8 +36,8 @@ class HomeViewModelTest {
         assertTrue(vm.uiState.value.showTasteBanner)
         vm.onEvent(HomeUiEvent.DestinationClicked(HomeUiDestination.TasteSettings))
         assertEquals(HomeUiEffect.Navigate(HomeUiDestination.TasteSettings), vm.effect.first())
-        tastes.result = Result.success(com.kiri.domain.model.taste.MyTaste("나",
-            com.kiri.domain.model.taste.Taste(setOf(com.kiri.domain.model.taste.TasteCategory.OUTDOOR), com.kiri.domain.model.taste.TasteActivity.LIGHT)))
+        tastes.result = Result.success(com.kiri.domain.taste.model.MyTaste("나",
+            com.kiri.domain.taste.model.Taste(setOf(com.kiri.domain.taste.model.TasteCategory.OUTDOOR), com.kiri.domain.taste.model.TasteActivity.LIGHT)))
         vm.refreshOnResume(); advanceUntilIdle()
         assertFalse(vm.uiState.value.showTasteBanner)
         tastes.result = Result.failure(IllegalStateException("network"))
@@ -48,7 +48,7 @@ class HomeViewModelTest {
 
     @Test fun serverCompletionFlagWinsEvenWithUnknownTasteFields() = runTest(dispatcher) {
         val tastes = TestTastes().apply {
-            result = Result.success(com.kiri.domain.model.taste.MyTaste("나", null, isSet = true))
+            result = Result.success(com.kiri.domain.taste.model.MyTaste("나", null, isSet = true))
         }
         val vm = HomeViewModel(TestRepository(), tasteRepository = tastes)
         advanceUntilIdle()
@@ -64,11 +64,11 @@ class HomeViewModelTest {
         assertEquals(0, tastes.calls)
     }
 
-    private class TestTastes : com.kiri.domain.repository.TasteRepository {
+    private class TestTastes : com.kiri.domain.taste.repository.TasteRepository {
         var calls = 0
-        var result: Result<com.kiri.domain.model.taste.MyTaste> = Result.success(com.kiri.domain.model.taste.MyTaste("나", null))
-        override suspend fun getMyTaste(): Result<com.kiri.domain.model.taste.MyTaste> { calls++; return result }
-        override suspend fun saveMyTaste(taste: com.kiri.domain.model.taste.Taste): Result<com.kiri.domain.model.taste.MyTaste> = error("unused")
+        var result: Result<com.kiri.domain.taste.model.MyTaste> = Result.success(com.kiri.domain.taste.model.MyTaste("나", null))
+        override suspend fun getMyTaste(): Result<com.kiri.domain.taste.model.MyTaste> { calls++; return result }
+        override suspend fun saveMyTaste(taste: com.kiri.domain.taste.model.Taste): Result<com.kiri.domain.taste.model.MyTaste> = error("unused")
     }
 
     @Test fun invitationUsesRepositoryCodeAndIsBufferedBeforeCollection() = runTest(dispatcher) {

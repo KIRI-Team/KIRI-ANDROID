@@ -1,7 +1,7 @@
 package com.kiri.feature.mypage.model.nameedit
 
-import com.kiri.domain.model.nickname.NicknameRule
-import com.kiri.domain.model.nickname.NicknameValidator
+import com.kiri.domain.member.model.NicknameRule
+import com.kiri.domain.member.model.NicknameValidator
 
 // 닉네임·가족명 수정 화면이 함께 쓰는 상태
 data class NameEditUiState(

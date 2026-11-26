@@ -1,8 +1,8 @@
 package com.kiri.app.record
 
-import com.kiri.data.condition.ScheduleConditionRepositoryModule
-import com.kiri.domain.model.condition.ConditionCustom
-import com.kiri.domain.repository.ScheduleConditionRepository
+import com.kiri.data.schedule.di.ScheduleConditionRepositoryModule
+import com.kiri.domain.schedule.model.ConditionCustom
+import com.kiri.domain.schedule.repository.ScheduleConditionRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.components.SingletonComponent
@@ -17,7 +17,7 @@ object FakeScheduleConditionModule {
         override suspend fun getConditionCustom(scheduleId: Long): Result<ConditionCustom> =
             Result.success(ConditionCustom("", null, null, null, emptySet()))
 
-        override suspend fun applyConditions(scheduleId: Long, conditions: Set<com.kiri.domain.detail.Condition>): Result<Unit> =
+        override suspend fun applyConditions(scheduleId: Long, conditions: Set<com.kiri.domain.mission.model.Condition>): Result<Unit> =
             Result.success(Unit)
     }
 }

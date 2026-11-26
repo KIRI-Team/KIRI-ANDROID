@@ -1,7 +1,7 @@
 package com.kiri.feature.record.presentation.bucket
 
-import com.kiri.domain.model.bucket.BucketItem
-import com.kiri.domain.model.bucket.BucketItemStatus
+import com.kiri.domain.bucket.model.BucketItem
+import com.kiri.domain.bucket.model.BucketItemStatus
 
 // 버킷 카드를 눌렀을 때 뜨는 일정 잡기·삭제하기 시트의 버튼 상태
 internal data class BucketOptions(

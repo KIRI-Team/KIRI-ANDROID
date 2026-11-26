@@ -1,10 +1,10 @@
 package com.kiri.feature.mypage.model.preference
 
-import com.kiri.domain.model.taste.TasteActivity
-import com.kiri.domain.model.taste.TasteCategory
-import com.kiri.domain.model.taste.TasteDuration
-import com.kiri.domain.model.taste.TastePrice
-import com.kiri.domain.model.taste.TasteSpace
+import com.kiri.domain.taste.model.TasteActivity
+import com.kiri.domain.taste.model.TasteCategory
+import com.kiri.domain.taste.model.TasteDuration
+import com.kiri.domain.taste.model.TastePrice
+import com.kiri.domain.taste.model.TasteSpace
 
 // 내 취향 설정의 항목별 선택지. 화면에 보이는 순서대로 두고, 각 선택지가 뜻하는 취향 값을 함께 둔다
 // "상관없음" 선택지는 취향 값이 null 이다

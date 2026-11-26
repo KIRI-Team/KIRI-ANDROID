@@ -1,8 +1,8 @@
 package com.kiri.app.record
 
-import com.kiri.data.bucket.BucketItemRepositoryModule
-import com.kiri.data.bucket.FakeBucketItemRepository
-import com.kiri.domain.repository.BucketItemRepository
+import com.kiri.data.bucket.di.BucketItemRepositoryModule
+import com.kiri.data.bucket.repository.FakeBucketItemRepository
+import com.kiri.domain.bucket.repository.BucketItemRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.components.SingletonComponent

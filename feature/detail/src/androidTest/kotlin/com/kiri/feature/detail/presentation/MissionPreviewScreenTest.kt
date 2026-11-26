@@ -5,8 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
-import com.kiri.domain.detail.MissionPreview
-import com.kiri.domain.mission.MissionReview
+import com.kiri.domain.mission.model.MissionPreview
+import com.kiri.domain.mission.repository.MissionReview
 import com.kiri.feature.detail.model.MissionPreviewUiState
 import com.kiri.uikit.KiriTheme
 import java.io.File

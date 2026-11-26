@@ -3,7 +3,7 @@ package com.kiri.feature.home.presentation
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import com.kiri.domain.notification.*
+import com.kiri.domain.notification.repository.*
 import com.kiri.feature.home.NotificationUiState
 import com.kiri.uikit.KiriTheme
 import java.time.Instant

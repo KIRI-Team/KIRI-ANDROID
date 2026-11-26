@@ -1,10 +1,10 @@
 package com.kiri.feature.record
 
 import androidx.lifecycle.SavedStateHandle
-import com.kiri.domain.home.*
-import com.kiri.domain.model.schedule.*
-import com.kiri.domain.record.ScheduleRequestChannel
-import com.kiri.domain.repository.CalendarScheduleRepository
+import com.kiri.domain.home.repository.*
+import com.kiri.domain.schedule.model.*
+import com.kiri.domain.schedule.model.ScheduleRequestChannel
+import com.kiri.domain.schedule.repository.CalendarScheduleRepository
 import com.kiri.feature.record.presentation.schedule.ScheduleRegisterDraft
 import java.time.*
 import kotlinx.coroutines.*

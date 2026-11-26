@@ -29,7 +29,6 @@ android {
 
 dependencies {
     implementation(project(":domain"))
-    implementation(project(":core"))
 
     // 서버 통신
     implementation(libs.retrofit)

@@ -15,7 +15,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import com.kiri.domain.home.*
 import com.kiri.feature.home.HomeViewModel
 import com.kiri.feature.home.model.*
 import com.kiri.uikit.permission.NotificationPermissionMoment

@@ -1,10 +1,10 @@
 package com.kiri.feature.auth
 
-import com.kiri.domain.model.auth.LoginResult
-import com.kiri.domain.model.auth.SocialProvider
-import com.kiri.domain.model.term.Term
-import com.kiri.domain.repository.AuthRepository
-import com.kiri.domain.repository.TermRepository
+import com.kiri.domain.auth.model.LoginResult
+import com.kiri.domain.auth.model.SocialProvider
+import com.kiri.domain.term.model.Term
+import com.kiri.domain.auth.repository.AuthRepository
+import com.kiri.domain.term.repository.TermRepository
 import com.kiri.feature.auth.login.NonceGenerator
 import com.kiri.feature.auth.login.SocialLoginResult
 import com.kiri.feature.auth.model.AuthUiEffect

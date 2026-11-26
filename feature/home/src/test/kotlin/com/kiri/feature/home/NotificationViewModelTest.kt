@@ -1,7 +1,7 @@
 package com.kiri.feature.home
 
 import androidx.lifecycle.SavedStateHandle
-import com.kiri.domain.notification.*
+import com.kiri.domain.notification.repository.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first

@@ -7,7 +7,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import com.kiri.domain.home.*
+import com.kiri.domain.home.repository.*
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
@@ -27,7 +27,7 @@ class HomeViewModel @Inject constructor(
     private val clock: Clock = Clock.systemUTC(),
     private val tutorialRepository: HomeTutorialRepository = NoHomeTutorial,
     private val savedState: SavedStateHandle = SavedStateHandle(),
-    private val tasteRepository: com.kiri.domain.repository.TasteRepository? = null,
+    private val tasteRepository: com.kiri.domain.taste.repository.TasteRepository? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState(
         tutorialStep = savedState.get<String>("homeTutorialStep")?.let { value -> HomeTutorialStep.entries.firstOrNull { it.name == value } },

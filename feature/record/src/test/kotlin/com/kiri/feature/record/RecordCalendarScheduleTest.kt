@@ -1,19 +1,19 @@
 package com.kiri.feature.record
 
 import androidx.lifecycle.SavedStateHandle
-import com.kiri.domain.model.schedule.CalendarScheduleStatus
-import com.kiri.domain.model.schedule.CalendarSchedule
-import com.kiri.domain.model.schedule.MyScheduleStatus
-import com.kiri.domain.model.schedule.ScheduleDetail
-import com.kiri.domain.model.schedule.ScheduleDisplayStatus
-import com.kiri.domain.model.schedule.ScheduleNotFoundException
-import com.kiri.domain.model.schedule.UpcomingSchedule
-import com.kiri.domain.model.schedule.UpcomingScheduleType
-import com.kiri.domain.model.schedule.UpcomingSchedules
-import com.kiri.domain.repository.UpcomingScheduleRepository
+import com.kiri.domain.schedule.model.CalendarScheduleStatus
+import com.kiri.domain.schedule.model.CalendarSchedule
+import com.kiri.domain.schedule.model.MyScheduleStatus
+import com.kiri.domain.schedule.model.ScheduleDetail
+import com.kiri.domain.schedule.model.ScheduleDisplayStatus
+import com.kiri.domain.schedule.model.ScheduleNotFoundException
+import com.kiri.domain.schedule.model.UpcomingSchedule
+import com.kiri.domain.schedule.model.UpcomingScheduleType
+import com.kiri.domain.schedule.model.UpcomingSchedules
+import com.kiri.domain.schedule.repository.UpcomingScheduleRepository
 import com.kiri.feature.record.model.RecordUiEffect
 import com.kiri.feature.record.presentation.calendar.scheduleLabel
-import com.kiri.domain.repository.CalendarScheduleRepository
+import com.kiri.domain.schedule.repository.CalendarScheduleRepository
 import com.kiri.feature.record.model.RecordCalendarMark
 import com.kiri.feature.record.model.RecordUiEvent
 import com.kiri.feature.record.model.mergeCalendarMarks
@@ -72,10 +72,10 @@ class RecordCalendarScheduleTest {
             return details[scheduleId] ?: Result.failure(ScheduleNotFoundException())
         }
 
-        override suspend fun updateSchedule(scheduleId: Long, update: com.kiri.domain.model.schedule.ScheduleUpdate): Result<Unit> =
+        override suspend fun updateSchedule(scheduleId: Long, update: com.kiri.domain.schedule.model.ScheduleUpdate): Result<Unit> =
             Result.failure(ScheduleNotFoundException())
 
-        override suspend fun createSchedule(bucketItemId: Long, form: com.kiri.domain.model.schedule.ScheduleUpdate): Result<Long> =
+        override suspend fun createSchedule(bucketItemId: Long, form: com.kiri.domain.schedule.model.ScheduleUpdate): Result<Long> =
             Result.failure(ScheduleNotFoundException())
     }
 
@@ -131,7 +131,7 @@ class RecordCalendarScheduleTest {
 
         // 사진 기록처럼 날짜 위에 사진을 깔고 날짜 숫자를 보여준다
         assertEquals(RecordCalendarMark.PHOTO_FIRST, state.calendarMarks[withImage])
-        assertEquals(com.kiri.domain.record.RecordPhoto("schedule-1", "https://cdn/review/1.jpg"), state.calendarPhotos[withImage])
+        assertEquals(com.kiri.domain.review.model.RecordPhoto("schedule-1", "https://cdn/review/1.jpg"), state.calendarPhotos[withImage])
         // 이미지가 없는 완료 일정과 확정 일정은 지금처럼 확정 표시만 한다
         assertEquals(RecordCalendarMark.CONFIRMED, state.calendarMarks[withoutImage])
         assertEquals(null, state.calendarPhotos[withoutImage])

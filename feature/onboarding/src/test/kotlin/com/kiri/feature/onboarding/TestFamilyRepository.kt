@@ -1,9 +1,9 @@
 package com.kiri.feature.onboarding
 
-import com.kiri.domain.model.family.Family
-import com.kiri.domain.model.family.JoinedFamily
-import com.kiri.domain.model.invite.Invite
-import com.kiri.domain.repository.FamilyRepository
+import com.kiri.domain.family.model.Family
+import com.kiri.domain.family.model.JoinedFamily
+import com.kiri.domain.invite.model.Invite
+import com.kiri.domain.family.repository.FamilyRepository
 
 // 가족 공간 생성 결과를 정해두고 보낸 가족명을 모은다
 class TestFamilyRepository(

@@ -1,15 +1,15 @@
 package com.kiri.feature.record
 
 import androidx.lifecycle.SavedStateHandle
-import com.kiri.domain.model.schedule.BucketNotSchedulableException
-import com.kiri.domain.model.schedule.CalendarSchedule
-import com.kiri.domain.model.schedule.CalendarScheduleStatus
-import com.kiri.domain.model.schedule.InvalidScheduleUpdateException
-import com.kiri.domain.model.schedule.ScheduleDetail
-import com.kiri.domain.model.schedule.ScheduleNotFoundException
-import com.kiri.domain.model.schedule.ScheduleUpdate
-import com.kiri.domain.record.ScheduleRequestChannel
-import com.kiri.domain.repository.CalendarScheduleRepository
+import com.kiri.domain.schedule.model.BucketNotSchedulableException
+import com.kiri.domain.schedule.model.CalendarSchedule
+import com.kiri.domain.schedule.model.CalendarScheduleStatus
+import com.kiri.domain.schedule.model.InvalidScheduleUpdateException
+import com.kiri.domain.schedule.model.ScheduleDetail
+import com.kiri.domain.schedule.model.ScheduleNotFoundException
+import com.kiri.domain.schedule.model.ScheduleUpdate
+import com.kiri.domain.schedule.model.ScheduleRequestChannel
+import com.kiri.domain.schedule.repository.CalendarScheduleRepository
 import java.io.IOException
 import java.time.Clock
 import java.time.Instant
@@ -79,23 +79,23 @@ class BucketScheduleCreateViewModelTest {
             clock,
         )
 
-    private fun missionWithDescription(description: String?) = com.kiri.domain.model.mission.MissionInfo(
+    private fun missionWithDescription(description: String?) = com.kiri.domain.mission.model.MissionInfo(
         id = 420, title = "광장시장에서 시장음식 먹어보기", description = description, category = null, missionType = null,
         status = null, indoorOutdoor = null, imageUrl = null, imageSource = null, startDate = null, endDate = null,
         openingTime = null, closingTime = null, price = null, durationMinMinutes = null, durationMaxMinutes = null,
         walkingLevel = null, sourceUrl = null, place = null, steps = emptyList(),
-        bucketState = com.kiri.domain.model.mission.MissionBucketState.NONE, averageRating = null, reviewCount = 0,
+        bucketState = com.kiri.domain.mission.model.MissionBucketState.NONE, averageRating = null, reviewCount = 0,
     )
 
-    private fun missions(result: Result<com.kiri.domain.model.mission.MissionInfo>, requested: MutableList<Long> = mutableListOf()) =
-        object : com.kiri.domain.repository.MissionInfoRepository {
-            override suspend fun getMission(missionId: Long): Result<com.kiri.domain.model.mission.MissionInfo> {
+    private fun missions(result: Result<com.kiri.domain.mission.model.MissionInfo>, requested: MutableList<Long> = mutableListOf()) =
+        object : com.kiri.domain.mission.repository.MissionInfoRepository {
+            override suspend fun getMission(missionId: Long): Result<com.kiri.domain.mission.model.MissionInfo> {
                 requested += missionId
                 return result
             }
         }
 
-    private fun viewModelWithMission(missions: com.kiri.domain.repository.MissionInfoRepository, missionId: Long? = 420L) =
+    private fun viewModelWithMission(missions: com.kiri.domain.mission.repository.MissionInfoRepository, missionId: Long? = 420L) =
         BucketScheduleCreateViewModel(
             SavedStateHandle(
                 buildMap<String, Any> {
@@ -222,7 +222,7 @@ class BucketScheduleCreateViewModelTest {
     fun 만들지_못하면_이유에_맞는_문구를_보여준다() {
         listOf(
             BucketNotSchedulableException() to "이미 일정이 잡혔거나 일정을 잡을 수 없는 버킷이에요.",
-            com.kiri.domain.model.bucket.BucketItemNotFoundException() to "찾을 수 없는 버킷이에요.",
+            com.kiri.domain.bucket.model.BucketItemNotFoundException() to "찾을 수 없는 버킷이에요.",
             InvalidScheduleUpdateException("잘못된 요청입니다.") to "날짜·시간과 함께할 가족을 다시 확인해주세요.",
             IOException() to "일정을 만들지 못했어요. 다시 시도해주세요.",
         ).forEach { (error, message) ->

@@ -1,16 +1,18 @@
 package com.kiri.feature.record
 
 import androidx.lifecycle.SavedStateHandle
-import com.kiri.domain.home.*
-import com.kiri.domain.model.mission.MissionInfo
-import com.kiri.domain.model.review.ReviewAccessDeniedException
-import com.kiri.domain.model.review.ReviewWriter
-import com.kiri.domain.model.review.ScheduleReview
-import com.kiri.domain.model.review.ScheduleReviewForm
-import com.kiri.domain.model.review.ScheduleReviewResult
-import com.kiri.domain.model.schedule.*
-import com.kiri.domain.repository.*
-import com.kiri.domain.usecase.schedule.GetScheduleEditAccessUseCase
+import com.kiri.domain.home.repository.*
+import com.kiri.domain.mission.model.MissionInfo
+import com.kiri.domain.review.model.ReviewAccessDeniedException
+import com.kiri.domain.review.model.ReviewWriter
+import com.kiri.domain.review.model.ScheduleReview
+import com.kiri.domain.review.model.ScheduleReviewForm
+import com.kiri.domain.review.model.ScheduleReviewResult
+import com.kiri.domain.schedule.model.*
+import com.kiri.domain.mission.repository.*
+import com.kiri.domain.review.repository.*
+import com.kiri.domain.schedule.repository.*
+import com.kiri.domain.schedule.usecase.GetScheduleEditAccessUseCase
 import java.time.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
@@ -81,8 +83,8 @@ class ReviewUpdateTest {
             gets++
             return Result.success((if (removed) emptyList() else listOf(mine)) + (if (withOther) listOf(other) else emptyList()))
         }
-        override suspend fun getReviewList(scheduleId: Long): Result<com.kiri.domain.model.review.ScheduleReviewList> =
-            getReviews(scheduleId).map { com.kiri.domain.model.review.ScheduleReviewList(it, representative) }
+        override suspend fun getReviewList(scheduleId: Long): Result<com.kiri.domain.review.model.ScheduleReviewList> =
+            getReviews(scheduleId).map { com.kiri.domain.review.model.ScheduleReviewList(it, representative) }
         override suspend fun changeRepresentativePhoto(scheduleId: Long, reviewPhotoId: Long): Result<Long> {
             changes += reviewPhotoId
             return changeResult ?: Result.success(reviewPhotoId).also { representative = reviewPhotoId }
@@ -261,7 +263,7 @@ class ReviewUpdateTest {
     }
 
     @Test fun 대표_사진을_바꾸지_못하면_이유를_알리고_사진이_한_장뿐이면_열지_않는다() = runTest(dispatcher) {
-        val reviews = Reviews().apply { withOther = true; changeResult = Result.failure(com.kiri.domain.model.review.ReviewPhotoNotFoundException()) }
+        val reviews = Reviews().apply { withOther = true; changeResult = Result.failure(com.kiri.domain.review.model.ReviewPhotoNotFoundException()) }
         val viewModel = vm(Photos(), reviews)
         advanceUntilIdle()
         viewModel.selectRepresentativePhoto("21")

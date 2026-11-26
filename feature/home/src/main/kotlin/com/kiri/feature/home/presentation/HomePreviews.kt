@@ -11,7 +11,7 @@ import androidx.compose.ui.layout.*
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
-import com.kiri.domain.home.*
+import com.kiri.domain.home.repository.*
 import com.kiri.feature.home.model.*
 import java.time.LocalDate
 

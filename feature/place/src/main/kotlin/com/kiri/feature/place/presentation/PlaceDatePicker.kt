@@ -19,8 +19,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.kiri.domain.place.PlaceFilters
-import com.kiri.domain.time.kiriToday
+import com.kiri.domain.place.model.PlaceFilters
+import com.kiri.domain.common.kiriToday
 import com.kiri.uikit.color.KiriColor
 import com.kiri.uikit.component.*
 import java.time.LocalDate

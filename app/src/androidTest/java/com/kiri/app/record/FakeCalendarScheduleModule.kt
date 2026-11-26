@@ -1,10 +1,10 @@
 package com.kiri.app.record
 
-import com.kiri.data.schedule.CalendarScheduleRepositoryModule
-import com.kiri.domain.model.schedule.CalendarSchedule
-import com.kiri.domain.model.schedule.ScheduleDetail
-import com.kiri.domain.model.schedule.ScheduleNotFoundException
-import com.kiri.domain.repository.CalendarScheduleRepository
+import com.kiri.data.schedule.di.CalendarScheduleRepositoryModule
+import com.kiri.domain.schedule.model.CalendarSchedule
+import com.kiri.domain.schedule.model.ScheduleDetail
+import com.kiri.domain.schedule.model.ScheduleNotFoundException
+import com.kiri.domain.schedule.repository.CalendarScheduleRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.components.SingletonComponent
@@ -23,11 +23,11 @@ object FakeCalendarScheduleModule {
         override suspend fun getScheduleDetail(scheduleId: Long): Result<ScheduleDetail> =
             Result.failure(ScheduleNotFoundException())
 
-        override suspend fun updateSchedule(scheduleId: Long, update: com.kiri.domain.model.schedule.ScheduleUpdate): Result<Unit> =
+        override suspend fun updateSchedule(scheduleId: Long, update: com.kiri.domain.schedule.model.ScheduleUpdate): Result<Unit> =
             Result.failure(ScheduleNotFoundException())
 
         // 버킷의 일정 잡기는 성공한 것으로 본다
-        override suspend fun createSchedule(bucketItemId: Long, form: com.kiri.domain.model.schedule.ScheduleUpdate): Result<Long> =
+        override suspend fun createSchedule(bucketItemId: Long, form: com.kiri.domain.schedule.model.ScheduleUpdate): Result<Long> =
             Result.success(1)
     }
 }

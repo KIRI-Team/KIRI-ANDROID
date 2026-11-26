@@ -1,9 +1,9 @@
 package com.kiri.feature.mypage
 
 import androidx.lifecycle.viewModelScope
-import com.kiri.domain.home.HomeRepository
-import com.kiri.domain.model.nickname.DuplicateNicknameException
-import com.kiri.domain.repository.MemberRepository
+import com.kiri.domain.home.repository.HomeRepository
+import com.kiri.domain.member.model.DuplicateNicknameException
+import com.kiri.domain.member.repository.MemberRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException

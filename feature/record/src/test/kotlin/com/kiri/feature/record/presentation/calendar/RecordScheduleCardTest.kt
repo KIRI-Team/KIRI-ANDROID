@@ -1,8 +1,8 @@
 package com.kiri.feature.record.presentation.calendar
 
-import com.kiri.domain.model.schedule.MyScheduleStatus
-import com.kiri.domain.model.schedule.UpcomingSchedule
-import com.kiri.domain.model.schedule.UpcomingScheduleType
+import com.kiri.domain.schedule.model.MyScheduleStatus
+import com.kiri.domain.schedule.model.UpcomingSchedule
+import com.kiri.domain.schedule.model.UpcomingScheduleType
 import java.time.LocalDate
 import java.time.LocalTime
 import org.junit.Assert.assertEquals
