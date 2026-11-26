@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="invite_share_title">KIRI 초대 링크</string>
+    <string name="invite_share_message">KIRI 가족 공간에 참여해요!\n%1$s\n초대 코드: %2$s</string>
+    <string name="invite_create_error">초대 코드를 만들지 못했어요</string>
+</resources>

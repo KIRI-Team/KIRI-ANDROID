@@ -1,0 +1,4 @@
+<!-- Figma Icon / Back (9249:11225). 시트 목록에서는 좌우를 뒤집어 오른쪽 화살표로 쓴다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="5.56018dp" android:height="11.1204dp" android:viewportWidth="5.56018" android:viewportHeight="11.1204">
+    <path android:strokeColor="#595959" android:strokeWidth="0.695023" android:strokeLineCap="round" android:pathData="M5.56018 0L0 5.6958L5.56018 11.1204" />
+</vector>

@@ -1,0 +1,254 @@
+package com.kiri.feature.home
+
+import com.kiri.feature.home.model.*
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import com.kiri.domain.home.repository.*
+import java.time.Clock
+import java.time.LocalDate
+import java.time.ZoneId
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.launch
+
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    private val repository: HomeRepository,
+    private val clock: Clock = Clock.systemUTC(),
+    private val tutorialRepository: HomeTutorialRepository = NoHomeTutorial,
+    private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val tasteRepository: com.kiri.domain.taste.repository.TasteRepository? = null,
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(HomeUiState(
+        tutorialStep = savedState.get<String>("homeTutorialStep")?.let { value -> HomeTutorialStep.entries.firstOrNull { it.name == value } },
+        showingMission = savedState["homeShowingMission"] ?: true,
+    ))
+    val uiState = _uiState.asStateFlow()
+    private val _effect = kotlinx.coroutines.channels.Channel<HomeUiEffect>(kotlinx.coroutines.channels.Channel.BUFFERED)
+    val effect = _effect.receiveAsFlow()
+    private var loadingInProgress = false
+    private var recommendationFeedJob: Job? = null
+    private val detailRequests = Semaphore(4)
+    private val pendingDetails = mutableSetOf<String>()
+    private var recommendationGeneration = 0
+
+    fun loadRecommendationDetails(id: String) {
+        val state = uiState.value
+        if (state.home == null || id in state.recommendationDetails || !pendingDetails.add(id)) return
+        val generation = recommendationGeneration
+        viewModelScope.launch {
+            try {
+                val details = detailRequests.withPermit {
+                    if (generation != recommendationGeneration) return@withPermit null
+                    repository.loadRecommendationDetails(id)
+                }
+                if (generation == recommendationGeneration) {
+                    _uiState.update {
+                        it.copy(recommendationDetails = it.recommendationDetails + (id to
+                            (details ?: HomeRecommendationDetails(null, null))))
+                    }
+                }
+            } finally {
+                if (generation == recommendationGeneration) pendingDetails.remove(id)
+            }
+        }
+    }
+
+    private fun loadRecommendationFeed(home: FamilyHome) {
+        recommendationFeedJob?.cancel()
+        recommendationFeedJob = viewModelScope.launch {
+            val feed = repository.loadRecommendationFeed(home.mission)
+            _uiState.update { it.copy(recommendationFeed = feed, recommendationsLoading = false) }
+        }
+    }
+    init {
+        load()
+    }
+
+    fun refreshOnResume() { if (!uiState.value.editing && !uiState.value.busy) load() }
+
+    fun onEvent(event: HomeUiEvent) {
+        when (event) {
+            HomeUiEvent.TutorialNext -> advanceTutorial()
+            HomeUiEvent.TutorialDismissed -> setTutorial(null)
+            is HomeUiEvent.DestinationClicked -> _effect.trySend(HomeUiEffect.Navigate(event.destination))
+            is HomeUiEvent.MissionClicked -> _effect.trySend(HomeUiEffect.OpenMission(event.id))
+            is HomeUiEvent.ScheduleClicked -> _effect.trySend(HomeUiEffect.OpenSchedule(event.id, event.respond))
+            HomeUiEvent.InviteFamilyClicked -> uiState.value.home?.takeUnless { it.browsing }?.let { home ->
+                if (home.serverBacked) _effect.trySend(HomeUiEffect.Navigate(HomeUiDestination.InviteFamily))
+                else home.inviteCode?.let { _effect.trySend(HomeUiEffect.InviteFamily(it)) }
+            }
+
+            HomeUiEvent.RetryClicked -> load()
+            HomeUiEvent.DateRefreshRequested -> {
+                val date = LocalDate.now(clock.withZone(ZoneId.of("Asia/Seoul")))
+                if (uiState.value.home?.date != date && !uiState.value.loading && !uiState.value.busy) load()
+            }
+            is HomeUiEvent.MemberSelected -> {
+                val state = uiState.value
+                val home = state.home ?: return
+                val ownAnswer = !home.browsing && event.id == home.currentUserId &&
+                    home.members.any { it.id == event.id && it.accessible }
+                if (!state.busy && (ownAnswer || home.canRead(event.id))) {
+                    _uiState.update { it.copy(selectedMemberId = event.id, error = null) }
+                }
+            }
+            HomeUiEvent.AnswerEditClicked -> {
+                val s = uiState.value
+                val home = s.home ?: return
+                val question = home.question ?: return
+                if (!home.canRead(home.currentUserId) || s.busy) return
+                _uiState.update { it.copy(
+                    editing = true, selectedMemberId = null, error = null,
+                    draft = if (s.draftQuestionId == question.id) s.draft else home.answers[home.currentUserId].orEmpty(),
+                    draftQuestionId = question.id,
+                ) }
+            }
+            is HomeUiEvent.AnswerChanged -> if (!uiState.value.busy) _uiState.update {
+                it.copy(draft = event.text, error = null)
+            }
+            HomeUiEvent.AnswerSaveClicked -> save()
+            HomeUiEvent.PokeClicked -> poke()
+            HomeUiEvent.CardFlipped -> if (uiState.value.home?.browsing == false && !uiState.value.busy)
+                setShowingMission(!uiState.value.showingMission)
+            HomeUiEvent.BackClicked -> if (!uiState.value.busy) _uiState.update {
+                it.copy(editing = false, selectedMemberId = null, error = null, answerSaved = false)
+            }
+            HomeUiEvent.NoticeDismissed -> _uiState.update { it.copy(notice = null, editing = if (it.answerSaved) false else it.editing, answerSaved = false) }
+            HomeUiEvent.MemberDismissed -> _uiState.update { it.copy(selectedMemberId = null) }
+        }
+    }
+
+    private fun setShowingMission(showing: Boolean) {
+        savedState["homeShowingMission"] = showing
+        _uiState.update { it.copy(showingMission = showing) }
+    }
+
+    private fun setTutorial(step: HomeTutorialStep?) {
+        savedState["homeTutorialStep"] = step?.name
+        _uiState.update { it.copy(tutorialStep = step) }
+    }
+
+    private fun advanceTutorial() {
+        when (uiState.value.tutorialStep) {
+            HomeTutorialStep.INITIAL -> { setShowingMission(true); setTutorial(HomeTutorialStep.MISSION) }
+            HomeTutorialStep.MISSION -> setTutorial(if ((uiState.value.recommendationFeed?.recommendations ?: uiState.value.home?.recommendations).orEmpty().isNotEmpty()) HomeTutorialStep.RECOMMENDATIONS else null)
+            HomeTutorialStep.RECOMMENDATIONS -> setTutorial(null)
+            null -> Unit
+        }
+    }
+
+
+    private fun load() {
+        if (uiState.value.busy || loadingInProgress) return
+        loadingInProgress = true
+        _uiState.update { it.copy(loading = it.home == null, loadFailure = null) }
+        viewModelScope.launch {
+            try {
+                val home = repository.load()
+                val previous = uiState.value.home
+                val accountChanged = previous?.currentUserId != home.currentUserId || previous?.familyId != home.familyId
+                if (accountChanged) {
+                    recommendationGeneration++
+                    pendingDetails.clear()
+                }
+                _uiState.update { old ->
+                    val changed = old.home != null && old.home.date != home.date
+                    old.copy(
+                        loading = false, home = home, loadFailure = null,
+                        recommendationFeed = old.recommendationFeed.takeUnless { accountChanged },
+                        recommendationDetails = if (accountChanged) emptyMap() else old.recommendationDetails,
+                        recommendationsLoading = home.serverBacked && (accountChanged || old.recommendationFeed == null),
+                        showTasteBanner = old.showTasteBanner && !accountChanged && !home.browsing,
+                        error = if (changed) null else old.error,
+                        editing = if (changed) false else old.editing,
+                        selectedMemberId = if (changed) null else old.selectedMemberId,
+                        draft = if (changed) "" else old.draft,
+                        draftQuestionId = if (changed) null else old.draftQuestionId,
+                        notice = if (changed) "날짜가 바뀌어 오늘의 질문을 불러왔어요." else old.notice,
+                    )
+                }
+                loadRecommendationFeed(home)
+                val taste = if (!home.browsing) tasteRepository?.getMyTaste()?.getOrNull() else null
+                if (!home.browsing && savedState.get<Boolean>("homeTutorialChecked") != true) {
+                    // Mark the visit before showing it: returning home or restarting cannot replay it.
+                    val firstVisit = runCatching { tutorialRepository.claimFirstVisit(home.currentUserId) }
+                        .getOrElse { error -> if (error is CancellationException) throw error else false }
+                    savedState["homeTutorialChecked"] = true
+                    if (uiState.value.tutorialStep == null && firstVisit) {
+                        setTutorial(HomeTutorialStep.INITIAL)
+                    }
+                }
+                _uiState.update {
+                    it.copy(showTasteBanner = taste != null && !taste.isSet, tasteNickname = taste?.nickname.orEmpty())
+                }
+            } catch (error: CancellationException) { throw error }
+            catch (error: Exception) {
+                // 실패 원인을 debug 로그에 남긴다. JVM 단위 테스트에는 android.util.Log 가 없어 실패해도 무시한다
+                runCatching { android.util.Log.w("HomeViewModel", "홈을 불러오지 못했어요", error) }
+                _uiState.update { it.copy(loading = false, loadFailure = HomeLoadFailure.from(error)) }
+            }
+            finally { loadingInProgress = false }
+        }
+    }
+
+    private fun save() {
+        val s = uiState.value
+        if (!s.canSave) return
+        val question = s.home?.question ?: return
+        _uiState.update { it.copy(busy = true, error = null) }
+        viewModelScope.launch {
+            try {
+                val home = repository.saveAnswer(question, s.draft)
+                _uiState.update { it.copy(home = home, busy = false, editing = true, answerSaved = true) }
+            } catch (error: CancellationException) { throw error }
+            catch (error: Exception) { failed(error) }
+        }
+    }
+
+    private fun poke() {
+        val s = uiState.value
+        val home = s.home ?: return
+        val member = s.selectedMemberId ?: return
+        val question = home.question ?: return
+        if (s.busy || !home.canPoke(member)) return
+        _uiState.update { it.copy(busy = true, error = null) }
+        viewModelScope.launch {
+            try {
+                val updated = repository.poke(question, member)
+                val nickname = home.members.firstOrNull { it.id == member }?.nickname ?: "가족"
+                _uiState.update { it.copy(
+                    home = updated, busy = false, selectedMemberId = null,
+                    notice = "${nickname}를 콕 찔렀습니다!",
+                ) }
+            } catch (error: CancellationException) { throw error }
+            catch (error: Exception) { failed(error) }
+        }
+    }
+
+    private fun failed(error: Exception) {
+        val reason = (error as? HomeException)?.reason
+        _uiState.update { it.copy(busy = false, error = when (reason) {
+            HomeFailure.ANSWER_TOO_LONG -> "답변은 500자 이내로 작성해주세요."
+            HomeFailure.EMPTY_ANSWER -> "답변을 입력해주세요."
+            HomeFailure.EXPIRED -> "날짜가 바뀌었어요. 오늘의 질문을 다시 불러옵니다."
+            HomeFailure.ALREADY_ANSWERED -> "이미 답변한 가족이에요."
+            HomeFailure.ALREADY_POKED -> "오늘은 이미 콕을 보냈어요."
+            HomeFailure.UNAVAILABLE -> "지금은 이 질문이나 구성원에게 접근할 수 없어요."
+            HomeFailure.SERVER -> "서버에 잠시 문제가 있어요. 입력은 유지됐으니 잠시 후 다시 시도해주세요."
+            HomeFailure.SESSION_EXPIRED -> "로그인 정보를 확인하지 못했어요. 입력은 유지됐으니 다시 시도해주세요."
+            else -> "처리하지 못했어요. 입력은 유지됐으니 다시 시도해주세요."
+        }) }
+        if (reason == HomeFailure.EXPIRED) load()
+    }
+}

@@ -1,0 +1,14 @@
+package com.kiri.feature.detail.model
+
+import com.kiri.domain.mission.model.Condition
+
+sealed interface DetailUiEvent {
+    data object RetryClicked : DetailUiEvent
+    data object BackClicked : DetailUiEvent
+    data object CustomClicked : DetailUiEvent
+    data class ConditionToggled(val condition: Condition) : DetailUiEvent
+    data object CustomCancelled : DetailUiEvent
+    data object ApplyClicked : DetailUiEvent
+    data class MemoriesSelected(val selected: Boolean) : DetailUiEvent
+    data object RecordClicked : DetailUiEvent
+}

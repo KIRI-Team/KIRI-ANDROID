@@ -1,0 +1,27 @@
+{
+  "isSuccess": true,
+  "code": "SCHEDULE200_5",
+  "message": "다가오는 일정 조회 성공",
+  "result": {
+    "responseRequired": {
+      "scheduleId": 120,
+      "date": "2026-11-20",
+      "time": "18:00",
+      "status": "PENDING_RESPONSE",
+      "myStatus": "PENDING",
+      "dDay": 5,
+      "type": "RESPONSE_REQUIRED",
+      "title": "광장시장에서 시장음식 먹어보기"
+    },
+    "upcoming": {
+      "scheduleId": 118,
+      "date": "2026-11-17",
+      "time": "14:50",
+      "status": "CONFIRMED",
+      "myStatus": "ACCEPTED",
+      "dDay": 2,
+      "type": "UPCOMING",
+      "title": "한강 뚜벅뚜벅 축제 가보기"
+    }
+  }
+}

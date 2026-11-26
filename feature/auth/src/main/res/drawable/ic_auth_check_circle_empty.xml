@@ -1,0 +1,12 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="23dp"
+    android:height="23dp"
+    android:viewportWidth="23"
+    android:viewportHeight="23">
+    <!-- Figma KIRI/Agreement Row 체크하지 않은 원 (Ellipse 979, 8441:7328) -->
+    <path
+        android:pathData="M0.5,11.5a11,11 0,1 0,22 0a11,11 0,1 0,-22 0"
+        android:strokeWidth="1"
+        android:strokeColor="#FF404140"
+        android:fillColor="#00000000" />
+</vector>

@@ -1,0 +1,291 @@
+package com.kiri.feature.home.presentation
+
+import com.kiri.feature.home.HomeViewModel
+
+import android.graphics.Bitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.swipeUp
+import androidx.test.platform.app.InstrumentationRegistry
+import java.io.File
+import com.kiri.uikit.KiriTheme
+import com.kiri.domain.home.repository.HomeRecommendation
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertHasNoClickAction
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipe
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import com.kiri.domain.home.repository.DailyQuestion
+import com.kiri.domain.home.repository.FamilyHome
+import com.kiri.domain.home.repository.FamilyMember
+import com.kiri.domain.home.repository.HomeRepository
+import com.kiri.domain.home.repository.WeeklyMission
+import java.time.LocalDate
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+
+class HomeScreenTest {
+    @get:Rule
+    val compose = createComposeRule()
+
+    @Test fun emptyMissionMatchesFigmaHeightAndOpensPlaces() {
+        var opened = false
+        compose.setContent {
+            KiriTheme {
+                androidx.compose.foundation.layout.Column {
+                    com.kiri.uikit.component.KiriMissionCard(null, null, emptyList(), false, false,
+                        onPlacesClick = { opened = true },
+                        modifier = androidx.compose.ui.Modifier.then(androidx.compose.ui.Modifier.testTag("empty_mission")))
+                }
+            }
+        }
+        compose.onNodeWithTag("empty_mission").assertHeightIsEqualTo(136.dp)
+        compose.onNodeWithText("공개된 미션을 둘러보세요 →").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(true, opened) }
+        capture("home-empty-mission-local")
+    }
+
+    @Test fun missionWithLongReasonsKeepsScheduleActionVisible() {
+        var scheduled = false
+        compose.setContent {
+            KiriTheme {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(
+                        androidx.compose.ui.platform.LocalDensity.current.density, fontScale = 1.5f)
+                ) {
+                    com.kiri.uikit.component.KiriMissionCard("가족과 함께 공원에서 산책하기", "서울 공원",
+                        listOf("가족의 산책 취향을 반영한 아주 긴 추천 이유입니다", "무료 체험"), false, false,
+                        onPlacesClick = {}, onScheduleClick = { scheduled = true })
+                }
+            }
+        }
+        compose.onNodeWithText("일정 잡기").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(true, scheduled) }
+        capture("home-long-mission-local")
+    }
+
+    @Test fun recommendationDispatchesSelectedMission() {
+        var missionId: String? = null
+        val home = ScreenRepository().home
+        compose.setContent {
+            KiriTheme {
+                HomeScreen(com.kiri.feature.home.model.HomeUiState(loading = false, home = home), onEvent = { event ->
+                    if (event is com.kiri.feature.home.model.HomeUiEvent.MissionClicked) missionId = event.id
+                })
+            }
+        }
+        compose.onNodeWithTag("home_recommendation_place").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals("place", missionId) }
+        capture("home-recommendations-local")
+    }
+
+    @Test fun autumnSectionRemainsVisibleWhenHomeLoadFails() {
+        compose.setContent {
+            KiriTheme {
+                HomeScreen(
+                    com.kiri.feature.home.model.HomeUiState(
+                        loading = false,
+                        loadFailure = com.kiri.feature.home.model.HomeLoadFailure.NETWORK,
+                    ),
+                    onEvent = {},
+                )
+            }
+        }
+        compose.onNodeWithText("오늘 가을분위기를 느끼고 싶다면").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("추천을 불러오지 못했어요.").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun autumnRecommendationOpensOutdoorMission() {
+        var missionId: String? = null
+        val home = ScreenRepository().home.copy(
+            outdoorRecommendations = listOf(HomeRecommendation("outdoor", "가을 산책", "공원")),
+        )
+        compose.setContent {
+            KiriTheme {
+                HomeScreen(com.kiri.feature.home.model.HomeUiState(loading = false, home = home), onEvent = { event ->
+                    if (event is com.kiri.feature.home.model.HomeUiEvent.MissionClicked) missionId = event.id
+                })
+            }
+        }
+        compose.onNodeWithTag("home_outdoor_recommendation_outdoor").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals("outdoor", missionId) }
+    }
+
+    @Test fun browsingHomeOffersFamilyCreationAndJoining() {
+        val destinations = mutableListOf<com.kiri.feature.home.model.HomeUiDestination>()
+        val home = ScreenRepository().home.copy(familyName = null)
+        compose.setContent {
+            KiriTheme {
+                HomeScreen(com.kiri.feature.home.model.HomeUiState(loading = false, home = home), onEvent = { event ->
+                    if (event is com.kiri.feature.home.model.HomeUiEvent.DestinationClicked) destinations += event.destination
+                })
+            }
+        }
+        compose.onNodeWithTag("home_create_family").performClick()
+        compose.onNodeWithTag("home_join_family").performClick()
+        compose.onNodeWithText("답변 모아보기").assertDoesNotExist()
+        compose.runOnIdle {
+            assertEquals(
+                listOf(com.kiri.feature.home.model.HomeUiDestination.CreateFamily, com.kiri.feature.home.model.HomeUiDestination.JoinFamily),
+                destinations,
+            )
+        }
+    }
+
+    @Test fun tasteBannerDispatchesSettingsDestination() {
+        var destination: com.kiri.feature.home.model.HomeUiDestination? = null
+        val home = ScreenRepository().home
+        compose.setContent {
+            KiriTheme {
+                HomeScreen(com.kiri.feature.home.model.HomeUiState(loading = false, home = home,
+                    showTasteBanner = true, tasteNickname = "나"), onEvent = { event ->
+                    if (event is com.kiri.feature.home.model.HomeUiEvent.DestinationClicked) destination = event.destination
+                })
+            }
+        }
+        compose.onNodeWithTag("home_taste_banner").assertHasNoClickAction().performTouchInput {
+            click(Offset(width * 0.2f, height * 0.5f))
+        }
+        compose.runOnIdle { assertEquals(null, destination) }
+        compose.onNodeWithTag("home_taste_action").performClick()
+        compose.runOnIdle { assertEquals(com.kiri.feature.home.model.HomeUiDestination.TasteSettings, destination) }
+        capture("home-taste-banner-local")
+    }
+
+    @Test
+    fun questionAndMissionFlipAreVisible() {
+        val repository = ScreenRepository()
+        val viewModel = HomeViewModel(repository)
+        compose.setContent { KiriTheme { HomeRoute(viewModel = viewModel) } }
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("home_mission_card").performScrollTo().assertHeightIsEqualTo(136.dp)
+        compose.onNodeWithText("광장시장에서 시장음식 먹어보기").assertIsDisplayed()
+        compose.onNodeWithContentDescription("질문 카드로 전환").performClick()
+        compose.onNodeWithText("오늘 나의 질문카드").assertIsDisplayed()
+        compose.onNodeWithText("오늘 가족과 함께하고 싶은 일은 무엇인가요?", substring = true).assertIsDisplayed()
+        capture("home-avatars")
+        // 화면 오른쪽 끝에서 시작하면 Android 16의 시스템 뒤로가기 제스처가 개입한다.
+        compose.onNodeWithTag("home_question_card").performScrollTo().performTouchInput {
+            swipe(start = center + Offset(40f, 0f), end = center - Offset(40f, 0f))
+        }
+        capture("home-after-horizontal-swipe")
+        compose.onNodeWithTag("home_question_card").assertIsDisplayed()
+        compose.onNodeWithContentDescription("미션 카드로 전환").performClick()
+        compose.onNodeWithText("이번주 미션이에요!").assertIsDisplayed()
+        compose.onNodeWithTag("home_mission_card").assertHeightIsEqualTo(136.dp)
+        compose.onNodeWithText("광장시장 · 종로구").assertIsDisplayed()
+        compose.onNodeWithText("광장시장에서 시장음식 먹어보기").assertIsDisplayed()
+        compose.onNodeWithText("대중교통 편리").assertIsDisplayed()
+        compose.onNodeWithText("혼잡도 높음").assertIsDisplayed()
+        compose.onNodeWithText("일정 잡기").assertDoesNotExist()
+        compose.onNodeWithText("일정 보기").assertDoesNotExist()
+        capture("home-mission")
+        compose.onNodeWithContentDescription("질문 카드로 전환").performClick()
+        compose.onNodeWithTag("home_question_card").assertIsDisplayed()
+        compose.onNodeWithTag("home_screen").performTouchInput { swipeUp() }
+        capture("home-standard-places")
+    }
+
+    @Test
+    fun answerEditorKeepsDraftAndSubmitsThroughViewModel() {
+        val repository = ScreenRepository()
+        val viewModel = HomeViewModel(repository)
+        compose.setContent { HomeRoute(viewModel = viewModel) }
+        compose.waitForIdle()
+
+        compose.onNodeWithContentDescription("질문 카드로 전환").performScrollTo().performClick()
+        compose.onNodeWithTag("home_question_card").performScrollTo().performClick()
+        compose.onNodeWithText("답변 제출").assertIsDisplayed()
+        compose.onNodeWithContentDescription("오늘의 질문 답변").performTextInput("가족과 산책하기")
+        compose.onNodeWithText("답변 제출").performClick()
+        compose.waitForIdle()
+        assertEquals("가족과 산책하기", repository.home.answers["me"])
+    }
+
+    @Test
+    fun ownAvatarDisplaysAnswerWithoutSelfPokeAction() {
+        val repository = ScreenRepository()
+        val viewModel = HomeViewModel(repository)
+        compose.setContent { KiriTheme { HomeRoute(viewModel = viewModel) } }
+        compose.onNodeWithTag("home_member_me").performScrollTo().performClick()
+        compose.onNodeWithTag("member_answer_tooltip").assertIsDisplayed()
+        compose.onNodeWithContentDescription("콕 찌르기").assertDoesNotExist()
+    }
+
+    @Test
+    fun memberSelectionShowsAnswerToast() {
+        val viewModel = HomeViewModel(ScreenRepository())
+        compose.setContent { HomeRoute(viewModel = viewModel) }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("엄마").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("엄마의 답변", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("같이 산책하기").assertIsDisplayed()
+    }
+
+    @Test
+    fun inlineInviteButtonKeepsFigmaHeightAndClick() {
+        var clicks = 0
+        compose.setContent {
+            KiriTheme {
+                com.kiri.uikit.component.KiriButton(
+                    onClick = { clicks++ }, text = "가족 초대하기",
+                    tone = com.kiri.uikit.component.KiriButtonTone.Neutral,
+                    layout = com.kiri.uikit.component.KiriButtonLayout.Inline,
+                    testTag = "home_inline_invite",
+                )
+            }
+        }
+        compose.onNodeWithTag("home_inline_invite").assertHeightIsEqualTo(30.dp).performClick()
+        compose.runOnIdle { assertEquals(1, clicks) }
+    }
+
+    private class ScreenRepository : HomeRepository {
+        private val question = DailyQuestion("q", LocalDate.of(2026, 10, 3), "오늘 가족과 함께하고 싶은 일은 무엇인가요?")
+        var home = FamilyHome(
+            question.date,
+            "me",
+            "우리 가족",
+            listOf(FamilyMember("me", "나", "자녀"), FamilyMember("mom", "엄마", "엄마")),
+            question,
+            mapOf("mom" to "같이 산책하기"),
+            emptySet(),
+            WeeklyMission("m", "광장시장에서 시장음식 먹어보기", "광장시장 · 종로구", listOf("대중교통 편리", "혼잡도 높음"), false, place = "광장시장 · 종로구"),
+            recommendations = listOf(HomeRecommendation("place", "경복궁에서 사진찍기", "경복궁 종로구", rating = "4.6", description = "대중교통이 편리하고, 부모님이랑 가기 좋아요! 추천합니다")),
+        )
+
+        override suspend fun load() = home
+        override suspend fun saveAnswer(question: DailyQuestion, answer: String): FamilyHome {
+            home = home.copy(answers = home.answers + ("me" to answer))
+            return home
+        }
+        override suspend fun poke(question: DailyQuestion, memberId: String) = home
+    }
+
+    private fun capture(name: String) {
+        compose.waitForIdle()
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val output = InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")?.let(::File)
+            ?: requireNotNull(context.getExternalFilesDir(null))
+        output.mkdirs()
+        File(output, "$name.png").outputStream().use {
+            compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
+    }
+}

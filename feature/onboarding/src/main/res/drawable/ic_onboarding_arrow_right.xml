@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Figma KIRI/Icon/Navigation/Back (Size=24, 굵기 2, #D9D9D8)를 좌우로 뒤집어 오른쪽 화살표로 쓴다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  <group
+      android:pivotX="12"
+      android:scaleX="-1">
+    <path
+        android:pathData="M16,4L8,12.1951L16,20"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:strokeColor="#D9D9D8"
+        android:strokeLineCap="round"/>
+  </group>
+</vector>

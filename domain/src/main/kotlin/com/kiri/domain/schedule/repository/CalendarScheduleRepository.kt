@@ -1,0 +1,35 @@
+package com.kiri.domain.schedule.repository
+
+import com.kiri.domain.mission.model.MissionGuide
+import com.kiri.domain.schedule.model.CalendarSchedule
+import com.kiri.domain.schedule.model.ScheduleDetail
+import com.kiri.domain.schedule.model.ScheduleUpdate
+import java.time.YearMonth
+
+interface CalendarScheduleRepository {
+    suspend fun respond(scheduleId: Long, accept: Boolean): Result<Unit> = Result.failure(UnsupportedOperationException())
+    suspend fun cancel(scheduleId: Long): Result<Unit> = Result.failure(UnsupportedOperationException())
+
+    suspend fun createWeeklySchedule(missionId: Long, form: ScheduleUpdate): Result<Long> = Result.failure(UnsupportedOperationException())
+
+    // 그 달의 가족 일정을 불러온다. 가족 공간이 없으면 빈 목록을 돌려준다
+    suspend fun getMonthlySchedules(month: YearMonth): Result<List<CalendarSchedule>>
+
+    // 월간 조회로 받은 id 로 일정 상세를 불러온다
+    // 가족 공간이 없으면 NoFamilyException, 없거나 다른 가족의 일정이면 ScheduleNotFoundException,
+    // 취소된 일정이면 CancelledScheduleException 으로 실패한다
+    suspend fun getScheduleDetail(scheduleId: Long): Result<ScheduleDetail>
+
+    suspend fun getScheduleEssentials(scheduleId: Long): Result<List<MissionGuide>> = Result.success(emptyList())
+
+    // 제안자가 일정의 날짜·시간·참여자·한 줄을 바꾼다. 바뀌면 기존 수락자는 다시 응답해야 한다
+    // 제안자가 아니면 NotScheduleProposerException, 없는 일정이면 ScheduleNotFoundException,
+    // 바꿀 수 없는 상태면 ScheduleNotEditableException, 입력값이 잘못되면 InvalidScheduleUpdateException 으로 실패한다
+    suspend fun updateSchedule(scheduleId: Long, update: ScheduleUpdate): Result<Unit>
+
+    // 버킷 항목으로 일정을 만들고 고른 가족에게 초대를 보낸다. 만든 일정의 id 를 돌려준다
+    // 제안자(나)는 자동으로 수락되고, 버킷은 SCHEDULED 가 되며, 일정은 PENDING_RESPONSE 로 시작한다
+    // 가족 공간이 없으면 NoFamilyException, 없는 버킷이면 BucketItemNotFoundException,
+    // 일정을 만들 수 없는 버킷이면 BucketNotSchedulableException, 입력값이 잘못되면 InvalidScheduleUpdateException 으로 실패한다
+    suspend fun createSchedule(bucketItemId: Long, form: ScheduleUpdate): Result<Long>
+}

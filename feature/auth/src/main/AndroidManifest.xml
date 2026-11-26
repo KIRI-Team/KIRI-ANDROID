@@ -1,0 +1,23 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 카카오·구글 로그인 요청에 필요하다 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- 카카오톡 설치 확인용 <queries> 는 카카오 SDK 매니페스트에 들어 있어 따로 적지 않는다 -->
+
+    <application>
+        <!-- 카카오계정 로그인(웹)을 마치고 kakao{앱 키}://oauth 로 앱에 돌아올 때 받는 화면 -->
+        <activity
+            android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="oauth"
+                    android:scheme="kakao${KAKAO_NATIVE_APP_KEY}" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

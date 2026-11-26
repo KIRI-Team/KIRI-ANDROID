@@ -1,0 +1,63 @@
+package com.kiri.feature.record.presentation.schedule
+
+import com.kiri.feature.record.presentation.bucket.withSubjectParticle
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+
+// 일정 등록하기 화면에서 사용자가 채우는 값. 날짜·시간·구성원 한 명 이상을 골라야 초대장을 만들 수 있다
+data class ScheduleRegisterDraft(
+    val date: LocalDate? = null,
+    val time: LocalTime? = null,
+    val memberIds: Set<String> = emptySet(),
+    val message: String = "",
+) {
+    val canSubmit: Boolean get() = date != null && time != null && memberIds.isNotEmpty()
+
+    fun withMessage(text: String): ScheduleRegisterDraft = copy(message = text.take(MAX_MESSAGE_LENGTH))
+
+    companion object {
+        const val MAX_MESSAGE_LENGTH = 100
+    }
+}
+
+// Figma 8441:7579 표기 그대로: 26.10.07(수) · 16:30분
+internal fun scheduleLabel(date: LocalDate, time: LocalTime): String =
+    "${date.format(DateFormat)}(${WeekdayNames.getValue(date.dayOfWeek)}) · ${time.format(TimeFormat)}분"
+
+internal fun memberCountLabel(count: Int): String = "인원 ${count}명"
+
+// 요청알림 카드의 날짜: 26.06.23
+internal fun requestDateLabel(date: LocalDate): String = date.format(DateFormat)
+
+// 일정 취소 화면의 안내: 12월 3일에 예정된 약속이에요!
+internal fun scheduledPromiseLabel(date: LocalDate): String = "${date.monthValue}월 ${date.dayOfMonth}일에 예정된 약속이에요!"
+
+// 아빠가 저장했어요! / 딸이 저장했어요!
+internal fun savedByLabel(name: String): String = "${withSubjectParticle(name)} 저장했어요!"
+
+// 아빠가 저장한 미션이에요! / 딸이 저장한 미션이에요!
+internal fun savedMissionLabel(name: String): String = "${withSubjectParticle(name)} 저장한 미션이에요!"
+
+// 일정 변경알림의 안내: 엄마가 일정을 변경했어요! / 이름을 모르면 일정이 변경되었어요!
+internal fun scheduleChangedLabel(name: String): String =
+    if (name.isBlank()) "일정이 변경되었어요!" else "${withSubjectParticle(name)} 일정을 변경했어요!"
+
+// 일정 변경알림 카드의 일시. 시간이 바뀌었으면 날짜 뒤에 시간을 붙인다: 26.06.23 15:00
+internal fun changedDateLabel(date: LocalDate, time: LocalTime?): String =
+    time?.let { "${requestDateLabel(date)} ${it.format(DateTimeFormatter.ofPattern("HH:mm"))}" } ?: requestDateLabel(date)
+
+private val DateFormat = DateTimeFormatter.ofPattern("yy.MM.dd")
+private val TimeFormat = DateTimeFormatter.ofPattern("HH:mm")
+
+// 기기 언어와 상관없이 한글 요일을 쓴다
+private val WeekdayNames = mapOf(
+    DayOfWeek.MONDAY to "월",
+    DayOfWeek.TUESDAY to "화",
+    DayOfWeek.WEDNESDAY to "수",
+    DayOfWeek.THURSDAY to "목",
+    DayOfWeek.FRIDAY to "금",
+    DayOfWeek.SATURDAY to "토",
+    DayOfWeek.SUNDAY to "일",
+)

@@ -1,0 +1,321 @@
+package com.kiri.feature.record.presentation.schedule
+
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.semantics.SemanticsProperties
+import com.kiri.uikit.component.KiriParticipantStatus
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
+import com.kiri.domain.schedule.model.ScheduleRequestChannel
+import com.kiri.feature.record.presentation.sheet.RecordMember
+import com.kiri.uikit.KiriTheme
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.YearMonth
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+
+class ScheduleRegisterScreenTest {
+    @get:Rule val compose = createComposeRule()
+
+    // 이번 달 안의 날짜여야 시트를 열었을 때 바로 보인다. 지난 날짜 제한은 걸지 않는다(earliest = null)
+    private val pickDate = YearMonth.from(LocalDate.now()).atDay(15)
+    private var draft by mutableStateOf(ScheduleRegisterDraft())
+    private var sending by mutableStateOf(false)
+    private var error by mutableStateOf<String?>(null)
+    private val sent = mutableListOf<ScheduleRequestChannel>()
+
+    private fun setFlow(weekly: Boolean = false) {
+        compose.setContent {
+            KiriTheme {
+                ScheduleRegisterFlow(
+                    savedBy = "딸",
+                    title = "한강 뚜벅뚜벅 축제 가보기",
+                    description = "설명",
+                    members = listOf(RecordMember("mom", "엄마"), RecordMember("dad", "아빠")),
+                    draft = draft,
+                    onDraftChange = { draft = it },
+                    onBackClick = {},
+                    onDetailClick = {},
+                    onSend = { sent += it },
+                    sending = sending,
+                    error = error,
+                    times = listOf(LocalTime.of(9, 0), LocalTime.of(16, 30)),
+                    weekly = weekly,
+                )
+            }
+        }
+    }
+
+    private fun fillScheduleAndMembers(vararg memberIds: String) {
+        compose.onNodeWithTag("schedule_register_schedule_row").performClick()
+        compose.onNodeWithTag("record_calendar_day_$pickDate").performClick()
+        compose.onNodeWithTag("record_time_09:00").performClick()
+        compose.onNodeWithText("다음").performClick()
+        compose.onNodeWithTag("schedule_register_member_row").performClick()
+        memberIds.forEach { compose.onNodeWithTag("record_member_$it").performClick() }
+        compose.onNodeWithText("확인").performClick()
+    }
+
+    @Test fun scheduleRowOpensScheduleSheetAndAppliesPickOnNext() {
+        setFlow()
+        compose.onNodeWithTag("schedule_register_schedule_row").performClick()
+        compose.onNodeWithTag("record_schedule_sheet").assertExists()
+
+        compose.onNodeWithTag("record_calendar_day_$pickDate").performClick()
+        compose.onNodeWithTag("record_time_16:30").performClick()
+        compose.onNodeWithText("다음").performClick()
+
+        compose.onNodeWithTag("record_schedule_sheet").assertDoesNotExist()
+        compose.onNodeWithTag("schedule_register_schedule_row")
+            .assertTextContains(scheduleLabel(pickDate, LocalTime.of(16, 30)))
+    }
+
+    @Test fun memberRowOpensMemberSheetAndAppliesPickOnConfirm() {
+        setFlow()
+        compose.onNodeWithTag("schedule_register_member_row").performClick()
+        compose.onNodeWithTag("record_member_select_sheet").assertExists()
+
+        compose.onNodeWithTag("record_member_mom").performClick()
+        compose.onNodeWithTag("record_member_dad").performClick()
+        compose.onNodeWithText("확인").performClick()
+
+        compose.onNodeWithTag("record_member_select_sheet").assertDoesNotExist()
+        compose.onNodeWithTag("schedule_register_member_row").assertTextContains("인원 2명")
+    }
+
+    @Test fun inviteOpensRequestAndEachSendMethodIsPassedOn() {
+        setFlow()
+        val invite = compose.onNode(hasText("초대장 만들기"))
+        invite.assertIsNotEnabled()
+        fillScheduleAndMembers("mom")
+        compose.onNodeWithTag("schedule_register_message").performTextInput("같이 가요")
+        compose.onNodeWithText("5/100").assertExists()
+
+        invite.assertIsEnabled().performClick()
+
+        // 초대장 만들기를 누르면 요청알림 미리보기로 넘어가고, 고른 내용이 그대로 보인다
+        compose.onNodeWithTag("schedule_request_screen").assertExists()
+        compose.onNodeWithText("딸이 저장한 미션이에요!").assertExists()
+        compose.onNodeWithText(requestDateLabel(pickDate)).assertExists()
+        compose.onNodeWithText("엄마").assertExists()
+        compose.onNodeWithText("같이 가요").assertExists()
+
+        compose.onNodeWithText("요청 보내기").performClick()
+        compose.onNodeWithTag("record_send_app").performClick()
+        compose.onNodeWithTag("record_send_method_sheet").assertDoesNotExist()
+        compose.onNodeWithText("요청 보내기").performClick()
+        compose.onNodeWithTag("record_send_kakao").performClick()
+        assertEquals(listOf(ScheduleRequestChannel.APP, ScheduleRequestChannel.KAKAO), sent)
+    }
+
+    // 행사 설명은 일정 등록 화면에는 없고, 초대장 만들기로 연 요청 미리보기의 자세히 보러가기 아래에만 보인다
+    @Test fun missionDescriptionShowsOnlyOnRequestPreview() {
+        setFlow()
+        compose.onNodeWithText("설명").assertDoesNotExist()
+        compose.onNodeWithText("행사설명").assertDoesNotExist()
+
+        fillScheduleAndMembers("mom")
+        compose.onNode(hasText("초대장 만들기")).performClick()
+
+        compose.onNodeWithTag("schedule_request_screen").assertExists()
+        compose.onNodeWithText("행사설명").assertExists()
+        compose.onNodeWithText("설명").assertExists()
+    }
+
+    @Test fun requestShowsSendingAndErrorWithoutLeaving() {
+        setFlow()
+        fillScheduleAndMembers("mom")
+        compose.onNode(hasText("초대장 만들기")).performClick()
+
+        sending = true
+        compose.onNodeWithText("보내는 중…").assertIsNotEnabled()
+        compose.onNodeWithTag("schedule_request_cancel").assertIsNotEnabled()
+
+        sending = false
+        error = "요청을 보내지 못했어요. 다시 시도해주세요."
+        compose.onNodeWithTag("schedule_request_error").assertTextContains("요청을 보내지 못했어요. 다시 시도해주세요.")
+        compose.onNodeWithText("요청 보내기").assertIsEnabled()
+        compose.onNodeWithTag("schedule_request_screen").assertExists()
+    }
+
+    // 일정 취소 확인(Figma 10629:27298)은 요청알림 화면을 문구만 바꿔 쓴다
+    @Test fun scheduleCancelConfirmUsesItsOwnLabelsAndSendsEachClick() {
+        var back = 0
+        var detail = 0
+        var confirm = 0
+        var cancelling by mutableStateOf(false)
+        compose.setContent {
+            KiriTheme {
+                ScheduleRequestScreen(
+                    savedBy = "",
+                    title = "한강 뚜벅뚜벅 축제",
+                    description = "",
+                    date = LocalDate.of(2026, 12, 3),
+                    memberNames = listOf("엄마", "아빠", "나"),
+                    message = "",
+                    onBackClick = { back++ },
+                    onDetailClick = { detail++ },
+                    onSendClick = { confirm++ },
+                    sending = cancelling,
+                    topBarTitle = "일정 취소",
+                    headline = "12월 3일에 예정된 약속이에요!",
+                    dismissText = "돌아가기",
+                    confirmText = "일정 취소하기",
+                    confirmingText = "취소하는 중…",
+                )
+            }
+        }
+
+        compose.onNodeWithText("일정 취소").assertExists()
+        compose.onNodeWithText("12월 3일에 예정된 약속이에요!").assertExists()
+        compose.onNodeWithText("엄마, 아빠, 나").assertExists()
+        compose.onNodeWithText("요청 보내기").assertDoesNotExist()
+        compose.onNodeWithText("돌아가기").performClick()
+        compose.onNodeWithTag("schedule_request_detail").performClick()
+        compose.onNodeWithText("일정 취소하기").performClick()
+        assertEquals(listOf(1, 1, 1), listOf(back, detail, confirm))
+
+        cancelling = true
+        compose.onNodeWithText("취소하는 중…").assertIsNotEnabled()
+        compose.onNodeWithTag("schedule_request_cancel").assertIsNotEnabled()
+    }
+
+    // 받은 초대 응답 화면도 요청알림 화면을 쓰고, 거절은 뒤로가기와 따로 전달한다
+    @Test fun responseScreenSeparatesDeclineFromBack() {
+        var back = 0
+        var declined = 0
+        var accepted = 0
+        compose.setContent {
+            KiriTheme {
+                ScheduleRequestScreen(
+                    savedBy = "",
+                    title = "한강 뚜벅뚜벅 축제",
+                    description = "",
+                    date = LocalDate.of(2026, 12, 3),
+                    memberNames = listOf("엄마", "나"),
+                    message = "",
+                    onBackClick = { back++ },
+                    onDetailClick = {},
+                    onSendClick = { accepted++ },
+                    headline = "엄마가 보낸 약속이에요!",
+                    dismissText = "거절",
+                    confirmText = "수락",
+                    onDismissClick = { declined++ },
+                )
+            }
+        }
+
+        compose.onNodeWithText("엄마가 보낸 약속이에요!").assertExists()
+        compose.onNodeWithText("거절").performClick()
+        compose.onNodeWithText("수락").performClick()
+        assertEquals(listOf(0, 1, 1), listOf(back, declined, accepted))
+    }
+
+    // 받은 요청알림(Figma 10298:38588)은 위쪽에 초대 수락 현황을 보여주고, 카드 위 안내 문구는 없다
+    @Test fun receivedRequestShowsAcceptanceStatusInsteadOfHeadline() {
+        compose.setContent {
+            KiriTheme {
+                ScheduleRequestScreen(
+                    savedBy = "엄마",
+                    title = "한강 뚜벅뚜벅 축제",
+                    description = "잠수교를 걸어요",
+                    date = LocalDate.of(2026, 12, 3),
+                    memberNames = listOf("엄마", "아빠"),
+                    message = "",
+                    onBackClick = {},
+                    onDetailClick = {},
+                    onSendClick = {},
+                    topBarTitle = "요청알림",
+                    dismissText = "약속 거절하기",
+                    confirmText = "약속 확정하기",
+                    acceptance = listOf(
+                        KiriParticipantStatus("0", "엄마", true, "수락"),
+                        KiriParticipantStatus("1", "아빠", false, "미수락"),
+                    ),
+                )
+            }
+        }
+
+        compose.onNodeWithText("초대 수락 현황").assertExists()
+        compose.onNodeWithTag("schedule_request_acceptance_0").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "수락"))
+        compose.onNodeWithTag("schedule_request_acceptance_1").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "미수락"))
+        compose.onNodeWithText("엄마가 저장한 미션이에요!").assertDoesNotExist()
+        compose.onNodeWithText("행사설명").assertExists()
+        compose.onNodeWithText("약속 거절하기").assertExists()
+        compose.onNodeWithText("약속 확정하기").assertExists()
+    }
+
+    // 일정 변경알림: 바뀐 항목(changedFields) 옆에만 "변경되었어요!" 배지를 달고, 시간이 바뀌면 일시에 시간을 붙인다
+    @Test fun changeAlertShowsBadgesNextToChangedFieldsOnly() {
+        var changed by mutableStateOf(setOf(com.kiri.domain.schedule.model.ScheduleChangedField.TIME))
+        compose.setContent {
+            KiriTheme {
+                ScheduleRequestScreen(
+                    savedBy = "엄마",
+                    title = "한강 뚜벅뚜벅 축제",
+                    description = "잠수교를 걸어요",
+                    date = LocalDate.of(2026, 12, 3),
+                    memberNames = listOf("엄마", "나"),
+                    message = "같이 가요",
+                    onBackClick = {},
+                    onDetailClick = {},
+                    onSendClick = {},
+                    topBarTitle = "변경알림",
+                    headline = "엄마가 일정을 변경했어요!",
+                    changedFields = changed,
+                    time = java.time.LocalTime.of(15, 0),
+                )
+            }
+        }
+
+        compose.onNodeWithText("26.12.03 15:00").assertExists()
+        compose.onNodeWithTag("schedule_request_changed_date").assertExists()
+        compose.onNodeWithTag("schedule_request_changed_participants").assertDoesNotExist()
+        compose.onNodeWithText("잠수교를 걸어요").assertExists()
+        compose.onNodeWithText("같이 가요").assertExists()
+
+        changed = setOf(com.kiri.domain.schedule.model.ScheduleChangedField.PARTICIPANTS)
+        compose.onNodeWithText("26.12.03").assertExists()
+        compose.onNodeWithTag("schedule_request_changed_date").assertDoesNotExist()
+        compose.onNodeWithTag("schedule_request_changed_participants").assertExists()
+    }
+
+    @Test fun cancelOnRequestReturnsToRegisterKeepingInput() {
+        setFlow()
+        fillScheduleAndMembers("mom", "dad")
+        compose.onNode(hasText("초대장 만들기")).performClick()
+        compose.onNodeWithText("엄마, 아빠").assertExists()
+
+        compose.onNodeWithTag("schedule_request_cancel").performClick()
+
+        compose.onNodeWithTag("schedule_request_screen").assertDoesNotExist()
+        compose.onNodeWithTag("schedule_register_member_row").assertTextContains("인원 2명")
+    }
+
+    @Test fun weeklyFlowReusesTheFormAndSendsOnlyAfterFinalConfirmation() {
+        setFlow(weekly = true)
+        compose.onNodeWithText("가족에게 추천된 주간 미션이에요!").assertExists()
+        fillScheduleAndMembers("mom")
+        compose.onNodeWithText("초대장 만들기").performClick()
+        compose.onNodeWithText("가족에게 추천된 주간 미션이에요!").assertExists()
+        assertEquals(emptyList<ScheduleRequestChannel>(), sent)
+        compose.onNodeWithTag("schedule_request_cancel").performClick()
+        assertEquals(emptyList<ScheduleRequestChannel>(), sent)
+        compose.onNodeWithText("초대장 만들기").performClick()
+        compose.onNodeWithText("요청 보내기").performClick()
+        compose.onNodeWithTag("record_send_app").performClick()
+        assertEquals(listOf(ScheduleRequestChannel.APP), sent)
+    }
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 적응형 아이콘 앞면 108dp 중 가운데 56dp 에 로고를 둔다 (26dp 씩 여백).
+     로고는 모서리가 둥근 사각형이라 가운데에서 가장 먼 모서리까지 약 35.7dp 다.
+     런처가 보여주는 영역 중 가장 좁은 원형 마스크(지름 72dp)에서도 모서리가 잘리지 않는 가장 큰 크기다 -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/kiri_app_icon_logo"
+    android:inset="26dp" />
